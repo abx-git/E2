@@ -1,11 +1,16 @@
 "use client";
 
-import { CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, HelpCircle } from "lucide-react";
 
-import { FACILITATOR_FORMATS, getCurrentPhase } from "@/lib/facilitator-phases";
+import { FACILITATOR_FORMATS, getCurrentPhase, type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { useStormBoardStore } from "@/store/storm-board-store";
+import type { WorkshopFormat } from "@/types/storm-element";
 
-export function FacilitatorPanel() {
+export interface FacilitatorPanelProps {
+  onRequestHelpPhase?: (phase: FacilitatorPhase, format: WorkshopFormat) => void;
+}
+
+export function FacilitatorPanel({ onRequestHelpPhase }: FacilitatorPanelProps) {
   const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
   const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
   const facilitatorPhase = useStormBoardStore((s) => s.facilitatorPhase);
@@ -23,9 +28,20 @@ export function FacilitatorPanel() {
 
   return (
     <section className="border-t border-slate-200 p-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Facilitator — {formatDef.label}
-      </h3>
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Facilitator — {formatDef.label}
+        </h3>
+        <button
+          type="button"
+          onClick={() => onRequestHelpPhase?.(phase, workshopFormat)}
+          className="rounded-lg border border-slate-200 bg-white/80 p-1.5 text-slate-600 hover:bg-white"
+          title="Hilfe zur aktuellen Phase"
+          aria-label="Hilfe zur aktuellen Phase"
+        >
+          <HelpCircle className="h-4 w-4" />
+        </button>
+      </div>
       <p className="mt-1 text-xs font-medium text-slate-800">
         Phase {facilitatorPhase + 1}/{totalPhases}: {phase.title}
       </p>

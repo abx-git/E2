@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertCircle, Trash2 } from "lucide-react";
+import { AlertCircle, HelpCircle, Trash2 } from "lucide-react";
 
 import { validateBoard } from "@/lib/relation-validation";
 import { RELATION_TYPE_LABELS, type RelationType } from "@/types/storm-relation";
+import type { ElementType } from "@/types/storm-element";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 
@@ -12,20 +13,37 @@ const RELATION_TYPES: RelationType[] = [
   "triggers", "reactsWith", "informs", "executedBy", "invokes", "causal", "contains",
 ];
 
-export function ElementDetailSidebar() {
+export interface ElementDetailSidebarProps {
+  onRequestHelpElementType?: (type: ElementType) => void;
+  onRequestHelpRelationType?: (type: RelationType) => void;
+}
+
+export function ElementDetailSidebar({
+  onRequestHelpElementType,
+  onRequestHelpRelationType,
+}: ElementDetailSidebarProps) {
   const elements = useStormBoardStore((s) => s.elements);
   const relations = useStormBoardStore((s) => s.relations);
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const selectedRelationId = useStormBoardStore((s) => s.selectedRelationId);
+  const selectedBoundedContextId = useStormBoardStore((s) => s.selectedBoundedContextId);
+  const selectedSwimlaneId = useStormBoardStore((s) => s.selectedSwimlaneId);
   const updateElement = useStormBoardStore((s) => s.updateElement);
   const deleteElement = useStormBoardStore((s) => s.deleteElement);
   const updateRelation = useStormBoardStore((s) => s.updateRelation);
   const deleteRelation = useStormBoardStore((s) => s.deleteRelation);
+  const updateBoundedContext = useStormBoardStore((s) => s.updateBoundedContext);
+  const deleteBoundedContext = useStormBoardStore((s) => s.deleteBoundedContext);
+  const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
+  const deleteSwimlane = useStormBoardStore((s) => s.deleteSwimlane);
+  const connectElements = useStormBoardStore((s) => s.connectElements);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
 
   const selectedElement = elements.find((e) => e.id === selectedElementIds[0]);
   const selectedRelation = relations.find((r) => r.id === selectedRelationId);
+  const selectedBoundedContext = boundedContexts.find((bc) => bc.id === selectedBoundedContextId);
+  const selectedSwimlane = swimlanes.find((lane) => lane.id === selectedSwimlaneId);
 
   const issues = useMemo(
     () => validateBoard(elements, relations).filter((i) => i.elementId === selectedElement?.id),
@@ -35,8 +53,17 @@ export function ElementDetailSidebar() {
   if (selectedRelation) {
     return (
       <aside className="flex w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
           <h2 className="text-sm font-semibold text-slate-900">Relation</h2>
+          <button
+            type="button"
+            onClick={() => onRequestHelpRelationType?.(selectedRelation.type)}
+            className="rounded-lg border border-slate-200 bg-white/80 p-1.5 text-slate-600 hover:bg-white"
+            title="Hilfe zur Relation"
+            aria-label="Hilfe zur Relation"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </button>
         </div>
         <div className="space-y-3 p-4">
           <label className="block text-xs font-medium text-slate-600">
@@ -72,6 +99,172 @@ export function ElementDetailSidebar() {
   }
 
   if (!selectedElement) {
+    if (selectedSwimlane) {
+      return (
+        <aside className="flex w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
+          <div className="border-b border-slate-200 px-4 py-3">
+            <h2 className="text-sm font-semibold text-slate-900">Swimlane</h2>
+          </div>
+          <div className="space-y-3 p-4">
+            <label className="block text-xs font-medium text-slate-600">
+              Label
+              <input
+                className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                value={selectedSwimlane.label}
+                onChange={(e) => updateSwimlane(selectedSwimlane.id, { label: e.target.value })}
+              />
+            </label>
+            <label className="block text-xs font-medium text-slate-600">
+              Y-Position
+              <input
+                type="number"
+                className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                value={selectedSwimlane.y}
+                onChange={(e) => updateSwimlane(selectedSwimlane.id, { y: Number(e.target.value) || 0 })}
+              />
+            </label>
+            <label className="block text-xs font-medium text-slate-600">
+              Höhe
+              <input
+                type="number"
+                min={40}
+                className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                value={selectedSwimlane.height}
+                onChange={(e) =>
+                  updateSwimlane(selectedSwimlane.id, {
+                    height: Math.max(40, Number(e.target.value) || 40),
+                  })
+                }
+              />
+            </label>
+            <label className="block text-xs font-medium text-slate-600">
+              Farbe
+              <input
+                type="color"
+                className="mt-1 h-9 w-full rounded-lg border border-slate-200 px-1 py-1"
+                value={selectedSwimlane.color ?? "#94a3b8"}
+                onChange={(e) => updateSwimlane(selectedSwimlane.id, { color: e.target.value })}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => deleteSwimlane(selectedSwimlane.id)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" /> Swimlane löschen
+            </button>
+          </div>
+        </aside>
+      );
+    }
+
+    if (selectedBoundedContext) {
+      return (
+        <aside className="flex w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
+          <div className="border-b border-slate-200 px-4 py-3">
+            <h2 className="text-sm font-semibold text-slate-900">Bounded Context</h2>
+          </div>
+          <div className="space-y-3 p-4">
+            <label className="block text-xs font-medium text-slate-600">
+              Label
+              <input
+                className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                value={selectedBoundedContext.label}
+                onChange={(e) =>
+                  updateBoundedContext(selectedBoundedContext.id, { label: e.target.value })
+                }
+              />
+            </label>
+            <label className="block text-xs font-medium text-slate-600">
+              Zweck
+              <textarea
+                className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                rows={3}
+                value={selectedBoundedContext.purpose ?? ""}
+                onChange={(e) =>
+                  updateBoundedContext(selectedBoundedContext.id, { purpose: e.target.value })
+                }
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block text-xs font-medium text-slate-600">
+                X
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                  value={Math.round(selectedBoundedContext.x)}
+                  onChange={(e) =>
+                    updateBoundedContext(selectedBoundedContext.id, {
+                      x: Number(e.target.value) || 0,
+                    })
+                  }
+                />
+              </label>
+              <label className="block text-xs font-medium text-slate-600">
+                Y
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                  value={Math.round(selectedBoundedContext.y)}
+                  onChange={(e) =>
+                    updateBoundedContext(selectedBoundedContext.id, {
+                      y: Number(e.target.value) || 0,
+                    })
+                  }
+                />
+              </label>
+              <label className="block text-xs font-medium text-slate-600">
+                Breite
+                <input
+                  type="number"
+                  min={80}
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                  value={Math.round(selectedBoundedContext.width)}
+                  onChange={(e) =>
+                    updateBoundedContext(selectedBoundedContext.id, {
+                      width: Math.max(80, Number(e.target.value) || 80),
+                    })
+                  }
+                />
+              </label>
+              <label className="block text-xs font-medium text-slate-600">
+                Höhe
+                <input
+                  type="number"
+                  min={80}
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                  value={Math.round(selectedBoundedContext.height)}
+                  onChange={(e) =>
+                    updateBoundedContext(selectedBoundedContext.id, {
+                      height: Math.max(80, Number(e.target.value) || 80),
+                    })
+                  }
+                />
+              </label>
+            </div>
+            <label className="block text-xs font-medium text-slate-600">
+              Farbe
+              <input
+                type="color"
+                className="mt-1 h-9 w-full rounded-lg border border-slate-200 px-1 py-1"
+                value={selectedBoundedContext.color ?? "#dbeafe"}
+                onChange={(e) =>
+                  updateBoundedContext(selectedBoundedContext.id, { color: e.target.value })
+                }
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => deleteBoundedContext(selectedBoundedContext.id)}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" /> Bounded Context löschen
+            </button>
+          </div>
+        </aside>
+      );
+    }
+
     return (
       <aside className="flex w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-4 py-3">
@@ -86,8 +279,17 @@ export function ElementDetailSidebar() {
 
   return (
     <aside className="flex w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
-      <div className="border-b border-slate-200 px-4 py-3">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
         <h2 className="text-sm font-semibold text-slate-900">{style.label}</h2>
+        <button
+          type="button"
+          onClick={() => onRequestHelpElementType?.(selectedElement.type)}
+          className="rounded-lg border border-slate-200 bg-white/80 p-1.5 text-slate-600 hover:bg-white"
+          title="Hilfe zu diesem Element"
+          aria-label="Hilfe zu diesem Element"
+        >
+          <HelpCircle className="h-4 w-4" />
+        </button>
       </div>
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
         <label className="block text-xs font-medium text-slate-600">
@@ -107,6 +309,31 @@ export function ElementDetailSidebar() {
             onChange={(e) => updateElement(selectedElement.id, { description: e.target.value })}
           />
         </label>
+
+        {elements.length > 1 && (
+          <label className="block text-xs font-medium text-slate-600">
+            Relation zu …
+            <select
+              className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+              defaultValue=""
+              onChange={(e) => {
+                const targetId = e.target.value;
+                if (!targetId) return;
+                connectElements(selectedElement.id, targetId);
+                e.target.value = "";
+              }}
+            >
+              <option value="">Ziel-Element wählen …</option>
+              {elements
+                .filter((el) => el.id !== selectedElement.id)
+                .map((el) => (
+                  <option key={el.id} value={el.id}>
+                    {ELEMENT_STYLES[el.type].shortLabel}: {el.label}
+                  </option>
+                ))}
+            </select>
+          </label>
+        )}
 
         {selectedElement.type === "hotspot" && (
           <>

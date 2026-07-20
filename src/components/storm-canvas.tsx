@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 
 import { BoundedContextLayer } from "@/components/bounded-context-layer";
 import { StormConnectors } from "@/components/storm-connectors";
@@ -8,7 +9,6 @@ import { StormElementCard } from "@/components/storm-element-card";
 import { SwimlaneLayer } from "@/components/swimlane-layer";
 import { TimelineGuide } from "@/components/timeline-guide";
 import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint } from "@/lib/canvas-viewport";
-import { defaultRelationType } from "@/lib/relation-validation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 export function StormCanvas() {
@@ -27,6 +27,7 @@ export function StormCanvas() {
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const selectedRelationId = useStormBoardStore((s) => s.selectedRelationId);
+  const relationMode = useStormBoardStore((s) => s.relationMode);
   const relationDraftSourceId = useStormBoardStore((s) => s.relationDraftSourceId);
 
   const addElement = useStormBoardStore((s) => s.addElement);
@@ -34,13 +35,25 @@ export function StormCanvas() {
   const selectElement = useStormBoardStore((s) => s.selectElement);
   const selectRelation = useStormBoardStore((s) => s.selectRelation);
   const clearSelection = useStormBoardStore((s) => s.clearSelection);
-  const addRelation = useStormBoardStore((s) => s.addRelation);
   const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
+  const connectElements = useStormBoardStore((s) => s.connectElements);
   const addBoundedContext = useStormBoardStore((s) => s.addBoundedContext);
 
   const [bcDraft, setBcDraft] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [bcMode, setBcMode] = useState(false);
   const bcStart = useRef<{ x: number; y: number } | null>(null);
+
+  const sourceElement = elements.find((e) => e.id === relationDraftSourceId);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && relationDraftSourceId) {
+        setRelationDraftSource(null);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [relationDraftSourceId, setRelationDraftSource]);
 
   const applySnap = useCallback(
     (x: number, y: number) => {
@@ -70,25 +83,33 @@ export function StormCanvas() {
   );
 
   const handleDoubleClick = (e: React.MouseEvent) => {
-    if (!containerRef.current || bcMode) return;
+    if (!containerRef.current || bcMode || relationMode) return;
     const rect = containerRef.current.getBoundingClientRect();
     const world = screenToWorld(viewport, e.clientX, e.clientY, rect);
     const snapped = applySnap(world.x, world.y);
     addElement(paletteType, snapped.x, snapped.y);
   };
 
-  const handleStartConnect = (id: string) => setRelationDraftSource(id);
-
-  const handleCompleteConnect = (targetId: string) => {
-    if (!relationDraftSourceId || relationDraftSourceId === targetId) {
+  const handleStartConnect = (id: string) => {
+    if (relationDraftSourceId === id) {
       setRelationDraftSource(null);
       return;
     }
-    const src = elements.find((e) => e.id === relationDraftSourceId);
-    const tgt = elements.find((e) => e.id === targetId);
-    if (src && tgt) {
-      addRelation(relationDraftSourceId, targetId, defaultRelationType(src, tgt));
+    setRelationDraftSource(id);
+    selectElement(id);
+  };
+
+  const handleCompleteConnect = (targetId: string) => {
+    if (!relationDraftSourceId) {
+      setRelationDraftSource(targetId);
+      selectElement(targetId);
+      return;
     }
+    if (relationDraftSourceId === targetId) {
+      setRelationDraftSource(null);
+      return;
+    }
+    connectElements(relationDraftSourceId, targetId);
     setRelationDraftSource(null);
   };
 
@@ -117,6 +138,7 @@ export function StormCanvas() {
         }
         if (e.target === e.currentTarget) {
           clearSelection();
+          if (relationMode) setRelationDraftSource(null);
         }
       }}
       onPointerMove={(e) => {
@@ -155,6 +177,28 @@ export function StormCanvas() {
       }}
       tabIndex={0}
     >
+      {relationMode && (
+        <div className="absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-950 shadow-sm">
+          {relationDraftSourceId && sourceElement ? (
+            <>
+              <span>
+                Von <strong>{sourceElement.label}</strong> — jetzt Ziel-Element anklicken
+              </span>
+              <button
+                type="button"
+                onClick={() => setRelationDraftSource(null)}
+                className="rounded p-0.5 hover:bg-purple-100"
+                title="Abbrechen"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </>
+          ) : (
+            <span>Verbinden-Modus: Pfeil → Pfeil, oder Element → Element</span>
+          )}
+        </div>
+      )}
+
       <div
         className="absolute origin-top-left"
         style={{
@@ -176,6 +220,7 @@ export function StormCanvas() {
           elements={elements}
           relations={relations}
           selectedRelationId={selectedRelationId}
+          relationDraftSourceId={relationDraftSourceId}
           onSelectRelation={selectRelation}
         />
         {elements.map((el) => (
@@ -184,6 +229,8 @@ export function StormCanvas() {
             element={el}
             selected={selectedElementIds.includes(el.id)}
             connecting={relationDraftSourceId === el.id}
+            isRelationTargetHint={Boolean(relationDraftSourceId && relationDraftSourceId !== el.id)}
+            relationMode={relationMode}
             zoom={viewport.zoom}
             onSelect={selectElement}
             onMove={handleMoveElement}
@@ -194,7 +241,7 @@ export function StormCanvas() {
         ))}
       </div>
 
-      <div className="absolute bottom-3 left-3 flex gap-2">
+      <div className="absolute bottom-3 left-3 flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => setBcMode((v) => !v)}
@@ -206,7 +253,9 @@ export function StormCanvas() {
           {bcMode ? "Bounded Context zeichnen…" : "Bounded Context"}
         </button>
         <span className="rounded-lg border border-slate-200 bg-white/90 px-2 py-1.5 text-xs text-slate-500">
-          Doppelklick: Element · Space+Drag: Pan · Rad: Zoom
+          {relationMode
+            ? "Verbinden: Pfeil → Pfeil · Esc: Abbrechen"
+            : "Pfeil → Pfeil: Relation · Doppelklick: Element"}
         </span>
       </div>
     </div>

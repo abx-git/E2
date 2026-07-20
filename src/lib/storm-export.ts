@@ -1,3 +1,4 @@
+import { elementRect as geomElementRect, relationAnchors } from "@/lib/connector-geometry";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { boardImportPayloadFromStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
@@ -90,32 +91,21 @@ export function exportEventCatalogMarkdown(): void {
   downloadText(`${title.replace(/\s+/g, "-").toLowerCase()}-events.md`, lines.join("\n"));
 }
 
-function elementCenter(el: StormElement): { cx: number; cy: number } {
-  const w = el.width ?? 140;
-  const h = el.height ?? 60;
-  return { cx: el.x + w / 2, cy: el.y + h / 2 };
-}
-
 function elementRect(el: StormElement): { x: number; y: number; w: number; h: number } {
-  return {
-    x: el.x,
-    y: el.y,
-    w: el.width ?? 140,
-    h: el.height ?? 60,
-  };
+  return geomElementRect(el);
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  domainEvent: "#fb923c",
-  command: "#60a5fa",
-  actor: "#fde047",
+  domainEvent: "#ffedd5",
+  command: "#dbeafe",
+  actor: "#fef9c3",
   aggregate: "#fef08a",
-  policy: "#c084fc",
-  readModel: "#4ade80",
-  externalSystem: "#f9a8d4",
-  ui: "#ffffff",
-  hotspot: "#ef4444",
-  pivotalEvent: "#facc15",
+  policy: "#f5d0fe",
+  readModel: "#dcfce7",
+  externalSystem: "#fce7f3",
+  ui: "#f1f5f9",
+  hotspot: "#fee2e2",
+  pivotalEvent: "#fef3c7",
 };
 
 export function exportBoardSvg(): void {
@@ -173,10 +163,9 @@ export function exportBoardSvg(): void {
     const src = state.elements.find((e) => e.id === rel.sourceId);
     const tgt = state.elements.find((e) => e.id === rel.targetId);
     if (!src || !tgt) continue;
-    const s = elementCenter(src);
-    const t = elementCenter(tgt);
+    const { start, end } = relationAnchors(src, tgt);
     parts.push(
-      `<line x1="${s.cx + ox}" y1="${s.cy + oy}" x2="${t.cx + ox}" y2="${t.cy + oy}" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>`,
+      `<line x1="${start.x + ox}" y1="${start.y + oy}" x2="${end.x + ox}" y2="${end.y + oy}" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>`,
     );
   }
 
@@ -252,13 +241,12 @@ export async function exportBoardPng(): Promise<void> {
     const src = state.elements.find((e) => e.id === rel.sourceId);
     const tgt = state.elements.find((e) => e.id === rel.targetId);
     if (!src || !tgt) continue;
-    const s = elementCenter(src);
-    const t = elementCenter(tgt);
+    const { start, end } = relationAnchors(src, tgt);
     ctx.strokeStyle = "#64748b";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(s.cx - minX + padding, s.cy - minY + padding);
-    ctx.lineTo(t.cx - minX + padding, t.cy - minY + padding);
+    ctx.moveTo(start.x - minX + padding, start.y - minY + padding);
+    ctx.lineTo(end.x - minX + padding, end.y - minY + padding);
     ctx.stroke();
   }
 

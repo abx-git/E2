@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import { elementDimensions, defaultLabelForType } from "@/lib/element-styles";
+import { defaultRelationType } from "@/lib/relation-validation";
 import { generateStormId } from "@/lib/storm-id";
 import type { BoardImportPayload } from "@/lib/storm-json";
 import type {
@@ -32,7 +33,10 @@ export interface StormBoardState {
   snapToGrid: boolean;
   selectedElementIds: string[];
   selectedRelationId: string | null;
+  selectedBoundedContextId: string | null;
+  selectedSwimlaneId: string | null;
   paletteType: ElementType;
+  relationMode: boolean;
   relationDraftSourceId: string | null;
 
   setTitle: (title: string) => void;
@@ -47,6 +51,8 @@ export interface StormBoardState {
   setPaletteType: (type: ElementType) => void;
   selectElement: (id: string | null, additive?: boolean) => void;
   selectRelation: (id: string | null) => void;
+  selectBoundedContext: (id: string | null) => void;
+  selectSwimlane: (id: string | null) => void;
   clearSelection: () => void;
 
   addElement: (type: ElementType, x: number, y: number, label?: string) => string;
@@ -57,7 +63,9 @@ export interface StormBoardState {
   addRelation: (sourceId: string, targetId: string, type?: RelationType, label?: string) => string | null;
   updateRelation: (id: string, patch: Partial<StormRelation>) => void;
   deleteRelation: (id: string) => void;
+  setRelationMode: (enabled: boolean) => void;
   setRelationDraftSource: (id: string | null) => void;
+  connectElements: (sourceId: string, targetId: string) => string | null;
 
   addSwimlane: (label?: string) => string;
   updateSwimlane: (id: string, patch: Partial<Swimlane>) => void;
@@ -106,7 +114,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   snapToGrid: false,
   selectedElementIds: [],
   selectedRelationId: null,
+  selectedBoundedContextId: null,
+  selectedSwimlaneId: null,
   paletteType: "domainEvent",
+  relationMode: false,
   relationDraftSourceId: null,
 
   setTitle: (title) => set({ title }),
@@ -130,15 +141,49 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
             ? s.selectedElementIds.filter((x) => x !== id)
             : [...s.selectedElementIds, id],
           selectedRelationId: null,
+          selectedBoundedContextId: null,
+          selectedSwimlaneId: null,
         };
       }
-      return { selectedElementIds: [id], selectedRelationId: null };
+      return {
+        selectedElementIds: [id],
+        selectedRelationId: null,
+        selectedBoundedContextId: null,
+        selectedSwimlaneId: null,
+      };
     }),
 
   selectRelation: (id) =>
-    set({ selectedRelationId: id, selectedElementIds: id ? [] : get().selectedElementIds }),
+    set({
+      selectedRelationId: id,
+      selectedElementIds: id ? [] : get().selectedElementIds,
+      selectedBoundedContextId: null,
+      selectedSwimlaneId: null,
+    }),
 
-  clearSelection: () => set({ selectedElementIds: [], selectedRelationId: null }),
+  selectBoundedContext: (id) =>
+    set({
+      selectedBoundedContextId: id,
+      selectedElementIds: id ? [] : get().selectedElementIds,
+      selectedRelationId: null,
+      selectedSwimlaneId: null,
+    }),
+
+  selectSwimlane: (id) =>
+    set({
+      selectedSwimlaneId: id,
+      selectedElementIds: id ? [] : get().selectedElementIds,
+      selectedRelationId: null,
+      selectedBoundedContextId: null,
+    }),
+
+  clearSelection: () =>
+    set({
+      selectedElementIds: [],
+      selectedRelationId: null,
+      selectedBoundedContextId: null,
+      selectedSwimlaneId: null,
+    }),
 
   addElement: (type, x, y, label) => {
     const el = createElement(type, x, y, label);
@@ -166,7 +211,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   addRelation: (sourceId, targetId, type, label) => {
     if (sourceId === targetId) return null;
     const exists = get().relations.some(
-      (r) => r.sourceId === sourceId && r.targetId === targetId && r.type === (type ?? r.type),
+      (r) =>
+        r.sourceId === sourceId &&
+        r.targetId === targetId &&
+        (type === undefined || r.type === type),
     );
     if (exists) return null;
     const rel: StormRelation = {
@@ -191,7 +239,21 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedRelationId: s.selectedRelationId === id ? null : s.selectedRelationId,
     })),
 
+  setRelationMode: (relationMode) =>
+    set({
+      relationMode,
+      relationDraftSourceId: relationMode ? get().relationDraftSourceId : null,
+    }),
+
   setRelationDraftSource: (relationDraftSourceId) => set({ relationDraftSourceId }),
+
+  connectElements: (sourceId, targetId) => {
+    if (sourceId === targetId) return null;
+    const src = get().elements.find((e) => e.id === sourceId);
+    const tgt = get().elements.find((e) => e.id === targetId);
+    if (!src || !tgt) return null;
+    return get().addRelation(sourceId, targetId, defaultRelationType(src, tgt));
+  },
 
   addSwimlane: (label) => {
     const id = generateStormId();
@@ -212,6 +274,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       elements: s.elements.map((e) =>
         e.swimlaneId === id ? { ...e, swimlaneId: undefined } : e,
       ),
+      selectedSwimlaneId: s.selectedSwimlaneId === id ? null : s.selectedSwimlaneId,
     })),
 
   addBoundedContext: (x, y, width, height, label) => {
@@ -242,6 +305,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       elements: s.elements.map((e) =>
         e.boundedContextId === id ? { ...e, boundedContextId: undefined } : e,
       ),
+      selectedBoundedContextId: s.selectedBoundedContextId === id ? null : s.selectedBoundedContextId,
     })),
 
   setTimeline: (timeline) => set((s) => ({ timeline: { ...s.timeline, ...timeline } })),
@@ -277,6 +341,9 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       snapToGrid: payload.snapToGrid,
       selectedElementIds: [],
       selectedRelationId: null,
+      selectedBoundedContextId: null,
+      selectedSwimlaneId: null,
+      relationMode: false,
       relationDraftSourceId: null,
     }),
 }));

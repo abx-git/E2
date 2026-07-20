@@ -4,9 +4,8 @@ import { useCallback, useRef, useState } from "react";
 import {
   Database,
   Layers,
+  Link2,
   Loader2,
-  Minus,
-  Plus,
   Presentation,
   ZoomIn,
   ZoomOut,
@@ -31,7 +30,9 @@ import {
   exportGlossaryMarkdown,
   exportHotspotReportMarkdown,
 } from "@/lib/storm-export";
-import { FACILITATOR_FORMATS } from "@/lib/facilitator-phases";
+import { FACILITATOR_FORMATS, type FacilitatorPhase } from "@/lib/facilitator-phases";
+import { HelpDialog } from "@/components/help-dialog";
+import { getElementHelp, getPhaseHelp, getRelationHelp, type HelpDialogModel } from "@/lib/storm-help";
 import {
   attachWorkingFileFromBrowserFile,
   attachWorkingFileFromPastedText,
@@ -42,7 +43,8 @@ import {
   isWorkingFileUiAvailable,
 } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import type { WorkshopFormat } from "@/types/storm-element";
+import type { ElementType, WorkshopFormat } from "@/types/storm-element";
+import type { RelationType } from "@/types/storm-relation";
 
 const FORMAT_OPTIONS: { value: WorkshopFormat; label: string }[] = [
   { value: "free", label: "Frei" },
@@ -58,6 +60,19 @@ export function StormBoard() {
   const [busy, setBusy] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpModel, setHelpModel] = useState<HelpDialogModel | null>(null);
+
+  const openHelp = (model: HelpDialogModel) => {
+    setHelpModel(model);
+    setHelpOpen(true);
+  };
+
+  const openElementHelp = (type: ElementType) => openHelp(getElementHelp(type));
+  const openRelationHelp = (type: RelationType) => openHelp(getRelationHelp(type));
+  const openPhaseHelp = (phase: FacilitatorPhase, format: WorkshopFormat) =>
+    openHelp(getPhaseHelp(format, phase));
+
   const title = useStormBoardStore((s) => s.title);
   const setTitle = useStormBoardStore((s) => s.setTitle);
   const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
@@ -71,6 +86,9 @@ export function StormBoard() {
   const snapToGrid = useStormBoardStore((s) => s.snapToGrid);
   const setSnapToGrid = useStormBoardStore((s) => s.setSnapToGrid);
   const addSwimlane = useStormBoardStore((s) => s.addSwimlane);
+  const relationMode = useStormBoardStore((s) => s.relationMode);
+  const setRelationMode = useStormBoardStore((s) => s.setRelationMode);
+  const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
 
   const downloadJson = useCallback(() => {
     const json = boardJsonFromStoreState();
@@ -157,6 +175,25 @@ export function StormBoard() {
 
         <button
           type="button"
+          onClick={() => {
+            const next = !relationMode;
+            setRelationMode(next);
+            if (!next) setRelationDraftSource(null);
+          }}
+          className={[
+            "flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium",
+            relationMode
+              ? "border-purple-500 bg-purple-50 text-purple-900"
+              : "border-slate-200 text-slate-700 hover:bg-slate-50",
+          ].join(" ")}
+          title="Relationen zwischen Elementen verbinden"
+        >
+          <Link2 className="h-4 w-4" />
+          Verbinden
+        </button>
+
+        <button
+          type="button"
           onClick={() => addSwimlane()}
           className="rounded-lg border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50"
           title="Swimlane hinzufügen"
@@ -206,13 +243,16 @@ export function StormBoard() {
       </header>
 
       <div className="flex min-h-0 flex-1">
-        <ElementPalette onSelectType={() => {}} />
+        <ElementPalette onSelectType={() => {}} onRequestHelp={openElementHelp} />
         <StormCanvas />
         <div className="flex w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
-          <ElementDetailSidebar />
+          <ElementDetailSidebar
+            onRequestHelpElementType={openElementHelp}
+            onRequestHelpRelationType={openRelationHelp}
+          />
           <HotspotList />
           <GlossaryPanel />
-          <FacilitatorPanel />
+          <FacilitatorPanel onRequestHelpPhase={(phase, format) => openPhaseHelp(phase, format)} />
         </div>
       </div>
 
@@ -276,6 +316,8 @@ export function StormBoard() {
           });
         }}
       />
+
+      <HelpDialog open={helpOpen} model={helpModel} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }
