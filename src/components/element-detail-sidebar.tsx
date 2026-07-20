@@ -248,31 +248,58 @@ export function ElementDetailSidebar({
                 onChange={(e) => updateSwimlane(selectedSwimlane.id, { label: e.target.value })}
               />
             </label>
-            <label className="block text-xs font-medium text-slate-600">
-              Y-Position
-              <input
-                type="number"
-                className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
-                value={Math.round(selectedSwimlane.y)}
-                onChange={(e) =>
-                  updateSwimlane(selectedSwimlane.id, { y: Number(e.target.value) || 0 })
-                }
-              />
-            </label>
-            <label className="block text-xs font-medium text-slate-600">
-              Höhe
-              <input
-                type="number"
-                min={40}
-                className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
-                value={Math.round(selectedSwimlane.height)}
-                onChange={(e) =>
-                  updateSwimlane(selectedSwimlane.id, {
-                    height: Math.max(40, Number(e.target.value) || 40),
-                  })
-                }
-              />
-            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block text-xs font-medium text-slate-600">
+                X
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                  value={Math.round(selectedSwimlane.x ?? 0)}
+                  onChange={(e) =>
+                    updateSwimlane(selectedSwimlane.id, { x: Number(e.target.value) || 0 })
+                  }
+                />
+              </label>
+              <label className="block text-xs font-medium text-slate-600">
+                Y
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                  value={Math.round(selectedSwimlane.y)}
+                  onChange={(e) =>
+                    updateSwimlane(selectedSwimlane.id, { y: Number(e.target.value) || 0 })
+                  }
+                />
+              </label>
+              <label className="block text-xs font-medium text-slate-600">
+                Breite
+                <input
+                  type="number"
+                  min={80}
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                  value={Math.round(selectedSwimlane.width ?? 4000)}
+                  onChange={(e) =>
+                    updateSwimlane(selectedSwimlane.id, {
+                      width: Math.max(80, Number(e.target.value) || 80),
+                    })
+                  }
+                />
+              </label>
+              <label className="block text-xs font-medium text-slate-600">
+                Höhe
+                <input
+                  type="number"
+                  min={80}
+                  className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                  value={Math.round(selectedSwimlane.height)}
+                  onChange={(e) =>
+                    updateSwimlane(selectedSwimlane.id, {
+                      height: Math.max(80, Number(e.target.value) || 80),
+                    })
+                  }
+                />
+              </label>
+            </div>
             <button
               type="button"
               onClick={() => deleteSwimlane(selectedSwimlane.id)}

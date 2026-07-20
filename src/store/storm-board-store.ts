@@ -302,8 +302,15 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   addSwimlane: (label) => {
     const id = generateStormId();
     const y = 120 + get().swimlanes.length * 180;
-    const lane: Swimlane = { id, label: label ?? `Swimlane ${get().swimlanes.length + 1}`, y, height: 160 };
-    set((s) => ({ swimlanes: [...s.swimlanes, lane] }));
+    const lane: Swimlane = {
+      id,
+      label: label ?? `Swimlane ${get().swimlanes.length + 1}`,
+      x: 40,
+      y,
+      width: 1200,
+      height: 160,
+    };
+    set((s) => ({ swimlanes: [...s.swimlanes, lane], selectedSwimlaneId: id }));
     return id;
   },
 

@@ -42,7 +42,9 @@ export type WorkshopFormat = "bigPicture" | "processModeling" | "softwareDesign"
 export interface Swimlane {
   id: string;
   label: string;
+  x: number;
   y: number;
+  width: number;
   height: number;
   color?: string;
 }

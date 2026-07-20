@@ -86,13 +86,23 @@ export function boardSnapshotToReplacePayload(snap: BoardSnapshotV1): BoardImpor
     facilitatorPhase: snap.facilitatorPhase,
     elements: snap.elements,
     relations: snap.relations,
-    swimlanes: snap.swimlanes,
+    swimlanes: snap.swimlanes.map(normalizeSwimlane),
     boundedContexts: snap.boundedContexts,
     timeline: snap.timeline,
     viewport: snap.viewport,
     glossary: snap.glossary ?? [],
     snapToTimeline: snap.snapToTimeline ?? true,
     snapToGrid: snap.snapToGrid ?? false,
+  };
+}
+
+/** Older boards may lack x/width; default to a full-width band. */
+function normalizeSwimlane(lane: Swimlane): Swimlane {
+  const raw = lane as Swimlane & { x?: number; width?: number };
+  return {
+    ...lane,
+    x: typeof raw.x === "number" ? raw.x : 0,
+    width: typeof raw.width === "number" && raw.width > 0 ? raw.width : 4000,
   };
 }
 

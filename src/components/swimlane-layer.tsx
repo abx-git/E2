@@ -1,94 +1,107 @@
 "use client";
 
-import { GripVertical } from "lucide-react";
-
 import { useStormBoardStore } from "@/store/storm-board-store";
 
-const MIN_HEIGHT = 60;
-/** Über Element-Karten (z≈20–30), damit der Griff immer greifbar ist. */
-const INTERACTIVE_Z = 35;
+const MIN_SIZE = 80;
+
+type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
+
+const HANDLE_POSITIONS: Record<ResizeHandle, string> = {
+  n: "left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 cursor-ns-resize",
+  s: "left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 cursor-ns-resize",
+  e: "right-0 top-1/2 translate-x-1/2 -translate-y-1/2 cursor-ew-resize",
+  w: "left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize",
+  ne: "right-0 top-0 translate-x-1/2 -translate-y-1/2 cursor-nesw-resize",
+  nw: "left-0 top-0 -translate-x-1/2 -translate-y-1/2 cursor-nwse-resize",
+  se: "right-0 bottom-0 translate-x-1/2 translate-y-1/2 cursor-nwse-resize",
+  sw: "left-0 bottom-0 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize",
+};
 
 export function SwimlaneLayer() {
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const selectedSwimlaneId = useStormBoardStore((s) => s.selectedSwimlaneId);
   const selectSwimlane = useStormBoardStore((s) => s.selectSwimlane);
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
+  const zoom = useStormBoardStore((s) => s.viewport.zoom);
 
-  const startMove = (laneId: string, e: React.PointerEvent<HTMLElement>) => {
+  const startMove = (laneId: string, e: React.PointerEvent) => {
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
+    selectSwimlane(laneId);
 
     const lane = useStormBoardStore.getState().swimlanes.find((l) => l.id === laneId);
     if (!lane) return;
 
-    selectSwimlane(laneId);
-
+    const startX = e.clientX;
     const startY = e.clientY;
-    const origY = lane.y;
-    const target = e.currentTarget;
-    target.setPointerCapture(e.pointerId);
+    const orig = { x: lane.x ?? 0, y: lane.y };
 
     const onMove = (ev: PointerEvent) => {
-      const zoom = useStormBoardStore.getState().viewport.zoom || 1;
-      updateSwimlane(laneId, { y: origY + (ev.clientY - startY) / zoom });
+      const dx = (ev.clientX - startX) / zoom;
+      const dy = (ev.clientY - startY) / zoom;
+      updateSwimlane(laneId, { x: orig.x + dx, y: orig.y + dy });
     };
 
-    const onUp = (ev: PointerEvent) => {
-      if (target.hasPointerCapture(ev.pointerId)) {
-        target.releasePointerCapture(ev.pointerId);
-      }
-      target.removeEventListener("pointermove", onMove);
-      target.removeEventListener("pointerup", onUp);
-      target.removeEventListener("pointercancel", onUp);
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
     };
 
-    target.addEventListener("pointermove", onMove);
-    target.addEventListener("pointerup", onUp);
-    target.addEventListener("pointercancel", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   };
 
-  const startResize = (laneId: string, edge: "n" | "s", e: React.PointerEvent<HTMLElement>) => {
+  const startResize = (laneId: string, handle: ResizeHandle, e: React.PointerEvent) => {
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
+    selectSwimlane(laneId);
 
     const lane = useStormBoardStore.getState().swimlanes.find((l) => l.id === laneId);
     if (!lane) return;
 
-    selectSwimlane(laneId);
-
+    const startX = e.clientX;
     const startY = e.clientY;
-    const orig = { y: lane.y, height: lane.height };
-    const target = e.currentTarget;
-    target.setPointerCapture(e.pointerId);
+    const orig = {
+      x: lane.x ?? 0,
+      y: lane.y,
+      width: lane.width ?? 4000,
+      height: lane.height,
+    };
 
     const onMove = (ev: PointerEvent) => {
-      const zoom = useStormBoardStore.getState().viewport.zoom || 1;
+      const dx = (ev.clientX - startX) / zoom;
       const dy = (ev.clientY - startY) / zoom;
-      if (edge === "s") {
-        updateSwimlane(laneId, { height: Math.max(MIN_HEIGHT, orig.height + dy) });
-      } else {
-        const nextHeight = Math.max(MIN_HEIGHT, orig.height - dy);
-        updateSwimlane(laneId, {
-          y: orig.y + (orig.height - nextHeight),
-          height: nextHeight,
-        });
+
+      let x = orig.x;
+      let y = orig.y;
+      let width = orig.width;
+      let height = orig.height;
+
+      if (handle.includes("e")) width = Math.max(MIN_SIZE, orig.width + dx);
+      if (handle.includes("s")) height = Math.max(MIN_SIZE, orig.height + dy);
+      if (handle.includes("w")) {
+        const nextWidth = Math.max(MIN_SIZE, orig.width - dx);
+        x = orig.x + (orig.width - nextWidth);
+        width = nextWidth;
       }
+      if (handle.includes("n")) {
+        const nextHeight = Math.max(MIN_SIZE, orig.height - dy);
+        y = orig.y + (orig.height - nextHeight);
+        height = nextHeight;
+      }
+
+      updateSwimlane(laneId, { x, y, width, height });
     };
 
-    const onUp = (ev: PointerEvent) => {
-      if (target.hasPointerCapture(ev.pointerId)) {
-        target.releasePointerCapture(ev.pointerId);
-      }
-      target.removeEventListener("pointermove", onMove);
-      target.removeEventListener("pointerup", onUp);
-      target.removeEventListener("pointercancel", onUp);
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
     };
 
-    target.addEventListener("pointermove", onMove);
-    target.addEventListener("pointerup", onUp);
-    target.addEventListener("pointercancel", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
   };
 
   return (
@@ -96,83 +109,40 @@ export function SwimlaneLayer() {
       {swimlanes.map((lane) => {
         const selected = selectedSwimlaneId === lane.id;
         return (
-          <div key={lane.id}>
-            {/* Hintergrund — keine Pointer-Events, damit Marquee/Elemente darunter greifen */}
-            <div
-              className={[
-                "pointer-events-none absolute left-0 right-0 border-y",
-                selected ? "border-sky-500/90 ring-2 ring-sky-300" : "border-slate-300/60",
-              ].join(" ")}
-              style={{
-                top: lane.y,
-                height: lane.height,
-                backgroundColor: lane.color ?? "rgba(148,163,184,0.12)",
-                zIndex: 1,
-              }}
-            />
+          <div
+            key={lane.id}
+            className={[
+              "absolute border-y-2",
+              selected ? "border-sky-500 ring-2 ring-sky-300" : "border-slate-300/70",
+              "cursor-move",
+            ].join(" ")}
+            style={{
+              left: lane.x ?? 0,
+              top: lane.y,
+              width: lane.width ?? 4000,
+              height: lane.height,
+              backgroundColor: lane.color ?? "rgba(148,163,184,0.12)",
+              zIndex: selected ? 4 : 2,
+            }}
+            onPointerDown={(e) => startMove(lane.id, e)}
+          >
+            <div className="absolute left-3 top-2 rounded bg-slate-100/90 px-2 py-0.5 text-xs font-semibold text-slate-600">
+              {lane.label}
+            </div>
 
-            {/* Drag-Griff — eigener Stacking-Kontext über den Karten */}
-            <button
-              type="button"
-              title="Swimlane ziehen"
-              aria-label={`Swimlane „${lane.label}“ verschieben`}
-              className={[
-                "absolute left-0 flex w-9 cursor-grab flex-col items-center gap-1 border border-slate-300/80 bg-white/90 py-2 text-slate-600 shadow-md active:cursor-grabbing",
-                selected
-                  ? "border-sky-500 bg-sky-50 text-sky-800"
-                  : "hover:bg-white hover:text-slate-800",
-              ].join(" ")}
-              style={{
-                top: lane.y,
-                height: lane.height,
-                zIndex: INTERACTIVE_Z,
-              }}
-              onPointerDown={(e) => startMove(lane.id, e)}
-            >
-              <GripVertical className="h-4 w-4 shrink-0" aria-hidden />
-              <span
-                className="max-h-[calc(100%-1.5rem)] overflow-hidden text-[10px] font-semibold leading-tight"
-                style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-              >
-                {lane.label}
-              </span>
-            </button>
-
-            {/* Höhen-Kanten */}
-            <div
-              role="separator"
-              aria-label="Höhe oben ändern"
-              title="Höhe oben ändern"
-              className={[
-                "absolute cursor-ns-resize",
-                selected ? "bg-sky-400/30" : "hover:bg-slate-400/25",
-              ].join(" ")}
-              style={{
-                left: 36,
-                right: 0,
-                top: lane.y - 6,
-                height: 12,
-                zIndex: INTERACTIVE_Z,
-              }}
-              onPointerDown={(e) => startResize(lane.id, "n", e)}
-            />
-            <div
-              role="separator"
-              aria-label="Höhe unten ändern"
-              title="Höhe unten ändern"
-              className={[
-                "absolute cursor-ns-resize",
-                selected ? "bg-sky-400/30" : "hover:bg-slate-400/25",
-              ].join(" ")}
-              style={{
-                left: 36,
-                right: 0,
-                top: lane.y + lane.height - 6,
-                height: 12,
-                zIndex: INTERACTIVE_Z,
-              }}
-              onPointerDown={(e) => startResize(lane.id, "s", e)}
-            />
+            {selected &&
+              (Object.keys(HANDLE_POSITIONS) as ResizeHandle[]).map((handle) => (
+                <button
+                  key={handle}
+                  type="button"
+                  aria-label={`Größe ändern (${handle})`}
+                  className={[
+                    "absolute z-10 h-2.5 w-2.5 rounded-sm border border-sky-700 bg-white shadow-sm",
+                    HANDLE_POSITIONS[handle],
+                  ].join(" ")}
+                  onPointerDown={(e) => startResize(lane.id, handle, e)}
+                />
+              ))}
           </div>
         );
       })}
