@@ -49,6 +49,7 @@ Import akzeptiert Dokumente mit `format === "event-storming-tool"` und `version 
     }
   ],
   "relations": [],
+  "contextRelations": [],
   "swimlanes": [],
   "boundedContexts": [],
   "timeline": { "y": 400, "startLabel": "Start", "endLabel": "Ende" },
@@ -58,3 +59,15 @@ Import akzeptiert Dokumente mit `format === "event-storming-tool"` und `version 
   "snapToGrid": false
 }
 ```
+
+## Optionale Felder (Rückwärtskompatibilität)
+
+| Feld | Default beim Import |
+|------|---------------------|
+| `contextRelations` | `[]` |
+| `appearance` | Standard-Farbschema |
+| `snapToTimeline` | `true` |
+| `snapToGrid` | `false` |
+| Timeline `visible` | `true` |
+
+`contextRelations` beschreibt DDD-Context-Map-Muster zwischen Bounded Contexts (`sourceContextId` / `targetContextId`, Muster z. B. `customerSupplier`, `antiCorruptionLayer`).

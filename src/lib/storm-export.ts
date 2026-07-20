@@ -2,7 +2,7 @@ import { elementRect as geomElementRect, relationAnchors } from "@/lib/connector
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { boardImportPayloadFromStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
-import { RELATION_TYPE_LABELS } from "@/types/storm-relation";
+import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
 
 function downloadText(filename: string, content: string, mime = "text/plain;charset=utf-8"): void {
   const blob = new Blob([content], { type: mime });
@@ -45,7 +45,8 @@ export function exportGlossaryMarkdown(): void {
 }
 
 export function exportContextMapMarkdown(): void {
-  const { boundedContexts, elements, relations, title } = boardImportPayloadFromStore();
+  const { boundedContexts, elements, relations, contextRelations, title } =
+    boardImportPayloadFromStore();
   const lines = [`# Context Map — ${title}`, ""];
 
   for (const bc of boundedContexts) {
@@ -57,6 +58,19 @@ export function exportContextMapMarkdown(): void {
     lines.push("");
   }
 
+  if (contextRelations.length > 0) {
+    lines.push("## Context-Map-Muster", "");
+    for (const r of contextRelations) {
+      const src = boundedContexts.find((b) => b.id === r.sourceContextId);
+      const tgt = boundedContexts.find((b) => b.id === r.targetContextId);
+      const label = r.label ? ` — ${r.label}` : "";
+      lines.push(
+        `- ${src?.label ?? r.sourceContextId} → ${tgt?.label ?? r.targetContextId} (${CONTEXT_MAP_PATTERN_LABELS[r.type]})${label}`,
+      );
+    }
+    lines.push("");
+  }
+
   const crossBoundary = relations.filter((r) => {
     const src = elements.find((e) => e.id === r.sourceId);
     const tgt = elements.find((e) => e.id === r.targetId);
@@ -64,7 +78,7 @@ export function exportContextMapMarkdown(): void {
   });
 
   if (crossBoundary.length > 0) {
-    lines.push("## Integrationspunkte", "");
+    lines.push("## Integrationspunkte (Element-Relationen)", "");
     for (const r of crossBoundary) {
       const src = elements.find((e) => e.id === r.sourceId)!;
       const tgt = elements.find((e) => e.id === r.targetId)!;

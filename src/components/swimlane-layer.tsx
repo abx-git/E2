@@ -29,6 +29,7 @@ export function SwimlaneLayer() {
     e.stopPropagation();
     e.preventDefault();
     selectSwimlane(laneId);
+    useStormBoardStore.getState().beginGesture();
 
     const lane = useStormBoardStore.getState().swimlanes.find((l) => l.id === laneId);
     if (!lane) return;
@@ -46,6 +47,7 @@ export function SwimlaneLayer() {
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      useStormBoardStore.getState().endGesture();
     };
 
     window.addEventListener("pointermove", onMove);
@@ -57,6 +59,7 @@ export function SwimlaneLayer() {
     e.stopPropagation();
     e.preventDefault();
     selectSwimlane(laneId);
+    useStormBoardStore.getState().beginGesture();
 
     const lane = useStormBoardStore.getState().swimlanes.find((l) => l.id === laneId);
     if (!lane) return;
@@ -98,6 +101,7 @@ export function SwimlaneLayer() {
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      useStormBoardStore.getState().endGesture();
     };
 
     window.addEventListener("pointermove", onMove);

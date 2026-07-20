@@ -13,6 +13,7 @@ export function TimelineGuide() {
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
+    useStormBoardStore.getState().beginGesture();
 
     const startY = e.clientY;
     const origY = timeline.y;
@@ -31,6 +32,7 @@ export function TimelineGuide() {
       target.removeEventListener("pointermove", onMove);
       target.removeEventListener("pointerup", onUp);
       target.removeEventListener("pointercancel", onUp);
+      useStormBoardStore.getState().endGesture();
     };
 
     target.addEventListener("pointermove", onMove);

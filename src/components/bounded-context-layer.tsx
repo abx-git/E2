@@ -23,14 +23,30 @@ export function BoundedContextLayer() {
   const selectBoundedContext = useStormBoardStore((s) => s.selectBoundedContext);
   const updateBoundedContext = useStormBoardStore((s) => s.updateBoundedContext);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
+  const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
+  const contextMapDraftSourceId = useStormBoardStore((s) => s.contextMapDraftSourceId);
 
   const startMove = (bcId: string, e: React.PointerEvent) => {
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
-    selectBoundedContext(bcId);
 
-    const bc = useStormBoardStore.getState().boundedContexts.find((b) => b.id === bcId);
+    const store = useStormBoardStore.getState();
+    if (store.contextMapMode) {
+      if (store.contextMapDraftSourceId && store.contextMapDraftSourceId !== bcId) {
+        store.connectBoundedContexts(store.contextMapDraftSourceId, bcId);
+        store.setContextMapDraftSource(null);
+      } else {
+        store.setContextMapDraftSource(bcId);
+        selectBoundedContext(bcId);
+      }
+      return;
+    }
+
+    selectBoundedContext(bcId);
+    store.beginGesture();
+
+    const bc = store.boundedContexts.find((b) => b.id === bcId);
     if (!bc) return;
 
     const startX = e.clientX;
@@ -46,6 +62,7 @@ export function BoundedContextLayer() {
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      useStormBoardStore.getState().endGesture();
     };
 
     window.addEventListener("pointermove", onMove);
@@ -57,6 +74,7 @@ export function BoundedContextLayer() {
     e.stopPropagation();
     e.preventDefault();
     selectBoundedContext(bcId);
+    useStormBoardStore.getState().beginGesture();
 
     const bc = useStormBoardStore.getState().boundedContexts.find((b) => b.id === bcId);
     if (!bc) return;
@@ -93,6 +111,7 @@ export function BoundedContextLayer() {
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      useStormBoardStore.getState().endGesture();
     };
 
     window.addEventListener("pointermove", onMove);
@@ -103,13 +122,15 @@ export function BoundedContextLayer() {
     <>
       {boundedContexts.map((bc) => {
         const selected = selectedBoundedContextId === bc.id;
+        const draftSource = contextMapDraftSourceId === bc.id;
         return (
           <div
             key={bc.id}
             className={[
               "absolute rounded-lg border-2",
-              selected ? "border-blue-600 ring-2 ring-blue-300" : "border-blue-400/70",
-              "cursor-move",
+              selected || draftSource ? "border-blue-600 ring-2 ring-blue-300" : "border-blue-400/70",
+              draftSource ? "ring-[#e9c46a]" : "",
+              contextMapMode ? "cursor-crosshair" : "cursor-move",
             ].join(" ")}
             style={{
               left: bc.x,

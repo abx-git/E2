@@ -1,13 +1,31 @@
 "use client";
 
-import { CheckCircle2, ChevronLeft, ChevronRight, HelpCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  HelpCircle,
+  Pause,
+  Play,
+  RotateCcw,
+} from "lucide-react";
 
 import { FACILITATOR_FORMATS, getCurrentPhase, type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { WorkshopFormat } from "@/types/storm-element";
 
+const DEFAULT_DURATION_MINUTES = 15;
+
 export interface FacilitatorPanelProps {
   onRequestHelpPhase?: (phase: FacilitatorPhase, format: WorkshopFormat) => void;
+}
+
+function formatMmSs(totalSeconds: number): string {
+  const s = Math.max(0, Math.floor(totalSeconds));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
 }
 
 export function FacilitatorPanel({ onRequestHelpPhase }: FacilitatorPanelProps) {
@@ -18,13 +36,46 @@ export function FacilitatorPanel({ onRequestHelpPhase }: FacilitatorPanelProps) 
   const nextFacilitatorPhase = useStormBoardStore((s) => s.nextFacilitatorPhase);
   const prevFacilitatorPhase = useStormBoardStore((s) => s.prevFacilitatorPhase);
 
+  const phase = getCurrentPhase(workshopFormat, facilitatorPhase);
+  const durationMinutes = phase?.durationMinutes ?? DEFAULT_DURATION_MINUTES;
+  const initialSeconds = durationMinutes * 60;
+
+  const [remainingSeconds, setRemainingSeconds] = useState(initialSeconds);
+  const [running, setRunning] = useState(false);
+  const phaseKeyRef = useRef(`${workshopFormat}:${facilitatorPhase}`);
+
+  useEffect(() => {
+    const key = `${workshopFormat}:${facilitatorPhase}`;
+    if (phaseKeyRef.current !== key) {
+      phaseKeyRef.current = key;
+      setRunning(false);
+      setRemainingSeconds((phase?.durationMinutes ?? DEFAULT_DURATION_MINUTES) * 60);
+    }
+  }, [workshopFormat, facilitatorPhase, phase?.durationMinutes]);
+
+  useEffect(() => {
+    if (!running) return;
+    const id = window.setInterval(() => {
+      setRemainingSeconds((prev) => {
+        if (prev <= 1) return 0;
+        return prev - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [running]);
+
+  useEffect(() => {
+    if (running && remainingSeconds === 0) setRunning(false);
+  }, [running, remainingSeconds]);
+
   if (!facilitatorEnabled || workshopFormat === "free") return null;
 
   const formatDef = FACILITATOR_FORMATS.find((f) => f.format === workshopFormat);
-  const phase = getCurrentPhase(workshopFormat, facilitatorPhase);
   const totalPhases = formatDef?.phases.length ?? 0;
 
   if (!formatDef || !phase) return null;
+
+  const expired = remainingSeconds === 0;
 
   return (
     <section className="border-t border-[var(--border)] p-3">
@@ -73,9 +124,53 @@ export function FacilitatorPanel({ onRequestHelpPhase }: FacilitatorPanelProps) 
         </button>
       </div>
 
-      {phase.durationMinutes && (
-        <p className="mt-2 text-[10px] text-[var(--muted)]">Empfohlen: {phase.durationMinutes} Min.</p>
-      )}
+      <div
+        className={[
+          "mt-2 flex items-center gap-2 rounded-lg border px-2 py-1.5",
+          expired
+            ? "border-[var(--accent-2)] bg-[rgba(233,196,106,0.12)]"
+            : "border-[var(--border)] bg-[var(--control)]",
+        ].join(" ")}
+      >
+        <span
+          className={[
+            "min-w-[3.25rem] font-mono text-sm tabular-nums",
+            expired ? "font-semibold text-[var(--accent-2)]" : "text-[var(--text)]",
+          ].join(" ")}
+          aria-live="polite"
+        >
+          {formatMmSs(remainingSeconds)}
+        </span>
+        <span className="flex-1 text-[10px] text-[var(--muted)]">
+          {expired ? "Zeit abgelaufen" : `Empfohlen: ${durationMinutes} Min.`}
+        </span>
+        <button
+          type="button"
+          className="dock-control rounded-md p-1"
+          title={running ? "Pause" : "Start"}
+          aria-label={running ? "Timer pausieren" : "Timer starten"}
+          onClick={() => {
+            if (remainingSeconds === 0) {
+              setRemainingSeconds(initialSeconds);
+            }
+            setRunning((v) => !v);
+          }}
+        >
+          {running ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+        </button>
+        <button
+          type="button"
+          className="dock-control rounded-md p-1"
+          title="Zurücksetzen"
+          aria-label="Timer zurücksetzen"
+          onClick={() => {
+            setRunning(false);
+            setRemainingSeconds(initialSeconds);
+          }}
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </button>
+      </div>
 
       <ul className="mt-2 space-y-1">
         {phase.checklist.map((item) => (

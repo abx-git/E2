@@ -6,24 +6,27 @@ import {
   boardExportTextsEquivalent,
   buildBoardSnapshot,
   boardSnapshotSchema,
+  boardSnapshotToReplacePayload,
 } from "@/lib/storm-json";
 import { suggestPastTense, validateBoard } from "@/lib/relation-validation";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 
 import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
+import type { BoardImportPayload } from "@/lib/storm-json";
 
-const emptyBoard = {
+const emptyBoard: BoardImportPayload = {
   title: "Test",
-  workshopFormat: "free" as const,
+  workshopFormat: "free",
   facilitatorEnabled: false,
   facilitatorPhase: 0,
-  elements: [] as const,
-  relations: [] as const,
-  swimlanes: [] as const,
-  boundedContexts: [] as const,
+  elements: [],
+  relations: [],
+  contextRelations: [],
+  swimlanes: [],
+  boundedContexts: [],
   timeline: { y: 400 },
   viewport: { x: 0, y: 0, zoom: 1 },
-  glossary: [] as const,
+  glossary: [],
   appearance: { ...DEFAULT_APPEARANCE },
   snapToTimeline: true,
   snapToGrid: false,
@@ -41,7 +44,9 @@ describe("storm-json", () => {
     const base = { ...emptyBoard, elements: [], relations: [], swimlanes: [], boundedContexts: [], glossary: [] };
     const a = buildBoardSnapshot(base);
     const b = buildBoardSnapshot({ ...base, viewport: { x: 10, y: 20, zoom: 1.5 } });
-    expect(stableBoardStateKey(a)).toBe(stableBoardStateKey(b));
+    expect(stableBoardStateKey(boardSnapshotToReplacePayload(a))).toBe(
+      stableBoardStateKey(boardSnapshotToReplacePayload(b)),
+    );
   });
 
   it("detects equivalent exports", () => {

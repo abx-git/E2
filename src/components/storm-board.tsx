@@ -6,7 +6,10 @@ import {
   Layers,
   Link2,
   Loader2,
+  Map,
   Presentation,
+  Redo2,
+  Undo2,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -38,7 +41,7 @@ import {
 } from "@/lib/storm-json";
 import { FACILITATOR_FORMATS, type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
-import { getElementHelp, getPhaseHelp, getRelationHelp, type HelpDialogModel } from "@/lib/storm-help";
+import { getElementHelp, getPhaseHelp, getRelationHelp, getContextMapHelp, type HelpDialogModel } from "@/lib/storm-help";
 import {
   attachWorkingFileFromBrowserFile,
   attachWorkingFileFromPastedText,
@@ -50,7 +53,7 @@ import {
 } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ElementType, WorkshopFormat } from "@/types/storm-element";
-import type { RelationType } from "@/types/storm-relation";
+import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
 
 const FORMAT_OPTIONS: { value: WorkshopFormat; label: string }[] = [
   { value: "free", label: "Frei" },
@@ -76,6 +79,7 @@ export function StormBoard() {
 
   const openElementHelp = (type: ElementType) => openHelp(getElementHelp(type));
   const openRelationHelp = (type: RelationType) => openHelp(getRelationHelp(type));
+  const openContextMapHelp = (type: ContextMapPattern) => openHelp(getContextMapHelp(type));
   const openPhaseHelp = (phase: FacilitatorPhase, format: WorkshopFormat) =>
     openHelp(getPhaseHelp(format, phase));
 
@@ -98,12 +102,43 @@ export function StormBoard() {
   const relationMode = useStormBoardStore((s) => s.relationMode);
   const setRelationMode = useStormBoardStore((s) => s.setRelationMode);
   const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
+  const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
+  const setContextMapMode = useStormBoardStore((s) => s.setContextMapMode);
+  const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
+  const undo = useStormBoardStore((s) => s.undo);
+  const redo = useStormBoardStore((s) => s.redo);
+  const pastLen = useStormBoardStore((s) => s.past.length);
+  const futureLen = useStormBoardStore((s) => s.future.length);
   const boardRootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     applyAppearanceToElement(boardRootRef.current, appearance);
     applyAppearanceToElement(document.documentElement, appearance);
   }, [appearance]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || target?.isContentEditable) return;
+
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+
+      if (e.key === "z" || e.key === "Z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if (e.key === "y" || e.key === "Y") {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [undo, redo]);
 
   const downloadJson = useCallback(() => {
     const json = boardJsonFromStoreState();
@@ -176,8 +211,30 @@ export function StormBoard() {
           className="min-w-[140px] flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold tracking-tight text-[var(--text)] hover:border-[var(--border)] focus:border-[var(--accent)] focus:outline-none"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          onFocus={() => useStormBoardStore.getState().beginGesture()}
+          onBlur={() => useStormBoardStore.getState().endGesture()}
         />
 
+        <div className="dock-control flex items-center gap-0.5 rounded-lg">
+          <button
+            type="button"
+            onClick={() => undo()}
+            disabled={pastLen === 0}
+            className="p-1.5 hover:text-[var(--accent)] disabled:opacity-40"
+            title="Rückgängig (⌘Z / Ctrl+Z)"
+          >
+            <Undo2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => redo()}
+            disabled={futureLen === 0}
+            className="p-1.5 hover:text-[var(--accent)] disabled:opacity-40"
+            title="Wiederholen (⌘⇧Z / Ctrl+Y)"
+          >
+            <Redo2 className="h-4 w-4" />
+          </button>
+        </div>
         <select
           className="dock-control rounded-lg px-2 py-1 text-xs"
           value={workshopFormat}
@@ -216,6 +273,22 @@ export function StormBoard() {
           Verbinden
         </button>
 
+        <button
+          type="button"
+          onClick={() => {
+            const next = !contextMapMode;
+            setContextMapMode(next);
+            if (!next) setContextMapDraftSource(null);
+          }}
+          className={[
+            "flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium",
+            contextMapMode ? "dock-control-active" : "dock-control",
+          ].join(" ")}
+          title="Context-Map: zwei Bounded Contexts verbinden"
+        >
+          <Map className="h-4 w-4" />
+          Context Map
+        </button>
         <button
           type="button"
           onClick={() => addSwimlane()}
@@ -308,6 +381,7 @@ export function StormBoard() {
       <CanvasContextMenu
         onRequestHelpElementType={(type) => openElementHelp(type as ElementType)}
         onRequestHelpRelationType={openRelationHelp}
+        onRequestHelpContextMap={openContextMapHelp}
       />
 
       <DataStoragePanel

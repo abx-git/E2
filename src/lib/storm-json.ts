@@ -7,7 +7,7 @@ import type {
   Viewport,
   WorkshopFormat,
 } from "@/types/storm-element";
-import type { StormRelation } from "@/types/storm-relation";
+import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 import {
   normalizeAppearance,
   type BoardAppearance,
@@ -37,6 +37,8 @@ export interface BoardSnapshotV1 {
   facilitatorPhase: number;
   elements: StormElement[];
   relations: StormRelation[];
+  /** DDD Context-Map links BC↔BC. Fehlt in alten Dateien → Import: []. */
+  contextRelations?: ContextRelation[];
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
   timeline: Timeline;
@@ -54,6 +56,7 @@ export interface BoardImportPayload {
   facilitatorPhase: number;
   elements: StormElement[];
   relations: StormRelation[];
+  contextRelations: ContextRelation[];
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
   timeline: Timeline;
@@ -71,6 +74,7 @@ export function buildBoardSnapshot(state: BoardImportPayload): BoardSnapshotV1 {
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     ...state,
+    contextRelations: state.contextRelations ?? [],
     appearance: normalizeAppearance(state.appearance),
   };
 }
@@ -93,6 +97,7 @@ export function boardSnapshotToReplacePayload(snap: BoardSnapshotV1): BoardImpor
     facilitatorPhase: snap.facilitatorPhase,
     elements: snap.elements,
     relations: snap.relations,
+    contextRelations: snap.contextRelations ?? [],
     swimlanes: snap.swimlanes.map(normalizeSwimlane),
     boundedContexts: snap.boundedContexts,
     timeline: normalizeTimeline(snap.timeline),
@@ -152,6 +157,9 @@ export function stableBoardStateKey(payload: BoardImportPayload): string {
     facilitatorPhase: payload.facilitatorPhase,
     elements: [...payload.elements].sort((a, b) => a.id.localeCompare(b.id)),
     relations: [...payload.relations].sort((a, b) => a.id.localeCompare(b.id)),
+    contextRelations: [...(payload.contextRelations ?? [])].sort((a, b) =>
+      a.id.localeCompare(b.id),
+    ),
     swimlanes: [...payload.swimlanes].sort((a, b) => a.id.localeCompare(b.id)),
     boundedContexts: [...payload.boundedContexts].sort((a, b) => a.id.localeCompare(b.id)),
     timeline: payload.timeline,

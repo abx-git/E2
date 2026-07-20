@@ -67,6 +67,11 @@
       "description": "Verbindungen zwischen Elementen.",
       "items": { "$ref": "#/$defs/stormRelation" }
     },
+    "contextRelations": {
+      "type": "array",
+      "description": "Context-Map-Beziehungen zwischen Bounded Contexts. Beim Import Standard: [] falls fehlend.",
+      "items": { "$ref": "#/$defs/contextRelation" }
+    },
     "swimlanes": {
       "type": "array",
       "items": { "$ref": "#/$defs/swimlane" }
@@ -129,6 +134,20 @@
         "causal",
         "contains"
       ]
+    },
+    "contextMapPattern": {
+      "type": "string",
+      "enum": [
+        "partnership",
+        "sharedKernel",
+        "customerSupplier",
+        "conformist",
+        "antiCorruptionLayer",
+        "openHostService",
+        "publishedLanguage",
+        "separateWays"
+      ],
+      "description": "DDD Context-Map-Muster zwischen Bounded Contexts."
     },
     "hotspotStatus": {
       "type": "string",
@@ -239,6 +258,33 @@
           "type": "string",
           "minLength": 1,
           "description": "ID des Ziel-Elements."
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "contextRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "sourceContextId", "targetContextId"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/$defs/contextMapPattern"
+        },
+        "sourceContextId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Upstream-/Supplier-Bounded-Context-ID."
+        },
+        "targetContextId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Downstream-/Customer-Bounded-Context-ID."
         },
         "label": {
           "type": "string"

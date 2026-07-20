@@ -93,6 +93,7 @@ export function StormElementCard({
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
+    useStormBoardStore.getState().beginGesture();
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -126,6 +127,7 @@ export function StormElementCard({
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      useStormBoardStore.getState().endGesture();
     };
 
     window.addEventListener("pointermove", onMove);
@@ -147,6 +149,7 @@ export function StormElementCard({
         if (e.button !== 0) return;
         e.stopPropagation();
         draggedRef.current = false;
+        useStormBoardStore.getState().beginGesture();
 
         const startX = e.clientX;
         const startY = e.clientY;
@@ -187,6 +190,7 @@ export function StormElementCard({
         const onUp = () => {
           window.removeEventListener("pointermove", onMoveEv);
           window.removeEventListener("pointerup", onUp);
+          useStormBoardStore.getState().endGesture();
 
           if (draggedRef.current) return;
 

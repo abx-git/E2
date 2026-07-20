@@ -1,5 +1,5 @@
 import type { StormElement } from "@/types/storm-element";
-import type { StormRelation } from "@/types/storm-relation";
+import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 import type { RelationType } from "@/types/storm-relation";
 
 export type ValidationSeverity = "info" | "hint" | "warning";
@@ -30,6 +30,7 @@ export function suggestPastTense(label: string): string | null {
 export function validateBoard(
   elements: StormElement[],
   relations: StormRelation[],
+  contextRelations: ContextRelation[] = [],
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const elementById = new Map(elements.map((e) => [e.id, e]));
@@ -38,6 +39,13 @@ export function validateBoard(
     connectedIds.add(r.sourceId);
     connectedIds.add(r.targetId);
   }
+
+  const hasContextLink = (a: string, b: string) =>
+    contextRelations.some(
+      (cr) =>
+        (cr.sourceContextId === a && cr.targetContextId === b) ||
+        (cr.sourceContextId === b && cr.targetContextId === a),
+    );
 
   for (const el of elements) {
     if (el.type === "domainEvent") {
@@ -59,6 +67,18 @@ export function validateBoard(
         severity: "warning",
         message: `Hotspot „${el.label}" hat keine Beschreibung`,
       });
+    }
+
+    if (el.type === "aggregate") {
+      const invariants = el.metadata?.aggregateInvariants ?? [];
+      if (invariants.length === 0) {
+        issues.push({
+          id: `agg-invariants-${el.id}`,
+          elementId: el.id,
+          severity: "hint",
+          message: `Aggregate „${el.label}" hat noch keine Invarianten`,
+        });
+      }
     }
 
     if (elements.length > 1 && !connectedIds.has(el.id)) {
@@ -99,6 +119,27 @@ export function validateBoard(
         relationId: rel.id,
         severity: "warning",
         message: `Command „${source.label}" liegt zeitlich rechts vom Event „${target.label}"`,
+      });
+    }
+
+    const srcBc = source.boundedContextId;
+    const tgtBc = target.boundedContextId;
+    if (srcBc && tgtBc && srcBc !== tgtBc && !hasContextLink(srcBc, tgtBc)) {
+      issues.push({
+        id: `cross-ctx-${rel.id}`,
+        elementId: source.id,
+        relationId: rel.id,
+        severity: "warning",
+        message:
+          "Cross-Context ohne Context-Map-Schnittstelle (z. B. ACL) — Bounded Contexts verbinden",
+      });
+      issues.push({
+        id: `cross-ctx-tgt-${rel.id}`,
+        elementId: target.id,
+        relationId: rel.id,
+        severity: "warning",
+        message:
+          "Cross-Context ohne Context-Map-Schnittstelle (z. B. ACL) — Bounded Contexts verbinden",
       });
     }
   }

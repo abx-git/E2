@@ -21,9 +21,10 @@ import {
 import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { RELATION_TYPE_LABELS, type RelationType } from "@/types/storm-relation";
+import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
 
 const RELATION_TYPES = Object.keys(RELATION_TYPE_LABELS) as RelationType[];
+const CONTEXT_PATTERNS = CONTEXT_MAP_PATTERNS;
 
 const ALIGN_ROW: { mode: AlignMode; label: string; icon: typeof AlignStartHorizontal }[] = [
   { mode: "left", label: "Links", icon: AlignStartVertical },
@@ -37,16 +38,19 @@ const ALIGN_ROW: { mode: AlignMode; label: string; icon: typeof AlignStartHorizo
 export interface CanvasContextMenuProps {
   onRequestHelpElementType?: (type: string) => void;
   onRequestHelpRelationType?: (type: RelationType) => void;
+  onRequestHelpContextMap?: (type: ContextMapPattern) => void;
 }
 
 export function CanvasContextMenu({
   onRequestHelpElementType,
   onRequestHelpRelationType,
+  onRequestHelpContextMap,
 }: CanvasContextMenuProps) {
   const menu = useStormBoardStore((s) => s.contextMenu);
   const closeContextMenu = useStormBoardStore((s) => s.closeContextMenu);
   const elements = useStormBoardStore((s) => s.elements);
   const relations = useStormBoardStore((s) => s.relations);
+  const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const updateElement = useStormBoardStore((s) => s.updateElement);
@@ -54,8 +58,12 @@ export function CanvasContextMenu({
   const patchElements = useStormBoardStore((s) => s.patchElements);
   const updateRelation = useStormBoardStore((s) => s.updateRelation);
   const deleteRelation = useStormBoardStore((s) => s.deleteRelation);
+  const updateContextRelation = useStormBoardStore((s) => s.updateContextRelation);
+  const deleteContextRelation = useStormBoardStore((s) => s.deleteContextRelation);
   const setRelationMode = useStormBoardStore((s) => s.setRelationMode);
   const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
+  const setContextMapMode = useStormBoardStore((s) => s.setContextMapMode);
+  const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
   const deleteSwimlane = useStormBoardStore((s) => s.deleteSwimlane);
   const deleteBoundedContext = useStormBoardStore((s) => s.deleteBoundedContext);
   const clearSelection = useStormBoardStore((s) => s.clearSelection);
@@ -336,6 +344,49 @@ export function CanvasContextMenu({
         />
       </>
     );
+  } else if (target.kind === "contextRelation") {
+    const rel = contextRelations.find((r) => r.id === target.id);
+    if (!rel) return null;
+    body = (
+      <>
+        <Header title="Context Map" subtitle={CONTEXT_MAP_PATTERN_LABELS[rel.type]} />
+        <Section label="Muster" />
+        {CONTEXT_PATTERNS.map((t) => (
+          <Item
+            key={t}
+            label={CONTEXT_MAP_PATTERN_LABELS[t]}
+            active={rel.type === t}
+            onClick={() => run(() => updateContextRelation(rel.id, { type: t }))}
+          />
+        ))}
+        <Item
+          label="Label ändern…"
+          onClick={() =>
+            run(() => {
+              const next = window.prompt("Label", rel.label ?? "");
+              if (next !== null) updateContextRelation(rel.id, { label: next || undefined });
+            })
+          }
+        />
+        <Item
+          icon={HelpCircle}
+          label="Hilfe"
+          onClick={() => run(() => onRequestHelpContextMap?.(rel.type))}
+        />
+        <Separator />
+        <Item
+          icon={Trash2}
+          label="Löschen"
+          danger
+          onClick={() =>
+            run(() => {
+              deleteContextRelation(rel.id);
+              clearSelection();
+            })
+          }
+        />
+      </>
+    );
   } else if (target.kind === "swimlane") {
     const lane = swimlanes.find((l) => l.id === target.id);
     if (!lane) return null;
@@ -361,6 +412,16 @@ export function CanvasContextMenu({
     body = (
       <>
         <Header title={bc.label} subtitle="Bounded Context" />
+        <Item
+          icon={Link2}
+          label="Context Map verbinden"
+          onClick={() =>
+            run(() => {
+              setContextMapMode(true);
+              setContextMapDraftSource(bc.id);
+            })
+          }
+        />
         <Item
           icon={Trash2}
           label="Löschen"

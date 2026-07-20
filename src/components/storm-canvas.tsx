@@ -4,15 +4,23 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 import { BoundedContextLayer } from "@/components/bounded-context-layer";
+import { ContextMapConnectors } from "@/components/context-map-connectors";
 import { StormConnectors } from "@/components/storm-connectors";
 import { StormElementCard } from "@/components/storm-element-card";
 import { SwimlaneLayer } from "@/components/swimlane-layer";
 import { TimelineGuide } from "@/components/timeline-guide";
 import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint } from "@/lib/canvas-viewport";
+import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { elementsInMarquee, type WorldRect } from "@/lib/selection-geometry";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MARQUEE_THRESHOLD_PX = 4;
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  const tag = el?.tagName?.toLowerCase();
+  return tag === "input" || tag === "textarea" || Boolean(el?.isContentEditable);
+}
 
 export function StormCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -24,14 +32,23 @@ export function StormCanvas() {
   const setViewport = useStormBoardStore((s) => s.setViewport);
   const elements = useStormBoardStore((s) => s.elements);
   const relations = useStormBoardStore((s) => s.relations);
+  const contextRelations = useStormBoardStore((s) => s.contextRelations);
+  const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const timeline = useStormBoardStore((s) => s.timeline);
   const snapToTimelineEnabled = useStormBoardStore((s) => s.snapToTimeline);
   const snapToGridEnabled = useStormBoardStore((s) => s.snapToGrid);
   const paletteType = useStormBoardStore((s) => s.paletteType);
+  const setPaletteType = useStormBoardStore((s) => s.setPaletteType);
+  const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
+  const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
+  const facilitatorPhase = useStormBoardStore((s) => s.facilitatorPhase);
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const selectedRelationId = useStormBoardStore((s) => s.selectedRelationId);
+  const selectedContextRelationId = useStormBoardStore((s) => s.selectedContextRelationId);
   const relationMode = useStormBoardStore((s) => s.relationMode);
   const relationDraftSourceId = useStormBoardStore((s) => s.relationDraftSourceId);
+  const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
+  const contextMapDraftSourceId = useStormBoardStore((s) => s.contextMapDraftSourceId);
 
   const addElement = useStormBoardStore((s) => s.addElement);
   const moveElement = useStormBoardStore((s) => s.moveElement);
@@ -39,8 +56,10 @@ export function StormCanvas() {
   const selectElement = useStormBoardStore((s) => s.selectElement);
   const setSelectedElementIds = useStormBoardStore((s) => s.setSelectedElementIds);
   const selectRelation = useStormBoardStore((s) => s.selectRelation);
+  const selectContextRelation = useStormBoardStore((s) => s.selectContextRelation);
   const clearSelection = useStormBoardStore((s) => s.clearSelection);
   const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
+  const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
   const connectElements = useStormBoardStore((s) => s.connectElements);
   const addBoundedContext = useStormBoardStore((s) => s.addBoundedContext);
 
@@ -53,16 +72,7 @@ export function StormCanvas() {
   const marqueeDraftRef = useRef<WorldRect | null>(null);
 
   const sourceElement = elements.find((e) => e.id === relationDraftSourceId);
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && relationDraftSourceId) {
-        setRelationDraftSource(null);
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [relationDraftSourceId, setRelationDraftSource]);
+  const contextMapSource = boundedContexts.find((b) => b.id === contextMapDraftSourceId);
 
   const applySnap = useCallback(
     (x: number, y: number) => {
@@ -80,6 +90,69 @@ export function StormCanvas() {
     [snapToGridEnabled, snapToTimelineEnabled, timeline.y],
   );
 
+  const addAtViewportCenter = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const clientX = rect.left + rect.width / 2;
+    const clientY = rect.top + rect.height / 2;
+    const world = screenToWorld(viewport, clientX, clientY, rect);
+    const snapped = applySnap(world.x, world.y);
+    const type = useStormBoardStore.getState().paletteType;
+    addElement(type, snapped.x, snapped.y);
+  }, [viewport, applySnap, addElement]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (isTypingTarget(e.target)) return;
+
+      if (e.key === "Escape") {
+        if (relationDraftSourceId) setRelationDraftSource(null);
+        if (contextMapDraftSourceId) setContextMapDraftSource(null);
+        return;
+      }
+
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+      const digitMatch = e.key.match(/^([0-9])$/);
+      if (digitMatch) {
+        const digit = Number(digitMatch[1]);
+        const index = digit === 0 ? 9 : digit - 1;
+        const allowed = getAllowedTypesForPhase(
+          workshopFormat,
+          facilitatorPhase,
+          facilitatorEnabled,
+        );
+        const type = allowed[index];
+        if (type) {
+          e.preventDefault();
+          setPaletteType(type);
+        }
+        return;
+      }
+
+      if (e.key === "Enter" || e.key === "a" || e.key === "A") {
+        if (bcMode || relationMode || contextMapMode) return;
+        e.preventDefault();
+        addAtViewportCenter();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    relationDraftSourceId,
+    setRelationDraftSource,
+    contextMapDraftSourceId,
+    setContextMapDraftSource,
+    workshopFormat,
+    facilitatorPhase,
+    facilitatorEnabled,
+    setPaletteType,
+    addAtViewportCenter,
+    bcMode,
+    relationMode,
+    contextMapMode,
+  ]);
+
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
       if (!containerRef.current) return;
@@ -92,7 +165,7 @@ export function StormCanvas() {
   );
 
   const handleDoubleClick = (e: React.MouseEvent) => {
-    if (!containerRef.current || bcMode || relationMode) return;
+    if (!containerRef.current || bcMode || relationMode || contextMapMode) return;
     const rect = containerRef.current.getBoundingClientRect();
     const world = screenToWorld(viewport, e.clientX, e.clientY, rect);
     const snapped = applySnap(world.x, world.y);
@@ -237,6 +310,7 @@ export function StormCanvas() {
         }
         // Empty surface (interactive children stopPropagation): start marquee select.
         if (relationMode) setRelationDraftSource(null);
+        if (contextMapMode) setContextMapDraftSource(null);
         startMarquee(e.clientX, e.clientY, e.shiftKey);
       }}
       onPointerMove={(e) => {
@@ -297,6 +371,28 @@ export function StormCanvas() {
         </div>
       )}
 
+      {contextMapMode && (
+        <div className="dock-surface absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)]">
+          {contextMapDraftSourceId && contextMapSource ? (
+            <>
+              <span>
+                Von <strong className="text-[var(--accent-2)]">{contextMapSource.label}</strong> — Ziel-BC anklicken
+              </span>
+              <button
+                type="button"
+                onClick={() => setContextMapDraftSource(null)}
+                className="rounded p-0.5 hover:bg-[var(--control-hover)]"
+                title="Abbrechen"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </>
+          ) : (
+            <span>Context Map: zwei Bounded Contexts anklicken</span>
+          )}
+        </div>
+      )}
+
       <div
         data-canvas-world
         className="absolute origin-top-left"
@@ -319,6 +415,13 @@ export function StormCanvas() {
       >
         <SwimlaneLayer />
         <BoundedContextLayer />
+        <ContextMapConnectors
+          boundedContexts={boundedContexts}
+          contextRelations={contextRelations}
+          selectedContextRelationId={selectedContextRelationId}
+          contextMapDraftSourceId={contextMapDraftSourceId}
+          onSelectContextRelation={selectContextRelation}
+        />
         {bcDraft && (
           <div
             className="pointer-events-none absolute border-2 border-dashed border-blue-500 bg-blue-100/30"
@@ -379,7 +482,9 @@ export function StormCanvas() {
         <span className="dock-surface rounded-lg px-2 py-1.5 text-xs text-[var(--muted)]">
           {relationMode
             ? "Verbinden · Esc: Abbrechen"
-            : "Rechtsklick: Menü · Rahmen: Mehrfachauswahl · Doppelklick: Element"}
+            : contextMapMode
+              ? "Context Map · Esc: Abbrechen"
+              : "1–9/0 Typ · Enter/A anlegen · Rechtsklick · Rahmen · Doppelklick"}
         </span>
       </div>
     </div>

@@ -34,6 +34,7 @@ export function ElementDetailSidebar({
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
 
+  const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const selectedElement = elements.find((e) => e.id === selectedElementIds[0]);
   const selectedRelation = relations.find((r) => r.id === selectedRelationId);
   const selectedBoundedContext = boundedContexts.find((bc) => bc.id === selectedBoundedContextId);
@@ -41,8 +42,11 @@ export function ElementDetailSidebar({
   const multiCount = selectedElementIds.length;
 
   const issues = useMemo(
-    () => validateBoard(elements, relations).filter((i) => i.elementId === selectedElement?.id),
-    [elements, relations, selectedElement?.id],
+    () =>
+      validateBoard(elements, relations, contextRelations).filter(
+        (i) => i.elementId === selectedElement?.id,
+      ),
+    [elements, relations, contextRelations, selectedElement?.id],
   );
 
   if (selectedRelation) {
@@ -274,21 +278,39 @@ export function ElementDetailSidebar({
       )}
 
       {selectedElement.type === "aggregate" && (
-        <Field label="Methoden (eine pro Zeile)">
-          <textarea
-            className="dock-field min-h-[4rem]"
-            rows={3}
-            value={(selectedElement.metadata?.aggregateMethods ?? []).join("\n")}
-            onChange={(e) =>
-              updateElement(selectedElement.id, {
-                metadata: {
-                  ...selectedElement.metadata,
-                  aggregateMethods: e.target.value.split("\n").filter(Boolean),
-                },
-              })
-            }
-          />
-        </Field>
+        <>
+          <Field label="Methoden (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[4rem]"
+              rows={3}
+              value={(selectedElement.metadata?.aggregateMethods ?? []).join("\n")}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    aggregateMethods: e.target.value.split("\n").filter(Boolean),
+                  },
+                })
+              }
+            />
+          </Field>
+          <Field label="Invarianten (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[4rem]"
+              rows={3}
+              value={(selectedElement.metadata?.aggregateInvariants ?? []).join("\n")}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    aggregateInvariants: e.target.value.split("\n").filter(Boolean),
+                  },
+                })
+              }
+              placeholder="z. B. Balance darf nicht negativ sein"
+            />
+          </Field>
+        </>
       )}
 
       {issues.map((issue) => (
