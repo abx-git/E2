@@ -8,11 +8,22 @@ import type {
   WorkshopFormat,
 } from "@/types/storm-element";
 import type { StormRelation } from "@/types/storm-relation";
+import boardSnapshotV1Schema from "../../public/schemas/board-snapshot-v1.schema.json";
 
 export const EXPORT_FORMAT = "event-storming-tool" as const;
 export const EXPORT_VERSION = 1 as const;
 
+/** Canonical schema URL (matches $id in board-snapshot-v1.schema.json). */
+export const BOARD_SNAPSHOT_SCHEMA_ID =
+  "https://abx-git.github.io/E2/schemas/board-snapshot-v1.schema.json" as const;
+
+export const BOARD_SNAPSHOT_SCHEMA_FILENAME = "board-snapshot-v1.schema.json" as const;
+
+/** JSON Schema document for BoardSnapshotV1 (for download / tooling). */
+export const boardSnapshotSchema = boardSnapshotV1Schema;
+
 export interface BoardSnapshotV1 {
+  $schema?: string;
   format: typeof EXPORT_FORMAT;
   version: typeof EXPORT_VERSION;
   exportedAt: string;
@@ -49,6 +60,7 @@ export interface BoardImportPayload {
 
 export function buildBoardSnapshot(state: BoardImportPayload): BoardSnapshotV1 {
   return {
+    $schema: BOARD_SNAPSHOT_SCHEMA_ID,
     format: EXPORT_FORMAT,
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
@@ -98,6 +110,11 @@ export function boardImportPayloadFromExportText(text: string): BoardImportPaylo
 
 export function stringifyExportedDocument(snap: BoardSnapshotV1): string {
   return JSON.stringify(snap, null, 2);
+}
+
+/** Pretty-printed JSON Schema for BoardSnapshotV1. */
+export function stringifyBoardSnapshotSchema(): string {
+  return JSON.stringify(boardSnapshotSchema, null, 2);
 }
 
 export function stableBoardStateKey(payload: BoardImportPayload): string {

@@ -12,7 +12,16 @@ Browserbasiertes Event-Storming-Tool mit lokaler JSON-Persistenz (`.storm.json`)
 - Timeline, Swimlanes, Bounded Contexts
 - Facilitator-Modus für Big Picture, Process Modeling und Software Design
 - Hotspot-Liste, Glossary, Validierungshinweise
-- Export: JSON, SVG, PNG, Markdown-Reports
+- Export: JSON (+ JSON Schema), SVG, PNG, Markdown-Reports
+
+## JSON-Format für andere Tools
+
+Board-Dateien (`.storm.json`) folgen einem festen Schema:
+
+- Schema: [`public/schemas/board-snapshot-v1.schema.json`](public/schemas/board-snapshot-v1.schema.json)
+- Live: [abx-git.github.io/E2/schemas/board-snapshot-v1.schema.json](https://abx-git.github.io/E2/schemas/board-snapshot-v1.schema.json)
+- Doku: [docs/BOARD-JSON-SCHEMA.md](docs/BOARD-JSON-SCHEMA.md)
+- In der App: **Daten → JSON Schema herunterladen**
 
 ## GitHub Pages deployen
 

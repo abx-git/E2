@@ -1,10 +1,37 @@
 import { describe, expect, it } from "vitest";
 
-import { stableBoardStateKey, boardExportTextsEquivalent, buildBoardSnapshot } from "@/lib/storm-json";
+import {
+  BOARD_SNAPSHOT_SCHEMA_ID,
+  stableBoardStateKey,
+  boardExportTextsEquivalent,
+  buildBoardSnapshot,
+  boardSnapshotSchema,
+} from "@/lib/storm-json";
 import { suggestPastTense, validateBoard } from "@/lib/relation-validation";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 
 describe("storm-json", () => {
+  it("embeds $schema pointing at the published schema id", () => {
+    const snap = buildBoardSnapshot({
+      title: "Test",
+      workshopFormat: "free",
+      facilitatorEnabled: false,
+      facilitatorPhase: 0,
+      elements: [],
+      relations: [],
+      swimlanes: [],
+      boundedContexts: [],
+      timeline: { y: 400 },
+      viewport: { x: 0, y: 0, zoom: 1 },
+      glossary: [],
+      snapToTimeline: true,
+      snapToGrid: false,
+    });
+    expect(snap.$schema).toBe(BOARD_SNAPSHOT_SCHEMA_ID);
+    expect(boardSnapshotSchema.$id).toBe(BOARD_SNAPSHOT_SCHEMA_ID);
+    expect(boardSnapshotSchema.properties.format.const).toBe("event-storming-tool");
+  });
+
   it("stable key ignores exportedAt", () => {
     const base = {
       title: "Test",

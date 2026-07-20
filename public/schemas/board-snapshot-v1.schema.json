@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abx-git.github.io/E2/schemas/board-snapshot-v1.schema.json",
+  "title": "Event Storming Board Snapshot",
+  "description": "Export-/Import-Format der E2 Event-Storming-App (format: event-storming-tool, version: 1). Andere Tools können dieses Schema nutzen, um gültige .storm.json-Dateien zu erzeugen.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "exportedAt",
+    "title",
+    "workshopFormat",
+    "facilitatorEnabled",
+    "facilitatorPhase",
+    "elements",
+    "relations",
+    "swimlanes",
+    "boundedContexts",
+    "timeline",
+    "viewport",
+    "glossary",
+    "snapToTimeline",
+    "snapToGrid"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optionaler Verweis auf dieses JSON Schema (z. B. für Editor-Autovervollständigung)."
+    },
+    "format": {
+      "const": "event-storming-tool",
+      "description": "Kennung des Dateiformats."
+    },
+    "version": {
+      "const": 1,
+      "description": "Schema-/Formatversion. Derzeit nur 1."
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601-Zeitstempel des Exports. Wird beim Import nicht für Sync-Vergleiche genutzt."
+    },
+    "title": {
+      "type": "string",
+      "description": "Board-Titel."
+    },
+    "workshopFormat": {
+      "$ref": "#/$defs/workshopFormat"
+    },
+    "facilitatorEnabled": {
+      "type": "boolean",
+      "description": "Ob der Facilitator-Modus aktiv ist."
+    },
+    "facilitatorPhase": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Aktueller Facilitator-Phasenindex (0-basiert)."
+    },
+    "elements": {
+      "type": "array",
+      "description": "Sticky-Notes / Modellelemente auf dem Canvas.",
+      "items": { "$ref": "#/$defs/stormElement" }
+    },
+    "relations": {
+      "type": "array",
+      "description": "Verbindungen zwischen Elementen.",
+      "items": { "$ref": "#/$defs/stormRelation" }
+    },
+    "swimlanes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/swimlane" }
+    },
+    "boundedContexts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/boundedContext" }
+    },
+    "timeline": {
+      "$ref": "#/$defs/timeline"
+    },
+    "viewport": {
+      "$ref": "#/$defs/viewport"
+    },
+    "glossary": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/glossaryEntry" }
+    },
+    "snapToTimeline": {
+      "type": "boolean",
+      "description": "Elemente an die Timeline einrasten. Beim Import Standard: true, falls fehlend."
+    },
+    "snapToGrid": {
+      "type": "boolean",
+      "description": "Elemente am Raster einrasten. Beim Import Standard: false, falls fehlend."
+    }
+  },
+  "$defs": {
+    "workshopFormat": {
+      "type": "string",
+      "enum": ["bigPicture", "processModeling", "softwareDesign", "free"]
+    },
+    "elementType": {
+      "type": "string",
+      "enum": [
+        "domainEvent",
+        "command",
+        "actor",
+        "aggregate",
+        "policy",
+        "readModel",
+        "externalSystem",
+        "ui",
+        "hotspot",
+        "pivotalEvent"
+      ]
+    },
+    "relationType": {
+      "type": "string",
+      "enum": [
+        "triggers",
+        "reactsWith",
+        "informs",
+        "executedBy",
+        "invokes",
+        "causal",
+        "contains"
+      ]
+    },
+    "hotspotStatus": {
+      "type": "string",
+      "enum": ["open", "resolved"]
+    },
+    "hotspotPriority": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "elementMetadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "eventSchema": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Freies JSON-Objekt für Event-/Aggregate-Schema."
+        },
+        "aggregateMethods": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "aggregateInvariants": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "isRecurring": {
+          "type": "boolean"
+        },
+        "hotspotStatus": {
+          "$ref": "#/$defs/hotspotStatus"
+        },
+        "hotspotPriority": {
+          "$ref": "#/$defs/hotspotPriority"
+        }
+      }
+    },
+    "stormElement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "label", "x", "y"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stabile Element-ID (Referenzziel für Relationen)."
+        },
+        "type": {
+          "$ref": "#/$defs/elementType"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "x": {
+          "type": "number",
+          "description": "Welt-X der linken oberen Ecke."
+        },
+        "y": {
+          "type": "number",
+          "description": "Welt-Y der linken oberen Ecke."
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "rotation": {
+          "type": "number",
+          "description": "Rotation in Grad (z. B. 45 für Hotspots)."
+        },
+        "swimlaneId": {
+          "type": "string",
+          "description": "Optionale ID einer Swimlane."
+        },
+        "boundedContextId": {
+          "type": "string",
+          "description": "Optionale ID eines Bounded Context."
+        },
+        "metadata": {
+          "$ref": "#/$defs/elementMetadata"
+        }
+      }
+    },
+    "stormRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "sourceId", "targetId"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/$defs/relationType"
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ID des Quell-Elements."
+        },
+        "targetId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ID des Ziel-Elements."
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "swimlane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "y", "height"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "y": { "type": "number" },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "color": { "type": "string" }
+      }
+    },
+    "boundedContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "label", "x", "y", "width", "height"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "purpose": { "type": "string" },
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number", "exclusiveMinimum": 0 },
+        "height": { "type": "number", "exclusiveMinimum": 0 },
+        "color": { "type": "string" }
+      }
+    },
+    "timeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["y"],
+      "properties": {
+        "y": { "type": "number" },
+        "startLabel": { "type": "string" },
+        "endLabel": { "type": "string" }
+      }
+    },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y", "zoom"],
+      "properties": {
+        "x": { "type": "number", "description": "Pan-Offset X in Bildschirmkoordinaten." },
+        "y": { "type": "number", "description": "Pan-Offset Y in Bildschirmkoordinaten." },
+        "zoom": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "glossaryEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["term", "definition"],
+      "properties": {
+        "term": { "type": "string" },
+        "definition": { "type": "string" }
+      }
+    }
+  }
+}

@@ -17,6 +17,7 @@ export interface DataStoragePanelProps {
   onRestoreBackupFile: () => void;
   onRestoreBackupPaste: () => void;
   onExportJson: () => void;
+  onExportJsonSchema: () => void;
   onExportSvg: () => void;
   onExportPng: () => void;
   onExportHotspots: () => void;
@@ -69,6 +70,7 @@ export function DataStoragePanel({
   onRestoreBackupFile,
   onRestoreBackupPaste,
   onExportJson,
+  onExportJsonSchema,
   onExportSvg,
   onExportPng,
   onExportHotspots,
@@ -137,6 +139,15 @@ export function DataStoragePanel({
             <ActionButton onClick={onExportJson} disabled={busy}>
               <Download className="h-4 w-4" /> JSON herunterladen
             </ActionButton>
+            <ActionButton onClick={onExportJsonSchema} disabled={busy}>
+              <Download className="h-4 w-4" /> JSON Schema herunterladen
+            </ActionButton>
+            <p className="text-xs text-slate-500">
+              Das Schema beschreibt das{" "}
+              <code className="rounded bg-slate-100 px-1">.storm.json</code>-Format für andere Tools.
+              Exportierte Boards enthalten ein{" "}
+              <code className="rounded bg-slate-100 px-1">$schema</code>-Feld.
+            </p>
             <ActionButton onClick={onExportSvg} disabled={busy}>
               <Download className="h-4 w-4" /> SVG
             </ActionButton>

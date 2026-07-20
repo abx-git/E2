@@ -30,6 +30,10 @@ import {
   exportGlossaryMarkdown,
   exportHotspotReportMarkdown,
 } from "@/lib/storm-export";
+import {
+  BOARD_SNAPSHOT_SCHEMA_FILENAME,
+  stringifyBoardSnapshotSchema,
+} from "@/lib/storm-json";
 import { FACILITATOR_FORMATS, type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
 import { getElementHelp, getPhaseHelp, getRelationHelp, type HelpDialogModel } from "@/lib/storm-help";
@@ -100,6 +104,17 @@ export function StormBoard() {
     a.click();
     URL.revokeObjectURL(url);
   }, [title]);
+
+  const downloadJsonSchema = useCallback(() => {
+    const json = stringifyBoardSnapshotSchema();
+    const blob = new Blob([json], { type: "application/schema+json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = BOARD_SNAPSHOT_SCHEMA_FILENAME;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
 
   const handleCreateWorkingFile = async () => {
     setBusy(true);
@@ -280,6 +295,7 @@ export function StormBoard() {
         onRestoreBackupFile={() => fileInputRef.current?.click()}
         onRestoreBackupPaste={() => void handlePasteJson()}
         onExportJson={downloadJson}
+        onExportJsonSchema={downloadJsonSchema}
         onExportSvg={exportBoardSvg}
         onExportPng={() => void exportBoardPng()}
         onExportHotspots={exportHotspotReportMarkdown}
