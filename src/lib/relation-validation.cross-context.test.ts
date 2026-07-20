@@ -1,8 +1,29 @@
 import { describe, expect, it } from "vitest";
 
-import { validateBoard } from "@/lib/relation-validation";
+import { defaultRelationType, validateBoard } from "@/lib/relation-validation";
 import type { StormElement } from "@/types/storm-element";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
+
+describe("defaultRelationType", () => {
+  it("uses annotates when a note is involved", () => {
+    const note: StormElement = {
+      id: "n1",
+      type: "note",
+      label: "Check later",
+      x: 0,
+      y: 0,
+    };
+    const event: StormElement = {
+      id: "e1",
+      type: "domainEvent",
+      label: "Order Placed",
+      x: 100,
+      y: 0,
+    };
+    expect(defaultRelationType(note, event)).toBe("annotates");
+    expect(defaultRelationType(event, note)).toBe("annotates");
+  });
+});
 
 describe("cross-context validation", () => {
   it("warns when element relation crosses BCs without context map link", () => {

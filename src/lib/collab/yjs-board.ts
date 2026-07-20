@@ -4,25 +4,51 @@ import type { BoardImportPayload } from "@/lib/storm-json";
 import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
 import { DEFAULT_TIMELINE, DEFAULT_VIEWPORT } from "@/types/storm-element";
 
-const PAYLOAD_KEY = "payload";
+const PAYLOAD_KEY = "payloadJson";
+const LEGACY_PAYLOAD_KEY = "payload";
 
-/** Yjs doc holding the shared board as a single JSON payload map entry (CRDT-merged via last writer per key updates). */
+/** Yjs doc: board payload as JSON string (reliable LWW sync over Broadcast). */
 export function createBoardYDoc(): Y.Doc {
   return new Y.Doc();
 }
 
 export function applyPayloadToYDoc(doc: Y.Doc, payload: BoardImportPayload, origin?: unknown): void {
-  const root = doc.getMap("board");
+  const root = doc.getMap<string>("board");
+  const json = JSON.stringify(payload);
+  // Skip no-op writes to avoid echo loops.
+  if (root.get(PAYLOAD_KEY) === json && !root.has(LEGACY_PAYLOAD_KEY)) return;
   doc.transact(() => {
-    root.set(PAYLOAD_KEY, structuredClone(payload));
+    root.set(PAYLOAD_KEY, json);
+    if (root.has(LEGACY_PAYLOAD_KEY)) root.delete(LEGACY_PAYLOAD_KEY);
   }, origin);
+}
+
+function coerceRawPayload(raw: unknown): BoardImportPayload | null {
+  if (typeof raw === "string" && raw.trim()) {
+    try {
+      return normalizePayload(JSON.parse(raw) as Partial<BoardImportPayload>);
+    } catch {
+      return null;
+    }
+  }
+  // Legacy: nested Y types from older sessions
+  if (raw && typeof raw === "object") {
+    try {
+      const plain =
+        typeof (raw as { toJSON?: () => unknown }).toJSON === "function"
+          ? (raw as { toJSON: () => unknown }).toJSON()
+          : raw;
+      return normalizePayload(plain as Partial<BoardImportPayload>);
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 export function readPayloadFromYDoc(doc: Y.Doc): BoardImportPayload | null {
   const root = doc.getMap("board");
-  const raw = root.get(PAYLOAD_KEY);
-  if (!raw || typeof raw !== "object") return null;
-  return normalizePayload(raw as BoardImportPayload);
+  return coerceRawPayload(root.get(PAYLOAD_KEY)) ?? coerceRawPayload(root.get(LEGACY_PAYLOAD_KEY));
 }
 
 function normalizePayload(p: Partial<BoardImportPayload>): BoardImportPayload {

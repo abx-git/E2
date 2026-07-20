@@ -234,9 +234,17 @@ export function StormElementCard({
           backgroundColor: colors.bg,
           borderColor: colors.border,
           color: colors.text,
+          borderStyle: element.type === "note" ? "dashed" : undefined,
         }}
       >
-        <span className="line-clamp-3 text-center text-xs font-semibold leading-tight">
+        <span
+          className={[
+            "text-xs font-semibold leading-tight",
+            element.type === "note"
+              ? "line-clamp-6 w-full whitespace-pre-wrap text-left"
+              : "line-clamp-3 text-center",
+          ].join(" ")}
+        >
           {element.label}
         </span>
         {element.metadata?.isRecurring && (

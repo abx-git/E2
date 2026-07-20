@@ -323,6 +323,9 @@ export const useCollabStore = create<CollabState>((set, get) => ({
         else if (s === "disconnected") set({ status: "disconnected" });
         else set({ status: "connecting" });
       },
+      onError: (message) => {
+        set({ error: message });
+      },
     });
 
     try {

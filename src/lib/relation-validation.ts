@@ -148,6 +148,7 @@ export function validateBoard(
 }
 
 export function defaultRelationType(source: StormElement, target: StormElement): RelationType {
+  if (source.type === "note" || target.type === "note") return "annotates";
   if (source.type === "actor" && target.type === "command") return "executedBy";
   if (source.type === "readModel" && target.type === "command") return "informs";
   if (source.type === "command" && target.type === "domainEvent") return "triggers";

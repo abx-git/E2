@@ -42,7 +42,7 @@ export function StormConnectors({
         const tgt = byId.get(rel.targetId);
         if (!src || !tgt) return null;
         const { start, end } = relationAnchors(src, tgt);
-        const dashed = rel.type === "informs";
+        const dashed = rel.type === "informs" || rel.type === "annotates";
         const selected = rel.id === selectedRelationId;
         return (
           <g

@@ -7,6 +7,7 @@ export type ElementType =
   | "readModel"
   | "externalSystem"
   | "ui"
+  | "note"
   | "hotspot"
   | "pivotalEvent";
 
@@ -102,6 +103,7 @@ export const ALL_ELEMENT_TYPES: ElementType[] = [
   "readModel",
   "externalSystem",
   "ui",
+  "note",
   "hotspot",
   "pivotalEvent",
 ];

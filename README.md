@@ -18,8 +18,8 @@ Diese README beschreibt die **implementierten Funktionen** und stellt sie den **
 
 | Bereich | Inhalt |
 |--------|--------|
-| Sticky-Typen | Alle 10 üblichen Event-Storming-Elemente |
-| Relationen | 7 Verbindungstypen inkl. Auto-Vorschlag |
+| Sticky-Typen | Alle 10 Event-Storming-Elemente + freie Notizen |
+| Relationen | 8 Verbindungstypen inkl. Auto-Vorschlag |
 | Fläche | Timeline, Swimlanes, Bounded Contexts, Pan/Zoom |
 | Workshop | Big Picture, Process Modeling, Software Design + Frei |
 | Sprache | Glossary (Ubiquitous Language) |
@@ -43,6 +43,7 @@ Alle Typen sind in der Palette wählbar (im Facilitator-Modus phasenweise einges
 | **Read Model** | Grün | Benötigte Information für Entscheidungen |
 | **External System** | Pink | Integration außerhalb der Domäne |
 | **UI** | Grau/Weiß | Screen / View |
+| **Notiz** | Creme, gestrichelt | Freie Annotation (Workshop-Hinweis) |
 | **Hotspot** | Rot, gedreht | Offene Frage, Konflikt, Unklarheit |
 | **Pivotal Event** | Breiter gelber Block | Phasenwechsel / signifikanter Einschnitt |
 
@@ -75,6 +76,7 @@ Elemente lassen sich verbinden (Header **Verbinden**, Pfeil am Sticky oder Recht
 | `invokes` | ruft auf |
 | `causal` | verursacht |
 | `contains` | enthält |
+| `annotates` | annotiert (gestrichelt; Notiz ↔ Sticky) |
 
 Der Relationstyp wird beim Verbinden **heuristisch vorgeschlagen** und kann per Rechtsklick geändert werden. Optionales Label in der Detailleiste.
 

@@ -85,11 +85,11 @@ describe("relation-validation", () => {
 describe("facilitator-phases", () => {
   it("restricts types in phase 1 big picture", () => {
     const allowed = getAllowedTypesForPhase("bigPicture", 0, true);
-    expect(allowed).toEqual(["domainEvent"]);
+    expect(allowed).toEqual(["domainEvent", "note"]);
   });
 
   it("allows all types when facilitator off", () => {
     const allowed = getAllowedTypesForPhase("bigPicture", 0, false);
-    expect(allowed.length).toBe(10);
+    expect(allowed.length).toBe(11);
   });
 });

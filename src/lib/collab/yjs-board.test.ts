@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import * as Y from "yjs";
 
 import {
   applyPayloadToYDoc,
@@ -64,6 +65,37 @@ describe("collab yjs-board", () => {
     const b = createBoardYDoc();
     applyYDocState(b, update);
     expect(readPayloadFromYDoc(b)?.title).toBe("Collab Test");
+  });
+
+  it("syncs incremental edits between two docs", () => {
+    const a = createBoardYDoc();
+    const b = createBoardYDoc();
+    applyPayloadToYDoc(a, sample);
+    applyYDocState(b, encodeYDocState(a));
+
+    a.on("update", (u) => {
+      Y.applyUpdate(b, u);
+    });
+
+    applyPayloadToYDoc(a, {
+      ...sample,
+      title: "Updated",
+      elements: [
+        ...sample.elements,
+        {
+          id: "e2",
+          type: "command",
+          label: "Place Order",
+          x: 40,
+          y: 60,
+          width: 100,
+          height: 50,
+        },
+      ],
+    });
+
+    expect(readPayloadFromYDoc(b)?.title).toBe("Updated");
+    expect(readPayloadFromYDoc(b)?.elements).toHaveLength(2);
   });
 });
 

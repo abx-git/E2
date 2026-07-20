@@ -118,6 +118,7 @@ const TYPE_COLORS: Record<string, string> = {
   readModel: "#dcfce7",
   externalSystem: "#fce7f3",
   ui: "#f1f5f9",
+  note: "#faf6ef",
   hotspot: "#fee2e2",
   pivotalEvent: "#fef3c7",
 };

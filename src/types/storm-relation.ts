@@ -5,7 +5,8 @@ export type RelationType =
   | "executedBy"
   | "invokes"
   | "causal"
-  | "contains";
+  | "contains"
+  | "annotates";
 
 export interface StormRelation {
   id: string;
@@ -23,6 +24,7 @@ export const RELATION_TYPE_LABELS: Record<RelationType, string> = {
   invokes: "ruft auf",
   causal: "verursacht",
   contains: "enthält",
+  annotates: "annotiert",
 };
 
 /** DDD Context Map patterns between Bounded Contexts. */

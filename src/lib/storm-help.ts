@@ -84,6 +84,18 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
     ],
     bullets: ["Hilfreich für Actor → Command Kontext", "Kann später direkte Screen-Checks ermöglichen"],
   },
+  note: {
+    title: "Notiz",
+    subtitle: "Creme — freie Workshop-Annotation",
+    paragraphs: [
+      "Frei positionierbarer Hinweis, der nicht Teil der Event-Storming-Methode ist.",
+      "Mit Verbinden / Pfeil-Handle an Stickies anknüpfen (Relation „annotiert“).",
+    ],
+    bullets: [
+      "Für Fragen, Parkplatz-Ideen, Facilitator-Hinweise",
+      "Mehrzeiliger Text auf der Karte",
+    ],
+  },
   hotspot: {
     title: "Hotspot",
     subtitle: "Rot (45°) — „Offene Frage / Konflikt“",
@@ -146,6 +158,15 @@ const RELATION_HELP: Record<RelationType, HelpDialogModel> = {
     subtitle: "Aggregate umschließt Elemente",
     paragraphs: ["Visuelle/gruppierende Beziehung: dieses Aggregate umfasst Elemente innerhalb seiner Boundary."],
     bullets: ["In E2 aktuell als Relation-Typ dokumentiert (Bounded Context / Aggregate sind primär visuelle Elemente)."],
+  },
+  annotates: {
+    title: "Relation: annotates",
+    subtitle: "Notiz ↔ Sticky",
+    paragraphs: [
+      "Verknüpft eine freie Notiz mit einem Domain-Element (oder umgekehrt).",
+      "Kein Prozessfluss — nur Annotation / Kommentar.",
+    ],
+    bullets: ["Wird standardmäßig gesetzt, wenn eine Notiz beteiligt ist"],
   },
 };
 

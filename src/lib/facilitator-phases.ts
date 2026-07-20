@@ -221,7 +221,8 @@ export function getAllowedTypesForPhase(
   const def = getFacilitatorFormat(format);
   if (!def) return ALL_ELEMENT_TYPES;
   const phase = def.phases[phaseIndex];
-  return phase?.allowedTypes ?? ALL_ELEMENT_TYPES;
+  const allowed = phase?.allowedTypes ?? ALL_ELEMENT_TYPES;
+  return allowed.includes("note") ? allowed : [...allowed, "note"];
 }
 
 export function getCurrentPhase(

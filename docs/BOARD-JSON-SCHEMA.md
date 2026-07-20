@@ -71,3 +71,5 @@ Import akzeptiert Dokumente mit `format === "event-storming-tool"` und `version 
 | Timeline `visible` | `true` |
 
 `contextRelations` beschreibt DDD-Context-Map-Muster zwischen Bounded Contexts (`sourceContextId` / `targetContextId`, Muster z. B. `customerSupplier`, `antiCorruptionLayer`).
+
+Elementtyp `note` (freie Notiz) und Relationstyp `annotates` (Notiz ↔ Sticky) sind Teil von Schema v1.

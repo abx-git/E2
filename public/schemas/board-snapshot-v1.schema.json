@@ -119,6 +119,7 @@
         "readModel",
         "externalSystem",
         "ui",
+        "note",
         "hotspot",
         "pivotalEvent"
       ]
@@ -132,7 +133,8 @@
         "executedBy",
         "invokes",
         "causal",
-        "contains"
+        "contains",
+        "annotates"
       ]
     },
     "contextMapPattern": {
