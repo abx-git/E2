@@ -61,6 +61,8 @@ export function CanvasContextMenu({
   const clearSelection = useStormBoardStore((s) => s.clearSelection);
   const addElement = useStormBoardStore((s) => s.addElement);
   const paletteType = useStormBoardStore((s) => s.paletteType);
+  const timeline = useStormBoardStore((s) => s.timeline);
+  const setTimeline = useStormBoardStore((s) => s.setTimeline);
 
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: 0, top: 0 });
@@ -372,6 +374,34 @@ export function CanvasContextMenu({
         />
       </>
     );
+  } else if (target.kind === "timeline") {
+    body = (
+      <>
+        <Header title="Timeline" subtitle="Position & Beschriftung" />
+        <Item
+          label="Start-Label ändern…"
+          onClick={() =>
+            run(() => {
+              const next = window.prompt("Start-Label", timeline.startLabel ?? "Start");
+              if (next !== null) setTimeline({ startLabel: next });
+            })
+          }
+        />
+        <Item
+          label="Ende-Label ändern…"
+          onClick={() =>
+            run(() => {
+              const next = window.prompt("Ende-Label", timeline.endLabel ?? "Ende");
+              if (next !== null) setTimeline({ endLabel: next });
+            })
+          }
+        />
+        <Item
+          label="Ausblenden"
+          onClick={() => run(() => setTimeline({ visible: false }))}
+        />
+      </>
+    );
   } else {
     body = (
       <>
@@ -382,6 +412,12 @@ export function CanvasContextMenu({
             run(() => addElement(paletteType, target.worldX, target.worldY))
           }
         />
+        {timeline.visible === false && (
+          <Item
+            label="Timeline einblenden"
+            onClick={() => run(() => setTimeline({ visible: true }))}
+          />
+        )}
         <Item label="Auswahl aufheben" onClick={() => run(() => clearSelection())} />
       </>
     );

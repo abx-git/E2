@@ -64,6 +64,8 @@ export interface Timeline {
   y: number;
   startLabel?: string;
   endLabel?: string;
+  /** When false, the guide is hidden (snap still uses y if snapToTimeline is on). Default true. */
+  visible?: boolean;
 }
 
 export interface Viewport {
@@ -83,7 +85,12 @@ export interface FacilitatorState {
   phaseIndex: number;
 }
 
-export const DEFAULT_TIMELINE: Timeline = { y: 400, startLabel: "Start", endLabel: "Ende" };
+export const DEFAULT_TIMELINE: Timeline = {
+  y: 400,
+  startLabel: "Start",
+  endLabel: "Ende",
+  visible: true,
+};
 export const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 };
 
 export const ALL_ELEMENT_TYPES: ElementType[] = [

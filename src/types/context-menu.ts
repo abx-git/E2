@@ -4,6 +4,7 @@ export type ContextMenuTarget =
   | { kind: "relation"; id: string }
   | { kind: "swimlane"; id: string }
   | { kind: "boundedContext"; id: string }
+  | { kind: "timeline" }
   | { kind: "canvas"; worldX: number; worldY: number };
 
 export interface ContextMenuState {

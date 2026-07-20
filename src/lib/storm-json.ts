@@ -88,7 +88,7 @@ export function boardSnapshotToReplacePayload(snap: BoardSnapshotV1): BoardImpor
     relations: snap.relations,
     swimlanes: snap.swimlanes.map(normalizeSwimlane),
     boundedContexts: snap.boundedContexts,
-    timeline: snap.timeline,
+    timeline: normalizeTimeline(snap.timeline),
     viewport: snap.viewport,
     glossary: snap.glossary ?? [],
     snapToTimeline: snap.snapToTimeline ?? true,
@@ -103,6 +103,13 @@ function normalizeSwimlane(lane: Swimlane): Swimlane {
     ...lane,
     x: typeof raw.x === "number" ? raw.x : 0,
     width: typeof raw.width === "number" && raw.width > 0 ? raw.width : 4000,
+  };
+}
+
+function normalizeTimeline(timeline: Timeline): Timeline {
+  return {
+    ...timeline,
+    visible: timeline.visible !== false,
   };
 }
 

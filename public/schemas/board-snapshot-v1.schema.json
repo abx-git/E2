@@ -275,9 +275,13 @@
       "additionalProperties": false,
       "required": ["y"],
       "properties": {
-        "y": { "type": "number" },
+        "y": { "type": "number", "description": "Vertikale Position der Timeline-Linie." },
         "startLabel": { "type": "string" },
-        "endLabel": { "type": "string" }
+        "endLabel": { "type": "string" },
+        "visible": {
+          "type": "boolean",
+          "description": "Timeline-Linie anzeigen. Standard: true."
+        }
       }
     },
     "viewport": {

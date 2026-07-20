@@ -90,6 +90,8 @@ export function StormBoard() {
   const setSnapToTimeline = useStormBoardStore((s) => s.setSnapToTimeline);
   const snapToGrid = useStormBoardStore((s) => s.snapToGrid);
   const setSnapToGrid = useStormBoardStore((s) => s.setSnapToGrid);
+  const timeline = useStormBoardStore((s) => s.timeline);
+  const setTimeline = useStormBoardStore((s) => s.setTimeline);
   const addSwimlane = useStormBoardStore((s) => s.addSwimlane);
   const relationMode = useStormBoardStore((s) => s.relationMode);
   const setRelationMode = useStormBoardStore((s) => s.setRelationMode);
@@ -215,9 +217,17 @@ export function StormBoard() {
           <Layers className="h-4 w-4" />
         </button>
 
-        <label className="flex items-center gap-1 text-xs text-[var(--muted)]">
-          <input type="checkbox" checked={snapToTimeline} onChange={(e) => setSnapToTimeline(e.target.checked)} />
+        <label className="flex items-center gap-1 text-xs text-[var(--muted)]" title="Timeline-Linie anzeigen">
+          <input
+            type="checkbox"
+            checked={timeline.visible !== false}
+            onChange={(e) => setTimeline({ visible: e.target.checked })}
+          />
           Timeline
+        </label>
+        <label className="flex items-center gap-1 text-xs text-[var(--muted)]" title="Elemente an Timeline einrasten">
+          <input type="checkbox" checked={snapToTimeline} onChange={(e) => setSnapToTimeline(e.target.checked)} />
+          Snap T
         </label>
         <label className="flex items-center gap-1 text-xs text-[var(--muted)]">
           <input type="checkbox" checked={snapToGrid} onChange={(e) => setSnapToGrid(e.target.checked)} />

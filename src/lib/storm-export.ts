@@ -148,9 +148,11 @@ export function exportBoardSvg(): void {
     `<rect width="100%" height="100%" fill="#f4f5f7"/>`,
   ];
 
-  parts.push(
-    `<line x1="${ox}" y1="${oy + state.timeline.y - minY + padding}" x2="${width - padding}" y2="${oy + state.timeline.y - minY + padding}" stroke="#94a3b8" stroke-width="2" stroke-dasharray="8 4"/>`,
-  );
+  if (state.timeline.visible !== false) {
+    parts.push(
+      `<line x1="${ox}" y1="${oy + state.timeline.y - minY + padding}" x2="${width - padding}" y2="${oy + state.timeline.y - minY + padding}" stroke="#94a3b8" stroke-width="2" stroke-dasharray="8 4"/>`,
+    );
+  }
 
   for (const bc of state.boundedContexts) {
     parts.push(
@@ -216,15 +218,16 @@ export async function exportBoardPng(): Promise<void> {
   ctx.fillStyle = "#f4f5f7";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.strokeStyle = "#94a3b8";
-  ctx.setLineDash([8, 4]);
-  ctx.beginPath();
-  const ty = state.timeline.y - minY + padding;
-  ctx.moveTo(0, ty);
-  ctx.lineTo(canvas.width, ty);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
+  if (state.timeline.visible !== false) {
+    ctx.strokeStyle = "#94a3b8";
+    ctx.setLineDash([8, 4]);
+    ctx.beginPath();
+    const ty = state.timeline.y - minY + padding;
+    ctx.moveTo(0, ty);
+    ctx.lineTo(canvas.width, ty);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
   for (const bc of state.boundedContexts) {
     ctx.fillStyle = bc.color ?? "#dbeafe";
     ctx.globalAlpha = 0.4;
