@@ -2,6 +2,8 @@
 
 Browserbasiertes Event-Storming-Tool mit lokaler JSON-Persistenz (`.storm.json`).
 
+**Live:** [abx-git.github.io/E2](https://abx-git.github.io/E2/)
+
 ## Features
 
 - Freies Canvas mit Pan/Zoom
@@ -11,6 +13,30 @@ Browserbasiertes Event-Storming-Tool mit lokaler JSON-Persistenz (`.storm.json`)
 - Facilitator-Modus für Big Picture, Process Modeling und Software Design
 - Hotspot-Liste, Glossary, Validierungshinweise
 - Export: JSON, SVG, PNG, Markdown-Reports
+
+## GitHub Pages deployen
+
+Die öffentliche URL wird per **GitHub Pages** ausgeliefert (statischer Build, kein Node auf dem Host).
+
+**Ausführliche Anleitung:** [docs/GITHUB-PAGES.md](docs/GITHUB-PAGES.md)
+
+Repository: [github.com/abx-git/E2](https://github.com/abx-git/E2) · Workflow: `.github/workflows/deploy-github-pages.yml`
+
+Kurz:
+
+1. **Settings → Pages** → Source: **GitHub Actions**
+2. Push auf `main` → Workflow baut `out/` und publiziert
+3. App: `https://abx-git.github.io/E2/`
+
+Optional: Variable `NEXT_PUBLIC_BASE_PATH` (Standard: `/E2` bzw. `/{repo-name}`).
+
+Lokal testen:
+
+```bash
+npm run build:static
+npx serve out
+# → http://localhost:3000/E2/
+```
 
 ## Entwicklung
 
@@ -29,4 +55,4 @@ npm run test:run
 
 Next.js 15, React 19, TypeScript, Tailwind CSS, Zustand, Serwist (PWA)
 
-Basierend auf dem Persistenz-Muster von [T2](../T2).
+Basierend auf dem Persistenz-Muster von [T2](https://github.com/abx-git/T2).
