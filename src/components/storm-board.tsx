@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { DataStoragePanel } from "@/components/data-storage-panel";
+import { CanvasContextMenu } from "@/components/canvas-context-menu";
 import { ElementDetailSidebar } from "@/components/element-detail-sidebar";
 import { ElementPalette } from "@/components/element-palette";
 import { FacilitatorPanel } from "@/components/facilitator-panel";
@@ -152,7 +153,7 @@ export function StormBoard() {
   const handleBrowserFile = () => fileInputRef.current?.click();
 
   return (
-    <div className="flex h-screen min-h-0 flex-col">
+    <div className="flex h-screen min-h-0 flex-col bg-[var(--bg)] text-[var(--text)]">
       <WorkingFileSync
         onWorkingFileNameChange={setWorkingFileName}
         onDirtyChange={setWorkingFileDirty}
@@ -160,15 +161,15 @@ export function StormBoard() {
         onNeedsFileSetup={() => setSetupOpen(true)}
       />
 
-      <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2">
+      <header className="dock-surface z-10 mx-3 mt-3 flex shrink-0 flex-wrap items-center gap-2 rounded-dock px-3 py-2">
         <input
-          className="min-w-[140px] flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold hover:border-slate-200 focus:border-sky-300 focus:outline-none"
+          className="min-w-[140px] flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold tracking-tight text-[var(--text)] hover:border-[var(--border)] focus:border-[var(--accent)] focus:outline-none"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
 
         <select
-          className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+          className="dock-control rounded-lg px-2 py-1 text-xs"
           value={workshopFormat}
           onChange={(e) => setWorkshopFormat(e.target.value as WorkshopFormat)}
         >
@@ -177,7 +178,7 @@ export function StormBoard() {
           ))}
         </select>
 
-        <label className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1 text-xs">
+        <label className="dock-control flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs">
           <input
             type="checkbox"
             checked={facilitatorEnabled}
@@ -196,10 +197,8 @@ export function StormBoard() {
             if (!next) setRelationDraftSource(null);
           }}
           className={[
-            "flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs font-medium",
-            relationMode
-              ? "border-purple-500 bg-purple-50 text-purple-900"
-              : "border-slate-200 text-slate-700 hover:bg-slate-50",
+            "flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium",
+            relationMode ? "dock-control-active" : "dock-control",
           ].join(" ")}
           title="Relationen zwischen Elementen verbinden"
         >
@@ -210,34 +209,34 @@ export function StormBoard() {
         <button
           type="button"
           onClick={() => addSwimlane()}
-          className="rounded-lg border border-slate-200 px-2 py-1 text-xs hover:bg-slate-50"
+          className="dock-control rounded-lg p-1.5"
           title="Swimlane hinzufügen"
         >
           <Layers className="h-4 w-4" />
         </button>
 
-        <label className="flex items-center gap-1 text-xs text-slate-600">
+        <label className="flex items-center gap-1 text-xs text-[var(--muted)]">
           <input type="checkbox" checked={snapToTimeline} onChange={(e) => setSnapToTimeline(e.target.checked)} />
           Timeline
         </label>
-        <label className="flex items-center gap-1 text-xs text-slate-600">
+        <label className="flex items-center gap-1 text-xs text-[var(--muted)]">
           <input type="checkbox" checked={snapToGrid} onChange={(e) => setSnapToGrid(e.target.checked)} />
           Grid
         </label>
 
-        <div className="flex items-center gap-0.5 rounded-lg border border-slate-200">
+        <div className="dock-control flex items-center gap-0.5 rounded-lg">
           <button
             type="button"
             onClick={() => setViewport({ ...viewport, zoom: clampZoom(viewport.zoom - 0.1) })}
-            className="p-1.5 hover:bg-slate-50"
+            className="p-1.5 hover:text-[var(--accent)]"
           >
             <ZoomOut className="h-4 w-4" />
           </button>
-          <span className="px-1 text-xs tabular-nums">{Math.round(viewport.zoom * 100)}%</span>
+          <span className="px-1 text-xs tabular-nums text-[var(--muted)]">{Math.round(viewport.zoom * 100)}%</span>
           <button
             type="button"
             onClick={() => setViewport({ ...viewport, zoom: clampZoom(viewport.zoom + 0.1) })}
-            className="p-1.5 hover:bg-slate-50"
+            className="p-1.5 hover:text-[var(--accent)]"
           >
             <ZoomIn className="h-4 w-4" />
           </button>
@@ -246,7 +245,7 @@ export function StormBoard() {
         <button
           type="button"
           onClick={() => setStorageOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium hover:bg-slate-50"
+          className="dock-control flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium"
         >
           {workingFileSaving ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -257,21 +256,27 @@ export function StormBoard() {
         </button>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        <ElementPalette onSelectType={() => {}} onRequestHelp={openElementHelp} />
-        <StormCanvas />
-        <div className="flex w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
+      <div className="mx-3 mb-3 mt-2 flex min-h-0 flex-1 gap-2">
+        <div className="dock-surface flex overflow-hidden rounded-dock">
+          <ElementPalette onSelectType={() => {}} onRequestHelp={openElementHelp} />
+        </div>
+        <div className="dock-surface relative min-w-0 flex-1 overflow-hidden rounded-dock">
+          <StormCanvas />
+        </div>
+        <div className="dock-surface flex w-72 shrink-0 flex-col overflow-hidden rounded-dock">
           <ElementDetailSidebar
             onRequestHelpElementType={openElementHelp}
             onRequestHelpRelationType={openRelationHelp}
           />
-          <HotspotList />
-          <GlossaryPanel />
-          <FacilitatorPanel onRequestHelpPhase={(phase, format) => openPhaseHelp(phase, format)} />
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <HotspotList />
+            <GlossaryPanel />
+            <FacilitatorPanel onRequestHelpPhase={(phase, format) => openPhaseHelp(phase, format)} />
+          </div>
         </div>
       </div>
 
-      <footer className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500">
+      <footer className="flex shrink-0 items-center justify-between px-4 pb-2 text-[0.72rem] text-[var(--muted)]">
         <span>
           {workingFileName
             ? `Arbeitsdatei: ${workingFileName}${workingFileDirty ? " · ungespeichert" : workingFileSaving ? " · speichert …" : " · gespeichert"}`
@@ -279,8 +284,13 @@ export function StormBoard() {
               ? "Arbeitsdatei verknüpft"
               : "Keine Arbeitsdatei — bitte einrichten"}
         </span>
-        <span>E2 Event Storming</span>
+        <span>Rechtsklick · Aktionen · E2</span>
       </footer>
+
+      <CanvasContextMenu
+        onRequestHelpElementType={(type) => openElementHelp(type as ElementType)}
+        onRequestHelpRelationType={openRelationHelp}
+      />
 
       <DataStoragePanel
         open={storageOpen}

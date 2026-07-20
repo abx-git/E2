@@ -13,14 +13,18 @@ export function GlossaryPanel() {
   const [definition, setDefinition] = useState("");
 
   return (
-    <section className="border-t border-slate-200 p-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Glossary</h3>
+    <section className="border-t border-[var(--border)] p-3">
+      <h3 className="group-label">Glossary</h3>
       <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto">
         {glossary.map((g) => (
           <li key={g.term} className="flex items-start gap-1 text-xs">
-            <span className="font-medium text-slate-800">{g.term}:</span>
-            <span className="flex-1 text-slate-600">{g.definition}</span>
-            <button type="button" onClick={() => deleteGlossaryEntry(g.term)} className="text-slate-400 hover:text-red-600">
+            <span className="font-medium text-[var(--text)]">{g.term}:</span>
+            <span className="flex-1 text-[var(--muted)]">{g.definition}</span>
+            <button
+              type="button"
+              onClick={() => deleteGlossaryEntry(g.term)}
+              className="text-[var(--muted)] hover:text-[#f0a8a0]"
+            >
               <Trash2 className="h-3 w-3" />
             </button>
           </li>
@@ -28,13 +32,13 @@ export function GlossaryPanel() {
       </ul>
       <div className="mt-2 flex flex-col gap-1">
         <input
-          className="rounded border border-slate-200 px-2 py-1 text-xs"
+          className="dock-field"
           placeholder="Begriff"
           value={term}
           onChange={(e) => setTerm(e.target.value)}
         />
         <input
-          className="rounded border border-slate-200 px-2 py-1 text-xs"
+          className="dock-field"
           placeholder="Definition"
           value={definition}
           onChange={(e) => setDefinition(e.target.value)}
@@ -47,7 +51,7 @@ export function GlossaryPanel() {
             setTerm("");
             setDefinition("");
           }}
-          className="flex items-center justify-center gap-1 rounded bg-slate-100 py-1 text-xs hover:bg-slate-200 disabled:opacity-50"
+          className="dock-control flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs disabled:opacity-50"
         >
           <Plus className="h-3 w-3" /> Hinzufügen
         </button>

@@ -1,5 +1,14 @@
 import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Sans } from "next/font/google";
+
 import "./globals.css";
+
+const plex = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-plex",
+  display: "swap",
+});
 
 const APP_NAME = "E2";
 const APP_DESCRIPTION = "Event Storming — Domänenmodellierung mit lokaler JSON-Persistenz";
@@ -11,13 +20,13 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: APP_NAME,
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#0f1419",
 };
 
 export default function RootLayout({
@@ -26,8 +35,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de">
-      <body className="min-h-screen">{children}</body>
+    <html lang="de" className={plex.variable}>
+      <body className={`${plex.className} min-h-screen antialiased`}>{children}</body>
     </html>
   );
 }

@@ -221,6 +221,7 @@ export function StormCanvas() {
       className="relative min-h-0 flex-1 overflow-hidden bg-canvas"
       onWheel={handleWheel}
       onPointerDown={(e) => {
+        useStormBoardStore.getState().closeContextMenu();
         if (e.button === 1 || spaceDown.current) {
           setPanning(true);
           panStart.current = { x: e.clientX, y: e.clientY, vx: viewport.x, vy: viewport.y };
@@ -275,33 +276,45 @@ export function StormCanvas() {
       tabIndex={0}
     >
       {relationMode && (
-        <div className="absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-950 shadow-sm">
+        <div className="dock-surface absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)]">
           {relationDraftSourceId && sourceElement ? (
             <>
               <span>
-                Von <strong>{sourceElement.label}</strong> — jetzt Ziel-Element anklicken
+                Von <strong className="text-[var(--accent-2)]">{sourceElement.label}</strong> — Ziel anklicken
               </span>
               <button
                 type="button"
                 onClick={() => setRelationDraftSource(null)}
-                className="rounded p-0.5 hover:bg-purple-100"
+                className="rounded p-0.5 hover:bg-[var(--control-hover)]"
                 title="Abbrechen"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
             </>
           ) : (
-            <span>Verbinden-Modus: Pfeil → Pfeil, oder Element → Element</span>
+            <span>Verbinden: Pfeil → Pfeil, oder Element → Element</span>
           )}
         </div>
       )}
 
       <div
+        data-canvas-world
         className="absolute origin-top-left"
         style={{
           transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
           width: 4000,
           height: 3000,
+        }}
+        onContextMenu={(e) => {
+          if (e.target !== e.currentTarget) return;
+          e.preventDefault();
+          const world = worldFromClient(e.clientX, e.clientY);
+          if (!world) return;
+          useStormBoardStore.getState().openContextMenu(e.clientX, e.clientY, {
+            kind: "canvas",
+            worldX: world.x,
+            worldY: world.y,
+          });
         }}
       >
         <SwimlaneLayer />
@@ -357,16 +370,16 @@ export function StormCanvas() {
           type="button"
           onClick={() => setBcMode((v) => !v)}
           className={[
-            "rounded-lg border px-3 py-1.5 text-xs font-medium shadow-sm",
-            bcMode ? "border-blue-500 bg-blue-50 text-blue-900" : "border-slate-200 bg-white text-slate-700",
+            "rounded-lg px-3 py-1.5 text-xs font-medium shadow-dock",
+            bcMode ? "dock-control-active" : "dock-surface text-[var(--text)]",
           ].join(" ")}
         >
           {bcMode ? "Bounded Context zeichnen…" : "Bounded Context"}
         </button>
-        <span className="rounded-lg border border-slate-200 bg-white/90 px-2 py-1.5 text-xs text-slate-500">
+        <span className="dock-surface rounded-lg px-2 py-1.5 text-xs text-[var(--muted)]">
           {relationMode
-            ? "Verbinden: Pfeil → Pfeil · Esc: Abbrechen"
-            : "Rahmen ziehen: Mehrfachauswahl · Shift+Klick · Doppelklick: Element"}
+            ? "Verbinden · Esc: Abbrechen"
+            : "Rechtsklick: Menü · Rahmen: Mehrfachauswahl · Doppelklick: Element"}
         </span>
       </div>
     </div>

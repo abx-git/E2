@@ -10,25 +10,27 @@ export function HotspotList() {
   if (hotspots.length === 0) return null;
 
   return (
-    <section className="border-t border-slate-200 p-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hotspots</h3>
+    <section className="border-t border-[var(--border)] p-3">
+      <h3 className="group-label">Hotspots</h3>
       <ul className="mt-2 space-y-1">
         {hotspots.map((h) => (
           <li key={h.id}>
             <button
               type="button"
               onClick={() => selectElement(h.id)}
-              className="w-full rounded px-2 py-1 text-left text-xs hover:bg-red-50"
+              className="w-full rounded-md px-2 py-1 text-left text-xs hover:bg-[var(--control-hover)]"
             >
               <span
                 className={
-                  h.metadata?.hotspotStatus === "resolved" ? "text-slate-400 line-through" : "text-red-800"
+                  h.metadata?.hotspotStatus === "resolved"
+                    ? "text-[var(--muted)] line-through"
+                    : "text-[#f0a8a0]"
                 }
               >
                 {h.label}
               </span>
               {h.metadata?.hotspotPriority === "high" && (
-                <span className="ml-1 text-[10px] font-bold text-red-600">!</span>
+                <span className="ml-1 text-[10px] font-bold text-[var(--accent-2)]">!</span>
               )}
             </button>
           </li>

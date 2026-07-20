@@ -22,16 +22,16 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
   const allowed = getAllowedTypesForPhase(workshopFormat, facilitatorPhase, facilitatorEnabled);
 
   return (
-    <aside className="flex w-44 shrink-0 flex-col border-r border-slate-200 bg-white">
-      <div className="border-b border-slate-200 px-3 py-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Elemente</h2>
+    <aside className="flex w-48 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel-solid)]">
+      <div className="border-b border-[var(--border)] px-3 py-3">
+        <h2 className="group-label">Elemente</h2>
       </div>
-      <div className="flex flex-col gap-1 overflow-y-auto p-2">
+      <div className="flex flex-col gap-1.5 overflow-y-auto p-2">
         {allowed.map((type) => {
           const style = ELEMENT_STYLES[type];
           const active = paletteType === type;
           return (
-            <div key={type} className="flex items-center gap-2">
+            <div key={type} className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => {
@@ -43,14 +43,14 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
                   style.bg,
                   style.border,
                   style.text,
-                  active ? "ring-2 ring-sky-500 ring-offset-1" : "opacity-90 hover:opacity-100",
+                  active ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]" : "opacity-90 hover:opacity-100",
                 ].join(" ")}
               >
                 {style.label}
               </button>
               <button
                 type="button"
-                className="rounded-lg border border-slate-200 bg-white/90 p-1.5 text-slate-600 hover:bg-slate-50"
+                className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
                 title="Hilfe zu diesem Element"
                 aria-label={`Hilfe für ${type}`}
                 onClick={(e) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { elementCenter, relationAnchors } from "@/lib/connector-geometry";
+import { useStormBoardStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
 import type { StormRelation } from "@/types/storm-relation";
 
@@ -26,13 +27,13 @@ export function StormConnectors({
     <svg className="pointer-events-none absolute inset-0 overflow-visible" style={{ zIndex: 10 }}>
       <defs>
         <marker id="storm-arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#64748b" />
+          <path d="M0,0 L8,3 L0,6 Z" fill="#8b9aab" />
         </marker>
         <marker id="storm-arrowhead-selected" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#0ea5e9" />
+          <path d="M0,0 L8,3 L0,6 Z" fill="#2a9d8f" />
         </marker>
         <marker id="storm-arrowhead-draft" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-          <path d="M0,0 L8,3 L0,6 Z" fill="#a855f7" />
+          <path d="M0,0 L8,3 L0,6 Z" fill="#e9c46a" />
         </marker>
       </defs>
 
@@ -44,13 +45,24 @@ export function StormConnectors({
         const dashed = rel.type === "informs";
         const selected = rel.id === selectedRelationId;
         return (
-          <g key={rel.id} className="pointer-events-auto cursor-pointer" onClick={() => onSelectRelation(rel.id)}>
+          <g
+            key={rel.id}
+            className="pointer-events-auto cursor-pointer"
+            onClick={() => onSelectRelation(rel.id)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const store = useStormBoardStore.getState();
+              store.selectRelation(rel.id);
+              store.openContextMenu(e.clientX, e.clientY, { kind: "relation", id: rel.id });
+            }}
+          >
             <line
               x1={start.x}
               y1={start.y}
               x2={end.x}
               y2={end.y}
-              stroke={selected ? "#0ea5e9" : "#64748b"}
+              stroke={selected ? "#2a9d8f" : "#8b9aab"}
               strokeWidth={selected ? 3 : 2}
               strokeDasharray={dashed ? "6 4" : undefined}
               markerEnd={selected ? "url(#storm-arrowhead-selected)" : "url(#storm-arrowhead)"}
@@ -60,7 +72,7 @@ export function StormConnectors({
                 x={(start.x + end.x) / 2}
                 y={(start.y + end.y) / 2 - 6}
                 textAnchor="middle"
-                className="fill-slate-600 text-[10px]"
+                className="fill-[var(--muted)] text-[10px]"
               >
                 {rel.label}
               </text>
@@ -82,7 +94,7 @@ export function StormConnectors({
                 y1={start.y}
                 x2={end.x}
                 y2={end.y}
-                stroke="#c084fc"
+                stroke="#e9c46a"
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
                 opacity={0.35}

@@ -16,6 +16,7 @@ import type {
 } from "@/types/storm-element";
 import { DEFAULT_TIMELINE, DEFAULT_VIEWPORT } from "@/types/storm-element";
 import type { RelationType, StormRelation } from "@/types/storm-relation";
+import type { ContextMenuState, ContextMenuTarget } from "@/types/context-menu";
 
 export interface StormBoardState {
   title: string;
@@ -38,6 +39,7 @@ export interface StormBoardState {
   paletteType: ElementType;
   relationMode: boolean;
   relationDraftSourceId: string | null;
+  contextMenu: ContextMenuState | null;
 
   setTitle: (title: string) => void;
   setWorkshopFormat: (format: WorkshopFormat) => void;
@@ -55,6 +57,8 @@ export interface StormBoardState {
   selectBoundedContext: (id: string | null) => void;
   selectSwimlane: (id: string | null) => void;
   clearSelection: () => void;
+  openContextMenu: (x: number, y: number, target: ContextMenuTarget) => void;
+  closeContextMenu: () => void;
 
   addElement: (type: ElementType, x: number, y: number, label?: string) => string;
   updateElement: (id: string, patch: Partial<StormElement>) => void;
@@ -124,6 +128,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   paletteType: "domainEvent",
   relationMode: false,
   relationDraftSourceId: null,
+  contextMenu: null,
 
   setTitle: (title) => set({ title }),
   setWorkshopFormat: (workshopFormat) => set({ workshopFormat, facilitatorPhase: 0 }),
@@ -202,6 +207,9 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedBoundedContextId: null,
       selectedSwimlaneId: null,
     }),
+
+  openContextMenu: (x, y, target) => set({ contextMenu: { x, y, target } }),
+  closeContextMenu: () => set({ contextMenu: null }),
 
   addElement: (type, x, y, label) => {
     const el = createElement(type, x, y, label);

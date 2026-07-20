@@ -125,6 +125,13 @@ export function SwimlaneLayer() {
               zIndex: selected ? 4 : 2,
             }}
             onPointerDown={(e) => startMove(lane.id, e)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const store = useStormBoardStore.getState();
+              store.selectSwimlane(lane.id);
+              store.openContextMenu(e.clientX, e.clientY, { kind: "swimlane", id: lane.id });
+            }}
           >
             <div className="absolute left-3 top-2 rounded bg-slate-100/90 px-2 py-0.5 text-xs font-semibold text-slate-600">
               {lane.label}

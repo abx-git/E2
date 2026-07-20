@@ -3,9 +3,77 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
+  --bg: #0f1419;
+  --panel: rgba(22, 30, 40, 0.92);
+  --panel-solid: #161e28;
+  --text: #e8eef4;
+  --muted: #8b9aab;
+  --accent: #2a9d8f;
+  --accent-2: #e9c46a;
+  --border: rgba(70, 90, 110, 0.55);
+  --control: #243040;
+  --control-hover: #2c3a4d;
+  --radius: 12px;
+  --shadow: 0 10px 36px rgba(0, 0, 0, 0.38);
+  --canvas: #1a2330;
+  --font: var(--font-plex), "Segoe UI", system-ui, sans-serif;
 }
 
 body {
-  @apply bg-canvas text-slate-800 antialiased;
+  margin: 0;
+  min-height: 100%;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer utilities {
+  .dock-surface {
+    background: var(--panel);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .dock-control {
+    background: var(--control);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .dock-control:hover {
+    background: var(--control-hover);
+  }
+
+  .dock-control-active {
+    background: #1e3a36;
+    border-color: var(--accent);
+    color: #b8f0e6;
+  }
+
+  .group-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+
+  .dock-field {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--control);
+    padding: 0.4rem 0.55rem;
+    font-size: 0.82rem;
+    color: var(--text);
+    outline: none;
+  }
+
+  .dock-field:focus {
+    border-color: var(--accent);
+  }
 }

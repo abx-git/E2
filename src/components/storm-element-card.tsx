@@ -210,14 +210,30 @@ export function StormElementCard({
         e.stopPropagation();
         onEdit(element.id);
       }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const store = useStormBoardStore.getState();
+        if (!store.selectedElementIds.includes(element.id)) {
+          store.selectElement(element.id);
+        }
+        const ids = store.selectedElementIds.includes(element.id)
+          ? store.selectedElementIds
+          : [element.id];
+        store.openContextMenu(
+          e.clientX,
+          e.clientY,
+          ids.length > 1 ? { kind: "elements", ids } : { kind: "element", id: element.id },
+        );
+      }}
     >
       <div
         className={[
           "relative flex h-full w-full flex-col items-center justify-center border px-2 py-1 shadow-sm transition-shadow",
           shapeClass,
-          selected ? "ring-2 ring-sky-500" : "",
-          connecting ? "ring-2 ring-purple-600 shadow-md" : "",
-          isRelationTargetHint ? "ring-2 ring-purple-300" : "",
+          selected ? "ring-2 ring-[var(--accent)]" : "",
+          connecting ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
+          isRelationTargetHint ? "ring-2 ring-[var(--accent-2)]/50" : "",
           relationMode && !connecting ? "cursor-crosshair" : "",
         ].join(" ")}
         style={{
@@ -256,11 +272,11 @@ export function StormElementCard({
           type="button"
           className={[
             "absolute -right-2.5 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border shadow-sm transition-colors",
-            connecting
-              ? "border-purple-500 bg-purple-100 text-purple-800 hover:bg-purple-200"
-              : isRelationTargetHint
-                ? "border-purple-400 bg-purple-50 text-purple-700 hover:bg-purple-100"
-                : "border-slate-400 bg-white text-slate-600 hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700",
+          connecting
+            ? "border-[var(--accent-2)] bg-[#1e3a36] text-[var(--accent-2)] hover:bg-[#244840]"
+            : isRelationTargetHint
+              ? "border-[var(--accent-2)]/60 bg-[var(--control)] text-[var(--accent-2)]"
+              : "border-[var(--border)] bg-[var(--panel-solid)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]",
           ].join(" ")}
           title={connecting ? "Als Ziel wählen (Abbrechen: erneut klicken)" : "Relation starten"}
           onPointerDown={(e) => e.stopPropagation()}

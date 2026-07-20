@@ -9,7 +9,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        canvas: "#f4f5f7",
+        canvas: "var(--canvas)",
+        panel: "var(--panel-solid)",
+        muted: "var(--muted)",
+        accent: "var(--accent)",
+        "accent-2": "var(--accent-2)",
+        border: "var(--border)",
+        control: "var(--control)",
+      },
+      borderRadius: {
+        dock: "var(--radius)",
+      },
+      boxShadow: {
+        dock: "var(--shadow)",
+      },
+      fontFamily: {
+        sans: ["var(--font-plex)", "Segoe UI", "system-ui", "sans-serif"],
       },
     },
   },

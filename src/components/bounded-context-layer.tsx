@@ -120,6 +120,16 @@ export function BoundedContextLayer() {
               zIndex: selected ? 4 : 2,
             }}
             onPointerDown={(e) => startMove(bc.id, e)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const store = useStormBoardStore.getState();
+              store.selectBoundedContext(bc.id);
+              store.openContextMenu(e.clientX, e.clientY, {
+                kind: "boundedContext",
+                id: bc.id,
+              });
+            }}
           >
             <div className="absolute -top-3 left-3 rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-900">
               {bc.label}
