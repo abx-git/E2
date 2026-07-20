@@ -1,16 +1,46 @@
 "use client";
 
 import { useMemo } from "react";
-import { AlertCircle, HelpCircle, Trash2 } from "lucide-react";
+import {
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndHorizontal,
+  AlignEndVertical,
+  AlignHorizontalSpaceBetween,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  AlignVerticalSpaceBetween,
+  AlertCircle,
+  HelpCircle,
+  StretchHorizontal,
+  StretchVertical,
+  Trash2,
+} from "lucide-react";
 
+import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
+import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { validateBoard } from "@/lib/relation-validation";
 import { RELATION_TYPE_LABELS, type RelationType } from "@/types/storm-relation";
 import type { ElementType } from "@/types/storm-element";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { ELEMENT_STYLES } from "@/lib/element-styles";
 
 const RELATION_TYPES: RelationType[] = [
   "triggers", "reactsWith", "informs", "executedBy", "invokes", "causal", "contains",
+];
+
+const MIN_ELEMENT_SIZE = 40;
+
+const ALIGN_ACTIONS: { mode: AlignMode; label: string; icon: typeof AlignStartHorizontal; minCount?: number }[] = [
+  { mode: "left", label: "Links ausrichten", icon: AlignStartVertical },
+  { mode: "centerX", label: "Horizontal zentrieren", icon: AlignCenterVertical },
+  { mode: "right", label: "Rechts ausrichten", icon: AlignEndVertical },
+  { mode: "top", label: "Oben ausrichten", icon: AlignStartHorizontal },
+  { mode: "centerY", label: "Vertikal zentrieren", icon: AlignCenterHorizontal },
+  { mode: "bottom", label: "Unten ausrichten", icon: AlignEndHorizontal },
+  { mode: "distributeX", label: "Horizontal verteilen", icon: AlignHorizontalSpaceBetween, minCount: 3 },
+  { mode: "distributeY", label: "Vertikal verteilen", icon: AlignVerticalSpaceBetween, minCount: 3 },
+  { mode: "sameWidth", label: "Gleiche Breite", icon: StretchHorizontal },
+  { mode: "sameHeight", label: "Gleiche Höhe", icon: StretchVertical },
 ];
 
 export interface ElementDetailSidebarProps {
@@ -30,6 +60,7 @@ export function ElementDetailSidebar({
   const selectedSwimlaneId = useStormBoardStore((s) => s.selectedSwimlaneId);
   const updateElement = useStormBoardStore((s) => s.updateElement);
   const deleteElement = useStormBoardStore((s) => s.deleteElement);
+  const patchElements = useStormBoardStore((s) => s.patchElements);
   const updateRelation = useStormBoardStore((s) => s.updateRelation);
   const deleteRelation = useStormBoardStore((s) => s.deleteRelation);
   const updateBoundedContext = useStormBoardStore((s) => s.updateBoundedContext);
@@ -37,6 +68,7 @@ export function ElementDetailSidebar({
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
   const deleteSwimlane = useStormBoardStore((s) => s.deleteSwimlane);
   const connectElements = useStormBoardStore((s) => s.connectElements);
+  const clearSelection = useStormBoardStore((s) => s.clearSelection);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
 
@@ -45,10 +77,19 @@ export function ElementDetailSidebar({
   const selectedBoundedContext = boundedContexts.find((bc) => bc.id === selectedBoundedContextId);
   const selectedSwimlane = swimlanes.find((lane) => lane.id === selectedSwimlaneId);
 
+  const multiSelected = selectedElementIds.length >= 2
+    ? elements.filter((e) => selectedElementIds.includes(e.id))
+    : [];
+
   const issues = useMemo(
     () => validateBoard(elements, relations).filter((i) => i.elementId === selectedElement?.id),
     [elements, relations, selectedElement?.id],
   );
+
+  const applyAlign = (mode: AlignMode) => {
+    const patches = computeAlignPatches(multiSelected, mode, selectedElementIds[0]);
+    if (patches.length > 0) patchElements(patches);
+  };
 
   if (selectedRelation) {
     return (
@@ -98,6 +139,99 @@ export function ElementDetailSidebar({
     );
   }
 
+  if (multiSelected.length >= 2) {
+    return (
+      <aside className="flex w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
+        <div className="border-b border-slate-200 px-4 py-3">
+          <h2 className="text-sm font-semibold text-slate-900">
+            {multiSelected.length} Elemente
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-500">Ausrichten und Größe angleichen</p>
+        </div>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+          <div>
+            <p className="mb-2 text-xs font-medium text-slate-600">Ausrichten</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {ALIGN_ACTIONS.filter((a) =>
+                ["left", "centerX", "right", "top", "centerY", "bottom"].includes(a.mode),
+              ).map(({ mode, label, icon: Icon }) => (
+                <button
+                  key={mode}
+                  type="button"
+                  title={label}
+                  aria-label={label}
+                  onClick={() => applyAlign(mode)}
+                  className="flex items-center justify-center rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-50"
+                >
+                  <Icon className="h-4 w-4" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-medium text-slate-600">Verteilen</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {ALIGN_ACTIONS.filter((a) => a.mode === "distributeX" || a.mode === "distributeY").map(
+                ({ mode, label, icon: Icon, minCount = 2 }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    title={label}
+                    aria-label={label}
+                    disabled={multiSelected.length < minCount}
+                    onClick={() => applyAlign(mode)}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {mode === "distributeX" ? "Horizontal" : "Vertikal"}
+                  </button>
+                ),
+              )}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-medium text-slate-600">
+              Größe angleichen
+              <span className="mt-0.5 block font-normal text-slate-400">
+                Bezug: erstes ausgewähltes Element
+              </span>
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {ALIGN_ACTIONS.filter((a) => a.mode === "sameWidth" || a.mode === "sameHeight").map(
+                ({ mode, label, icon: Icon }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    title={label}
+                    aria-label={label}
+                    onClick={() => applyAlign(mode)}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-2 py-2 text-xs text-slate-700 hover:bg-slate-50"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {mode === "sameWidth" ? "Breite" : "Höhe"}
+                  </button>
+                ),
+              )}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              for (const id of [...selectedElementIds]) deleteElement(id);
+              clearSelection();
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" /> Alle löschen
+          </button>
+        </div>
+      </aside>
+    );
+  }
+
   if (!selectedElement) {
     if (selectedSwimlane) {
       return (
@@ -119,8 +253,10 @@ export function ElementDetailSidebar({
               <input
                 type="number"
                 className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
-                value={selectedSwimlane.y}
-                onChange={(e) => updateSwimlane(selectedSwimlane.id, { y: Number(e.target.value) || 0 })}
+                value={Math.round(selectedSwimlane.y)}
+                onChange={(e) =>
+                  updateSwimlane(selectedSwimlane.id, { y: Number(e.target.value) || 0 })
+                }
               />
             </label>
             <label className="block text-xs font-medium text-slate-600">
@@ -129,21 +265,12 @@ export function ElementDetailSidebar({
                 type="number"
                 min={40}
                 className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
-                value={selectedSwimlane.height}
+                value={Math.round(selectedSwimlane.height)}
                 onChange={(e) =>
                   updateSwimlane(selectedSwimlane.id, {
                     height: Math.max(40, Number(e.target.value) || 40),
                   })
                 }
-              />
-            </label>
-            <label className="block text-xs font-medium text-slate-600">
-              Farbe
-              <input
-                type="color"
-                className="mt-1 h-9 w-full rounded-lg border border-slate-200 px-1 py-1"
-                value={selectedSwimlane.color ?? "#94a3b8"}
-                onChange={(e) => updateSwimlane(selectedSwimlane.id, { color: e.target.value })}
               />
             </label>
             <button
@@ -179,7 +306,7 @@ export function ElementDetailSidebar({
               Zweck
               <textarea
                 className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
-                rows={3}
+                rows={2}
                 value={selectedBoundedContext.purpose ?? ""}
                 onChange={(e) =>
                   updateBoundedContext(selectedBoundedContext.id, { purpose: e.target.value })
@@ -276,6 +403,8 @@ export function ElementDetailSidebar({
   }
 
   const style = ELEMENT_STYLES[selectedElement.type];
+  const width = selectedElement.width ?? style.defaultWidth;
+  const height = selectedElement.height ?? style.defaultHeight;
 
   return (
     <aside className="flex w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
@@ -309,6 +438,59 @@ export function ElementDetailSidebar({
             onChange={(e) => updateElement(selectedElement.id, { description: e.target.value })}
           />
         </label>
+
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block text-xs font-medium text-slate-600">
+            X
+            <input
+              type="number"
+              className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+              value={Math.round(selectedElement.x)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, { x: Number(e.target.value) || 0 })
+              }
+            />
+          </label>
+          <label className="block text-xs font-medium text-slate-600">
+            Y
+            <input
+              type="number"
+              className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+              value={Math.round(selectedElement.y)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, { y: Number(e.target.value) || 0 })
+              }
+            />
+          </label>
+          <label className="block text-xs font-medium text-slate-600">
+            Breite
+            <input
+              type="number"
+              min={MIN_ELEMENT_SIZE}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+              value={Math.round(width)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  width: Math.max(MIN_ELEMENT_SIZE, Number(e.target.value) || MIN_ELEMENT_SIZE),
+                })
+              }
+            />
+          </label>
+          <label className="block text-xs font-medium text-slate-600">
+            Höhe
+            <input
+              type="number"
+              min={MIN_ELEMENT_SIZE}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+              value={Math.round(height)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  height: Math.max(MIN_ELEMENT_SIZE, Number(e.target.value) || MIN_ELEMENT_SIZE),
+                })
+              }
+            />
+          </label>
+        </div>
 
         {elements.length > 1 && (
           <label className="block text-xs font-medium text-slate-600">

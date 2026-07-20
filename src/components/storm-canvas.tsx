@@ -9,7 +9,10 @@ import { StormElementCard } from "@/components/storm-element-card";
 import { SwimlaneLayer } from "@/components/swimlane-layer";
 import { TimelineGuide } from "@/components/timeline-guide";
 import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint } from "@/lib/canvas-viewport";
+import { elementsInMarquee, type WorldRect } from "@/lib/selection-geometry";
 import { useStormBoardStore } from "@/store/storm-board-store";
+
+const MARQUEE_THRESHOLD_PX = 4;
 
 export function StormCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -32,16 +35,22 @@ export function StormCanvas() {
 
   const addElement = useStormBoardStore((s) => s.addElement);
   const moveElement = useStormBoardStore((s) => s.moveElement);
+  const moveElements = useStormBoardStore((s) => s.moveElements);
   const selectElement = useStormBoardStore((s) => s.selectElement);
+  const setSelectedElementIds = useStormBoardStore((s) => s.setSelectedElementIds);
   const selectRelation = useStormBoardStore((s) => s.selectRelation);
   const clearSelection = useStormBoardStore((s) => s.clearSelection);
   const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
   const connectElements = useStormBoardStore((s) => s.connectElements);
   const addBoundedContext = useStormBoardStore((s) => s.addBoundedContext);
 
-  const [bcDraft, setBcDraft] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [bcDraft, setBcDraft] = useState<WorldRect | null>(null);
   const [bcMode, setBcMode] = useState(false);
   const bcStart = useRef<{ x: number; y: number } | null>(null);
+
+  const [marqueeDraft, setMarqueeDraft] = useState<WorldRect | null>(null);
+  const marqueeStart = useRef<{ x: number; y: number; additive: boolean } | null>(null);
+  const marqueeDraftRef = useRef<WorldRect | null>(null);
 
   const sourceElement = elements.find((e) => e.id === relationDraftSourceId);
 
@@ -118,6 +127,94 @@ export function StormCanvas() {
     moveElement(id, snapped.x, snapped.y);
   };
 
+  const handleMoveElements = (updates: Array<{ id: string; x: number; y: number }>) => {
+    if (updates.length === 0) return;
+    if (updates.length === 1) {
+      handleMoveElement(updates[0].id, updates[0].x, updates[0].y);
+      return;
+    }
+    // Snap relative to the first (dragged) element so the group keeps spacing.
+    const primary = updates[0];
+    const snapped = applySnap(primary.x, primary.y);
+    const dx = snapped.x - primary.x;
+    const dy = snapped.y - primary.y;
+    moveElements(updates.map((u) => ({ id: u.id, x: u.x + dx, y: u.y + dy })));
+  };
+
+  const handleResizeElement = (
+    id: string,
+    patch: { x: number; y: number; width: number; height: number },
+  ) => {
+    useStormBoardStore.getState().updateElement(id, patch);
+  };
+
+  const worldFromClient = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!containerRef.current) return null;
+      const rect = containerRef.current.getBoundingClientRect();
+      return screenToWorld(viewport, clientX, clientY, rect);
+    },
+    [viewport],
+  );
+
+  const finishMarquee = useCallback(() => {
+    const start = marqueeStart.current;
+    const draft = marqueeDraftRef.current;
+    marqueeStart.current = null;
+    marqueeDraftRef.current = null;
+    setMarqueeDraft(null);
+    if (!start || !draft) return;
+
+    const zoom = useStormBoardStore.getState().viewport.zoom;
+    const largeEnough =
+      draft.w * zoom >= MARQUEE_THRESHOLD_PX || draft.h * zoom >= MARQUEE_THRESHOLD_PX;
+    if (!largeEnough) {
+      if (!start.additive) clearSelection();
+      return;
+    }
+    const ids = elementsInMarquee(useStormBoardStore.getState().elements, draft);
+    if (ids.length > 0 || !start.additive) {
+      setSelectedElementIds(ids, start.additive);
+    }
+  }, [clearSelection, setSelectedElementIds]);
+
+  const startMarquee = useCallback(
+    (clientX: number, clientY: number, additive: boolean) => {
+      const world = worldFromClient(clientX, clientY);
+      if (!world) return;
+      marqueeStart.current = { x: world.x, y: world.y, additive };
+      const draft = { x: world.x, y: world.y, w: 0, h: 0 };
+      marqueeDraftRef.current = draft;
+      setMarqueeDraft(draft);
+
+      const onMove = (ev: PointerEvent) => {
+        if (!marqueeStart.current) return;
+        const w = worldFromClient(ev.clientX, ev.clientY);
+        if (!w) return;
+        const sx = marqueeStart.current.x;
+        const sy = marqueeStart.current.y;
+        const next = {
+          x: Math.min(sx, w.x),
+          y: Math.min(sy, w.y),
+          w: Math.abs(w.x - sx),
+          h: Math.abs(w.y - sy),
+        };
+        marqueeDraftRef.current = next;
+        setMarqueeDraft(next);
+      };
+
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        finishMarquee();
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [finishMarquee, worldFromClient],
+  );
+
   return (
     <div
       ref={containerRef}
@@ -129,17 +226,17 @@ export function StormCanvas() {
           panStart.current = { x: e.clientX, y: e.clientY, vx: viewport.x, vy: viewport.y };
           return;
         }
-        if (bcMode && containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
-          const world = screenToWorld(viewport, e.clientX, e.clientY, rect);
+        if (e.button !== 0) return;
+        if (bcMode) {
+          const world = worldFromClient(e.clientX, e.clientY);
+          if (!world) return;
           bcStart.current = { x: world.x, y: world.y };
           setBcDraft({ x: world.x, y: world.y, w: 0, h: 0 });
           return;
         }
-        if (e.target === e.currentTarget) {
-          clearSelection();
-          if (relationMode) setRelationDraftSource(null);
-        }
+        // Empty surface (interactive children stopPropagation): start marquee select.
+        if (relationMode) setRelationDraftSource(null);
+        startMarquee(e.clientX, e.clientY, e.shiftKey);
       }}
       onPointerMove={(e) => {
         if (panning) {
@@ -147,9 +244,9 @@ export function StormCanvas() {
           const dy = e.clientY - panStart.current.y;
           setViewport({ ...viewport, x: panStart.current.vx + dx, y: panStart.current.vy + dy });
         }
-        if (bcMode && bcStart.current && containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
-          const world = screenToWorld(viewport, e.clientX, e.clientY, rect);
+        if (bcMode && bcStart.current) {
+          const world = worldFromClient(e.clientX, e.clientY);
+          if (!world) return;
           const sx = bcStart.current.x;
           const sy = bcStart.current.y;
           setBcDraft({
@@ -215,6 +312,18 @@ export function StormCanvas() {
             style={{ left: bcDraft.x, top: bcDraft.y, width: bcDraft.w, height: bcDraft.h }}
           />
         )}
+        {marqueeDraft && (
+          <div
+            className="pointer-events-none absolute border border-sky-500 bg-sky-400/15"
+            style={{
+              left: marqueeDraft.x,
+              top: marqueeDraft.y,
+              width: marqueeDraft.w,
+              height: marqueeDraft.h,
+              zIndex: 50,
+            }}
+          />
+        )}
         <TimelineGuide />
         <StormConnectors
           elements={elements}
@@ -228,12 +337,14 @@ export function StormCanvas() {
             key={el.id}
             element={el}
             selected={selectedElementIds.includes(el.id)}
+            selectedIds={selectedElementIds}
             connecting={relationDraftSourceId === el.id}
             isRelationTargetHint={Boolean(relationDraftSourceId && relationDraftSourceId !== el.id)}
             relationMode={relationMode}
             zoom={viewport.zoom}
             onSelect={selectElement}
-            onMove={handleMoveElement}
+            onMoveMany={handleMoveElements}
+            onResize={handleResizeElement}
             onStartConnect={handleStartConnect}
             onCompleteConnect={handleCompleteConnect}
             onEdit={selectElement}
@@ -255,7 +366,7 @@ export function StormCanvas() {
         <span className="rounded-lg border border-slate-200 bg-white/90 px-2 py-1.5 text-xs text-slate-500">
           {relationMode
             ? "Verbinden: Pfeil → Pfeil · Esc: Abbrechen"
-            : "Pfeil → Pfeil: Relation · Doppelklick: Element"}
+            : "Rahmen ziehen: Mehrfachauswahl · Shift+Klick · Doppelklick: Element"}
         </span>
       </div>
     </div>

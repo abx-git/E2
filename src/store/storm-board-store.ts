@@ -50,6 +50,7 @@ export interface StormBoardState {
   setSnapToGrid: (v: boolean) => void;
   setPaletteType: (type: ElementType) => void;
   selectElement: (id: string | null, additive?: boolean) => void;
+  setSelectedElementIds: (ids: string[], additive?: boolean) => void;
   selectRelation: (id: string | null) => void;
   selectBoundedContext: (id: string | null) => void;
   selectSwimlane: (id: string | null) => void;
@@ -59,6 +60,10 @@ export interface StormBoardState {
   updateElement: (id: string, patch: Partial<StormElement>) => void;
   deleteElement: (id: string) => void;
   moveElement: (id: string, x: number, y: number) => void;
+  moveElements: (updates: Array<{ id: string; x: number; y: number }>) => void;
+  patchElements: (
+    updates: Array<{ id: string; x?: number; y?: number; width?: number; height?: number }>,
+  ) => void;
 
   addRelation: (sourceId: string, targetId: string, type?: RelationType, label?: string) => string | null;
   updateRelation: (id: string, patch: Partial<StormRelation>) => void;
@@ -153,6 +158,19 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       };
     }),
 
+  setSelectedElementIds: (ids, additive) =>
+    set((s) => {
+      const next = additive
+        ? Array.from(new Set([...s.selectedElementIds, ...ids]))
+        : ids;
+      return {
+        selectedElementIds: next,
+        selectedRelationId: null,
+        selectedBoundedContextId: null,
+        selectedSwimlaneId: null,
+      };
+    }),
+
   selectRelation: (id) =>
     set({
       selectedRelationId: id,
@@ -207,6 +225,32 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     set((s) => ({
       elements: s.elements.map((e) => (e.id === id ? { ...e, x, y } : e)),
     })),
+
+  moveElements: (updates) =>
+    set((s) => {
+      if (updates.length === 0) return s;
+      const byId = new Map(updates.map((u) => [u.id, u]));
+      return {
+        elements: s.elements.map((e) => {
+          const u = byId.get(e.id);
+          return u ? { ...e, x: u.x, y: u.y } : e;
+        }),
+      };
+    }),
+
+  patchElements: (updates) =>
+    set((s) => {
+      if (updates.length === 0) return s;
+      const byId = new Map(updates.map((u) => [u.id, u]));
+      return {
+        elements: s.elements.map((e) => {
+          const u = byId.get(e.id);
+          if (!u) return e;
+          const { id: _id, ...patch } = u;
+          return { ...e, ...patch, id: e.id };
+        }),
+      };
+    }),
 
   addRelation: (sourceId, targetId, type, label) => {
     if (sourceId === targetId) return null;
