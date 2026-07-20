@@ -236,7 +236,7 @@ Legende: ✅ vorhanden · 🟡 teilweise · ❌ fehlt / bewusst nicht
 | Phasenführung / Facilitator | ✅ | Drei Formate + Checklisten |
 | Typbeschränkung pro Phase | ✅ | Palette gefiltert |
 | Empfohlene Zeitfenster | ✅ | Phasen-Countdown Start/Pause/Reset im Facilitator |
-| Mehrbenutzer / Echtzeit-Kollaboration | ❌ | Ein Nutzer + geteilte Datei |
+| Mehrbenutzer / Echtzeit-Kollaboration | 🟡 | Optionaler Raum-Modus (Supabase Free); Solo bleibt Default |
 | Undo/Redo | ✅ | History-Stack, Toolbar, ⌘Z / Ctrl+Z |
 | Papier-Workshop-Extras (Opportunity, Problem, Value Stream overlays) | ❌ | Nur die 10 Kern-Typen |
 
@@ -292,6 +292,6 @@ Persistenz-Muster angelehnt an [T2](https://github.com/abx-git/T2).
 
 E2 deckt den **Kern von Event Storming** ab: alle gängigen Sticky-Typen, Relationen, Timeline, Swimlanes, Bounded Contexts, Hotspots, Glossary sowie geführte Workshop-Phasen (Big Picture → Process → Design) inklusive Soft-Validierung und Exporten für Übergabe.
 
-**Bewusst oder noch schwach:** Echtzeit-Kollaboration und automatische räumliche Zuordnung zu Lanes/Contexts.
+**Bewusst oder noch schwach:** Echtzeit-Kollaboration (optional via Supabase — siehe [`docs/COLLABORATION.md`](docs/COLLABORATION.md)) und automatische räumliche Zuordnung zu Lanes/Contexts.
 
-Wenn du Lücken priorisieren willst, sind die methodisch größten Hebel typischerweise: optional **Kollaboration**, **Glossary-Bindung** und Auto-Zuordnung.
+Wenn du Lücken priorisieren willst, sind die methodisch größten Hebel typischerweise: **Glossary-Bindung** und Auto-Zuordnung.

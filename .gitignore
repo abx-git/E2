@@ -3,6 +3,8 @@ node_modules
 out
 dist
 *.tsbuildinfo
+.env.local
+.env*.local
 public/sw.js
 public/sw.js.map
 public/swe-worker-*.js

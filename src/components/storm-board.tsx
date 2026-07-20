@@ -10,10 +10,13 @@ import {
   Presentation,
   Redo2,
   Undo2,
+  Users,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 
+import { CollabPresenceBanner } from "@/components/collab-presence-banner";
+import { CollabRoomDialog } from "@/components/collab-room-dialog";
 import { DataStoragePanel } from "@/components/data-storage-panel";
 import { CanvasContextMenu } from "@/components/canvas-context-menu";
 import { ElementDetailSidebar } from "@/components/element-detail-sidebar";
@@ -52,6 +55,7 @@ import {
   isWorkingFileUiAvailable,
 } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
+import { useCollabStore } from "@/lib/collab/session";
 import type { ElementType, WorkshopFormat } from "@/types/storm-element";
 import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
 
@@ -71,6 +75,9 @@ export function StormBoard() {
 
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpModel, setHelpModel] = useState<HelpDialogModel | null>(null);
+  const [collabOpen, setCollabOpen] = useState(false);
+  const collabActive = useCollabStore((s) => s.active);
+  const joinRoom = useCollabStore((s) => s.joinRoom);
 
   const openHelp = (model: HelpDialogModel) => {
     setHelpModel(model);
@@ -115,6 +122,16 @@ export function StormBoard() {
     applyAppearanceToElement(boardRootRef.current, appearance);
     applyAppearanceToElement(document.documentElement, appearance);
   }, [appearance]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const room = params.get("room");
+    if (!room || useCollabStore.getState().active) return;
+    setCollabOpen(true);
+    const name = useCollabStore.getState().displayName || "Gast";
+    void joinRoom(room, name);
+  }, [joinRoom]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -335,6 +352,19 @@ export function StormBoard() {
 
         <button
           type="button"
+          onClick={() => setCollabOpen(true)}
+          className={[
+            "flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium",
+            collabActive ? "dock-control-active" : "dock-control",
+          ].join(" ")}
+          title="Kollaborations-Raum"
+        >
+          <Users className="h-4 w-4" />
+          Raum
+        </button>
+
+        <button
+          type="button"
           onClick={() => setStorageOpen(true)}
           className="dock-control flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium"
         >
@@ -346,6 +376,8 @@ export function StormBoard() {
           Daten
         </button>
       </header>
+
+      <CollabPresenceBanner />
 
       <div className="mx-3 mb-3 mt-2 flex min-h-0 flex-1 gap-2">
         <div className="dock-surface flex overflow-hidden rounded-dock">
@@ -404,8 +436,14 @@ export function StormBoard() {
         onExportGlossary={exportGlossaryMarkdown}
         onExportContextMap={exportContextMapMarkdown}
         onExportEventCatalog={exportEventCatalogMarkdown}
+        onOpenCollab={() => {
+          setStorageOpen(false);
+          setCollabOpen(true);
+        }}
         busy={busy}
       />
+
+      <CollabRoomDialog open={collabOpen} onClose={() => setCollabOpen(false)} />
 
       <WorkingFileSetupDialog
         open={setupOpen && !isWorkingFileAttached()}

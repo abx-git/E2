@@ -1,6 +1,6 @@
 # E2 auf GitHub Pages
 
-Statische Auslieferung der Event-Storming-App über GitHub Pages (kein Node-Server). Persistenz bleibt lokal beim Nutzer (`.storm.json` / File System Access API).
+Statische Auslieferung der Event-Storming-App über GitHub Pages (kein Node-Server). Persistenz bleibt standardmäßig lokal beim Nutzer (`.storm.json` / File System Access API). Optionaler Kollaborations-Modus: siehe [`COLLABORATION.md`](COLLABORATION.md) (Supabase Free Tier).
 
 ## Übersicht
 
@@ -8,6 +8,7 @@ Statische Auslieferung der Event-Storming-App über GitHub Pages (kein Node-Serv
 |------------|-----|--------|
 | E2-App (PWA) | GitHub Pages | kostenlos |
 | Arbeitsdatei | beim Nutzer (Browser) | kostenlos |
+| Kollaboration (optional) | Supabase Free | kostenlos (Limits) |
 
 ---
 

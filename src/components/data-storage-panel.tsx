@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AppearanceSettings } from "@/components/appearance-settings";
-import { Copy, Download, FolderOpen, Loader2, Upload, X } from "lucide-react";
+import { Copy, Download, FolderOpen, Loader2, Upload, Users, X } from "lucide-react";
 
 export interface DataStoragePanelProps {
   open: boolean;
@@ -25,6 +25,7 @@ export interface DataStoragePanelProps {
   onExportGlossary: () => void;
   onExportContextMap: () => void;
   onExportEventCatalog: () => void;
+  onOpenCollab?: () => void;
   busy?: boolean;
 }
 
@@ -78,6 +79,7 @@ export function DataStoragePanel({
   onExportGlossary,
   onExportContextMap,
   onExportEventCatalog,
+  onOpenCollab,
   busy,
 }: DataStoragePanelProps) {
   if (!open) return null;
@@ -143,6 +145,17 @@ export function DataStoragePanel({
               <Copy className="h-4 w-4" /> JSON einfügen
             </ActionButton>
           </Section>
+
+          {onOpenCollab && (
+            <Section title="Kollaboration">
+              <p className="text-xs text-[var(--muted)]">
+                Optionaler Live-Raum (Supabase Free). Solo-Modus bleibt Standard.
+              </p>
+              <ActionButton onClick={onOpenCollab} disabled={busy}>
+                <Users className="h-4 w-4" /> Raum erstellen / beitreten
+              </ActionButton>
+            </Section>
+          )}
 
           <Section title="Export">
             <ActionButton onClick={onExportJson} disabled={busy}>
