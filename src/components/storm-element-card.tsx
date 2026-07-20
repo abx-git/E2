@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Clock, RotateCcw } from "lucide-react";
 
 import { ELEMENT_STYLES } from "@/lib/element-styles";
@@ -36,7 +36,6 @@ export interface StormElementCardProps {
   onResize: (id: string, patch: { x: number; y: number; width: number; height: number }) => void;
   onStartConnect: (id: string) => void;
   onCompleteConnect: (id: string) => void;
-  onEdit: (id: string) => void;
 }
 
 export function StormElementCard({
@@ -52,13 +51,18 @@ export function StormElementCard({
   onResize,
   onStartConnect,
   onCompleteConnect,
-  onEdit,
 }: StormElementCardProps) {
   const style = ELEMENT_STYLES[element.type];
   const w = element.width ?? style.defaultWidth;
   const h = element.height ?? style.defaultHeight;
   const rotation = element.rotation ?? style.rotation ?? 0;
   const draggedRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const draftRef = useRef(element.label);
+  const editingRef = useRef(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(element.label);
+  const isNote = element.type === "note";
   const colors = {
     bg: style.fill,
     border: style.stroke,
@@ -73,6 +77,54 @@ export function StormElementCard({
         : style.shape === "rectangle"
           ? "rounded-sm"
           : "rounded-lg";
+
+  const setDraftValue = (value: string) => {
+    draftRef.current = value;
+    setDraft(value);
+  };
+
+  const beginEdit = () => {
+    setDraftValue(element.label);
+    editingRef.current = true;
+    setEditing(true);
+  };
+
+  const commitLabel = (value: string) => {
+    if (!editingRef.current) return;
+    editingRef.current = false;
+    const next = value.trim() || ELEMENT_STYLES[element.type].label;
+    setEditing(false);
+    if (next !== element.label) {
+      useStormBoardStore.getState().updateElement(element.id, { label: next });
+    }
+  };
+
+  const cancelEdit = () => {
+    if (!editingRef.current) return;
+    editingRef.current = false;
+    setDraftValue(element.label);
+    setEditing(false);
+  };
+
+  useEffect(() => {
+    if (!editing) return;
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    el.select();
+  }, [editing]);
+
+  useEffect(() => {
+    if (!selected && editingRef.current) {
+      commitLabel(draftRef.current);
+    }
+  }, [selected]);
+
+  useEffect(() => {
+    if (!editing) {
+      setDraftValue(element.label);
+    }
+  }, [element.label, editing]);
 
   const handleConnect = () => {
     if (connecting) onCompleteConnect(element.id);
@@ -124,6 +176,16 @@ export function StormElementCard({
     window.addEventListener("pointerup", onUp);
   };
 
+  const labelClass = [
+    "text-xs font-semibold leading-tight",
+    isNote ? "line-clamp-6 w-full whitespace-pre-wrap text-left" : "line-clamp-3 text-center",
+  ].join(" ");
+
+  const editorClass = [
+    "w-full resize-none bg-transparent text-xs font-semibold leading-tight outline-none ring-0",
+    isNote ? "h-full whitespace-pre-wrap text-left" : "text-center",
+  ].join(" ");
+
   return (
     <div
       className="absolute select-none"
@@ -133,10 +195,14 @@ export function StormElementCard({
         width: w,
         height: h,
         transform: rotation ? `rotate(${rotation}deg)` : undefined,
-        zIndex: selected || connecting ? 30 : 20,
+        zIndex: selected || connecting || editing ? 30 : 20,
       }}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
+        if (editing) {
+          e.stopPropagation();
+          return;
+        }
         e.stopPropagation();
         draggedRef.current = false;
         useStormBoardStore.getState().beginGesture();
@@ -202,11 +268,15 @@ export function StormElementCard({
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
-        onEdit(element.id);
+        e.preventDefault();
+        if (relationMode) return;
+        onSelect(element.id, false);
+        beginEdit();
       }}
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (editing) commitLabel(draftRef.current);
         const store = useStormBoardStore.getState();
         if (!store.selectedElementIds.includes(element.id)) {
           store.selectElement(element.id);
@@ -225,7 +295,7 @@ export function StormElementCard({
         className={[
           "relative flex h-full w-full flex-col items-center justify-center border px-2 py-1 shadow-sm transition-shadow",
           shapeClass,
-          selected ? "ring-2 ring-[var(--accent)]" : "",
+          selected || editing ? "ring-2 ring-[var(--accent)]" : "",
           connecting ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
           isRelationTargetHint ? "ring-2 ring-[var(--accent-2)]/50" : "",
           relationMode && !connecting ? "cursor-crosshair" : "",
@@ -234,28 +304,66 @@ export function StormElementCard({
           backgroundColor: colors.bg,
           borderColor: colors.border,
           color: colors.text,
-          borderStyle: element.type === "note" ? "dashed" : undefined,
+          borderStyle: isNote ? "dashed" : undefined,
         }}
       >
-        <span
-          className={[
-            "text-xs font-semibold leading-tight",
-            element.type === "note"
-              ? "line-clamp-6 w-full whitespace-pre-wrap text-left"
-              : "line-clamp-3 text-center",
-          ].join(" ")}
-        >
-          {element.label}
-        </span>
-        {element.metadata?.isRecurring && (
+        {editing ? (
+          isNote ? (
+            <textarea
+              ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+              className={editorClass}
+              value={draft}
+              rows={4}
+              aria-label="Titel bearbeiten"
+              onChange={(e) => setDraftValue(e.target.value)}
+              onPointerDown={(e) => e.stopPropagation()}
+              onBlur={() => commitLabel(draftRef.current)}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  cancelEdit();
+                } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  commitLabel(draftRef.current);
+                }
+              }}
+            />
+          ) : (
+            <input
+              ref={inputRef as React.RefObject<HTMLInputElement>}
+              type="text"
+              className={editorClass}
+              value={draft}
+              aria-label="Titel bearbeiten"
+              onChange={(e) => setDraftValue(e.target.value)}
+              onPointerDown={(e) => e.stopPropagation()}
+              onBlur={() => commitLabel(draftRef.current)}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  cancelEdit();
+                } else if (e.key === "Enter") {
+                  e.preventDefault();
+                  commitLabel(draftRef.current);
+                }
+              }}
+            />
+          )
+        ) : (
+          <span className={labelClass}>{element.label}</span>
+        )}
+        {element.metadata?.isRecurring && !editing && (
           <Clock className="absolute right-1 top-1 h-3 w-3 opacity-70" aria-hidden />
         )}
-        {element.type === "hotspot" && element.metadata?.hotspotStatus === "resolved" && (
+        {element.type === "hotspot" && element.metadata?.hotspotStatus === "resolved" && !editing && (
           <RotateCcw className="absolute left-1 top-1 h-3 w-3 opacity-70" aria-hidden />
         )}
       </div>
 
       {selected &&
+        !editing &&
         (Object.keys(HANDLE_POSITIONS) as ResizeHandle[]).map((handle) => (
           <button
             key={handle}
@@ -269,7 +377,7 @@ export function StormElementCard({
           />
         ))}
 
-      {(!selected || relationMode || connecting || isRelationTargetHint) && (
+      {!editing && (!selected || relationMode || connecting || isRelationTargetHint) && (
         <button
           type="button"
           className={[

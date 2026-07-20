@@ -463,7 +463,6 @@ export function StormCanvas() {
             onResize={handleResizeElement}
             onStartConnect={handleStartConnect}
             onCompleteConnect={handleCompleteConnect}
-            onEdit={selectElement}
           />
         ))}
       </div>
@@ -484,7 +483,7 @@ export function StormCanvas() {
             ? "Verbinden · Esc: Abbrechen"
             : contextMapMode
               ? "Context Map · Esc: Abbrechen"
-              : "1–9/0 Typ · Enter/A anlegen · Rechtsklick · Rahmen · Doppelklick"}
+              : "1–9/0 Typ · Enter/A anlegen · Rechtsklick · Rahmen · Doppelklick: Titel"}
         </span>
       </div>
     </div>

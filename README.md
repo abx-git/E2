@@ -92,7 +92,8 @@ Der Relationstyp wird beim Verbinden **heuristisch vorgeschlagen** und kann per 
 - **Verschieben:** ein Element oder die Mehrfachauswahl  
 - **Größe:** acht Anfasser am ausgewählten Element  
 - **Ausrichten:** Rechtsklick bei ≥2 Elementen (links/mitte/rechts, oben/mitte/unten, verteilen, gleiche Breite/Höhe)  
-- **Anlegen:** Doppelklick, Rechtsklick → Element hinzufügen, oder **1–9/0** (Typ) + **Enter/A** (Viewport-Mitte)  
+- **Anlegen:** Doppelklick auf leere Fläche, Rechtsklick → Element hinzufügen, oder **1–9/0** (Typ) + **Enter/A** (Viewport-Mitte)  
+- **Titel:** Doppelklick auf ein Sticky → Inline-Bearbeitung (Enter speichern, Esc abbrechen; Notizen: ⌘/Ctrl+Enter)  
 - **Aktionen:** Rechtsklick-Context-Menü (Löschen, Zuordnung, Hotspot-Status, Hilfe, …)
 
 ### Timeline
