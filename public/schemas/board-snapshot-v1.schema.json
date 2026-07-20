@@ -85,6 +85,10 @@
       "type": "array",
       "items": { "$ref": "#/$defs/glossaryEntry" }
     },
+    "appearance": {
+      "$ref": "#/$defs/appearance",
+      "description": "Farben für Arbeitsbereich und Seitenleisten."
+    },
     "snapToTimeline": {
       "type": "boolean",
       "description": "Elemente an die Timeline einrasten. Beim Import Standard: true, falls fehlend."
@@ -301,6 +305,23 @@
       "properties": {
         "term": { "type": "string" },
         "definition": { "type": "string" }
+      }
+    },
+    "appearance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canvas", "sidebar"],
+      "properties": {
+        "canvas": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Hintergrundfarbe des Arbeitsbereichs (Canvas)."
+        },
+        "sidebar": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Hintergrundfarbe der Seitenleisten und Docks."
+        }
       }
     }
   }

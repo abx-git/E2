@@ -10,44 +10,35 @@ import {
 import { suggestPastTense, validateBoard } from "@/lib/relation-validation";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 
+import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
+
+const emptyBoard = {
+  title: "Test",
+  workshopFormat: "free" as const,
+  facilitatorEnabled: false,
+  facilitatorPhase: 0,
+  elements: [] as const,
+  relations: [] as const,
+  swimlanes: [] as const,
+  boundedContexts: [] as const,
+  timeline: { y: 400 },
+  viewport: { x: 0, y: 0, zoom: 1 },
+  glossary: [] as const,
+  appearance: { ...DEFAULT_APPEARANCE },
+  snapToTimeline: true,
+  snapToGrid: false,
+};
+
 describe("storm-json", () => {
   it("embeds $schema pointing at the published schema id", () => {
-    const snap = buildBoardSnapshot({
-      title: "Test",
-      workshopFormat: "free",
-      facilitatorEnabled: false,
-      facilitatorPhase: 0,
-      elements: [],
-      relations: [],
-      swimlanes: [],
-      boundedContexts: [],
-      timeline: { y: 400 },
-      viewport: { x: 0, y: 0, zoom: 1 },
-      glossary: [],
-      snapToTimeline: true,
-      snapToGrid: false,
-    });
+    const snap = buildBoardSnapshot({ ...emptyBoard, elements: [], relations: [], swimlanes: [], boundedContexts: [], glossary: [] });
     expect(snap.$schema).toBe(BOARD_SNAPSHOT_SCHEMA_ID);
     expect(boardSnapshotSchema.$id).toBe(BOARD_SNAPSHOT_SCHEMA_ID);
     expect(boardSnapshotSchema.properties.format.const).toBe("event-storming-tool");
   });
 
   it("stable key ignores exportedAt", () => {
-    const base = {
-      title: "Test",
-      workshopFormat: "free" as const,
-      facilitatorEnabled: false,
-      facilitatorPhase: 0,
-      elements: [],
-      relations: [],
-      swimlanes: [],
-      boundedContexts: [],
-      timeline: { y: 400 },
-      viewport: { x: 0, y: 0, zoom: 1 },
-      glossary: [],
-      snapToTimeline: true,
-      snapToGrid: false,
-    };
+    const base = { ...emptyBoard, elements: [], relations: [], swimlanes: [], boundedContexts: [], glossary: [] };
     const a = buildBoardSnapshot(base);
     const b = buildBoardSnapshot({ ...base, viewport: { x: 10, y: 20, zoom: 1.5 } });
     expect(stableBoardStateKey(a)).toBe(stableBoardStateKey(b));
@@ -55,19 +46,13 @@ describe("storm-json", () => {
 
   it("detects equivalent exports", () => {
     const payload = {
+      ...emptyBoard,
       title: "Board",
-      workshopFormat: "free" as const,
-      facilitatorEnabled: false,
-      facilitatorPhase: 0,
       elements: [{ id: "1", type: "domainEvent" as const, label: "Order Placed", x: 0, y: 0 }],
       relations: [],
       swimlanes: [],
       boundedContexts: [],
-      timeline: { y: 400 },
-      viewport: { x: 0, y: 0, zoom: 1 },
       glossary: [],
-      snapToTimeline: true,
-      snapToGrid: false,
     };
     const json1 = JSON.stringify(buildBoardSnapshot(payload));
     const json2 = JSON.stringify(buildBoardSnapshot(payload));

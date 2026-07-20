@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { AppearanceSettings } from "@/components/appearance-settings";
 import { Copy, Download, FolderOpen, Loader2, Upload, X } from "lucide-react";
 
 export interface DataStoragePanelProps {
@@ -30,7 +31,7 @@ export interface DataStoragePanelProps {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</h3>
+      <h3 className="group-label">{title}</h3>
       <div className="mt-3 space-y-2">{children}</div>
     </section>
   );
@@ -50,7 +51,7 @@ function ActionButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50 disabled:opacity-50"
+      className="dock-control flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
     >
       {children}
     </button>
@@ -83,39 +84,47 @@ export function DataStoragePanel({
 
   const layer = (
     <div
-      className="fixed inset-0 z-[1100] flex justify-end bg-slate-900/40 backdrop-blur-sm"
+      className="fixed inset-0 z-[1100] flex justify-end bg-black/50 backdrop-blur-sm"
       role="presentation"
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <aside
-        className="flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-2xl"
+        className="dock-surface flex h-full w-full max-w-md flex-col rounded-none border-y-0 border-r-0 text-[var(--text)]"
         role="dialog"
         aria-modal="true"
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">Daten &amp; Export</h2>
-            <p className="mt-1 text-xs text-slate-600">
-              Alle Board-Daten liegen in einer lokalen JSON-Datei (.storm.json).
+            <h2 className="text-base font-semibold tracking-tight">Daten &amp; Darstellung</h2>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              Arbeitsdatei, Farben und Export (.storm.json).
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100">
+          <button
+            type="button"
+            onClick={onClose}
+            className="dock-control rounded-lg p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
+          >
             <X className="h-4 w-4" />
           </button>
         </header>
 
         <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-5 py-4">
+          <Section title="Darstellung">
+            <AppearanceSettings />
+          </Section>
+
           <Section title="Arbeitsdatei">
             {workingFileAttached ? (
-              <p className="text-sm text-slate-800">
+              <p className="text-sm">
                 {workingFileLabel ? `„${workingFileLabel}"` : "Verknüpft"}
                 {workingFileSaving ? " — speichert …" : workingFileDirty ? " — ungespeichert" : " — synchron"}
               </p>
             ) : (
-              <p className="text-sm text-slate-600">Noch keine Arbeitsdatei verknüpft.</p>
+              <p className="text-sm text-[var(--muted)]">Noch keine Arbeitsdatei verknüpft.</p>
             )}
             {fsAccessSupported && (
               <>
@@ -142,11 +151,11 @@ export function DataStoragePanel({
             <ActionButton onClick={onExportJsonSchema} disabled={busy}>
               <Download className="h-4 w-4" /> JSON Schema herunterladen
             </ActionButton>
-            <p className="text-xs text-slate-500">
-              Das Schema beschreibt das{" "}
-              <code className="rounded bg-slate-100 px-1">.storm.json</code>-Format für andere Tools.
-              Exportierte Boards enthalten ein{" "}
-              <code className="rounded bg-slate-100 px-1">$schema</code>-Feld.
+            <p className="text-xs text-[var(--muted)]">
+              Schema für{" "}
+              <code className="rounded bg-[var(--control)] px-1">.storm.json</code>
+              — exportierte Boards enthalten{" "}
+              <code className="rounded bg-[var(--control)] px-1">$schema</code>.
             </p>
             <ActionButton onClick={onExportSvg} disabled={busy}>
               <Download className="h-4 w-4" /> SVG

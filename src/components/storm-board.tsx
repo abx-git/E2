@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Database,
   Layers,
@@ -21,6 +21,7 @@ import { HotspotList } from "@/components/hotspot-list";
 import { StormCanvas } from "@/components/storm-canvas";
 import { WorkingFileSetupDialog } from "@/components/working-file-setup-dialog";
 import { WorkingFileSync } from "@/components/working-file-sync";
+import { applyAppearanceToElement } from "@/lib/board-appearance";
 import { clampZoom } from "@/lib/canvas-viewport";
 import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
 import {
@@ -92,10 +93,17 @@ export function StormBoard() {
   const setSnapToGrid = useStormBoardStore((s) => s.setSnapToGrid);
   const timeline = useStormBoardStore((s) => s.timeline);
   const setTimeline = useStormBoardStore((s) => s.setTimeline);
+  const appearance = useStormBoardStore((s) => s.appearance);
   const addSwimlane = useStormBoardStore((s) => s.addSwimlane);
   const relationMode = useStormBoardStore((s) => s.relationMode);
   const setRelationMode = useStormBoardStore((s) => s.setRelationMode);
   const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
+  const boardRootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    applyAppearanceToElement(boardRootRef.current, appearance);
+    applyAppearanceToElement(document.documentElement, appearance);
+  }, [appearance]);
 
   const downloadJson = useCallback(() => {
     const json = boardJsonFromStoreState();
@@ -155,7 +163,7 @@ export function StormBoard() {
   const handleBrowserFile = () => fileInputRef.current?.click();
 
   return (
-    <div className="flex h-screen min-h-0 flex-col bg-[var(--bg)] text-[var(--text)]">
+    <div ref={boardRootRef} className="flex h-screen min-h-0 flex-col bg-[var(--bg)] text-[var(--text)]">
       <WorkingFileSync
         onWorkingFileNameChange={setWorkingFileName}
         onDirtyChange={setWorkingFileDirty}

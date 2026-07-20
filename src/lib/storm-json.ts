@@ -8,6 +8,10 @@ import type {
   WorkshopFormat,
 } from "@/types/storm-element";
 import type { StormRelation } from "@/types/storm-relation";
+import {
+  normalizeAppearance,
+  type BoardAppearance,
+} from "@/lib/board-appearance";
 import boardSnapshotV1Schema from "../../public/schemas/board-snapshot-v1.schema.json";
 
 export const EXPORT_FORMAT = "event-storming-tool" as const;
@@ -38,6 +42,7 @@ export interface BoardSnapshotV1 {
   timeline: Timeline;
   viewport: Viewport;
   glossary: GlossaryEntry[];
+  appearance: BoardAppearance;
   snapToTimeline: boolean;
   snapToGrid: boolean;
 }
@@ -54,6 +59,7 @@ export interface BoardImportPayload {
   timeline: Timeline;
   viewport: Viewport;
   glossary: GlossaryEntry[];
+  appearance: BoardAppearance;
   snapToTimeline: boolean;
   snapToGrid: boolean;
 }
@@ -65,6 +71,7 @@ export function buildBoardSnapshot(state: BoardImportPayload): BoardSnapshotV1 {
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     ...state,
+    appearance: normalizeAppearance(state.appearance),
   };
 }
 
@@ -91,6 +98,9 @@ export function boardSnapshotToReplacePayload(snap: BoardSnapshotV1): BoardImpor
     timeline: normalizeTimeline(snap.timeline),
     viewport: snap.viewport,
     glossary: snap.glossary ?? [],
+    appearance: normalizeAppearance(
+      (snap as { appearance?: unknown }).appearance,
+    ),
     snapToTimeline: snap.snapToTimeline ?? true,
     snapToGrid: snap.snapToGrid ?? false,
   };
@@ -146,6 +156,7 @@ export function stableBoardStateKey(payload: BoardImportPayload): string {
     boundedContexts: [...payload.boundedContexts].sort((a, b) => a.id.localeCompare(b.id)),
     timeline: payload.timeline,
     glossary: [...payload.glossary].sort((a, b) => a.term.localeCompare(b.term)),
+    appearance: payload.appearance,
     snapToTimeline: payload.snapToTimeline,
     snapToGrid: payload.snapToGrid,
   });

@@ -4,6 +4,10 @@ import { elementDimensions, defaultLabelForType } from "@/lib/element-styles";
 import { defaultRelationType } from "@/lib/relation-validation";
 import { generateStormId } from "@/lib/storm-id";
 import type { BoardImportPayload } from "@/lib/storm-json";
+import {
+  DEFAULT_APPEARANCE,
+  type BoardAppearance,
+} from "@/lib/board-appearance";
 import type {
   BoundedContext,
   ElementType,
@@ -30,6 +34,7 @@ export interface StormBoardState {
   timeline: Timeline;
   viewport: Viewport;
   glossary: GlossaryEntry[];
+  appearance: BoardAppearance;
   snapToTimeline: boolean;
   snapToGrid: boolean;
   selectedElementIds: string[];
@@ -50,6 +55,7 @@ export interface StormBoardState {
   setViewport: (viewport: Viewport) => void;
   setSnapToTimeline: (v: boolean) => void;
   setSnapToGrid: (v: boolean) => void;
+  setAppearance: (patch: Partial<BoardAppearance>) => void;
   setPaletteType: (type: ElementType) => void;
   selectElement: (id: string | null, additive?: boolean) => void;
   setSelectedElementIds: (ids: string[], additive?: boolean) => void;
@@ -119,6 +125,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   timeline: { ...DEFAULT_TIMELINE },
   viewport: { ...DEFAULT_VIEWPORT },
   glossary: [],
+  appearance: { ...DEFAULT_APPEARANCE },
   snapToTimeline: true,
   snapToGrid: false,
   selectedElementIds: [],
@@ -139,6 +146,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   setViewport: (viewport) => set({ viewport }),
   setSnapToTimeline: (snapToTimeline) => set({ snapToTimeline }),
   setSnapToGrid: (snapToGrid) => set({ snapToGrid }),
+  setAppearance: (patch) =>
+    set((s) => ({ appearance: { ...s.appearance, ...patch } })),
   setPaletteType: (paletteType) => set({ paletteType }),
 
   selectElement: (id, additive) =>
@@ -396,6 +405,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       timeline: payload.timeline,
       viewport: payload.viewport,
       glossary: payload.glossary,
+      appearance: payload.appearance,
       snapToTimeline: payload.snapToTimeline,
       snapToGrid: payload.snapToGrid,
       selectedElementIds: [],
@@ -421,6 +431,7 @@ export function boardImportPayloadFromStore(): BoardImportPayload {
     timeline: s.timeline,
     viewport: s.viewport,
     glossary: s.glossary,
+    appearance: s.appearance,
     snapToTimeline: s.snapToTimeline,
     snapToGrid: s.snapToGrid,
   };
