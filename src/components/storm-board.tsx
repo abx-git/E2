@@ -278,7 +278,7 @@ export function StormBoard() {
         <div className="dock-surface flex overflow-hidden rounded-dock">
           <ElementPalette onSelectType={() => {}} onRequestHelp={openElementHelp} />
         </div>
-        <div className="dock-surface relative min-w-0 flex-1 overflow-hidden rounded-dock">
+        <div className="dock-surface relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-dock">
           <StormCanvas />
         </div>
         <div className="dock-surface flex w-72 shrink-0 flex-col overflow-hidden rounded-dock">

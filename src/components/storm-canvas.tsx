@@ -218,7 +218,7 @@ export function StormCanvas() {
   return (
     <div
       ref={containerRef}
-      className="relative min-h-0 flex-1 overflow-hidden bg-canvas"
+      className="absolute inset-0 overflow-hidden bg-canvas"
       onWheel={handleWheel}
       onPointerDown={(e) => {
         useStormBoardStore.getState().closeContextMenu();
