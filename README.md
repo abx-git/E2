@@ -52,7 +52,7 @@ Alle Typen sind in der Palette wählbar (im Facilitator-Modus phasenweise einges
 - Position und Größe (Ziehen, Anfasser, Zahlen in der rechten Leiste)  
 - Zuordnung zu Swimlane / Bounded Context (Rechtsklick)  
 - „Wiederkehrend“ (Rechtsklick)  
-- **Domain Event / Aggregate:** Event-Schema (JSON)  
+- **Domain Event / Aggregate:** Event-Schema (Werte-Editor oder Raw-JSON)  
 - **Aggregate:** Methodenliste  
 - **Hotspot:** Status (offen/gelöst), Priorität (niedrig/mittel/hoch)
 

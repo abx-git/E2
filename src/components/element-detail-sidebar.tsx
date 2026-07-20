@@ -5,6 +5,7 @@ import { AlertCircle, HelpCircle } from "lucide-react";
 
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { validateBoard } from "@/lib/relation-validation";
+import { JsonValueEditor } from "@/components/json-value-editor";
 import type { RelationType } from "@/types/storm-relation";
 import type { ElementType } from "@/types/storm-element";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -253,26 +254,15 @@ export function ElementDetailSidebar({
       </div>
 
       {(selectedElement.type === "domainEvent" || selectedElement.type === "aggregate") && (
-        <Field label="Event Schema (JSON)">
-          <textarea
-            className="dock-field min-h-[5rem] font-mono text-[0.72rem]"
-            rows={4}
-            value={
-              selectedElement.metadata?.eventSchema
-                ? JSON.stringify(selectedElement.metadata.eventSchema, null, 2)
-                : ""
+        <Field label="Event Schema">
+          <JsonValueEditor
+            value={selectedElement.metadata?.eventSchema}
+            onChange={(eventSchema) =>
+              updateElement(selectedElement.id, {
+                metadata: { ...selectedElement.metadata, eventSchema },
+              })
             }
-            onChange={(e) => {
-              try {
-                const parsed = e.target.value.trim() ? JSON.parse(e.target.value) : undefined;
-                updateElement(selectedElement.id, {
-                  metadata: { ...selectedElement.metadata, eventSchema: parsed },
-                });
-              } catch {
-                /* invalid while typing */
-              }
-            }}
-            placeholder='{"orderId": "string"}'
+            emptyHint="Keine Schema-Felder — typischerweise Name → Typ"
           />
         </Field>
       )}
