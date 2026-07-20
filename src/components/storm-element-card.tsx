@@ -23,20 +23,6 @@ const HANDLE_POSITIONS: Record<ResizeHandle, string> = {
   sw: "left-0 bottom-0 -translate-x-1/2 translate-y-1/2 cursor-nesw-resize",
 };
 
-// Post-it Pastell: helle Hintergründe, etwas dunklere Ränder für Lesbarkeit.
-const EVENT_STORMING_COLORS: Record<StormElement["type"], { bg: string; border: string; text: string }> = {
-  domainEvent: { bg: "#ffedd5", border: "#fb923c", text: "#7c2d12" },
-  command: { bg: "#dbeafe", border: "#3b82f6", text: "#1e3a8a" },
-  actor: { bg: "#fef9c3", border: "#f59e0b", text: "#713f12" },
-  aggregate: { bg: "#fef08a", border: "#eab308", text: "#713f12" },
-  policy: { bg: "#f5d0fe", border: "#c084fc", text: "#6b21a8" },
-  readModel: { bg: "#dcfce7", border: "#22c55e", text: "#064e3b" },
-  externalSystem: { bg: "#fce7f3", border: "#ec4899", text: "#9d174d" },
-  ui: { bg: "#f1f5f9", border: "#94a3b8", text: "#0f172a" },
-  hotspot: { bg: "#fee2e2", border: "#ef4444", text: "#7f1d1d" },
-  pivotalEvent: { bg: "#fef3c7", border: "#f59e0b", text: "#7c2d12" },
-};
-
 export interface StormElementCardProps {
   element: StormElement;
   selected: boolean;
@@ -73,7 +59,11 @@ export function StormElementCard({
   const h = element.height ?? style.defaultHeight;
   const rotation = element.rotation ?? style.rotation ?? 0;
   const draggedRef = useRef(false);
-  const colors = EVENT_STORMING_COLORS[element.type];
+  const colors = {
+    bg: style.fill,
+    border: style.stroke,
+    text: style.ink,
+  };
 
   const shapeClass =
     style.shape === "pill"

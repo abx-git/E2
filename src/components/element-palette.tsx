@@ -40,11 +40,15 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
                 }}
                 className={[
                   "flex-1 rounded-lg border px-2 py-2 text-left text-xs font-medium transition",
-                  style.bg,
-                  style.border,
-                  style.text,
-                  active ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]" : "opacity-90 hover:opacity-100",
+                  active
+                    ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
+                    : "opacity-80 hover:opacity-100",
                 ].join(" ")}
+                style={{
+                  backgroundColor: style.fill,
+                  borderColor: style.stroke,
+                  color: style.ink,
+                }}
               >
                 {style.label}
               </button>
