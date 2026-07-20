@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   applyPayloadToYDoc,
@@ -7,7 +7,14 @@ import {
   applyYDocState,
   readPayloadFromYDoc,
 } from "@/lib/collab/yjs-board";
-import { generateRoomCode, hashHostToken, isCollabConfigured } from "@/lib/collab/config";
+import {
+  clearLocalSupabaseConnection,
+  generateRoomCode,
+  getSupabaseConnectionSource,
+  hashHostToken,
+  isCollabConfigured,
+  saveLocalSupabaseConnection,
+} from "@/lib/collab/config";
 import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
 import { DEFAULT_TIMELINE, DEFAULT_VIEWPORT } from "@/types/storm-element";
 import type { BoardImportPayload } from "@/lib/storm-json";
@@ -74,7 +81,34 @@ describe("collab config", () => {
     expect(h1).toHaveLength(64);
   });
 
-  it("reports collab unconfigured without env", () => {
+  it("reports collab unconfigured without env or local storage", () => {
     expect(isCollabConfigured()).toBe(false);
+  });
+
+  it("accepts local browser connection when env is absent", () => {
+    const store: Record<string, string> = {};
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => store[k] ?? null,
+      setItem: (k: string, v: string) => {
+        store[k] = v;
+      },
+      removeItem: (k: string) => {
+        delete store[k];
+      },
+    });
+    vi.stubGlobal("window", { localStorage: globalThis.localStorage });
+
+    const saved = saveLocalSupabaseConnection({
+      url: "https://example.supabase.co",
+      key: "sb_publishable_test",
+    });
+    expect(saved).toEqual({ ok: true });
+    expect(isCollabConfigured()).toBe(true);
+    expect(getSupabaseConnectionSource()).toBe("local");
+
+    clearLocalSupabaseConnection();
+    expect(isCollabConfigured()).toBe(false);
+
+    vi.unstubAllGlobals();
   });
 });

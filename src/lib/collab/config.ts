@@ -1,27 +1,101 @@
-/** Public env for optional Supabase collab. Missing → Solo-only. */
+/** Supabase connection: env (deploy) wins, else browser localStorage (solo static hosting). */
 
-export function getSupabaseUrl(): string | null {
-  return process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || null;
+export const LOCAL_SUPABASE_STORAGE_KEY = "e2-supabase-connection";
+
+export interface SupabaseConnection {
+  url: string;
+  key: string;
 }
 
-/** Prefer publishable key (new Supabase); fall back to classic anon key. */
-export function getSupabasePublicKey(): string | null {
-  return (
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
-    null
-  );
+export type SupabaseConnectionSource = "env" | "local";
+
+function trimOrNull(v: string | null | undefined): string | null {
+  const t = v?.trim();
+  return t ? t : null;
+}
+
+function readEnvConnection(): SupabaseConnection | null {
+  const url = trimOrNull(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const key =
+    trimOrNull(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
+    trimOrNull(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  if (!url || !key) return null;
+  return { url, key };
+}
+
+function readLocalConnection(): SupabaseConnection | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(LOCAL_SUPABASE_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SupabaseConnection>;
+    const url = trimOrNull(parsed.url);
+    const key = trimOrNull(parsed.key);
+    if (!url || !key) return null;
+    return { url, key };
+  } catch {
+    return null;
+  }
+}
+
+/** Env first, then localStorage. */
+export function getSupabaseConnection(): SupabaseConnection | null {
+  return readEnvConnection() ?? readLocalConnection();
+}
+
+export function getSupabaseConnectionSource(): SupabaseConnectionSource | null {
+  if (readEnvConnection()) return "env";
+  if (readLocalConnection()) return "local";
+  return null;
+}
+
+export function isEnvConfigured(): boolean {
+  return readEnvConnection() !== null;
 }
 
 export function isCollabConfigured(): boolean {
-  return Boolean(getSupabaseUrl() && getSupabasePublicKey());
+  return getSupabaseConnection() !== null;
+}
+
+export function getSupabaseUrl(): string | null {
+  return getSupabaseConnection()?.url ?? null;
+}
+
+export function getSupabasePublicKey(): string | null {
+  return getSupabaseConnection()?.key ?? null;
 }
 
 export function getSupabaseConfig(): { url: string; anonKey: string } | null {
-  const url = getSupabaseUrl();
-  const anonKey = getSupabasePublicKey();
-  if (!url || !anonKey) return null;
-  return { url, anonKey };
+  const c = getSupabaseConnection();
+  if (!c) return null;
+  return { url: c.url, anonKey: c.key };
+}
+
+/** Persist browser-only credentials (ignored when env is set). */
+export function saveLocalSupabaseConnection(connection: SupabaseConnection): { ok: true } | { ok: false; error: string } {
+  const url = trimOrNull(connection.url);
+  const key = trimOrNull(connection.key);
+  if (!url || !key) {
+    return { ok: false, error: "URL und Key sind erforderlich" };
+  }
+  if (!/^https:\/\//i.test(url)) {
+    return { ok: false, error: "URL muss mit https:// beginnen" };
+  }
+  if (typeof window === "undefined") {
+    return { ok: false, error: "Nur im Browser speicherbar" };
+  }
+  localStorage.setItem(LOCAL_SUPABASE_STORAGE_KEY, JSON.stringify({ url, key }));
+  return { ok: true };
+}
+
+export function clearLocalSupabaseConnection(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(LOCAL_SUPABASE_STORAGE_KEY);
+}
+
+export function getLocalSupabaseConnectionDraft(): SupabaseConnection {
+  const local = readLocalConnection();
+  return { url: local?.url ?? "", key: local?.key ?? "" };
 }
 
 export const ROOM_CODE_LENGTH = 6;

@@ -27,20 +27,27 @@ Browser  ↔  Yjs Doc  ↔  Realtime Channel (room:<code>)
    (Dashboard: **Authentication → Sign In / Providers → Anonymous Sign-Ins → Enable**).  
    Ohne diesen Schalter meldet die App: *„Anonymous sign-ins are disabled“*.
 4. Project URL + **publishable** (oder anon) public key kopieren.
-5. Lokal bzw. in CI:
+5. Verbindung in der App setzen — **eine** der beiden Varianten:
+
+### A) Build / `.env` (optional, z. B. eigener Deploy)
 
 ```bash
 # .env.local (nicht committen)
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-# alternativ weiterhin: NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 ```
 
-Client-Helfer: [`src/utils/supabase/`](../src/utils/supabase/) (`@supabase/ssr`). Middleware refresht Sessions unter `next dev` / Node-Hosting — auf **GitHub Pages (static export)** läuft Middleware nicht; der Browser-Client hält die Session dennoch lokal.
+Für GitHub Pages: dieselben Variablen als Secrets im Static Build einbetten.
 
-6. Für GitHub Pages: dieselben Variablen als Repository Secrets / Actions-Env setzen, sodass der Static Build sie einbettet.
+### B) Nur Browser (ohne Rebuild)
 
-`npm run build` / `build:static` ohne diese Vars → Collab-UI zeigt „nicht konfiguriert“, Solo funktioniert weiter.
+1. App öffnen → **Raum** (Zahnrad) → Project URL + Key eintragen → **Speichern**.
+2. Werte liegen in `localStorage` (`e2-supabase-connection`) — nur auf diesem Gerät/Browser.
+3. Env hat Vorrang: ist `.env` gesetzt, sind die Browser-Felder gesperrt.
+
+Client-Helfer: [`src/utils/supabase/`](../src/utils/supabase/) (`@supabase/ssr`). Middleware refresht Sessions unter `next dev` / Node-Hosting — auf **GitHub Pages (static export)** läuft Middleware nicht; der Browser-Client hält die Session lokal.
+
+`npm run build` / `build:static` **ohne** Env-Vars → Solo + optionale Browser-Konfiguration (kein Rebuild nötig).
 
 ## Nutzung
 

@@ -1,14 +1,31 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { isCollabConfigured } from "@/lib/collab/config";
+import { getSupabaseConnection, isCollabConfigured } from "@/lib/collab/config";
 import { createClient } from "@/utils/supabase/client";
 
 let client: SupabaseClient | null = null;
+let clientKey: string | null = null;
+
+function connectionCacheKey(): string | null {
+  const c = getSupabaseConnection();
+  return c ? `${c.url}\0${c.key}` : null;
+}
+
+/** Drop cached client after local credentials change. */
+export function resetSupabaseClient(): void {
+  client = null;
+  clientKey = null;
+}
 
 export function getSupabase(): SupabaseClient | null {
-  if (!isCollabConfigured()) return null;
-  if (!client) {
+  if (!isCollabConfigured()) {
+    resetSupabaseClient();
+    return null;
+  }
+  const key = connectionCacheKey();
+  if (!client || clientKey !== key) {
     client = createClient();
+    clientKey = key;
   }
   return client;
 }

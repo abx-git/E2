@@ -5,6 +5,7 @@ import { Awareness } from "y-protocols/awareness";
 import {
   colorForUserId,
   DISPLAY_NAME_STORAGE_KEY,
+  getSupabaseConnectionSource,
   HOST_TOKEN_STORAGE_KEY,
   isCollabConfigured,
   SNAPSHOT_DEBOUNCE_MS,
@@ -15,7 +16,7 @@ import {
   saveCollabSnapshot,
   type CollabRoom,
 } from "@/lib/collab/rooms";
-import { getSupabase } from "@/lib/collab/supabase";
+import { getSupabase, resetSupabaseClient } from "@/lib/collab/supabase";
 import { SupabaseYjsProvider } from "@/lib/collab/supabase-yjs-provider";
 import {
   applyPayloadToYDoc,
@@ -40,6 +41,7 @@ export interface PresencePeer {
 
 interface CollabState {
   configured: boolean;
+  connectionSource: "env" | "local" | null;
   active: boolean;
   connecting: boolean;
   status: "idle" | "connecting" | "connected" | "disconnected" | "error";
@@ -51,6 +53,7 @@ interface CollabState {
   peers: PresencePeer[];
   revision: number;
 
+  refreshConfigured: () => void;
   setDisplayName: (name: string) => void;
   createRoom: (title?: string) => Promise<{ ok: true; code: string } | { ok: false; error: string }>;
   joinRoom: (
@@ -185,6 +188,7 @@ function bindStoreToYjs(
 
 export const useCollabStore = create<CollabState>((set, get) => ({
   configured: isCollabConfigured(),
+  connectionSource: getSupabaseConnectionSource(),
   active: false,
   connecting: false,
   status: "idle",
@@ -198,6 +202,14 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   userId: null,
   peers: [],
   revision: 1,
+
+  refreshConfigured: () => {
+    resetSupabaseClient();
+    set({
+      configured: isCollabConfigured(),
+      connectionSource: getSupabaseConnectionSource(),
+    });
+  },
 
   setDisplayName: (name) => {
     const trimmed = name.trim().slice(0, 40);

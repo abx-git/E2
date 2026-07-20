@@ -6,7 +6,9 @@ export function createClient() {
   const url = getSupabaseUrl();
   const key = getSupabasePublicKey();
   if (!url || !key) {
-    throw new Error("Supabase env missing (NEXT_PUBLIC_SUPABASE_URL / PUBLISHABLE_KEY)");
+    throw new Error(
+      "Supabase nicht konfiguriert (Env oder lokale Browser-Einstellungen unter Raum)",
+    );
   }
   return createBrowserClient(url, key);
 }

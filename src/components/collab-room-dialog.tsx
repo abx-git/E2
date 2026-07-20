@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Copy, Loader2, Users, X } from "lucide-react";
+import { Copy, Loader2, Settings2, Users, X } from "lucide-react";
 
-import { isCollabConfigured } from "@/lib/collab/config";
+import {
+  clearLocalSupabaseConnection,
+  getLocalSupabaseConnectionDraft,
+  getSupabaseUrl,
+  isEnvConfigured,
+  saveLocalSupabaseConnection,
+} from "@/lib/collab/config";
 import { getCollabShareUrl, useCollabStore } from "@/lib/collab/session";
+import { resetSupabaseClient } from "@/lib/collab/supabase";
 
 export interface CollabRoomDialogProps {
   open: boolean;
@@ -13,7 +20,9 @@ export interface CollabRoomDialogProps {
 }
 
 export function CollabRoomDialog({ open, onClose }: CollabRoomDialogProps) {
-  const configured = isCollabConfigured();
+  const configured = useCollabStore((s) => s.configured);
+  const connectionSource = useCollabStore((s) => s.connectionSource);
+  const refreshConfigured = useCollabStore((s) => s.refreshConfigured);
   const active = useCollabStore((s) => s.active);
   const room = useCollabStore((s) => s.room);
   const connecting = useCollabStore((s) => s.connecting);
@@ -30,17 +39,63 @@ export function CollabRoomDialog({ open, onClose }: CollabRoomDialogProps) {
   const [name, setName] = useState(displayName);
   const [localError, setLocalError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showConnection, setShowConnection] = useState(false);
+  const [supabaseUrl, setSupabaseUrl] = useState("");
+  const [supabaseKey, setSupabaseKey] = useState("");
+  const envLocked = isEnvConfigured();
 
   useEffect(() => {
     if (open) {
       setName(displayName);
       setLocalError(null);
+      refreshConfigured();
+      if (isEnvConfigured()) {
+        setSupabaseUrl(getSupabaseUrl() ?? "");
+        setSupabaseKey("");
+      } else {
+        const draft = getLocalSupabaseConnectionDraft();
+        setSupabaseUrl(draft.url);
+        setSupabaseKey(draft.key);
+      }
+      setShowConnection(!useCollabStore.getState().configured);
     }
-  }, [open, displayName]);
+  }, [open, displayName, refreshConfigured]);
 
   if (!open) return null;
 
   const shareUrl = room ? getCollabShareUrl(room.code) : "";
+  const sourceLabel =
+    connectionSource === "env"
+      ? "aus .env / Build"
+      : connectionSource === "local"
+        ? "lokal im Browser"
+        : null;
+
+  const saveConnection = () => {
+    setLocalError(null);
+    if (envLocked) {
+      setLocalError("Verbindung kommt aus der Umgebung (.env) und kann hier nicht überschrieben werden.");
+      return;
+    }
+    const result = saveLocalSupabaseConnection({ url: supabaseUrl, key: supabaseKey });
+    if (!result.ok) {
+      setLocalError(result.error);
+      return;
+    }
+    resetSupabaseClient();
+    refreshConfigured();
+    setShowConnection(false);
+  };
+
+  const clearConnection = () => {
+    if (envLocked) return;
+    clearLocalSupabaseConnection();
+    resetSupabaseClient();
+    refreshConfigured();
+    setSupabaseUrl("");
+    setSupabaseKey("");
+    setShowConnection(true);
+  };
 
   return createPortal(
     <div
@@ -50,7 +105,7 @@ export function CollabRoomDialog({ open, onClose }: CollabRoomDialogProps) {
       }}
     >
       <div
-        className="dock-surface w-full max-w-md rounded-dock p-4 shadow-dock"
+        className="dock-surface max-h-[90vh] w-full max-w-md overflow-y-auto rounded-dock p-4 shadow-dock"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-2">
@@ -58,23 +113,96 @@ export function CollabRoomDialog({ open, onClose }: CollabRoomDialogProps) {
             <h2 className="text-sm font-semibold text-[var(--text)]">Kollaboration</h2>
             <p className="mt-1 text-[0.72rem] text-[var(--muted)]">
               Geteilter Raum über Supabase Free Tier
+              {sourceLabel ? ` · Verbindung ${sourceLabel}` : ""}
             </p>
           </div>
-          <button
-            type="button"
-            className="dock-control rounded-md p-1.5"
-            onClick={onClose}
-            aria-label="Schließen"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex gap-1">
+            {!active && (
+              <button
+                type="button"
+                className="dock-control rounded-md p-1.5"
+                title="Supabase-Verbindung"
+                aria-label="Supabase-Verbindung"
+                onClick={() => setShowConnection((v) => !v)}
+              >
+                <Settings2 className="h-4 w-4" />
+              </button>
+            )}
+            <button
+              type="button"
+              className="dock-control rounded-md p-1.5"
+              onClick={onClose}
+              aria-label="Schließen"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
-        {!configured ? (
+        {showConnection && !active && (
+          <div className="mt-4 space-y-2 rounded-lg border border-[var(--border)] bg-[var(--control)] p-3">
+            <p className="text-[0.72rem] text-[var(--muted)]">
+              {envLocked
+                ? "Verbindung ist per Build/.env vorgegeben."
+                : "Ohne .env: Project-URL und Publishable/Anon-Key hier speichern (nur in diesem Browser)."}
+            </p>
+            <label className="block text-[0.72rem] text-[var(--muted)]">
+              Project URL
+              <input
+                className="dock-field mt-1 font-mono text-[0.72rem]"
+                value={supabaseUrl}
+                disabled={envLocked}
+                onChange={(e) => setSupabaseUrl(e.target.value)}
+                placeholder="https://xxxx.supabase.co"
+                autoComplete="off"
+              />
+            </label>
+            <label className="block text-[0.72rem] text-[var(--muted)]">
+              Publishable / Anon Key
+              <input
+                className="dock-field mt-1 font-mono text-[0.72rem]"
+                type={envLocked ? "password" : "text"}
+                value={envLocked ? "••••••••••••••••" : supabaseKey}
+                disabled={envLocked}
+                onChange={(e) => setSupabaseKey(e.target.value)}
+                placeholder="sb_publishable_… oder eyJ…"
+                autoComplete="off"
+              />
+            </label>
+            {!envLocked && (
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  className="dock-control-active flex-1 rounded-lg px-3 py-1.5 text-xs"
+                  onClick={saveConnection}
+                >
+                  Speichern
+                </button>
+                {connectionSource === "local" && (
+                  <button
+                    type="button"
+                    className="dock-control rounded-lg px-3 py-1.5 text-xs text-red-300"
+                    onClick={clearConnection}
+                  >
+                    Löschen
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!configured && !showConnection ? (
           <p className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--control)] p-3 text-[0.78rem] text-[var(--muted)]">
-            Nicht konfiguriert. Siehe{" "}
-            <code className="text-[var(--accent-2)]">docs/COLLABORATION.md</code> und setze{" "}
-            <code>NEXT_PUBLIC_SUPABASE_URL</code> / <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code>.
+            Noch keine Supabase-Verbindung.{" "}
+            <button
+              type="button"
+              className="text-[var(--accent)] underline"
+              onClick={() => setShowConnection(true)}
+            >
+              Hier eintragen
+            </button>{" "}
+            oder per <code>.env</code> setzen (siehe docs/COLLABORATION.md).
           </p>
         ) : active && room ? (
           <div className="mt-4 space-y-3">
@@ -113,7 +241,7 @@ export function CollabRoomDialog({ open, onClose }: CollabRoomDialogProps) {
               </button>
             </div>
           </div>
-        ) : (
+        ) : configured ? (
           <>
             <div className="mt-4 flex gap-1 rounded-lg bg-[var(--control)] p-1">
               <button
@@ -188,6 +316,14 @@ export function CollabRoomDialog({ open, onClose }: CollabRoomDialogProps) {
               {tab === "create" ? "Raum starten" : "Beitreten"}
             </button>
           </>
+        ) : (
+          (localError || error) && (
+            <p className="mt-3 text-[0.72rem] text-[var(--accent-2)]">{localError || error}</p>
+          )
+        )}
+
+        {showConnection && (localError || error) && configured === false && (
+          <p className="mt-3 text-[0.72rem] text-[var(--accent-2)]">{localError || error}</p>
         )}
       </div>
     </div>,
