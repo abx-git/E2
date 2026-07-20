@@ -25,7 +25,14 @@ export async function ensureAnonSession(): Promise<{ userId: string } | { error:
 
   const { data, error } = await sb.auth.signInAnonymously();
   if (error || !data.user) {
-    return { error: error?.message ?? "Anonymous Auth fehlgeschlagen (Provider aktivieren?)" };
+    const msg = error?.message ?? "Anonymous Auth fehlgeschlagen";
+    if (/anonymous sign-ins are disabled/i.test(msg)) {
+      return {
+        error:
+          "Anonymous Auth ist in Supabase deaktiviert. Dashboard: Authentication → Providers → Anonymous aktivieren.",
+      };
+    }
+    return { error: msg };
   }
   return { userId: data.user.id };
 }

@@ -19,8 +19,13 @@ Browser  ↔  Yjs Doc  ↔  Realtime Channel (room:<code>)
 ## Setup (Supabase Free Project)
 
 1. Projekt unter [supabase.com](https://supabase.com) anlegen (Free Tier).
-2. SQL aus [`supabase/schema.sql`](../supabase/schema.sql) im SQL Editor ausführen.
-3. **Authentication → Providers → Anonymous** aktivieren.
+2. SQL aus [`supabase/schema.sql`](../supabase/schema.sql) im SQL Editor ausführen  
+   (**SQL → New query** → Dateiinhalt einfügen → **Run**).  
+   Danach sollten die Tabellen `rooms` und `board_snapshots` unter **Table Editor** sichtbar sein.  
+   Fehler *„Could not find the table 'public.rooms'“* = Schema noch nicht angewendet.
+3. **Authentication → Providers → Anonymous** aktivieren  
+   (Dashboard: **Authentication → Sign In / Providers → Anonymous Sign-Ins → Enable**).  
+   Ohne diesen Schalter meldet die App: *„Anonymous sign-ins are disabled“*.
 4. Project URL + **publishable** (oder anon) public key kopieren.
 5. Lokal bzw. in CI:
 
