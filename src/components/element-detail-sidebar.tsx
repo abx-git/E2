@@ -4,10 +4,11 @@ import { useMemo, type ReactNode } from "react";
 import { AlertCircle, HelpCircle } from "lucide-react";
 
 import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
 import type { RelationType } from "@/types/storm-relation";
-import type { ElementType } from "@/types/storm-element";
+import type { ElementType, NoteColorId } from "@/types/storm-element";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_ELEMENT_SIZE = 40;
@@ -219,6 +220,40 @@ export function ElementDetailSidebar({
           onChange={(e) => updateElement(selectedElement.id, { description: e.target.value })}
         />
       </Field>
+
+      {selectedElement.type === "note" && (
+        <Field label="Hintergrund">
+          <div className="flex flex-wrap gap-1.5">
+            {NOTE_COLOR_IDS.map((id) => {
+              const c = NOTE_COLORS[id];
+              const active =
+                (selectedElement.metadata?.noteColor ?? "cream") === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  title={c.label}
+                  aria-label={c.label}
+                  aria-pressed={active}
+                  className={[
+                    "h-7 w-7 rounded-md border-2 shadow-sm transition-transform",
+                    active ? "scale-110 border-[var(--accent)]" : "border-transparent hover:scale-105",
+                  ].join(" ")}
+                  style={{ backgroundColor: c.fill, boxShadow: `inset 0 0 0 1px ${c.stroke}` }}
+                  onClick={() =>
+                    updateElement(selectedElement.id, {
+                      metadata: {
+                        ...selectedElement.metadata,
+                        noteColor: id as NoteColorId,
+                      },
+                    })
+                  }
+                />
+              );
+            })}
+          </div>
+        </Field>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <NumberField

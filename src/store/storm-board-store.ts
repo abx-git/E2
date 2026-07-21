@@ -150,7 +150,11 @@ function createElement(type: ElementType, x: number, y: number, label?: string):
     width: dims.width,
     height: dims.height,
     rotation: type === "hotspot" ? 45 : undefined,
-    metadata: type === "hotspot" ? { hotspotStatus: "open", hotspotPriority: "medium" } : undefined,
+    metadata: type === "hotspot"
+      ? { hotspotStatus: "open", hotspotPriority: "medium" }
+      : type === "note"
+        ? { noteColor: "cream" }
+        : undefined,
   };
 }
 

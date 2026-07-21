@@ -14,6 +14,16 @@ export type ElementType =
 export type HotspotStatus = "open" | "resolved";
 export type HotspotPriority = "low" | "medium" | "high";
 
+export type NoteColorId =
+  | "cream"
+  | "yellow"
+  | "mint"
+  | "sky"
+  | "lavender"
+  | "rose"
+  | "peach"
+  | "slate";
+
 export interface ElementMetadata {
   eventSchema?: Record<string, unknown>;
   aggregateMethods?: string[];
@@ -21,6 +31,8 @@ export interface ElementMetadata {
   isRecurring?: boolean;
   hotspotStatus?: HotspotStatus;
   hotspotPriority?: HotspotPriority;
+  /** Background preset for `note` elements. */
+  noteColor?: NoteColorId;
 }
 
 export interface StormElement {

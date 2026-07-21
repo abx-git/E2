@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Clock, RotateCcw } from "lucide-react";
 
 import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { resolveNoteColor } from "@/lib/note-colors";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
 
@@ -63,10 +64,11 @@ export function StormElementCard({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(element.label);
   const isNote = element.type === "note";
+  const noteColors = isNote ? resolveNoteColor(element.metadata?.noteColor) : null;
   const colors = {
-    bg: style.fill,
-    border: style.stroke,
-    text: style.ink,
+    bg: noteColors?.fill ?? style.fill,
+    border: noteColors?.stroke ?? style.stroke,
+    text: noteColors?.ink ?? style.ink,
   };
 
   const shapeClass =

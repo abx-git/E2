@@ -1,5 +1,6 @@
 import { elementRect as geomElementRect, relationAnchors } from "@/lib/connector-geometry";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { resolveNoteColor } from "@/lib/note-colors";
 import { boardImportPayloadFromStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
@@ -192,7 +193,10 @@ export function exportBoardSvg(): void {
 
   for (const el of state.elements) {
     const r = elementRect(el);
-    const fill = TYPE_COLORS[el.type] ?? "#e2e8f0";
+    const fill =
+      el.type === "note"
+        ? resolveNoteColor(el.metadata?.noteColor).fill
+        : (TYPE_COLORS[el.type] ?? "#e2e8f0");
     const rot = el.rotation ? ` transform="rotate(${el.rotation} ${r.x + ox + r.w / 2} ${r.y + oy + r.h / 2})"` : "";
     parts.push(
       `<rect x="${r.x + ox}" y="${r.y + oy}" width="${r.w}" height="${r.h}" fill="${fill}" stroke="#334155" stroke-width="1.5" rx="6"${rot}/>`,
@@ -272,7 +276,10 @@ export async function exportBoardPng(): Promise<void> {
     const r = elementRect(el);
     const x = r.x - minX + padding;
     const y = r.y - minY + padding;
-    ctx.fillStyle = TYPE_COLORS[el.type] ?? "#e2e8f0";
+    ctx.fillStyle =
+      el.type === "note"
+        ? resolveNoteColor(el.metadata?.noteColor).fill
+        : (TYPE_COLORS[el.type] ?? "#e2e8f0");
     ctx.strokeStyle = "#334155";
     ctx.lineWidth = 1.5;
     roundRect(ctx, x, y, r.w, r.h, 6);

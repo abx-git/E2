@@ -94,6 +94,7 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
     bullets: [
       "Für Fragen, Parkplatz-Ideen, Facilitator-Hinweise",
       "Mehrzeiliger Text auf der Karte",
+      "Hintergrundfarbe in der Detailleiste oder per Rechtsklick",
     ],
   },
   hotspot: {

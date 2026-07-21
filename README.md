@@ -43,7 +43,7 @@ Alle Typen sind in der Palette wählbar (im Facilitator-Modus phasenweise einges
 | **Read Model** | Grün | Benötigte Information für Entscheidungen |
 | **External System** | Pink | Integration außerhalb der Domäne |
 | **UI** | Grau/Weiß | Screen / View |
-| **Notiz** | Creme, gestrichelt | Freie Annotation (Workshop-Hinweis) |
+| **Notiz** | Creme, gestrichelt (Farbe wählbar) | Freie Annotation (Workshop-Hinweis) |
 | **Hotspot** | Rot, gedreht | Offene Frage, Konflikt, Unklarheit |
 | **Pivotal Event** | Breiter gelber Block | Phasenwechsel / signifikanter Einschnitt |
 
@@ -56,6 +56,7 @@ Alle Typen sind in der Palette wählbar (im Facilitator-Modus phasenweise einges
 - **Domain Event / Aggregate:** Event-Schema (Werte-Editor oder Raw-JSON)  
 - **Aggregate:** Methodenliste  
 - **Hotspot:** Status (offen/gelöst), Priorität (niedrig/mittel/hoch)
+- **Notiz:** Hintergrundfarbe (Detailleiste oder Rechtsklick)
 
 > **Hinweis:** Aggregate-Methoden und -Invarianten lassen sich in der Detailleiste pflegen (eine Zeile pro Eintrag).
 

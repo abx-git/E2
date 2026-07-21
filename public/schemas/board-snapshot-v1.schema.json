@@ -159,6 +159,11 @@
       "type": "string",
       "enum": ["low", "medium", "high"]
     },
+    "noteColor": {
+      "type": "string",
+      "enum": ["cream", "yellow", "mint", "sky", "lavender", "rose", "peach", "slate"],
+      "description": "Hintergrundfarbe für Notizen."
+    },
     "elementMetadata": {
       "type": "object",
       "additionalProperties": true,
@@ -184,6 +189,9 @@
         },
         "hotspotPriority": {
           "$ref": "#/$defs/hotspotPriority"
+        },
+        "noteColor": {
+          "$ref": "#/$defs/noteColor"
         }
       }
     },

@@ -20,7 +20,9 @@ import {
 
 import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { useStormBoardStore } from "@/store/storm-board-store";
+import type { NoteColorId } from "@/types/storm-element";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
 
 const RELATION_TYPES = Object.keys(RELATION_TYPE_LABELS) as RelationType[];
@@ -159,6 +161,25 @@ export function CanvasContextMenu({
               />
             ))}
           </Submenu>
+        )}
+        {el.type === "note" && (
+          <>
+            <Section label="Notizfarbe" />
+            {NOTE_COLOR_IDS.map((id) => (
+              <Item
+                key={id}
+                label={NOTE_COLORS[id].label}
+                active={(el.metadata?.noteColor ?? "cream") === id}
+                onClick={() =>
+                  run(() =>
+                    updateElement(el.id, {
+                      metadata: { ...el.metadata, noteColor: id as NoteColorId },
+                    }),
+                  )
+                }
+              />
+            ))}
+          </>
         )}
         {el.type === "hotspot" && (
           <>
