@@ -98,6 +98,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 ### Pro Element bearbeitbar
 
 - Label, Beschreibung  
+- **Auf der Karte anzeigen:** Beschreibung / Attribute / Methoden (Detailleiste oder Rechtsklick)  
 - Position und Größe (Ziehen, Anfasser, Zahlen in der rechten Leiste)  
 - Zuordnung zu Swimlane / Bounded Context (automatisch bei Umschließung; Rechtsklick weiter möglich)   
 - „Wiederkehrend“ (Rechtsklick)  

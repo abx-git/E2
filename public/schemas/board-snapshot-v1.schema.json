@@ -316,6 +316,18 @@
         "sliceSystems": {
           "type": "array",
           "items": { "type": "string" }
+        },
+        "showDescriptionOnCard": {
+          "type": "boolean",
+          "description": "Beschreibung auf dem Sticky anzeigen."
+        },
+        "showAttributesOnCard": {
+          "type": "boolean",
+          "description": "Attribute / Kriterien auf dem Sticky anzeigen."
+        },
+        "showMethodsOnCard": {
+          "type": "boolean",
+          "description": "Methoden / Operationen auf dem Sticky anzeigen."
         }
       }
     },

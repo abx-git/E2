@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Clock, RotateCcw } from "lucide-react";
 
 import { ELEMENT_STYLES } from "@/lib/element-styles";
+import {
+  cardAttributeLines,
+  cardMethodLines,
+  cardShowsDetails,
+} from "@/lib/card-preview";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { elementTypesForMode, type StormElement } from "@/types/storm-element";
@@ -72,6 +77,11 @@ export function StormElementCard({
   };
   const modelingMode = useStormBoardStore((s) => s.modelingMode);
   const inActiveMode = elementTypesForMode(modelingMode).includes(element.type);
+  const showDetails = cardShowsDetails(element);
+  const attrLines = element.metadata?.showAttributesOnCard ? cardAttributeLines(element) : [];
+  const methodLines = element.metadata?.showMethodsOnCard ? cardMethodLines(element) : [];
+  const showDescription =
+    Boolean(element.metadata?.showDescriptionOnCard) && Boolean(element.description?.trim());
 
   const shapeClass =
     style.shape === "pill"
@@ -182,12 +192,16 @@ export function StormElementCard({
 
   const labelClass = [
     "text-xs font-semibold leading-tight",
-    isNote ? "line-clamp-6 w-full whitespace-pre-wrap text-left" : "line-clamp-3 text-center",
+    isNote && !showDetails
+      ? "line-clamp-6 w-full whitespace-pre-wrap text-left"
+      : showDetails
+        ? "line-clamp-2 w-full text-left"
+        : "line-clamp-3 text-center",
   ].join(" ");
 
   const editorClass = [
     "w-full resize-none bg-transparent text-xs font-semibold leading-tight outline-none ring-0",
-    isNote ? "h-full whitespace-pre-wrap text-left" : "text-center",
+    isNote ? "h-full whitespace-pre-wrap text-left" : showDetails ? "text-left" : "text-center",
   ].join(" ");
 
   return (
@@ -297,7 +311,8 @@ export function StormElementCard({
     >
       <div
         className={[
-          "relative flex h-full w-full flex-col items-center justify-center border px-2 py-1 shadow-sm transition-shadow",
+          "relative flex h-full w-full flex-col border px-2 py-1 shadow-sm transition-shadow",
+          showDetails ? "items-stretch justify-start gap-0.5 overflow-hidden" : "items-center justify-center",
           shapeClass,
           selected || editing ? "ring-2 ring-[var(--accent)]" : "",
           connecting ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
@@ -359,6 +374,35 @@ export function StormElementCard({
           )
         ) : (
           <span className={labelClass}>{element.label}</span>
+        )}
+        {!editing && showDescription && (
+          <p className="line-clamp-3 w-full whitespace-pre-wrap text-left text-[0.65rem] leading-snug opacity-80">
+            {element.description}
+          </p>
+        )}
+        {!editing && attrLines.length > 0 && (
+          <ul className="w-full list-none space-y-0.5 text-left text-[0.62rem] leading-snug opacity-85">
+            {attrLines.slice(0, 6).map((line) => (
+              <li key={line} className="truncate">
+                {line}
+              </li>
+            ))}
+            {attrLines.length > 6 && (
+              <li className="opacity-60">+{attrLines.length - 6} weitere</li>
+            )}
+          </ul>
+        )}
+        {!editing && methodLines.length > 0 && (
+          <ul className="w-full list-none space-y-0.5 border-t border-current/15 pt-0.5 text-left text-[0.62rem] leading-snug opacity-85">
+            {methodLines.slice(0, 5).map((line) => (
+              <li key={line} className="truncate font-medium">
+                {line}
+              </li>
+            ))}
+            {methodLines.length > 5 && (
+              <li className="opacity-60">+{methodLines.length - 5} weitere</li>
+            )}
+          </ul>
         )}
         {element.metadata?.isRecurring && !editing && (
           <Clock className="absolute right-1 top-1 h-3 w-3 opacity-70" aria-hidden />

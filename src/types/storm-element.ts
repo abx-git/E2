@@ -97,6 +97,13 @@ export interface ElementMetadata {
   releaseGoal?: string;
   /** Event-Modeling-Slice: beteiligte Systeme / Lanes. */
   sliceSystems?: string[];
+
+  /** Sticky: Beschreibung auf der Karte anzeigen. */
+  showDescriptionOnCard?: boolean;
+  /** Sticky: Attribute / Kriterien auf der Karte anzeigen. */
+  showAttributesOnCard?: boolean;
+  /** Sticky: Methoden / Operationen auf der Karte anzeigen. */
+  showMethodsOnCard?: boolean;
 }
 
 export interface StormElement {

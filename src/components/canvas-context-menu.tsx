@@ -232,6 +232,50 @@ export function CanvasContextMenu({
             )
           }
         />
+        <Submenu label="Auf Karte anzeigen">
+          <Item
+            label="Beschreibung"
+            active={Boolean(el.metadata?.showDescriptionOnCard)}
+            onClick={() =>
+              run(() =>
+                updateElement(el.id, {
+                  metadata: {
+                    ...el.metadata,
+                    showDescriptionOnCard: !el.metadata?.showDescriptionOnCard,
+                  },
+                }),
+              )
+            }
+          />
+          <Item
+            label="Attribute"
+            active={Boolean(el.metadata?.showAttributesOnCard)}
+            onClick={() =>
+              run(() =>
+                updateElement(el.id, {
+                  metadata: {
+                    ...el.metadata,
+                    showAttributesOnCard: !el.metadata?.showAttributesOnCard,
+                  },
+                }),
+              )
+            }
+          />
+          <Item
+            label="Methoden"
+            active={Boolean(el.metadata?.showMethodsOnCard)}
+            onClick={() =>
+              run(() =>
+                updateElement(el.id, {
+                  metadata: {
+                    ...el.metadata,
+                    showMethodsOnCard: !el.metadata?.showMethodsOnCard,
+                  },
+                }),
+              )
+            }
+          />
+        </Submenu>
         <Item
           icon={HelpCircle}
           label="Hilfe"

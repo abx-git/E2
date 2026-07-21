@@ -235,6 +235,37 @@ export function ElementDetailSidebar({
         />
       </Field>
 
+      <Field label="Auf der Karte anzeigen">
+        <div className="flex flex-col gap-1.5 text-xs text-[var(--text)]">
+          {(
+            [
+              ["showDescriptionOnCard", "Beschreibung"],
+              ["showAttributesOnCard", "Attribute"],
+              ["showMethodsOnCard", "Methoden"],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={Boolean(selectedElement.metadata?.[key])}
+                onChange={(e) =>
+                  updateElement(selectedElement.id, {
+                    metadata: {
+                      ...selectedElement.metadata,
+                      [key]: e.target.checked,
+                    },
+                  })
+                }
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+        <p className="mt-1 text-[0.65rem] text-[var(--muted)]">
+          Für Übersicht: Karte ggf. größer ziehen.
+        </p>
+      </Field>
+
       {selectedElement.type === "note" && (
         <Field label="Hintergrund">
           <div className="flex flex-wrap gap-1.5">
