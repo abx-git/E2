@@ -312,7 +312,7 @@ export function StormElementCard({
       <div
         className={[
           "relative flex h-full w-full flex-col border px-2 py-1 shadow-sm transition-shadow",
-          showDetails ? "items-stretch justify-start gap-0.5 overflow-hidden" : "items-center justify-center",
+          showDetails ? "items-stretch justify-start gap-0.5 overflow-x-hidden overflow-y-auto" : "items-center justify-center",
           shapeClass,
           selected || editing ? "ring-2 ring-[var(--accent)]" : "",
           connecting ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
@@ -376,31 +376,31 @@ export function StormElementCard({
           <span className={labelClass}>{element.label}</span>
         )}
         {!editing && showDescription && (
-          <p className="line-clamp-3 w-full whitespace-pre-wrap text-left text-[0.65rem] leading-snug opacity-80">
+          <p className="w-full whitespace-pre-wrap break-words text-left text-[0.65rem] leading-snug opacity-80">
             {element.description}
           </p>
         )}
         {!editing && attrLines.length > 0 && (
-          <ul className="w-full list-none space-y-0.5 text-left text-[0.62rem] leading-snug opacity-85">
-            {attrLines.slice(0, 6).map((line) => (
-              <li key={line} className="truncate">
+          <ul className="w-full min-w-0 list-none space-y-0.5 text-left text-[0.62rem] leading-snug opacity-85">
+            {attrLines.slice(0, 8).map((line, i) => (
+              <li key={`${i}-${line}`} className="whitespace-pre-wrap break-words">
                 {line}
               </li>
             ))}
-            {attrLines.length > 6 && (
-              <li className="opacity-60">+{attrLines.length - 6} weitere</li>
+            {attrLines.length > 8 && (
+              <li className="opacity-60">+{attrLines.length - 8} weitere</li>
             )}
           </ul>
         )}
         {!editing && methodLines.length > 0 && (
-          <ul className="w-full list-none space-y-0.5 border-t border-current/15 pt-0.5 text-left text-[0.62rem] leading-snug opacity-85">
-            {methodLines.slice(0, 5).map((line) => (
-              <li key={line} className="truncate font-medium">
+          <ul className="w-full min-w-0 list-none space-y-0.5 border-t border-current/15 pt-0.5 text-left text-[0.62rem] leading-snug opacity-85">
+            {methodLines.slice(0, 8).map((line, i) => (
+              <li key={`${i}-${line}`} className="whitespace-pre-wrap break-words font-medium">
                 {line}
               </li>
             ))}
-            {methodLines.length > 5 && (
-              <li className="opacity-60">+{methodLines.length - 5} weitere</li>
+            {methodLines.length > 8 && (
+              <li className="opacity-60">+{methodLines.length - 8} weitere</li>
             )}
           </ul>
         )}

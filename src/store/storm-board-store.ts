@@ -2,7 +2,14 @@ import { create } from "zustand";
 
 import { elementDimensions, defaultLabelForType } from "@/lib/element-styles";
 import { defaultRelationType } from "@/lib/relation-validation";
-import { applyContainmentAssignments } from "@/lib/region-containment";
+import {
+  applyContainmentAssignments,
+  boundedContextBounds,
+  rectFullyContains,
+  swimlaneBounds,
+  translateMatchingElements,
+} from "@/lib/region-containment";
+import { elementBounds } from "@/lib/selection-geometry";
 import { generateStormId } from "@/lib/storm-id";
 import type { BoardImportPayload } from "@/lib/storm-json";
 import {
@@ -659,9 +666,37 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   },
 
   updateSwimlane: (id, patch) =>
-    commit(set, get, (s) => ({
-      swimlanes: s.swimlanes.map((l) => (l.id === id ? { ...l, ...patch, id: l.id } : l)),
-    })),
+    commit(set, get, (s) => {
+      const lane = s.swimlanes.find((l) => l.id === id);
+      if (!lane) return {};
+      const nextLane = { ...lane, ...patch, id: lane.id };
+      const swimlanes = s.swimlanes.map((l) => (l.id === id ? nextLane : l));
+
+      const resizing = patch.width !== undefined || patch.height !== undefined;
+      const dx = (nextLane.x ?? 0) - (lane.x ?? 0);
+      const dy = nextLane.y - lane.y;
+      let elements = s.elements;
+      if (!resizing && (dx !== 0 || dy !== 0)) {
+        const before = swimlaneBounds(lane);
+        elements = translateMatchingElements(
+          elements,
+          (e) => e.swimlaneId === id || rectFullyContains(before, elementBounds(e)),
+          dx,
+          dy,
+        );
+      }
+
+      const geometryChanged =
+        patch.x !== undefined ||
+        patch.y !== undefined ||
+        patch.width !== undefined ||
+        patch.height !== undefined;
+      if (geometryChanged) {
+        elements = applyContainmentAssignments(elements, swimlanes, s.boundedContexts);
+      }
+
+      return { swimlanes, elements };
+    }),
 
   deleteSwimlane: (id) =>
     commit(set, get, (s) => ({
@@ -694,11 +729,37 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   },
 
   updateBoundedContext: (id, patch) =>
-    commit(set, get, (s) => ({
-      boundedContexts: s.boundedContexts.map((b) =>
-        b.id === id ? { ...b, ...patch, id: b.id } : b,
-      ),
-    })),
+    commit(set, get, (s) => {
+      const bc = s.boundedContexts.find((b) => b.id === id);
+      if (!bc) return {};
+      const nextBc = { ...bc, ...patch, id: bc.id };
+      const boundedContexts = s.boundedContexts.map((b) => (b.id === id ? nextBc : b));
+
+      const resizing = patch.width !== undefined || patch.height !== undefined;
+      const dx = nextBc.x - bc.x;
+      const dy = nextBc.y - bc.y;
+      let elements = s.elements;
+      if (!resizing && (dx !== 0 || dy !== 0)) {
+        const before = boundedContextBounds(bc);
+        elements = translateMatchingElements(
+          elements,
+          (e) => e.boundedContextId === id || rectFullyContains(before, elementBounds(e)),
+          dx,
+          dy,
+        );
+      }
+
+      const geometryChanged =
+        patch.x !== undefined ||
+        patch.y !== undefined ||
+        patch.width !== undefined ||
+        patch.height !== undefined;
+      if (geometryChanged) {
+        elements = applyContainmentAssignments(elements, s.swimlanes, boundedContexts);
+      }
+
+      return { boundedContexts, elements };
+    }),
 
   deleteBoundedContext: (id) =>
     commit(set, get, (s) => {

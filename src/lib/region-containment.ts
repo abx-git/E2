@@ -81,3 +81,20 @@ export function applyContainmentAssignments(
   });
   return changed ? next : elements;
 }
+
+/** Translate all elements matching `predicate` by (dx, dy). */
+export function translateMatchingElements(
+  elements: StormElement[],
+  predicate: (el: StormElement) => boolean,
+  dx: number,
+  dy: number,
+): StormElement[] {
+  if (dx === 0 && dy === 0) return elements;
+  let changed = false;
+  const next = elements.map((el) => {
+    if (!predicate(el)) return el;
+    changed = true;
+    return { ...el, x: el.x + dx, y: el.y + dy };
+  });
+  return changed ? next : elements;
+}

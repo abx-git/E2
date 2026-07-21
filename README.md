@@ -171,6 +171,7 @@ Methodisch: chronologische Achse links → rechts für Domain Events.
 - Anlegen über Toolbar  
 - Verschieben und in der Größe ändern (wie Bounded Contexts)  
 - Elemente werden **automatisch zugeordnet**, wenn sie vollständig in der Lane liegen (und wieder entfernt, wenn nicht mehr vollständig drin)  
+- Beim **Verschieben** wandern vollständig enthaltene Elemente mit  
 - Manuelle Zuordnung weiterhin per Rechtsklick möglich  
 
 Methodisch: parallele Akteure / Streams / Verantwortlichkeiten.
@@ -180,6 +181,7 @@ Methodisch: parallele Akteure / Streams / Verantwortlichkeiten.
 - Rechteck auf der Fläche zeichnen („Bounded Context“-Modus)  
 - Verschieben, skalieren, Label, Zweck, Farbe  
 - Elemente werden **automatisch zugeordnet** bei vollständiger Umschließung (bei überlappenden BCs: der kleinste)  
+- Beim **Verschieben** wandern vollständig enthaltene Elemente mit  
 - Manuelle Zuordnung weiterhin per Rechtsklick  
 - **Context Map:** Toolbar-Button → zwei BCs anklicken; Muster (ACL, Shared Kernel, Customer/Supplier, …) per Rechtsklick auf die Linie  
 

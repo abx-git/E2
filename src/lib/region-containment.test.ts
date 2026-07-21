@@ -5,6 +5,7 @@ import {
   rectFullyContains,
   resolveBoundedContextId,
   resolveSwimlaneId,
+  translateMatchingElements,
 } from "@/lib/region-containment";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 
@@ -80,5 +81,15 @@ describe("region-containment", () => {
     const elements = [el({ id: "a", x: 20, y: 20, swimlaneId: "l1" })];
     const lanes = [lane({ id: "l1" })];
     expect(applyContainmentAssignments(elements, lanes, [])).toBe(elements);
+  });
+
+  it("translates matching elements", () => {
+    const elements = [
+      el({ id: "a", x: 10, y: 10, swimlaneId: "l1" }),
+      el({ id: "b", x: 10, y: 10, swimlaneId: undefined }),
+    ];
+    const next = translateMatchingElements(elements, (e) => e.swimlaneId === "l1", 5, -3);
+    expect(next[0]).toMatchObject({ id: "a", x: 15, y: 7 });
+    expect(next[1]).toBe(elements[1]);
   });
 });

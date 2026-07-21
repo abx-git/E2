@@ -126,7 +126,7 @@ export function SwimlaneLayer() {
               width: lane.width ?? 4000,
               height: lane.height,
               backgroundColor: lane.color ?? "rgba(148,163,184,0.12)",
-              zIndex: selected ? 4 : 2,
+              zIndex: selected ? 6 : 2,
             }}
             onPointerDown={(e) => startMove(lane.id, e)}
             onContextMenu={(e) => {
@@ -137,7 +137,7 @@ export function SwimlaneLayer() {
               store.openContextMenu(e.clientX, e.clientY, { kind: "swimlane", id: lane.id });
             }}
           >
-            <div className="absolute left-3 top-2 rounded bg-slate-100/90 px-2 py-0.5 text-xs font-semibold text-slate-600">
+            <div className="pointer-events-none absolute left-3 top-2 rounded bg-slate-100/90 px-2 py-0.5 text-xs font-semibold text-slate-600">
               {lane.label}
             </div>
 
@@ -148,7 +148,7 @@ export function SwimlaneLayer() {
                   type="button"
                   aria-label={`Größe ändern (${handle})`}
                   className={[
-                    "absolute z-10 h-2.5 w-2.5 rounded-sm border border-sky-700 bg-white shadow-sm",
+                    "absolute z-40 h-2.5 w-2.5 rounded-sm border border-sky-700 bg-white shadow-sm",
                     HANDLE_POSITIONS[handle],
                   ].join(" ")}
                   onPointerDown={(e) => startResize(lane.id, handle, e)}

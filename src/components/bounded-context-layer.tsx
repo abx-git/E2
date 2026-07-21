@@ -138,7 +138,7 @@ export function BoundedContextLayer() {
               width: bc.width,
               height: bc.height,
               backgroundColor: bc.color ? `${bc.color}66` : "rgba(219,234,254,0.35)",
-              zIndex: selected ? 4 : 2,
+              zIndex: selected ? 6 : 2,
             }}
             onPointerDown={(e) => startMove(bc.id, e)}
             onContextMenu={(e) => {
@@ -152,7 +152,7 @@ export function BoundedContextLayer() {
               });
             }}
           >
-            <div className="absolute -top-3 left-3 rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-900">
+            <div className="pointer-events-none absolute -top-3 left-3 rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-900">
               {bc.label}
             </div>
             {bc.purpose && (
@@ -168,7 +168,7 @@ export function BoundedContextLayer() {
                   type="button"
                   aria-label={`Größe ändern (${handle})`}
                   className={[
-                    "absolute z-10 h-2.5 w-2.5 rounded-sm border border-blue-700 bg-white shadow-sm",
+                    "absolute z-40 h-2.5 w-2.5 rounded-sm border border-blue-700 bg-white shadow-sm",
                     HANDLE_POSITIONS[handle],
                   ].join(" ")}
                   onPointerDown={(e) => startResize(bc.id, handle, e)}
