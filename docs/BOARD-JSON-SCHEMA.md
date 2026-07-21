@@ -76,4 +76,19 @@ Import akzeptiert Dokumente mit `format === "event-storming-tool"` und `version 
 
 `contextRelations` beschreibt DDD-Context-Map-Muster zwischen Bounded Contexts (`sourceContextId` / `targetContextId`, Muster z. B. `customerSupplier`, `antiCorruptionLayer`).
 
-Elementtyp `note` (freie Notiz) und Relationstyp `annotates` (Notiz ↔ Sticky) sind Teil von Schema v1. DDD-Typen: `entity`, `valueObject`, `domainService`, `repository`, `factory`, `subdomain` (optional `metadata.subdomainKind`). Workshop-Formate DDD: `strategicDesign`, `tacticalDesign`.
+Elementtyp `note` (freie Notiz) und Relationstyp `annotates` (Notiz ↔ Sticky) sind Teil von Schema v1. DDD-Typen: `entity`, `valueObject`, `domainService`, `repository`, `factory`, `subdomain`.
+
+DDD-Metadaten (optional, unter `metadata`):
+
+| Feld | Typen | Bedeutung |
+|------|--------|-----------|
+| `subdomainKind` | `subdomain` | `core` / `supporting` / `generic` |
+| `attributes` | Entity, Value Object, Aggregate | Eigenschaften („name“ oder „name: Typ“) |
+| `identityFields` | Entity | Identitätsfelder |
+| `operations` | Entity, Domain Service, Repository, Factory | Operationen / Methoden |
+| `immutable` | Value Object | unveränderlich |
+| `stateless` | Domain Service | ohne eigenen Zustand |
+| `aggregateRootRef` | Repository | zugehöriger Aggregate Root |
+| `createsRef` | Factory | erzeugter Typ |
+
+Workshop-Formate DDD: `strategicDesign`, `tacticalDesign`.

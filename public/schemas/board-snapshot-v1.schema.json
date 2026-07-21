@@ -220,6 +220,37 @@
         },
         "subdomainKind": {
           "$ref": "#/$defs/subdomainKind"
+        },
+        "attributes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Entity / Value Object / Aggregate: Eigenschaften („name“ oder „name: Typ“)."
+        },
+        "identityFields": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Entity: Identitätsfelder."
+        },
+        "operations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Entity / Domain Service / Repository / Factory: Operationen."
+        },
+        "immutable": {
+          "type": "boolean",
+          "description": "Value Object: unveränderlich."
+        },
+        "stateless": {
+          "type": "boolean",
+          "description": "Domain Service: ohne eigenen Zustand."
+        },
+        "aggregateRootRef": {
+          "type": "string",
+          "description": "Repository: zugehöriger Aggregate Root."
+        },
+        "createsRef": {
+          "type": "string",
+          "description": "Factory: erzeugter Typ / Aggregate."
         }
       }
     },

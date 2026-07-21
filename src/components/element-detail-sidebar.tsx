@@ -8,10 +8,18 @@ import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
 import type { RelationType } from "@/types/storm-relation";
-import type { ElementType, NoteColorId } from "@/types/storm-element";
+import type { ElementType, NoteColorId, SubdomainKind } from "@/types/storm-element";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_ELEMENT_SIZE = 40;
+
+function linesFromMeta(values: string[] | undefined): string {
+  return (values ?? []).join("\n");
+}
+
+function linesToMeta(text: string): string[] {
+  return text.split("\n").map((l) => l.trim()).filter(Boolean);
+}
 
 export interface ElementDetailSidebarProps {
   onRequestHelpElementType?: (type: ElementType) => void;
@@ -304,6 +312,22 @@ export function ElementDetailSidebar({
 
       {selectedElement.type === "aggregate" && (
         <>
+          <Field label="Attribute (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[4rem]"
+              rows={3}
+              value={linesFromMeta(selectedElement.metadata?.attributes)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    attributes: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder={"z. B. status: OrderStatus\ntotal: Money"}
+            />
+          </Field>
           <Field label="Methoden (eine pro Zeile)">
             <textarea
               className="dock-field min-h-[4rem]"
@@ -338,6 +362,203 @@ export function ElementDetailSidebar({
         </>
       )}
 
+      {selectedElement.type === "entity" && (
+        <>
+          <Field label="Identität (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[2.5rem]"
+              rows={2}
+              value={linesFromMeta(selectedElement.metadata?.identityFields)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    identityFields: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder={"z. B. id\ncustomerId"}
+            />
+          </Field>
+          <Field label="Attribute (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[4rem]"
+              rows={3}
+              value={linesFromMeta(selectedElement.metadata?.attributes)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    attributes: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder={"z. B. name: string\nemail: Email"}
+            />
+          </Field>
+          <Field label="Operationen (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[4rem]"
+              rows={3}
+              value={linesFromMeta(selectedElement.metadata?.operations)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    operations: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder={"z. B. rename(name)\nchangeEmail(email)"}
+            />
+          </Field>
+        </>
+      )}
+
+      {selectedElement.type === "valueObject" && (
+        <>
+          <label className="flex items-center gap-2 text-xs text-[var(--text)]">
+            <input
+              type="checkbox"
+              checked={selectedElement.metadata?.immutable !== false}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    immutable: e.target.checked,
+                  },
+                })
+              }
+            />
+            Unveränderlich (immutable)
+          </label>
+          <Field label="Attribute / Komponenten (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[4rem]"
+              rows={3}
+              value={linesFromMeta(selectedElement.metadata?.attributes)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    attributes: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder={"z. B. amount: decimal\ncurrency: string"}
+            />
+          </Field>
+        </>
+      )}
+
+      {selectedElement.type === "domainService" && (
+        <>
+          <label className="flex items-center gap-2 text-xs text-[var(--text)]">
+            <input
+              type="checkbox"
+              checked={selectedElement.metadata?.stateless !== false}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    stateless: e.target.checked,
+                  },
+                })
+              }
+            />
+            Zustandslos (stateless)
+          </label>
+          <Field label="Operationen (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[4rem]"
+              rows={3}
+              value={linesFromMeta(selectedElement.metadata?.operations)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    operations: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder={"z. B. transfer(from, to, money)\ncalculateRisk(order)"}
+            />
+          </Field>
+        </>
+      )}
+
+      {selectedElement.type === "repository" && (
+        <>
+          <Field label="Aggregate Root">
+            <input
+              className="dock-field"
+              value={selectedElement.metadata?.aggregateRootRef ?? ""}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    aggregateRootRef: e.target.value,
+                  },
+                })
+              }
+              placeholder="z. B. Order"
+            />
+          </Field>
+          <Field label="Operationen (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[4rem]"
+              rows={3}
+              value={linesFromMeta(selectedElement.metadata?.operations)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    operations: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder={"z. B. findById(id)\nsave(aggregate)\nnextIdentity()"}
+            />
+          </Field>
+        </>
+      )}
+
+      {selectedElement.type === "factory" && (
+        <>
+          <Field label="Erzeugt">
+            <input
+              className="dock-field"
+              value={selectedElement.metadata?.createsRef ?? ""}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    createsRef: e.target.value,
+                  },
+                })
+              }
+              placeholder="z. B. Order / Customer"
+            />
+          </Field>
+          <Field label="Operationen (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[4rem]"
+              rows={3}
+              value={linesFromMeta(selectedElement.metadata?.operations)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    operations: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder={"z. B. createFromDraft(draft)\nreconstitute(snapshot)"}
+            />
+          </Field>
+        </>
+      )}
+
       {selectedElement.type === "subdomain" && (
         <Field label="Subdomain-Art">
           <select
@@ -347,7 +568,7 @@ export function ElementDetailSidebar({
               updateElement(selectedElement.id, {
                 metadata: {
                   ...selectedElement.metadata,
-                  subdomainKind: e.target.value as "core" | "supporting" | "generic",
+                  subdomainKind: e.target.value as SubdomainKind,
                 },
               })
             }

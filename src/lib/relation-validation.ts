@@ -81,6 +81,36 @@ export function validateBoard(
       }
     }
 
+    if (el.type === "entity") {
+      const ids = el.metadata?.identityFields ?? [];
+      if (ids.length === 0) {
+        issues.push({
+          id: `entity-id-${el.id}`,
+          elementId: el.id,
+          severity: "hint",
+          message: `Entity „${el.label}" hat noch keine Identitätsfelder`,
+        });
+      }
+    }
+
+    if (el.type === "repository" && !el.metadata?.aggregateRootRef?.trim()) {
+      issues.push({
+        id: `repo-root-${el.id}`,
+        elementId: el.id,
+        severity: "hint",
+        message: `Repository „${el.label}" hat keinen Aggregate Root`,
+      });
+    }
+
+    if (el.type === "factory" && !el.metadata?.createsRef?.trim()) {
+      issues.push({
+        id: `factory-creates-${el.id}`,
+        elementId: el.id,
+        severity: "hint",
+        message: `Factory „${el.label}" hat kein „Erzeugt“-Ziel`,
+      });
+    }
+
     if (elements.length > 1 && !connectedIds.has(el.id)) {
       issues.push({
         id: `isolated-${el.id}`,

@@ -166,7 +166,11 @@ function createElement(type: ElementType, x: number, y: number, label?: string):
         ? { noteColor: "cream" }
         : type === "subdomain"
           ? { subdomainKind: "core" }
-          : undefined,
+          : type === "valueObject"
+            ? { immutable: true }
+            : type === "domainService"
+              ? { stateless: true }
+              : undefined,
   };
 }
 

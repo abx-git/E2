@@ -74,12 +74,17 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 - Zuordnung zu Swimlane / Bounded Context (automatisch bei Umschließung; Rechtsklick weiter möglich)   
 - „Wiederkehrend“ (Rechtsklick)  
 - **Domain Event / Aggregate:** Event-Schema (Werte-Editor oder Raw-JSON)  
-- **Aggregate:** Methodenliste  
+- **Aggregate:** Attribute, Methoden, Invarianten  
+- **Entity:** Identitätsfelder, Attribute, Operationen  
+- **Value Object:** Attribute/Komponenten, Flag „unveränderlich“  
+- **Domain Service:** Operationen, Flag „zustandslos“  
+- **Repository:** Aggregate Root, Operationen  
+- **Factory:** Erzeugter Typ, Operationen  
 - **Hotspot:** Status (offen/gelöst), Priorität (niedrig/mittel/hoch)
 - **Notiz:** Hintergrundfarbe (Detailleiste oder Rechtsklick)
 - **Subdomain:** Art (Core / Supporting / Generic)
 
-> **Hinweis:** Aggregate-Methoden und -Invarianten lassen sich in der Detailleiste pflegen (eine Zeile pro Eintrag).
+> **Hinweis:** Listenfelder (Attribute, Methoden, …) werden in der Detailleiste zeilenweise gepflegt.
 
 ---
 

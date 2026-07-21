@@ -124,8 +124,9 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
     ],
     bullets: [
       "Beispiel: „Customer“, „Order Line“",
+      "Identitätsfelder und Attribute in der Detailleiste pflegen",
+      "Operationen beschreiben Verhaltensänderungen",
       "Gleichheit über ID, nicht über alle Attribute",
-      "Ubiquitous Language im Label nutzen",
     ],
   },
   valueObject: {
@@ -137,8 +138,9 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
     ],
     bullets: [
       "Beispiel: „Money“, „Address“, „Date Range“",
+      "Attribute / Komponenten in der Detailleiste listen",
+      "Flag „Unveränderlich“ setzen",
       "Gleichheit über Attribute",
-      "Oft von Entities/Aggregates referenziert",
     ],
   },
   domainService: {
@@ -150,8 +152,9 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
     ],
     bullets: [
       "Nur wenn keine Entity verantwortlich ist",
+      "Operationen in der Detailleiste dokumentieren",
+      "Flag „Zustandslos“ prüfen",
       "Name aus der Ubiquitous Language",
-      "Nicht mit Application Services verwechseln",
     ],
   },
   repository: {
@@ -162,9 +165,9 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
       "Kapselt Infrastruktur vom Domain Model.",
     ],
     bullets: [
-      "Ein Repository pro Aggregate Root",
+      "Aggregate Root in der Detailleiste benennen",
+      "Operationen: findById, save, …",
       "Kein SQL/ORM in Entities",
-      "Oft an Factory gekoppelt",
     ],
   },
   factory: {
@@ -175,8 +178,9 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
       "Stellt Invarianten bereits bei der Konstruktion sicher.",
     ],
     bullets: [
+      "Feld „Erzeugt“: Zieltyp / Aggregate",
+      "Operationen für create / reconstitute",
       "Nützlich bei mehrstufiger Initialisierung",
-      "Kann Methode am Aggregate oder eigener Baustein sein",
     ],
   },
   subdomain: {
@@ -187,8 +191,8 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
       "Strategisches DDD — oft Vorstufe zu Bounded Contexts.",
     ],
     bullets: [
+      "Art in der Detailleiste setzen (Core / Supporting / Generic)",
       "Core Domain priorisieren",
-      "Art in der Detailleiste setzen",
       "Nicht mit Bounded Context verwechseln (Lösung vs. Problem)",
     ],
   },

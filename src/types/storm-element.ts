@@ -44,6 +44,21 @@ export interface ElementMetadata {
   noteColor?: NoteColorId;
   /** Strategic DDD: Core / Supporting / Generic. */
   subdomainKind?: SubdomainKind;
+
+  /** Entity / Value Object / Aggregate: Eigenschaften („name“ oder „name: Typ“). */
+  attributes?: string[];
+  /** Entity: Identitätsfelder (z. B. „id“, „customerId“). */
+  identityFields?: string[];
+  /** Entity / Domain Service / Repository / Factory: Operationen / Methoden. */
+  operations?: string[];
+  /** Value Object: unveränderlich (Standard: true). */
+  immutable?: boolean;
+  /** Domain Service: ohne eigenen Zustand (Standard: true). */
+  stateless?: boolean;
+  /** Repository: zugehöriger Aggregate Root (Freitext / Name). */
+  aggregateRootRef?: string;
+  /** Factory: erzeugter Typ / Aggregate (Freitext / Name). */
+  createsRef?: string;
 }
 
 export interface StormElement {
