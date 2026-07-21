@@ -170,7 +170,11 @@ function createElement(type: ElementType, x: number, y: number, label?: string):
             ? { immutable: true }
             : type === "domainService"
               ? { stateless: true }
-              : undefined,
+              : type === "question"
+                ? { questionStatus: "open" }
+                : type === "userStory"
+                  ? { storyPriority: "must" }
+                  : undefined,
   };
 }
 

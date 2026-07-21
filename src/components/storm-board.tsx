@@ -50,8 +50,7 @@ import {
   stringifyBoardSnapshotSchema,
 } from "@/lib/storm-json";
 import {
-  DDD_FACILITATOR_FORMATS,
-  FACILITATOR_FORMATS,
+  getFacilitatorFormatsForMode,
   type FacilitatorPhase,
 } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
@@ -82,12 +81,18 @@ import {
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { useCollabStore } from "@/lib/collab/session";
 import type { ElementType, ModelingMode, WorkshopFormat } from "@/types/storm-element";
-import { MODELING_MODE_LABELS } from "@/types/storm-element";
+import {
+  MODELING_MODES,
+  MODELING_MODE_LABELS,
+  MODELING_MODE_SHORT_LABELS,
+} from "@/types/storm-element";
 import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
 
 function formatOptionsForMode(mode: ModelingMode): { value: WorkshopFormat; label: string }[] {
-  const defs = mode === "domainDrivenDesign" ? DDD_FACILITATOR_FORMATS : FACILITATOR_FORMATS;
-  return [{ value: "free", label: "Frei" }, ...defs.map((f) => ({ value: f.format, label: f.label }))];
+  return [
+    { value: "free", label: "Frei" },
+    ...getFacilitatorFormatsForMode(mode).map((f) => ({ value: f.format, label: f.label })),
+  ];
 }
 
 export function StormBoard() {
@@ -364,8 +369,8 @@ export function StormBoard() {
             <Redo2 className="h-4 w-4" />
           </button>
         </div>
-        <div className="dock-control flex items-center gap-0.5 rounded-lg p-0.5">
-          {(["eventStorming", "domainDrivenDesign"] as const).map((mode) => (
+        <div className="dock-control flex max-w-full flex-wrap items-center gap-0.5 rounded-lg p-0.5">
+          {MODELING_MODES.map((mode) => (
             <button
               key={mode}
               type="button"
@@ -378,7 +383,7 @@ export function StormBoard() {
               ].join(" ")}
               title={MODELING_MODE_LABELS[mode]}
             >
-              {mode === "eventStorming" ? "Event Storming" : "DDD"}
+              {MODELING_MODE_SHORT_LABELS[mode]}
             </button>
           ))}
         </div>

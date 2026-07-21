@@ -1,5 +1,12 @@
 import type { ElementType, ModelingMode, WorkshopFormat } from "@/types/storm-element";
-import { ALL_ELEMENT_TYPES, DDD_ELEMENT_TYPES, elementTypesForMode } from "@/types/storm-element";
+import {
+  ALL_ELEMENT_TYPES,
+  BDD_ELEMENT_TYPES,
+  DDD_ELEMENT_TYPES,
+  EM_ELEMENT_TYPES,
+  USM_ELEMENT_TYPES,
+  elementTypesForMode,
+} from "@/types/storm-element";
 
 export interface FacilitatorPhase {
   id: string;
@@ -362,15 +369,212 @@ export const DDD_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   },
 ];
 
+const EXAMPLE_MAPPING_PHASES: FacilitatorPhase[] = [
+  {
+    id: "story-rules",
+    title: "Story & Rules",
+    description: "Geschäftsregeln zur User Story sammeln (gelbe Rules).",
+    allowedTypes: ["rule", "actor", "note", "hotspot"],
+    checklist: [
+      "Story-Titel / Scope klären",
+      "Regeln in Ubiquitous Language formulieren",
+      "Akteure benennen",
+    ],
+    durationMinutes: 40,
+  },
+  {
+    id: "examples",
+    title: "Examples",
+    description: "Konkrete Beispiele (Given/When/Then) zu den Rules.",
+    allowedTypes: ["rule", "example", "actor", "note", "question"],
+    checklist: [
+      "Pro Rule mind. ein Example",
+      "Given / When / Then in der Detailleiste",
+      "Grenzfälle als eigene Examples",
+    ],
+    durationMinutes: 50,
+  },
+  {
+    id: "questions",
+    title: "Questions",
+    description: "Unklarheiten als Questions markieren und klären.",
+    allowedTypes: [...BDD_ELEMENT_TYPES],
+    checklist: [
+      "Offene Punkte als Question",
+      "Owner / Follow-up zuweisen",
+      "Geklärte Questions schließen",
+    ],
+    durationMinutes: 30,
+  },
+  {
+    id: "bdd-wrap-up",
+    title: "Wrap-Up",
+    description: "Examples priorisieren und in Specs / Stories überführen.",
+    allowedTypes: [...BDD_ELEMENT_TYPES],
+    checklist: [
+      "Examples für Automatisierung markieren",
+      "Offene Questions dokumentieren",
+      "Nächste Slices / Stories ableiten",
+    ],
+    durationMinutes: 25,
+  },
+];
+
+const STORY_MAPPING_PHASES: FacilitatorPhase[] = [
+  {
+    id: "backbone",
+    title: "Activities (Backbone)",
+    description: "Nutzeraktivitäten von links nach rechts als Backbone.",
+    allowedTypes: ["activity", "actor", "note"],
+    checklist: [
+      "Journey von links nach rechts",
+      "Aktivitäten grob und nutzerzentriert",
+      "Keine technischen Tasks im Backbone",
+    ],
+    durationMinutes: 40,
+  },
+  {
+    id: "tasks",
+    title: "User Tasks",
+    description: "Unter jeder Activity die konkreten Tasks stapeln.",
+    allowedTypes: ["activity", "userTask", "actor", "note", "hotspot"],
+    checklist: [
+      "Tasks unter der passenden Activity",
+      "Varianten und Alternativen erfassen",
+      "Hotspots für Unklarheiten",
+    ],
+    durationMinutes: 50,
+  },
+  {
+    id: "stories",
+    title: "User Stories",
+    description: "Tasks in umsetzbare Stories zerlegen.",
+    allowedTypes: [...USM_ELEMENT_TYPES],
+    checklist: [
+      "Persona und Akzeptanzkriterien pflegen",
+      "Priorität (MoSCoW) setzen",
+      "Schätzung optional ergänzen",
+    ],
+    durationMinutes: 60,
+  },
+  {
+    id: "releases",
+    title: "Releases / Walking Skeleton",
+    description: "Horizontale Release-Schnitte ziehen.",
+    allowedTypes: [...USM_ELEMENT_TYPES],
+    checklist: [
+      "MVP / Release-Linien legen",
+      "Release-Ziel formulieren",
+      "Abhängigkeiten markieren",
+    ],
+    durationMinutes: 40,
+  },
+];
+
+const EVENT_MODELING_PHASES: FacilitatorPhase[] = [
+  {
+    id: "em-events",
+    title: "Events auf der Timeline",
+    description: "Was ist passiert? Events chronologisch anordnen.",
+    allowedTypes: ["domainEvent", "slice", "note", "hotspot"],
+    checklist: [
+      "Past tense für Events",
+      "Timeline von links nach rechts",
+      "Erste Slices andeuten",
+    ],
+    durationMinutes: 50,
+  },
+  {
+    id: "em-commands-ui",
+    title: "Commands & UI",
+    description: "Wer löst was aus? Screens und Commands ergänzen.",
+    allowedTypes: ["domainEvent", "command", "ui", "actor", "slice", "note", "hotspot"],
+    checklist: [
+      "UI über den relevanten Events",
+      "Commands vor den Events",
+      "Actors zuordnen",
+    ],
+    durationMinutes: 45,
+  },
+  {
+    id: "em-views-automation",
+    title: "Views & Automation",
+    description: "Read Models und Policies / Automation verdrahten.",
+    allowedTypes: [...EM_ELEMENT_TYPES],
+    checklist: [
+      "Read Models für Entscheidungen",
+      "Policies zwischen Event und Command",
+      "Externe Systeme markieren",
+    ],
+    durationMinutes: 45,
+  },
+  {
+    id: "em-slices",
+    title: "Vertical Slices",
+    description: "Implementierbare Slices schneiden und benennen.",
+    allowedTypes: [...EM_ELEMENT_TYPES],
+    checklist: [
+      "Jeder Slice: UI → Command → Event → View",
+      "Slice-Ziel und Systeme dokumentieren",
+      "Reihenfolge der Umsetzung festlegen",
+    ],
+    durationMinutes: 40,
+  },
+];
+
+export const BDD_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
+  {
+    format: "exampleMapping",
+    label: "Example Mapping",
+    description: "Rules, Examples und Questions zur Spec-Klärung",
+    phases: EXAMPLE_MAPPING_PHASES,
+  },
+];
+
+export const USM_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
+  {
+    format: "storyMapping",
+    label: "Story Mapping",
+    description: "Activities, Tasks, Stories und Releases",
+    phases: STORY_MAPPING_PHASES,
+  },
+];
+
+export const EM_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
+  {
+    format: "eventModelingWorkshop",
+    label: "Event Modeling",
+    description: "Timeline, UI, Commands, Views und Vertical Slices",
+    phases: EVENT_MODELING_PHASES,
+  },
+];
+
+const ALL_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
+  ...FACILITATOR_FORMATS,
+  ...DDD_FACILITATOR_FORMATS,
+  ...BDD_FACILITATOR_FORMATS,
+  ...USM_FACILITATOR_FORMATS,
+  ...EM_FACILITATOR_FORMATS,
+];
+
 export function getFacilitatorFormatsForMode(mode: ModelingMode): FacilitatorFormatDefinition[] {
-  return mode === "domainDrivenDesign" ? DDD_FACILITATOR_FORMATS : FACILITATOR_FORMATS;
+  switch (mode) {
+    case "domainDrivenDesign":
+      return DDD_FACILITATOR_FORMATS;
+    case "bdd":
+      return BDD_FACILITATOR_FORMATS;
+    case "userStoryMapping":
+      return USM_FACILITATOR_FORMATS;
+    case "eventModeling":
+      return EM_FACILITATOR_FORMATS;
+    default:
+      return FACILITATOR_FORMATS;
+  }
 }
 
 export function getFacilitatorFormat(format: WorkshopFormat): FacilitatorFormatDefinition | null {
   if (format === "free") return null;
-  return (
-    [...FACILITATOR_FORMATS, ...DDD_FACILITATOR_FORMATS].find((f) => f.format === format) ?? null
-  );
+  return ALL_FACILITATOR_FORMATS.find((f) => f.format === format) ?? null;
 }
 
 export function getAllowedTypesForPhase(

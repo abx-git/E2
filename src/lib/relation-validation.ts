@@ -195,6 +195,12 @@ export function defaultRelationType(source: StormElement, target: StormElement):
     return "invokes";
   }
   if (source.type === "domainService") return "invokes";
+  if (source.type === "rule" && target.type === "example") return "informs";
+  if (source.type === "example" && target.type === "rule") return "informs";
+  if (source.type === "question") return "annotates";
+  if (source.type === "activity" && target.type === "userTask") return "contains";
+  if (source.type === "userTask" && target.type === "userStory") return "contains";
+  if (source.type === "slice") return "informs";
   if (source.type === "externalSystem") return "invokes";
   if (source.type === "domainEvent" && target.type === "domainEvent") return "causal";
   return "triggers";

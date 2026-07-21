@@ -2,7 +2,7 @@ import * as Y from "yjs";
 
 import type { BoardImportPayload } from "@/lib/storm-json";
 import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
-import { DEFAULT_TIMELINE, DEFAULT_VIEWPORT } from "@/types/storm-element";
+import { DEFAULT_TIMELINE, DEFAULT_VIEWPORT, normalizeModelingMode } from "@/types/storm-element";
 
 const PAYLOAD_KEY = "payloadJson";
 const LEGACY_PAYLOAD_KEY = "payload";
@@ -54,7 +54,7 @@ export function readPayloadFromYDoc(doc: Y.Doc): BoardImportPayload | null {
 function normalizePayload(p: Partial<BoardImportPayload>): BoardImportPayload {
   return {
     title: p.title ?? "Board",
-    modelingMode: p.modelingMode === "domainDrivenDesign" ? "domainDrivenDesign" : "eventStorming",
+    modelingMode: normalizeModelingMode(p.modelingMode),
     workshopFormat: p.workshopFormat ?? "free",
     facilitatorEnabled: Boolean(p.facilitatorEnabled),
     facilitatorPhase: Number(p.facilitatorPhase) || 0,

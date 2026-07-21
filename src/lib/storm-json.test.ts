@@ -105,4 +105,22 @@ describe("facilitator-phases", () => {
     const allowed = getAllowedTypesForPhase("domainDrivenDesign", "strategicDesign", 0, true);
     expect(allowed).toEqual(["subdomain", "note", "hotspot"]);
   });
+
+  it("uses BDD catalog", () => {
+    const allowed = getAllowedTypesForPhase("bdd", "free", 0, false);
+    expect(allowed).toContain("rule");
+    expect(allowed).toContain("example");
+    expect(allowed).not.toContain("entity");
+  });
+
+  it("uses USM and Event Modeling catalogs", () => {
+    expect(getAllowedTypesForPhase("userStoryMapping", "free", 0, false)).toContain("userStory");
+    expect(getAllowedTypesForPhase("eventModeling", "free", 0, false)).toContain("slice");
+    expect(getAllowedTypesForPhase("eventModeling", "eventModelingWorkshop", 0, true)).toEqual([
+      "domainEvent",
+      "slice",
+      "note",
+      "hotspot",
+    ]);
+  });
 });

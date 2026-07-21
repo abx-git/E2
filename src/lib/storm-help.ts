@@ -196,6 +196,92 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
       "Nicht mit Bounded Context verwechseln (Lösung vs. Problem)",
     ],
   },
+  rule: {
+    title: "Rule",
+    subtitle: "Amber — Geschäftsregel (Example Mapping)",
+    paragraphs: [
+      "Geschäftliche Regel oder Constraint zur Story — noch ohne Umsetzungstechnik.",
+      "Bildet die Spalte/Cluster, unter die Examples gehören.",
+    ],
+    bullets: [
+      "Kurz und prüfbar formulieren",
+      "Akzeptanzhinweise in der Detailleiste",
+      "Klassisch: gelbe Karte im Example Mapping",
+    ],
+  },
+  example: {
+    title: "Example",
+    subtitle: "Grün — konkretes Szenario",
+    paragraphs: [
+      "Konkretes Beispiel zur Regel: Given / When / Then.",
+      "Grundlage für Specs, Tests und gemeinsames Verständnis.",
+    ],
+    bullets: [
+      "Given / When / Then in der Detailleiste",
+      "Ein Example = ein Szenario",
+      "Grenzfälle als eigene Examples",
+    ],
+  },
+  question: {
+    title: "Question",
+    subtitle: "Himmelblau — offene Klärung",
+    paragraphs: [
+      "Unklarheit, die die Spec blockiert — bis zur Antwort offen halten.",
+    ],
+    bullets: [
+      "Status offen/gelöst in der Detailleiste",
+      "Owner und Follow-up in der Beschreibung",
+      "Nicht mit Hotspot verwechseln (Workshop-Unsicherheit vs. Spec-Frage)",
+    ],
+  },
+  activity: {
+    title: "Activity",
+    subtitle: "Blau breit — Backbone",
+    paragraphs: [
+      "Nutzeraktivität auf dem Story-Map-Backbone (links → rechts).",
+      "Grobe Schritte der User Journey, keine technischen Tasks.",
+    ],
+    bullets: ["Von links nach rechts lesen", "Darunter: User Tasks stapeln"],
+  },
+  userTask: {
+    title: "User Task",
+    subtitle: "Hellblau — Aufgabe unter Activity",
+    paragraphs: [
+      "Konkrete Aufgabe, die Nutzer im Rahmen einer Activity erledigen.",
+    ],
+    bullets: ["Unter der passenden Activity platzieren", "Später in Stories zerlegen"],
+  },
+  userStory: {
+    title: "User Story",
+    subtitle: "Gelb — umsetzbare Story",
+    paragraphs: [
+      "Kleine, wertstiftende Lieferung: As a … I want … So that …",
+    ],
+    bullets: [
+      "Persona, Priorität, Schätzung, Akzeptanz in der Detailleiste",
+      "MoSCoW-Priorität nutzen",
+    ],
+  },
+  release: {
+    title: "Release",
+    subtitle: "Rosa breit — horizontaler Schnitt",
+    paragraphs: [
+      "Release- oder MVP-Linie über dem Map — was in einer Version landet.",
+    ],
+    bullets: ["Release-Ziel formulieren", "Walking Skeleton zuerst"],
+  },
+  slice: {
+    title: "Slice",
+    subtitle: "Orange breit — Vertical Slice (Event Modeling)",
+    paragraphs: [
+      "Implementierbarer Ausschnitt: typischerweise UI → Command → Event → View.",
+    ],
+    bullets: [
+      "Slice benennen und Systeme dokumentieren",
+      "Events der Slice auf der Timeline clustern",
+      "Reihenfolge der Umsetzung festlegen",
+    ],
+  },
 };
 
 const RELATION_HELP: Record<RelationType, HelpDialogModel> = {

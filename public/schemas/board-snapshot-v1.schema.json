@@ -110,7 +110,13 @@
   "$defs": {
     "modelingMode": {
       "type": "string",
-      "enum": ["eventStorming", "domainDrivenDesign"]
+      "enum": [
+        "eventStorming",
+        "domainDrivenDesign",
+        "bdd",
+        "userStoryMapping",
+        "eventModeling"
+      ]
     },
     "workshopFormat": {
       "type": "string",
@@ -120,6 +126,9 @@
         "softwareDesign",
         "strategicDesign",
         "tacticalDesign",
+        "exampleMapping",
+        "storyMapping",
+        "eventModelingWorkshop",
         "free"
       ]
     },
@@ -142,12 +151,28 @@
         "domainService",
         "repository",
         "factory",
-        "subdomain"
+        "subdomain",
+        "rule",
+        "example",
+        "question",
+        "activity",
+        "userTask",
+        "userStory",
+        "release",
+        "slice"
       ]
     },
     "subdomainKind": {
       "type": "string",
       "enum": ["core", "supporting", "generic"]
+    },
+    "storyPriority": {
+      "type": "string",
+      "enum": ["must", "should", "could", "wont"]
+    },
+    "questionStatus": {
+      "type": "string",
+      "enum": ["open", "resolved"]
     },
     "relationType": {
       "type": "string",
@@ -251,6 +276,46 @@
         "createsRef": {
           "type": "string",
           "description": "Factory: erzeugter Typ / Aggregate."
+        },
+        "ruleCriteria": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "BDD Rule: Akzeptanzhinweise."
+        },
+        "exampleGiven": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "exampleWhen": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "exampleThen": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "questionStatus": {
+          "$ref": "#/$defs/questionStatus"
+        },
+        "storyPersona": {
+          "type": "string"
+        },
+        "storyPriority": {
+          "$ref": "#/$defs/storyPriority"
+        },
+        "storyEstimate": {
+          "type": "string"
+        },
+        "storyAcceptance": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "releaseGoal": {
+          "type": "string"
+        },
+        "sliceSystems": {
+          "type": "array",
+          "items": { "type": "string" }
         }
       }
     },

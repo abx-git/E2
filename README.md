@@ -1,6 +1,6 @@
-# E2 — Event Storming & Domain-Driven Design
+# E2 — Collaborative Domain Modeling
 
-Browserbasiertes Board für **Event Storming** und **Domain-Driven Design** mit lokaler JSON-Persistenz (`.storm.json`).  
+Browserbasiertes Board für **Event Storming**, **Domain-Driven Design**, **BDD / Example Mapping**, **User Story Mapping** und **Event Modeling** mit lokaler JSON-Persistenz (`.storm.json`).  
 Kein Server für Domänendaten — die Arbeitsdatei liegt beim Nutzer.
 
 **Live:** [abx-git.github.io/E2](https://abx-git.github.io/E2/)  
@@ -10,7 +10,7 @@ Kein Server für Domänendaten — die Arbeitsdatei liegt beim Nutzer.
 
 ## Zweck dieses Dokuments
 
-Diese README beschreibt die **implementierten Funktionen** und stellt sie den **klassischen Aspekten von Event Storming** (Brandolini u. a.) sowie **Domain-Driven Design** (Evans / Vernon) gegenüber. Damit lässt sich prüfen, welche Workshop-Bausteine abgedeckt sind und wo Lücken bleiben.
+Diese README beschreibt die **implementierten Funktionen** und stellt sie klassischen Workshop-Methoden gegenüber (Brandolini, Evans/Vernon, Example Mapping, Story Mapping, Event Modeling).
 
 ---
 
@@ -18,12 +18,11 @@ Diese README beschreibt die **implementierten Funktionen** und stellt sie den **
 
 | Bereich | Inhalt |
 |--------|--------|
-| Methoden-Modi | Event Storming und DDD klar getrennt (Palette/Facilitator); Board darf Elemente beider Methoden mischen |
-| Sticky-Typen | Event-Storming-Elemente + DDD-Bausteine (Entity, VO, …) + Notizen |
+| Methoden-Modi | ES · DDD · BDD · USM · EM (Palette/Facilitator getrennt); Board darf Typen mischen |
+| Sticky-Typen | Methodenspezifische Kataloge + geteilte Notizen/Hotspots |
 | Relationen | 8 Verbindungstypen inkl. Auto-Vorschlag |
 | Fläche | Timeline, Swimlanes, Bounded Contexts, Pan/Zoom |
-| Workshop ES | Big Picture, Process Modeling, Software Design + Frei |
-| Workshop DDD | Strategic Design, Tactical Design + Frei |
+| Workshop | Pro Modus eigene Facilitator-Formate + Frei |
 | Sprache | Glossary (Ubiquitous Language) |
 | Unsicherheit | Hotspots inkl. Status/Priorität |
 | I/O | `.storm.json` + Schema, SVG/PNG, Markdown-Reports |
@@ -67,6 +66,35 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 | **External System** | Pink | Integration (geteilt) |
 | **Notiz / Hotspot** | Creme / Rot | Annotationen (geteilt) |
 
+### BDD / Example Mapping
+
+| Typ | Farbe / Form | Methodische Rolle |
+|-----|--------------|-------------------|
+| **Rule** | Amber | Geschäftsregel zur Story |
+| **Example** | Grün | Konkretes Szenario (Given/When/Then) |
+| **Question** | Himmelblau | Offene Spec-Frage |
+| **Actor** | Gelb (Pill) | Wer ist betroffen? |
+| **Notiz / Hotspot** | Creme / Rot | Annotationen |
+
+### User Story Mapping
+
+| Typ | Farbe / Form | Methodische Rolle |
+|-----|--------------|-------------------|
+| **Activity** | Blau, breit | Backbone der User Journey |
+| **User Task** | Hellblau | Aufgabe unter einer Activity |
+| **User Story** | Gelb | Umsetzbare Story |
+| **Release** | Rosa, breit | Horizontaler Release-/MVP-Schnitt |
+| **Actor** | Gelb (Pill) | Persona / Rolle |
+| **Notiz / Hotspot** | Creme / Rot | Annotationen |
+
+### Event Modeling
+
+| Typ | Farbe / Form | Methodische Rolle |
+|-----|--------------|-------------------|
+| **Slice** | Orange, breit | Vertical Slice (UI→Command→Event→View) |
+| **Domain Event / Command / Read Model / UI / Policy / Actor / External System** | wie ES | Bausteine der Timeline |
+| **Notiz / Hotspot** | Creme / Rot | Annotationen |
+
 ### Pro Element bearbeitbar
 
 - Label, Beschreibung  
@@ -83,6 +111,11 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 - **Hotspot:** Status (offen/gelöst), Priorität (niedrig/mittel/hoch)
 - **Notiz:** Hintergrundfarbe (Detailleiste oder Rechtsklick)
 - **Subdomain:** Art (Core / Supporting / Generic)
+- **Rule:** Kriterien / Hinweise  
+- **Example:** Given / When / Then  
+- **Question:** Status (offen/geklärt)  
+- **User Story:** Persona, MoSCoW-Priorität, Schätzung, Akzeptanzkriterien  
+- **Release / Slice:** Ziel; Slice zusätzlich Systeme/Lanes  
 
 > **Hinweis:** Listenfelder (Attribute, Methoden, …) werden in der Detailleiste zeilenweise gepflegt.
 
@@ -155,7 +188,7 @@ Methodisch: Cluster nach Sprache und Verantwortung; Context-Map-Muster modellier
 
 ## 4. Methoden-Modi, Facilitator & Workshop-Formate
 
-In der Toolbar: **Event Storming** | **DDD**. Der Modus steuert Palette und Facilitator-Formate — nicht den Board-Inhalt.
+In der Toolbar: **ES | DDD | BDD | USM | EM**. Der Modus steuert Palette und Facilitator-Formate — nicht den Board-Inhalt.
 
 ### Event Storming
 
@@ -173,6 +206,27 @@ In der Toolbar: **Event Storming** | **DDD**. Der Modus steuert Palette und Faci
 | **Frei** | Alle DDD-Typen, keine Phasenführung |
 | **Strategic Design** | Subdomains → Ubiquitous Language → Bounded Contexts → Context Map → Wrap-Up |
 | **Tactical Design** | Aggregates & Entities → Value Objects → Services & Factories → Repositories → Domain Events → Wrap-Up |
+
+### BDD / Example Mapping
+
+| Format | Fokus |
+|--------|--------|
+| **Frei** | Rules, Examples, Questions, … |
+| **Example Mapping** | Story & Rules → Examples → Questions → Wrap-Up |
+
+### User Story Mapping
+
+| Format | Fokus |
+|--------|--------|
+| **Frei** | Activities, Tasks, Stories, Releases |
+| **Story Mapping** | Backbone → Tasks → Stories → Releases |
+
+### Event Modeling
+
+| Format | Fokus |
+|--------|--------|
+| **Frei** | Slice + ES-Bausteine |
+| **Event Modeling** | Events → Commands & UI → Views & Automation → Vertical Slices |
 
 Im Facilitator-Modus:
 

@@ -6,6 +6,7 @@ import type { ElementType } from "@/types/storm-element";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { useStormBoardStore } from "@/store/storm-board-store";
+import { MODELING_MODE_LABELS } from "@/types/storm-element";
 
 export interface ElementPaletteProps {
   onSelectType: (type: ElementType) => void;
@@ -26,8 +27,7 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
     facilitatorPhase,
     facilitatorEnabled,
   );
-  const modeLabel =
-    modelingMode === "domainDrivenDesign" ? "Domain-Driven Design" : "Event Storming";
+  const modeLabel = MODELING_MODE_LABELS[modelingMode];
 
   return (
     <aside className="flex w-48 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel-solid)]">

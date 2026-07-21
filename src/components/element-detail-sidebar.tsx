@@ -8,7 +8,13 @@ import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
 import type { RelationType } from "@/types/storm-relation";
-import type { ElementType, NoteColorId, SubdomainKind } from "@/types/storm-element";
+import type {
+  ElementType,
+  NoteColorId,
+  QuestionStatus,
+  StoryPriority,
+  SubdomainKind,
+} from "@/types/storm-element";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_ELEMENT_SIZE = 40;
@@ -577,6 +583,210 @@ export function ElementDetailSidebar({
             <option value="supporting">Supporting</option>
             <option value="generic">Generic</option>
           </select>
+        </Field>
+      )}
+
+      {selectedElement.type === "rule" && (
+        <Field label="Kriterien / Hinweise (eine pro Zeile)">
+          <textarea
+            className="dock-field min-h-[4rem]"
+            rows={3}
+            value={linesFromMeta(selectedElement.metadata?.ruleCriteria)}
+            onChange={(e) =>
+              updateElement(selectedElement.id, {
+                metadata: {
+                  ...selectedElement.metadata,
+                  ruleCriteria: linesToMeta(e.target.value),
+                },
+              })
+            }
+            placeholder={"z. B. Nur für registrierte Kunden\nMax. 3 Retouren / Jahr"}
+          />
+        </Field>
+      )}
+
+      {selectedElement.type === "example" && (
+        <>
+          <Field label="Given (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[3rem]"
+              rows={2}
+              value={linesFromMeta(selectedElement.metadata?.exampleGiven)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    exampleGiven: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder="Ausgangssituation"
+            />
+          </Field>
+          <Field label="When (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[3rem]"
+              rows={2}
+              value={linesFromMeta(selectedElement.metadata?.exampleWhen)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    exampleWhen: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder="Aktion"
+            />
+          </Field>
+          <Field label="Then (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[3rem]"
+              rows={2}
+              value={linesFromMeta(selectedElement.metadata?.exampleThen)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    exampleThen: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder="Erwartetes Ergebnis"
+            />
+          </Field>
+        </>
+      )}
+
+      {selectedElement.type === "question" && (
+        <Field label="Status">
+          <select
+            className="dock-field"
+            value={selectedElement.metadata?.questionStatus ?? "open"}
+            onChange={(e) =>
+              updateElement(selectedElement.id, {
+                metadata: {
+                  ...selectedElement.metadata,
+                  questionStatus: e.target.value as QuestionStatus,
+                },
+              })
+            }
+          >
+            <option value="open">Offen</option>
+            <option value="resolved">Geklärt</option>
+          </select>
+        </Field>
+      )}
+
+      {selectedElement.type === "userStory" && (
+        <>
+          <Field label="Persona">
+            <input
+              className="dock-field"
+              value={selectedElement.metadata?.storyPersona ?? ""}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    storyPersona: e.target.value,
+                  },
+                })
+              }
+              placeholder="z. B. Einkäuferin"
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Priorität">
+              <select
+                className="dock-field"
+                value={selectedElement.metadata?.storyPriority ?? "must"}
+                onChange={(e) =>
+                  updateElement(selectedElement.id, {
+                    metadata: {
+                      ...selectedElement.metadata,
+                      storyPriority: e.target.value as StoryPriority,
+                    },
+                  })
+                }
+              >
+                <option value="must">Must</option>
+                <option value="should">Should</option>
+                <option value="could">Could</option>
+                <option value="wont">Won't</option>
+              </select>
+            </Field>
+            <Field label="Schätzung">
+              <input
+                className="dock-field"
+                value={selectedElement.metadata?.storyEstimate ?? ""}
+                onChange={(e) =>
+                  updateElement(selectedElement.id, {
+                    metadata: {
+                      ...selectedElement.metadata,
+                      storyEstimate: e.target.value,
+                    },
+                  })
+                }
+                placeholder="z. B. 3"
+              />
+            </Field>
+          </div>
+          <Field label="Akzeptanzkriterien (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[4rem]"
+              rows={3}
+              value={linesFromMeta(selectedElement.metadata?.storyAcceptance)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    storyAcceptance: linesToMeta(e.target.value),
+                  },
+                })
+              }
+            />
+          </Field>
+        </>
+      )}
+
+      {(selectedElement.type === "release" || selectedElement.type === "slice") && (
+        <Field label={selectedElement.type === "slice" ? "Slice-Ziel" : "Release-Ziel"}>
+          <input
+            className="dock-field"
+            value={selectedElement.metadata?.releaseGoal ?? ""}
+            onChange={(e) =>
+              updateElement(selectedElement.id, {
+                metadata: {
+                  ...selectedElement.metadata,
+                  releaseGoal: e.target.value,
+                },
+              })
+            }
+            placeholder={
+              selectedElement.type === "slice"
+                ? "z. B. Bestellung anlegen End-to-End"
+                : "z. B. MVP: Bestellen & Bezahlen"
+            }
+          />
+        </Field>
+      )}
+
+      {selectedElement.type === "slice" && (
+        <Field label="Systeme / Lanes (eine pro Zeile)">
+          <textarea
+            className="dock-field min-h-[3rem]"
+            rows={2}
+            value={linesFromMeta(selectedElement.metadata?.sliceSystems)}
+            onChange={(e) =>
+              updateElement(selectedElement.id, {
+                metadata: {
+                  ...selectedElement.metadata,
+                  sliceSystems: linesToMeta(e.target.value),
+                },
+              })
+            }
+            placeholder={"z. B. Web UI\nOrder Service"}
+          />
         </Field>
       )}
 
