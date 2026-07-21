@@ -30,6 +30,7 @@ export interface JoinRoomResult {
   payload: BoardImportPayload;
   yjsState: Uint8Array | null;
   revision: number;
+  updatedAt: string;
   isHost: boolean;
 }
 
@@ -123,7 +124,7 @@ export async function joinCollabRoom(
 
   const { data: snapRow, error: snapErr } = await sb
     .from("board_snapshots")
-    .select("snapshot, yjs_state, revision")
+    .select("snapshot, yjs_state, revision, updated_at")
     .eq("room_id", roomRow.id)
     .maybeSingle();
 
@@ -157,6 +158,8 @@ export async function joinCollabRoom(
     payload: boardSnapshotToReplacePayload(snapRow.snapshot as BoardSnapshotV1),
     yjsState,
     revision: Number(snapRow.revision) || 1,
+    updatedAt:
+      typeof snapRow.updated_at === "string" ? snapRow.updated_at : new Date(0).toISOString(),
     isHost,
   };
 }
@@ -166,38 +169,65 @@ export async function saveCollabSnapshot(args: {
   snapshot: BoardSnapshotV1;
   yjsState?: Uint8Array | null;
   revision: number;
-}): Promise<{ revision: number } | { error: string }> {
+}): Promise<
+  | { revision: number; updatedAt: string }
+  | { conflict: true; revision: number; updatedAt: string }
+  | { error: string }
+> {
   const sb = getSupabase();
   if (!sb) return { error: "Supabase nicht konfiguriert" };
 
   const nextRevision = args.revision + 1;
+  const updatedAt = new Date().toISOString();
   const update: Record<string, unknown> = {
     snapshot: args.snapshot,
     revision: nextRevision,
-    updated_at: new Date().toISOString(),
+    updated_at: updatedAt,
   };
   if (args.yjsState) {
     update.yjs_state = Array.from(args.yjsState);
   }
 
-  const { error } = await sb
+  // Optimistic lock: only write if nobody else advanced the revision.
+  const { data, error } = await sb
     .from("board_snapshots")
     .update(update)
-    .eq("room_id", args.roomId);
+    .eq("room_id", args.roomId)
+    .eq("revision", args.revision)
+    .select("revision, updated_at")
+    .maybeSingle();
 
   if (error) return { error: error.message };
 
+  if (!data) {
+    const latest = await fetchCollabSnapshot(args.roomId);
+    if ("error" in latest) return latest;
+    return {
+      conflict: true,
+      revision: latest.revision,
+      updatedAt: latest.updatedAt,
+    };
+  }
+
   await sb
     .from("rooms")
-    .update({ updated_at: new Date().toISOString() })
+    .update({ updated_at: updatedAt })
     .eq("id", args.roomId);
 
-  return { revision: nextRevision };
+  return {
+    revision: Number(data.revision) || nextRevision,
+    updatedAt: typeof data.updated_at === "string" ? data.updated_at : updatedAt,
+  };
 }
 
 /** Lightweight fetch for live sync / poll. */
 export async function fetchCollabSnapshot(roomId: string): Promise<
-  | { revision: number; payload: BoardImportPayload; yjsState: Uint8Array | null }
+  | {
+      revision: number;
+      updatedAt: string;
+      payload: BoardImportPayload;
+      yjsState: Uint8Array | null;
+    }
   | { error: string }
 > {
   const sb = getSupabase();
@@ -205,7 +235,7 @@ export async function fetchCollabSnapshot(roomId: string): Promise<
 
   const { data: snapRow, error } = await sb
     .from("board_snapshots")
-    .select("snapshot, yjs_state, revision")
+    .select("snapshot, yjs_state, revision, updated_at")
     .eq("room_id", roomId)
     .maybeSingle();
 
@@ -229,6 +259,8 @@ export async function fetchCollabSnapshot(roomId: string): Promise<
 
   return {
     revision: Number(snapRow.revision) || 1,
+    updatedAt:
+      typeof snapRow.updated_at === "string" ? snapRow.updated_at : new Date(0).toISOString(),
     payload: boardSnapshotToReplacePayload(snapRow.snapshot as BoardSnapshotV1),
     yjsState,
   };

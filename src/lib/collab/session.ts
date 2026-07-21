@@ -77,6 +77,10 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 let applyingRemote = false;
 let savingSnapshot = false;
 let storeUnsub: (() => void) | null = null;
+/** ISO timestamp of last applied/saved snapshot — pull uses this, not inflated local revision. */
+let lastAppliedUpdatedAt = "";
+/** True while local domain edits are waiting to be written. */
+let localDirty = false;
 
 function hostTokenKey(code: string): string {
   return `${HOST_TOKEN_STORAGE_KEY}:${code}`;
@@ -96,23 +100,44 @@ function clearPollTimer(): void {
   }
 }
 
-function scheduleSnapshot(roomId: string, getRevision: () => number, setRevision: (n: number) => void): void {
+function scheduleSnapshot(roomId: string, setRevision: (n: number) => void): void {
+  localDirty = true;
   clearSnapshotTimer();
   snapshotTimer = setTimeout(() => {
     void (async () => {
+      snapshotTimer = null;
       if (!doc || applyingRemote || savingSnapshot) return;
       const payload = readPayloadFromYDoc(doc) ?? boardImportPayloadFromStore();
       const snapshot = buildBoardSnapshot(payload);
       const yjsState = encodeYDocState(doc);
       savingSnapshot = true;
       try {
-        const result = await saveCollabSnapshot({
+        // Always rebase onto the server revision so local clocks can't drift ahead.
+        const latest = await fetchCollabSnapshot(roomId);
+        if ("error" in latest) return;
+        let baseRevision = latest.revision;
+
+        let result = await saveCollabSnapshot({
           roomId,
           snapshot,
           yjsState,
-          revision: getRevision(),
+          revision: baseRevision,
         });
-        if (!("error" in result)) setRevision(result.revision);
+
+        if ("conflict" in result && result.conflict) {
+          result = await saveCollabSnapshot({
+            roomId,
+            snapshot,
+            yjsState,
+            revision: result.revision,
+          });
+        }
+
+        if ("error" in result || "conflict" in result) return;
+
+        lastAppliedUpdatedAt = result.updatedAt;
+        localDirty = false;
+        setRevision(result.revision);
       } finally {
         savingSnapshot = false;
       }
@@ -157,6 +182,8 @@ function teardownSession(): void {
   doc = null;
   applyingRemote = false;
   savingSnapshot = false;
+  lastAppliedUpdatedAt = "";
+  localDirty = false;
 }
 
 /** Apply remote board without wiping local viewport / selection / undo-hostile UX. */
@@ -219,6 +246,7 @@ function applyRemoteSnapshot(
   payload: BoardImportPayload,
   revision: number,
   yjsState: Uint8Array | null,
+  updatedAt: string,
   setRevision: (n: number) => void,
 ): void {
   if (!doc) return;
@@ -233,20 +261,32 @@ function applyRemoteSnapshot(
   }
   const fromDoc = readPayloadFromYDoc(doc) ?? payload;
   applyPayloadToStore(fromDoc);
+  lastAppliedUpdatedAt = updatedAt;
+  localDirty = false;
   setRevision(revision);
 }
 
 async function pullRemoteIfNewer(
   roomId: string,
-  getRevision: () => number,
+  _getRevision: () => number,
   setRevision: (n: number) => void,
 ): Promise<void> {
-  if (applyingRemote || savingSnapshot || !doc || snapshotTimer) return;
+  if (applyingRemote || savingSnapshot || !doc) return;
   if (useStormBoardStore.getState().gestureActive) return;
+  // Don't overwrite in-flight local edits; save path will LWW afterwards.
+  if (localDirty || snapshotTimer) return;
+
   const result = await fetchCollabSnapshot(roomId);
   if ("error" in result) return;
-  if (result.revision <= getRevision()) return;
-  applyRemoteSnapshot(result.payload, result.revision, result.yjsState, setRevision);
+  // updated_at is the source of truth — local revision can drift ahead and hide peer writes.
+  if (result.updatedAt <= lastAppliedUpdatedAt) return;
+  applyRemoteSnapshot(
+    result.payload,
+    result.revision,
+    result.yjsState,
+    result.updatedAt,
+    setRevision,
+  );
 }
 
 function bindStoreToYjs(
@@ -286,7 +326,7 @@ function bindStoreToYjs(
 
     const payload = boardImportPayloadFromStore();
     applyPayloadToYDoc(doc, payload, LOCAL_ORIGIN);
-    scheduleSnapshot(roomId, () => get().revision, (n) => set({ revision: n }));
+    scheduleSnapshot(roomId, (n) => set({ revision: n }));
   });
 }
 
@@ -313,10 +353,10 @@ function startSnapshotSync(
       (payload) => {
         const row = payload.new as {
           revision?: number;
-          snapshot?: unknown;
+          updated_at?: string;
         };
-        const revision = Number(row.revision) || 0;
-        if (revision <= get().revision) return;
+        const updatedAt = typeof row.updated_at === "string" ? row.updated_at : "";
+        if (updatedAt && updatedAt <= lastAppliedUpdatedAt) return;
         void pullRemoteIfNewer(
           roomId,
           () => get().revision,
@@ -450,6 +490,8 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
     const fromDoc = readPayloadFromYDoc(activeDoc) ?? result.payload;
     applyPayloadToStore(fromDoc);
+    lastAppliedUpdatedAt = result.updatedAt;
+    localDirty = false;
 
     awareness = new Awareness(activeDoc);
     awareness.setLocalStateField("user", {
@@ -463,9 +505,8 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       if (origin === LOCAL_ORIGIN || origin === REMOTE_ORIGIN || applyingRemote) return;
       const payload = readPayloadFromYDoc(activeDoc);
       if (!payload) return;
+      // Fast path via Broadcast — do not mark dirty / save (sender persists the snapshot).
       applyPayloadToStore(payload);
-      // Peer Yjs update: also persist so poll/postgres peers converge
-      scheduleSnapshot(result.room.id, () => get().revision, (n) => set({ revision: n }));
     });
 
     provider = new SupabaseYjsProvider({
