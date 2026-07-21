@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import { elementDimensions, defaultLabelForType } from "@/lib/element-styles";
 import { defaultRelationType } from "@/lib/relation-validation";
+import { applyContainmentAssignments } from "@/lib/region-containment";
 import { generateStormId } from "@/lib/storm-id";
 import type { BoardImportPayload } from "@/lib/storm-json";
 import {
@@ -361,7 +362,28 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   closeContextMenu: () => set({ contextMenu: null }),
 
   beginGesture: () => set({ gestureActive: true, gestureSnapshotTaken: false }),
-  endGesture: () => set({ gestureActive: false, gestureSnapshotTaken: false }),
+  endGesture: () => {
+    const s = get();
+    const elements = applyContainmentAssignments(s.elements, s.swimlanes, s.boundedContexts);
+    // Fold assignment into the open gesture snapshot (one Undo for move + Zuordnung).
+    if (s.gestureActive && s.gestureSnapshotTaken) {
+      set({
+        elements,
+        gestureActive: false,
+        gestureSnapshotTaken: false,
+      });
+      return;
+    }
+    if (elements !== s.elements) {
+      commit(set, get, () => ({
+        elements,
+        gestureActive: false,
+        gestureSnapshotTaken: false,
+      }));
+      return;
+    }
+    set({ gestureActive: false, gestureSnapshotTaken: false });
+  },
 
   undo: () => {
     const s = get();
@@ -404,17 +426,34 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
 
   addElement: (type, x, y, label) => {
     const el = createElement(type, x, y, label);
-    commit(set, get, (s) => ({
-      elements: [...s.elements, el],
-      selectedElementIds: [el.id],
-    }));
+    commit(set, get, (s) => {
+      const elements = applyContainmentAssignments(
+        [...s.elements, el],
+        s.swimlanes,
+        s.boundedContexts,
+      );
+      return {
+        elements,
+        selectedElementIds: [el.id],
+      };
+    });
     return el.id;
   },
 
   updateElement: (id, patch) =>
-    commit(set, get, (s) => ({
-      elements: s.elements.map((e) => (e.id === id ? { ...e, ...patch, id: e.id } : e)),
-    })),
+    commit(set, get, (s) => {
+      const elements = s.elements.map((e) => (e.id === id ? { ...e, ...patch, id: e.id } : e));
+      const geometryChanged =
+        patch.x !== undefined ||
+        patch.y !== undefined ||
+        patch.width !== undefined ||
+        patch.height !== undefined;
+      return {
+        elements: geometryChanged
+          ? applyContainmentAssignments(elements, s.swimlanes, s.boundedContexts)
+          : elements,
+      };
+    }),
 
   deleteElement: (id) =>
     commit(set, get, (s) => ({
@@ -444,13 +483,14 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => {
       if (updates.length === 0) return {};
       const byId = new Map(updates.map((u) => [u.id, u]));
+      const elements = s.elements.map((e) => {
+        const u = byId.get(e.id);
+        if (!u) return e;
+        const { id: _id, ...patch } = u;
+        return { ...e, ...patch, id: e.id };
+      });
       return {
-        elements: s.elements.map((e) => {
-          const u = byId.get(e.id);
-          if (!u) return e;
-          const { id: _id, ...patch } = u;
-          return { ...e, ...patch, id: e.id };
-        }),
+        elements: applyContainmentAssignments(elements, s.swimlanes, s.boundedContexts),
       };
     }),
 
@@ -572,10 +612,14 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       width: 1200,
       height: 160,
     };
-    commit(set, get, (s) => ({
-      swimlanes: [...s.swimlanes, lane],
-      selectedSwimlaneId: id,
-    }));
+    commit(set, get, (s) => {
+      const swimlanes = [...s.swimlanes, lane];
+      return {
+        swimlanes,
+        selectedSwimlaneId: id,
+        elements: applyContainmentAssignments(s.elements, swimlanes, s.boundedContexts),
+      };
+    });
     return id;
   },
 
@@ -604,7 +648,13 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       height,
       color: "#dbeafe",
     };
-    commit(set, get, (s) => ({ boundedContexts: [...s.boundedContexts, bc] }));
+    commit(set, get, (s) => {
+      const boundedContexts = [...s.boundedContexts, bc];
+      return {
+        boundedContexts,
+        elements: applyContainmentAssignments(s.elements, s.swimlanes, boundedContexts),
+      };
+    });
     return id;
   },
 

@@ -51,7 +51,7 @@ Alle Typen sind in der Palette wählbar (im Facilitator-Modus phasenweise einges
 
 - Label, Beschreibung  
 - Position und Größe (Ziehen, Anfasser, Zahlen in der rechten Leiste)  
-- Zuordnung zu Swimlane / Bounded Context (Rechtsklick)  
+- Zuordnung zu Swimlane / Bounded Context (automatisch bei Umschließung; Rechtsklick weiter möglich)   
 - „Wiederkehrend“ (Rechtsklick)  
 - **Domain Event / Aggregate:** Event-Schema (Werte-Editor oder Raw-JSON)  
 - **Aggregate:** Methodenliste  
@@ -110,7 +110,8 @@ Methodisch: chronologische Achse links → rechts für Domain Events.
 
 - Anlegen über Toolbar  
 - Verschieben und in der Größe ändern (wie Bounded Contexts)  
-- Elemente manuell zuordnen (Rechtsklick)  
+- Elemente werden **automatisch zugeordnet**, wenn sie vollständig in der Lane liegen (und wieder entfernt, wenn nicht mehr vollständig drin)  
+- Manuelle Zuordnung weiterhin per Rechtsklick möglich  
 
 Methodisch: parallele Akteure / Streams / Verantwortlichkeiten.
 
@@ -118,7 +119,8 @@ Methodisch: parallele Akteure / Streams / Verantwortlichkeiten.
 
 - Rechteck auf der Fläche zeichnen („Bounded Context“-Modus)  
 - Verschieben, skalieren, Label, Zweck, Farbe  
-- Elemente manuell zuordnen  
+- Elemente werden **automatisch zugeordnet** bei vollständiger Umschließung (bei überlappenden BCs: der kleinste)  
+- Manuelle Zuordnung weiterhin per Rechtsklick  
 - **Context Map:** Toolbar-Button → zwei BCs anklicken; Muster (ACL, Shared Kernel, Customer/Supplier, …) per Rechtsklick auf die Linie  
 
 Methodisch: Cluster nach Sprache und Verantwortung; Context-Map-Muster modellieren die Schnittstellen zwischen Contexts.
@@ -201,7 +203,7 @@ Legende: ✅ vorhanden · 🟡 teilweise · ❌ fehlt / bewusst nicht
 | Domain Events sammeln (Chaotic Exploration) | ✅ | Orange Stickies, Facilitator-Phase |
 | Past Tense / Event-Formulierung | 🟡 | Hilfe + Soft-Validierung |
 | Chronologische Timeline | ✅ | Timeline + Snap |
-| Parallele Ströme | 🟡 | Swimlanes (manuelle Zuordnung) |
+| Parallele Ströme | ✅ | Swimlanes (Auto-Zuordnung bei Umschließung) |
 | Commands | ✅ | Blaue Stickies |
 | Actors / Personas | ✅ | Actor-Stickies |
 | Policies | ✅ | Lila Stickies |
@@ -219,7 +221,7 @@ Legende: ✅ vorhanden · 🟡 teilweise · ❌ fehlt / bewusst nicht
 | Feiner Prozess entlang der Timeline | ✅ | Canvas + Process-Modeling-Format |
 | Policies zwischen Events und Commands | ✅ | Typ + Relation `reactsWith` |
 | Pivotal Events als Phasengrenzen | ✅ | Typ + Facilitator-Checklisten |
-| Swimlanes für Akteure/Systeme | 🟡 | Vorhanden, keine Auto-Erkennung |
+| Swimlanes für Akteure/Systeme | ✅ | Auto-Zuordnung bei vollständiger Umschließung |
 
 ### Software Design / DDD-Anschluss
 
@@ -296,6 +298,6 @@ Persistenz-Muster angelehnt an [T2](https://github.com/abx-git/T2).
 
 E2 deckt den **Kern von Event Storming** ab: alle gängigen Sticky-Typen, Relationen, Timeline, Swimlanes, Bounded Contexts, Hotspots, Glossary sowie geführte Workshop-Phasen (Big Picture → Process → Design) inklusive Soft-Validierung und Exporten für Übergabe.
 
-**Bewusst oder noch schwach:** Echtzeit-Kollaboration (optional via Supabase — siehe [`docs/COLLABORATION.md`](docs/COLLABORATION.md)) und automatische räumliche Zuordnung zu Lanes/Contexts.
+**Bewusst oder noch schwach:** Echtzeit-Kollaboration (optional via Supabase — siehe [`docs/COLLABORATION.md`](docs/COLLABORATION.md)); räumliche Zuordnung zu Lanes/Contexts erfolgt jetzt automatisch bei vollständiger Umschließung.
 
 Wenn du Lücken priorisieren willst, sind die methodisch größten Hebel typischerweise: **Glossary-Bindung** und Auto-Zuordnung.
