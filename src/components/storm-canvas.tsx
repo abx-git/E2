@@ -22,11 +22,35 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return tag === "input" || tag === "textarea" || Boolean(el?.isContentEditable);
 }
 
+function shouldIgnoreSpaceForPan(target: EventTarget | null): boolean {
+  if (isTypingTarget(target)) return true;
+  const el = target as HTMLElement | null;
+  if (!el?.closest) return false;
+  return Boolean(
+    el.closest("button, a, input, textarea, select, [role='dialog'], [data-canvas-chrome]"),
+  );
+}
+
+function wheelDeltaPixels(e: WheelEvent, fallbackLine = 16): { dx: number; dy: number } {
+  let dx = e.deltaX;
+  let dy = e.deltaY;
+  if (e.deltaMode === 1) {
+    dx *= fallbackLine;
+    dy *= fallbackLine;
+  } else if (e.deltaMode === 2) {
+    dx *= window.innerWidth;
+    dy *= window.innerHeight;
+  }
+  return { dx, dy };
+}
+
 export function StormCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [panning, setPanning] = useState(false);
+  const [spaceHeld, setSpaceHeld] = useState(false);
   const panStart = useRef({ x: 0, y: 0, vx: 0, vy: 0 });
   const spaceDown = useRef(false);
+  const panningRef = useRef(false);
 
   const viewport = useStormBoardStore((s) => s.viewport);
   const setViewport = useStormBoardStore((s) => s.setViewport);
@@ -153,16 +177,85 @@ export function StormCanvas() {
     contextMapMode,
   ]);
 
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      if (!containerRef.current) return;
+  // Space for pan: window-level so it works without canvas focus and over stickies.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code !== "Space" || shouldIgnoreSpaceForPan(e.target)) return;
+      if (e.repeat) {
+        e.preventDefault();
+        return;
+      }
       e.preventDefault();
-      const delta = e.deltaY > 0 ? -0.08 : 0.08;
-      const rect = containerRef.current.getBoundingClientRect();
-      setViewport(zoomAtPoint(viewport, delta, e.clientX, e.clientY, rect));
+      spaceDown.current = true;
+      setSpaceHeld(true);
+    };
+    const clearSpace = () => {
+      spaceDown.current = false;
+      setSpaceHeld(false);
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "Space") clearSpace();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", clearSpace);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", clearSpace);
+    };
+  }, []);
+
+  // Trackpad: two-finger scroll pans; pinch (ctrlKey) / ⌘+scroll zooms.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const vp = useStormBoardStore.getState().viewport;
+      const setVp = useStormBoardStore.getState().setViewport;
+      if (e.ctrlKey || e.metaKey) {
+        const { dy } = wheelDeltaPixels(e);
+        const zoomDelta = e.deltaMode === 0 ? -dy * 0.01 : dy > 0 ? -0.08 : 0.08;
+        const rect = el.getBoundingClientRect();
+        setVp(zoomAtPoint(vp, zoomDelta, e.clientX, e.clientY, rect));
+        return;
+      }
+      const { dx, dy } = wheelDeltaPixels(e);
+      setVp({ ...vp, x: vp.x - dx, y: vp.y - dy });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const beginPan = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const vp = useStormBoardStore.getState().viewport;
+      panningRef.current = true;
+      setPanning(true);
+      panStart.current = { x: e.clientX, y: e.clientY, vx: vp.x, vy: vp.y };
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
     },
-    [viewport, setViewport],
+    [],
   );
+
+  const endPan = useCallback((e?: React.PointerEvent) => {
+    panningRef.current = false;
+    setPanning(false);
+    if (e && e.currentTarget instanceof HTMLElement && e.currentTarget.hasPointerCapture(e.pointerId)) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
+  }, []);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (!containerRef.current || bcMode || relationMode || contextMapMode) return;
@@ -291,8 +384,10 @@ export function StormCanvas() {
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 overflow-hidden bg-canvas"
-      onWheel={handleWheel}
+      className={[
+        "absolute inset-0 overflow-hidden bg-canvas outline-none",
+        spaceHeld || panning ? (panning ? "cursor-grabbing" : "cursor-grab") : "",
+      ].join(" ")}
       onContextMenu={(e) => {
         // Chrome/UI chrome (bottom dock) keeps its own menu behavior.
         if ((e.target as Element | null)?.closest?.("[data-canvas-chrome]")) return;
@@ -307,13 +402,15 @@ export function StormCanvas() {
           worldY: world.y,
         });
       }}
+      onPointerDownCapture={(e) => {
+        // Capture phase: pan works over stickies (children stopPropagation on bubble).
+        if (e.button === 1 || (e.button === 0 && spaceDown.current)) {
+          beginPan(e);
+        }
+      }}
       onPointerDown={(e) => {
         useStormBoardStore.getState().closeContextMenu();
-        if (e.button === 1 || spaceDown.current) {
-          setPanning(true);
-          panStart.current = { x: e.clientX, y: e.clientY, vx: viewport.x, vy: viewport.y };
-          return;
-        }
+        if (panningRef.current || e.button === 1 || (e.button === 0 && spaceDown.current)) return;
         if (e.button !== 0) return;
         if (bcMode) {
           const world = worldFromClient(e.clientX, e.clientY);
@@ -328,10 +425,14 @@ export function StormCanvas() {
         startMarquee(e.clientX, e.clientY, e.shiftKey);
       }}
       onPointerMove={(e) => {
-        if (panning) {
+        if (panningRef.current) {
           const dx = e.clientX - panStart.current.x;
           const dy = e.clientY - panStart.current.y;
-          setViewport({ ...viewport, x: panStart.current.vx + dx, y: panStart.current.vy + dy });
+          setViewport({
+            ...useStormBoardStore.getState().viewport,
+            x: panStart.current.vx + dx,
+            y: panStart.current.vy + dy,
+          });
         }
         if (bcMode && bcStart.current) {
           const world = worldFromClient(e.clientX, e.clientY);
@@ -346,21 +447,20 @@ export function StormCanvas() {
           });
         }
       }}
-      onPointerUp={() => {
-        setPanning(false);
+      onPointerUp={(e) => {
+        if (panningRef.current) endPan(e);
         if (bcMode && bcDraft && bcDraft.w > 40 && bcDraft.h > 40) {
           addBoundedContext(bcDraft.x, bcDraft.y, bcDraft.w, bcDraft.h);
         }
         bcStart.current = null;
         setBcDraft(null);
       }}
+      onPointerCancel={(e) => {
+        if (panningRef.current) endPan(e);
+        bcStart.current = null;
+        setBcDraft(null);
+      }}
       onDoubleClick={handleDoubleClick}
-      onKeyDown={(e) => {
-        if (e.code === "Space") spaceDown.current = true;
-      }}
-      onKeyUp={(e) => {
-        if (e.code === "Space") spaceDown.current = false;
-      }}
       tabIndex={0}
     >
       {relationMode && (
@@ -492,7 +592,7 @@ export function StormCanvas() {
             ? "Verbinden · Esc: Abbrechen"
             : contextMapMode
               ? "Context Map · Esc: Abbrechen"
-              : "1–9/0 Typ · Enter/A anlegen · Rechtsklick · Rahmen · Doppelklick: Titel"}
+              : "1–9/0 Typ · Leertaste+Ziehen / Trackpad: Pan · Rechtsklick · Rahmen"}
         </span>
       </div>
     </div>

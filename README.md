@@ -87,8 +87,8 @@ Der Relationstyp wird beim Verbinden **heuristisch vorgeschlagen** und kann per 
 
 ### Navigation & Auswahl
 
-- **Pan:** mittlere Maustaste oder Leertaste + Ziehen  
-- **Zoom:** Mausrad, ± in der Toolbar (ca. 25 %–250 %)  
+- **Pan:** Trackpad-Scroll, Leertaste + Ziehen, oder mittlere Maustaste  
+- **Zoom:** Pinch / Ctrl+Scroll (⌘+Scroll), ± in der Toolbar (ca. 25 %–250 %)
 - **Auswahl:** Klick, Shift+Klick, Rahmen ziehen (Marquee)  
 - **Verschieben:** ein Element oder die Mehrfachauswahl  
 - **Größe:** acht Anfasser am ausgewählten Element  
