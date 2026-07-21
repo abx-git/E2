@@ -7,6 +7,8 @@ import {
   removeAwarenessStates,
 } from "y-protocols/awareness";
 
+import { REMOTE_ORIGIN } from "@/lib/collab/yjs-board";
+
 type Status = "connecting" | "connected" | "disconnected";
 
 export interface SupabaseYjsProviderOptions {
@@ -34,10 +36,14 @@ function base64ToBytes(b64: string): Uint8Array {
   return out;
 }
 
-function payloadToBytes(payload: { b64?: string; bytes?: number[] } | null | undefined): Uint8Array {
-  if (!payload) return new Uint8Array();
-  if (typeof payload.b64 === "string" && payload.b64) return base64ToBytes(payload.b64);
-  if (Array.isArray(payload.bytes)) return Uint8Array.from(payload.bytes);
+function payloadToBytes(payload: unknown): Uint8Array {
+  if (!payload || typeof payload !== "object") return new Uint8Array();
+  const p = payload as { b64?: string; bytes?: number[]; payload?: { b64?: string; bytes?: number[] } };
+  // Some Realtime versions nest once more under .payload
+  const inner = p.b64 || p.bytes ? p : p.payload;
+  if (!inner) return new Uint8Array();
+  if (typeof inner.b64 === "string" && inner.b64) return base64ToBytes(inner.b64);
+  if (Array.isArray(inner.bytes)) return Uint8Array.from(inner.bytes);
   return new Uint8Array();
 }
 
@@ -69,7 +75,7 @@ export class SupabaseYjsProvider {
     this.onError = opts.onError;
 
     this.docUpdateHandler = (update, origin) => {
-      if (origin === this || this.destroyed) return;
+      if (origin === this || origin === REMOTE_ORIGIN || this.destroyed) return;
       this.broadcast("update", update);
     };
     this.doc.on("update", this.docUpdateHandler);
@@ -86,7 +92,17 @@ export class SupabaseYjsProvider {
 
   async connect(): Promise<void> {
     this.onStatus?.("connecting");
-    const channelName = `board-room:${this.roomCode}`;
+
+    // Realtime often needs an explicit JWT after anonymous sign-in.
+    const { data: sessionData } = await this.supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (token) {
+      await this.supabase.realtime.setAuth(token);
+    } else {
+      await this.supabase.realtime.setAuth();
+    }
+
+    const channelName = `board-room:${this.roomCode.toUpperCase()}`;
     this.channel = this.supabase.channel(channelName, {
       config: {
         broadcast: { self: false, ack: false },

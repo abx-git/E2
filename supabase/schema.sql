@@ -79,5 +79,7 @@ create policy "snapshots_update" on public.board_snapshots
     )
   );
 
--- Realtime: enable broadcast for private channels via client (no table replication required).
--- In Dashboard: Database → Replication not needed for Broadcast-only sync.
+-- Realtime Broadcast needs no table replication.
+-- For live board sync via postgres_changes, add the snapshot table to the publication:
+alter publication supabase_realtime add table public.board_snapshots;
+-- If you see "already member of publication", the line above can be ignored.

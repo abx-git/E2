@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import * as Y from "yjs";
 import { Awareness } from "y-protocols/awareness";
 
@@ -9,9 +10,11 @@ import {
   HOST_TOKEN_STORAGE_KEY,
   isCollabConfigured,
   SNAPSHOT_DEBOUNCE_MS,
+  SNAPSHOT_POLL_MS,
 } from "@/lib/collab/config";
 import {
   createCollabRoom,
+  fetchCollabSnapshot,
   joinCollabRoom,
   saveCollabSnapshot,
   type CollabRoom,
@@ -24,6 +27,7 @@ import {
   createBoardYDoc,
   encodeYDocState,
   LOCAL_ORIGIN,
+  REMOTE_ORIGIN,
   readPayloadFromYDoc,
 } from "@/lib/collab/yjs-board";
 import { buildBoardSnapshot, type BoardImportPayload } from "@/lib/storm-json";
@@ -67,8 +71,11 @@ interface CollabState {
 let doc: Y.Doc | null = null;
 let awareness: Awareness | null = null;
 let provider: SupabaseYjsProvider | null = null;
+let snapshotChannel: RealtimeChannel | null = null;
 let snapshotTimer: ReturnType<typeof setTimeout> | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
 let applyingRemote = false;
+let savingSnapshot = false;
 let storeUnsub: (() => void) | null = null;
 
 function hostTokenKey(code: string): string {
@@ -82,22 +89,33 @@ function clearSnapshotTimer(): void {
   }
 }
 
+function clearPollTimer(): void {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
 function scheduleSnapshot(roomId: string, getRevision: () => number, setRevision: (n: number) => void): void {
   clearSnapshotTimer();
   snapshotTimer = setTimeout(() => {
     void (async () => {
-      if (!doc) return;
-      const payload = readPayloadFromYDoc(doc);
-      if (!payload) return;
+      if (!doc || applyingRemote || savingSnapshot) return;
+      const payload = readPayloadFromYDoc(doc) ?? boardImportPayloadFromStore();
       const snapshot = buildBoardSnapshot(payload);
       const yjsState = encodeYDocState(doc);
-      const result = await saveCollabSnapshot({
-        roomId,
-        snapshot,
-        yjsState,
-        revision: getRevision(),
-      });
-      if (!("error" in result)) setRevision(result.revision);
+      savingSnapshot = true;
+      try {
+        const result = await saveCollabSnapshot({
+          roomId,
+          snapshot,
+          yjsState,
+          revision: getRevision(),
+        });
+        if (!("error" in result)) setRevision(result.revision);
+      } finally {
+        savingSnapshot = false;
+      }
     })();
   }, SNAPSHOT_DEBOUNCE_MS);
 }
@@ -123,8 +141,14 @@ function syncPeers(set: (p: Partial<CollabState>) => void): void {
 
 function teardownSession(): void {
   clearSnapshotTimer();
+  clearPollTimer();
   storeUnsub?.();
   storeUnsub = null;
+  if (snapshotChannel) {
+    const sb = getSupabase();
+    if (sb) void sb.removeChannel(snapshotChannel);
+    snapshotChannel = null;
+  }
   provider?.destroy();
   provider = null;
   awareness?.destroy();
@@ -132,17 +156,97 @@ function teardownSession(): void {
   doc?.destroy();
   doc = null;
   applyingRemote = false;
+  savingSnapshot = false;
 }
 
+/** Apply remote board without wiping local viewport / selection / undo-hostile UX. */
 function applyPayloadToStore(payload: BoardImportPayload): void {
   applyingRemote = true;
   try {
-    useStormBoardStore.getState().replaceBoardFromImport(payload);
-    // Avoid bloating undo with remote joins: clear history after remote apply
-    useStormBoardStore.setState({ past: [], future: [] });
+    const current = useStormBoardStore.getState();
+    const elementIds = new Set(payload.elements.map((e) => e.id));
+    const relationIds = new Set(payload.relations.map((r) => r.id));
+    const contextRelationIds = new Set((payload.contextRelations ?? []).map((r) => r.id));
+    const swimlaneIds = new Set(payload.swimlanes.map((s) => s.id));
+    const bcIds = new Set(payload.boundedContexts.map((b) => b.id));
+
+    useStormBoardStore.setState({
+      title: payload.title,
+      workshopFormat: payload.workshopFormat,
+      facilitatorEnabled: payload.facilitatorEnabled,
+      facilitatorPhase: payload.facilitatorPhase,
+      elements: payload.elements,
+      relations: payload.relations,
+      contextRelations: payload.contextRelations ?? [],
+      swimlanes: payload.swimlanes,
+      boundedContexts: payload.boundedContexts,
+      timeline: payload.timeline,
+      // Keep local camera — collaborators shouldn't steal pan/zoom.
+      viewport: current.viewport,
+      glossary: payload.glossary,
+      appearance: payload.appearance,
+      snapToTimeline: payload.snapToTimeline,
+      snapToGrid: payload.snapToGrid,
+      selectedElementIds: current.selectedElementIds.filter((id) => elementIds.has(id)),
+      selectedRelationId:
+        current.selectedRelationId && relationIds.has(current.selectedRelationId)
+          ? current.selectedRelationId
+          : null,
+      selectedContextRelationId:
+        current.selectedContextRelationId &&
+        contextRelationIds.has(current.selectedContextRelationId)
+          ? current.selectedContextRelationId
+          : null,
+      selectedSwimlaneId:
+        current.selectedSwimlaneId && swimlaneIds.has(current.selectedSwimlaneId)
+          ? current.selectedSwimlaneId
+          : null,
+      selectedBoundedContextId:
+        current.selectedBoundedContextId && bcIds.has(current.selectedBoundedContextId)
+          ? current.selectedBoundedContextId
+          : null,
+      past: [],
+      future: [],
+      gestureActive: false,
+      gestureSnapshotTaken: false,
+    });
   } finally {
     applyingRemote = false;
   }
+}
+
+function applyRemoteSnapshot(
+  payload: BoardImportPayload,
+  revision: number,
+  yjsState: Uint8Array | null,
+  setRevision: (n: number) => void,
+): void {
+  if (!doc) return;
+  if (yjsState && yjsState.byteLength > 0) {
+    try {
+      applyYDocState(doc, yjsState, REMOTE_ORIGIN);
+    } catch {
+      applyPayloadToYDoc(doc, payload, REMOTE_ORIGIN);
+    }
+  } else {
+    applyPayloadToYDoc(doc, payload, REMOTE_ORIGIN);
+  }
+  const fromDoc = readPayloadFromYDoc(doc) ?? payload;
+  applyPayloadToStore(fromDoc);
+  setRevision(revision);
+}
+
+async function pullRemoteIfNewer(
+  roomId: string,
+  getRevision: () => number,
+  setRevision: (n: number) => void,
+): Promise<void> {
+  if (applyingRemote || savingSnapshot || !doc || snapshotTimer) return;
+  if (useStormBoardStore.getState().gestureActive) return;
+  const result = await fetchCollabSnapshot(roomId);
+  if ("error" in result) return;
+  if (result.revision <= getRevision()) return;
+  applyRemoteSnapshot(result.payload, result.revision, result.yjsState, setRevision);
 }
 
 function bindStoreToYjs(
@@ -184,6 +288,53 @@ function bindStoreToYjs(
     applyPayloadToYDoc(doc, payload, LOCAL_ORIGIN);
     scheduleSnapshot(roomId, () => get().revision, (n) => set({ revision: n }));
   });
+}
+
+function startSnapshotSync(
+  roomId: string,
+  get: () => CollabState,
+  set: (p: Partial<CollabState>) => void,
+): void {
+  clearPollTimer();
+  const sb = getSupabase();
+  if (!sb) return;
+
+  // Primary reliable path: listen to Postgres row updates (same data reload uses).
+  snapshotChannel = sb
+    .channel(`snapshot-row:${roomId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "board_snapshots",
+        filter: `room_id=eq.${roomId}`,
+      },
+      (payload) => {
+        const row = payload.new as {
+          revision?: number;
+          snapshot?: unknown;
+        };
+        const revision = Number(row.revision) || 0;
+        if (revision <= get().revision) return;
+        void pullRemoteIfNewer(
+          roomId,
+          () => get().revision,
+          (n) => set({ revision: n }),
+        );
+      },
+    )
+    .subscribe();
+
+  // Fallback: poll — works even if table is not in supabase_realtime publication.
+  pollTimer = setInterval(() => {
+    if (!get().active) return;
+    void pullRemoteIfNewer(
+      roomId,
+      () => get().revision,
+      (n) => set({ revision: n }),
+    );
+  }, SNAPSHOT_POLL_MS);
 }
 
 export const useCollabStore = create<CollabState>((set, get) => ({
@@ -281,6 +432,9 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
     const { data: sessionData } = await sb.auth.getSession();
     const userId = sessionData.session?.user?.id ?? "anon";
+    if (sessionData.session?.access_token) {
+      await sb.realtime.setAuth(sessionData.session.access_token);
+    }
 
     doc = createBoardYDoc();
     const activeDoc = doc;
@@ -306,10 +460,11 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     awareness.on("change", () => syncPeers(set));
 
     activeDoc.on("update", (_u, origin) => {
-      if (origin === LOCAL_ORIGIN || applyingRemote) return;
+      if (origin === LOCAL_ORIGIN || origin === REMOTE_ORIGIN || applyingRemote) return;
       const payload = readPayloadFromYDoc(activeDoc);
       if (!payload) return;
       applyPayloadToStore(payload);
+      // Peer Yjs update: also persist so poll/postgres peers converge
       scheduleSnapshot(result.room.id, () => get().revision, (n) => set({ revision: n }));
     });
 
@@ -324,6 +479,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
         else set({ status: "connecting" });
       },
       onError: (message) => {
+        // Don't fail the room for broadcast issues — snapshot poll keeps content in sync.
         set({ error: message });
       },
     });
@@ -331,17 +487,15 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     try {
       await provider.connect();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Realtime-Verbindung fehlgeschlagen";
-      set({ connecting: false, status: "error", error: msg, active: false });
-      teardownSession();
-      return { ok: false, error: msg };
+      // Broadcast may fail on some projects; continue with snapshot sync.
+      const msg = e instanceof Error ? e.message : "Realtime-Broadcast eingeschränkt";
+      set({ error: msg, status: "connected" });
     }
 
     set({
       active: true,
       connecting: false,
       status: "connected",
-      error: null,
       room: result.room,
       isHost: result.isHost,
       displayName: name,
@@ -350,8 +504,8 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     });
     syncPeers(set);
     bindStoreToYjs(result.room.id, get, set);
+    startSnapshotSync(result.room.id, get, set);
 
-    // Update URL without reload
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       url.searchParams.set("room", result.room.code);

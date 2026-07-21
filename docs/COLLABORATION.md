@@ -5,15 +5,16 @@ Optionaler Live-Modus parallel zur lokalen `.storm.json`. Ohne Env-Vars verhält
 ## Architektur
 
 - **Persistenz:** Supabase Postgres (`rooms`, `board_snapshots`)
-- **Live-Sync:** Yjs CRDT über Supabase Realtime Broadcast
+- **Live-Sync (Inhalt):** Snapshot in Postgres — Realtime `postgres_changes` + Polling-Fallback (~1,5 s). Reload/Join lesen denselben Stand.
+- **Live-Sync (optional schnell):** Yjs CRDT über Supabase Realtime Broadcast (Presence/Awareness; Inhalt zusätzlich)
 - **Presence:** Yjs Awareness (Name, Farbe)
-- **Auth:** Anonymous Supabase Auth beim Join
+- **Auth:** Anonymous Supabase Auth beim Join; Realtime erhält den JWT via `setAuth`
 - **Deploy:** weiterhin statische GitHub Pages — nur `NEXT_PUBLIC_*` Keys im Client; **RLS ist Pflicht**
 
 ```text
-Browser  ↔  Yjs Doc  ↔  Realtime Channel (room:<code>)
-                ↕
-         debounced Snapshot → Postgres
+Browser  ↔  Board-Store  ↔  debounced Snapshot → Postgres
+                ↕                    ↕
+         Yjs (Presence)     postgres_changes / Poll → Peers
 ```
 
 ## Setup (Supabase Free Project)
@@ -22,7 +23,8 @@ Browser  ↔  Yjs Doc  ↔  Realtime Channel (room:<code>)
 2. SQL aus [`supabase/schema.sql`](../supabase/schema.sql) im SQL Editor ausführen  
    (**SQL → New query** → Dateiinhalt einfügen → **Run**).  
    Danach sollten die Tabellen `rooms` und `board_snapshots` unter **Table Editor** sichtbar sein.  
-   Fehler *„Could not find the table 'public.rooms'“* = Schema noch nicht angewendet.
+   Fehler *„Could not find the table 'public.rooms'“* = Schema noch nicht angewendet.  
+   Am Ende der Datei steht `alter publication supabase_realtime add table …` — für Live-Updates ohne Polling nötig (wenn „already member“, ignorieren).
 3. **Authentication → Providers → Anonymous** aktivieren  
    (Dashboard: **Authentication → Sign In / Providers → Anonymous Sign-Ins → Enable**).  
    Ohne diesen Schalter meldet die App: *„Anonymous sign-ins are disabled“*.

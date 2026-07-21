@@ -75,8 +75,8 @@ export function encodeYDocState(doc: Y.Doc): Uint8Array {
   return Y.encodeStateAsUpdate(doc);
 }
 
-export function applyYDocState(doc: Y.Doc, update: Uint8Array): void {
-  Y.applyUpdate(doc, update);
+export function applyYDocState(doc: Y.Doc, update: Uint8Array, origin?: unknown): void {
+  Y.applyUpdate(doc, update, origin);
 }
 
 export const LOCAL_ORIGIN = "local";

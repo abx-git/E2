@@ -195,6 +195,45 @@ export async function saveCollabSnapshot(args: {
   return { revision: nextRevision };
 }
 
+/** Lightweight fetch for live sync / poll. */
+export async function fetchCollabSnapshot(roomId: string): Promise<
+  | { revision: number; payload: BoardImportPayload; yjsState: Uint8Array | null }
+  | { error: string }
+> {
+  const sb = getSupabase();
+  if (!sb) return { error: "Supabase nicht konfiguriert" };
+
+  const { data: snapRow, error } = await sb
+    .from("board_snapshots")
+    .select("snapshot, yjs_state, revision")
+    .eq("room_id", roomId)
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  if (!snapRow?.snapshot || !isBoardSnapshot(snapRow.snapshot)) {
+    return { error: "Kein gültiger Board-Snapshot im Raum" };
+  }
+
+  let yjsState: Uint8Array | null = null;
+  if (snapRow.yjs_state) {
+    const raw = snapRow.yjs_state as string | Uint8Array;
+    if (typeof raw === "string") {
+      const hex = raw.startsWith("\\x") ? raw.slice(2) : raw;
+      if (/^[0-9a-fA-F]+$/.test(hex) && hex.length % 2 === 0) {
+        yjsState = new Uint8Array(hex.match(/.{1,2}/g)!.map((b) => parseInt(b, 16)));
+      }
+    } else if (raw instanceof Uint8Array) {
+      yjsState = raw;
+    }
+  }
+
+  return {
+    revision: Number(snapRow.revision) || 1,
+    payload: boardSnapshotToReplacePayload(snapRow.snapshot as BoardSnapshotV1),
+    yjsState,
+  };
+}
+
 export async function verifyHostToken(roomId: string, hostToken: string): Promise<boolean> {
   const sb = getSupabase();
   if (!sb) return false;

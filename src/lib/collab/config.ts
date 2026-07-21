@@ -100,7 +100,10 @@ export function getLocalSupabaseConnectionDraft(): SupabaseConnection {
 
 export const ROOM_CODE_LENGTH = 6;
 export const ROOM_TTL_DAYS = 14;
-export const SNAPSHOT_DEBOUNCE_MS = 4000;
+/** Debounce before writing board snapshot to Postgres (live peers poll/subscribe this). */
+export const SNAPSHOT_DEBOUNCE_MS = 700;
+/** Fallback poll when Realtime Broadcast / postgres_changes is unavailable. */
+export const SNAPSHOT_POLL_MS = 1500;
 export const HOST_TOKEN_STORAGE_KEY = "e2-collab-host-token";
 export const DISPLAY_NAME_STORAGE_KEY = "e2-collab-display-name";
 
