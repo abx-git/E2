@@ -200,6 +200,7 @@ function applyPayloadToStore(payload: BoardImportPayload): void {
 
     useStormBoardStore.setState({
       title: payload.title,
+      modelingMode: payload.modelingMode,
       workshopFormat: payload.workshopFormat,
       facilitatorEnabled: payload.facilitatorEnabled,
       facilitatorPhase: payload.facilitatorPhase,
@@ -318,6 +319,7 @@ function bindStoreToYjs(
       state.glossary !== prev.glossary ||
       state.appearance !== prev.appearance ||
       state.workshopFormat !== prev.workshopFormat ||
+      state.modelingMode !== prev.modelingMode ||
       state.facilitatorEnabled !== prev.facilitatorEnabled ||
       state.facilitatorPhase !== prev.facilitatorPhase ||
       state.snapToTimeline !== prev.snapToTimeline ||

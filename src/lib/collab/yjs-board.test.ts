@@ -22,6 +22,7 @@ import type { BoardImportPayload } from "@/lib/storm-json";
 
 const sample: BoardImportPayload = {
   title: "Collab Test",
+  modelingMode: "eventStorming",
   workshopFormat: "free",
   facilitatorEnabled: false,
   facilitatorPhase: 0,

@@ -15,16 +15,25 @@ export interface ElementPaletteProps {
 export function ElementPalette({ onSelectType, onRequestHelp }: ElementPaletteProps) {
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const setPaletteType = useStormBoardStore((s) => s.setPaletteType);
+  const modelingMode = useStormBoardStore((s) => s.modelingMode);
   const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
   const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
   const facilitatorPhase = useStormBoardStore((s) => s.facilitatorPhase);
 
-  const allowed = getAllowedTypesForPhase(workshopFormat, facilitatorPhase, facilitatorEnabled);
+  const allowed = getAllowedTypesForPhase(
+    modelingMode,
+    workshopFormat,
+    facilitatorPhase,
+    facilitatorEnabled,
+  );
+  const modeLabel =
+    modelingMode === "domainDrivenDesign" ? "Domain-Driven Design" : "Event Storming";
 
   return (
     <aside className="flex w-48 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel-solid)]">
       <div className="border-b border-[var(--border)] px-3 py-3">
         <h2 className="group-label">Elemente</h2>
+        <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">{modeLabel}</p>
       </div>
       <div className="flex flex-col gap-1.5 overflow-y-auto p-2">
         {allowed.map((type) => {

@@ -45,6 +45,10 @@
       "type": "string",
       "description": "Board-Titel."
     },
+    "modelingMode": {
+      "$ref": "#/$defs/modelingMode",
+      "description": "Methoden-Modus für Palette/Facilitator. Fehlt in älteren Dateien → eventStorming. Board-Inhalt darf Typen beider Modi enthalten."
+    },
     "workshopFormat": {
       "$ref": "#/$defs/workshopFormat"
     },
@@ -104,9 +108,20 @@
     }
   },
   "$defs": {
+    "modelingMode": {
+      "type": "string",
+      "enum": ["eventStorming", "domainDrivenDesign"]
+    },
     "workshopFormat": {
       "type": "string",
-      "enum": ["bigPicture", "processModeling", "softwareDesign", "free"]
+      "enum": [
+        "bigPicture",
+        "processModeling",
+        "softwareDesign",
+        "strategicDesign",
+        "tacticalDesign",
+        "free"
+      ]
     },
     "elementType": {
       "type": "string",
@@ -121,8 +136,18 @@
         "ui",
         "note",
         "hotspot",
-        "pivotalEvent"
+        "pivotalEvent",
+        "entity",
+        "valueObject",
+        "domainService",
+        "repository",
+        "factory",
+        "subdomain"
       ]
+    },
+    "subdomainKind": {
+      "type": "string",
+      "enum": ["core", "supporting", "generic"]
     },
     "relationType": {
       "type": "string",
@@ -192,6 +217,9 @@
         },
         "noteColor": {
           "$ref": "#/$defs/noteColor"
+        },
+        "subdomainKind": {
+          "$ref": "#/$defs/subdomainKind"
         }
       }
     },

@@ -115,6 +115,83 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
     ],
     bullets: ["Platzierung: prominent auf der Timeline", "Oft: liefert Hinweise auf bounded contexts"],
   },
+  entity: {
+    title: "Entity",
+    subtitle: "Türkis — Identität über die Zeit",
+    paragraphs: [
+      "Domänenobjekt mit stabiler Identität; Attribute können sich ändern.",
+      "Typischerweise innerhalb eines Aggregates.",
+    ],
+    bullets: [
+      "Beispiel: „Customer“, „Order Line“",
+      "Gleichheit über ID, nicht über alle Attribute",
+      "Ubiquitous Language im Label nutzen",
+    ],
+  },
+  valueObject: {
+    title: "Value Object",
+    subtitle: "Cyan — Wert ohne Identität",
+    paragraphs: [
+      "Beschreibt Eigenschaften durch Werte; austauschbar bei gleicher Struktur.",
+      "Idealerweise unveränderlich.",
+    ],
+    bullets: [
+      "Beispiel: „Money“, „Address“, „Date Range“",
+      "Gleichheit über Attribute",
+      "Oft von Entities/Aggregates referenziert",
+    ],
+  },
+  domainService: {
+    title: "Domain Service",
+    subtitle: "Indigo — Operation ohne Entity-Sitz",
+    paragraphs: [
+      "Domänenlogik, die nicht natürlich zu einer Entity oder einem Value Object gehört.",
+      "Stateless bezogen auf den Prozess, aber fachlich relevant.",
+    ],
+    bullets: [
+      "Nur wenn keine Entity verantwortlich ist",
+      "Name aus der Ubiquitous Language",
+      "Nicht mit Application Services verwechseln",
+    ],
+  },
+  repository: {
+    title: "Repository",
+    subtitle: "Stein — Persistenzzugriff",
+    paragraphs: [
+      "Abstraktion zum Laden und Speichern von Aggregate Roots.",
+      "Kapselt Infrastruktur vom Domain Model.",
+    ],
+    bullets: [
+      "Ein Repository pro Aggregate Root",
+      "Kein SQL/ORM in Entities",
+      "Oft an Factory gekoppelt",
+    ],
+  },
+  factory: {
+    title: "Factory",
+    subtitle: "Lime — komplexe Erzeugung",
+    paragraphs: [
+      "Kapselt die Erstellung von Aggregates oder komplexen Objekten.",
+      "Stellt Invarianten bereits bei der Konstruktion sicher.",
+    ],
+    bullets: [
+      "Nützlich bei mehrstufiger Initialisierung",
+      "Kann Methode am Aggregate oder eigener Baustein sein",
+    ],
+  },
+  subdomain: {
+    title: "Subdomain",
+    subtitle: "Violett — Problemraum-Teil",
+    paragraphs: [
+      "Teil des Problemraums: Core (Differenzierung), Supporting oder Generic.",
+      "Strategisches DDD — oft Vorstufe zu Bounded Contexts.",
+    ],
+    bullets: [
+      "Core Domain priorisieren",
+      "Art in der Detailleiste setzen",
+      "Nicht mit Bounded Context verwechseln (Lösung vs. Problem)",
+    ],
+  },
 };
 
 const RELATION_HELP: Record<RelationType, HelpDialogModel> = {

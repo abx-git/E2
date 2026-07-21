@@ -16,6 +16,7 @@ import type { BoardImportPayload } from "@/lib/storm-json";
 
 const emptyBoard: BoardImportPayload = {
   title: "Test",
+  modelingMode: "eventStorming",
   workshopFormat: "free",
   facilitatorEnabled: false,
   facilitatorPhase: 0,
@@ -84,12 +85,24 @@ describe("relation-validation", () => {
 
 describe("facilitator-phases", () => {
   it("restricts types in phase 1 big picture", () => {
-    const allowed = getAllowedTypesForPhase("bigPicture", 0, true);
+    const allowed = getAllowedTypesForPhase("eventStorming", "bigPicture", 0, true);
     expect(allowed).toEqual(["domainEvent", "note"]);
   });
 
-  it("allows all types when facilitator off", () => {
-    const allowed = getAllowedTypesForPhase("bigPicture", 0, false);
+  it("allows ES catalog when facilitator off", () => {
+    const allowed = getAllowedTypesForPhase("eventStorming", "bigPicture", 0, false);
     expect(allowed.length).toBe(11);
+  });
+
+  it("uses DDD catalog in DDD free mode", () => {
+    const allowed = getAllowedTypesForPhase("domainDrivenDesign", "free", 0, false);
+    expect(allowed).toContain("entity");
+    expect(allowed).toContain("subdomain");
+    expect(allowed).not.toContain("command");
+  });
+
+  it("restricts strategic design phase 1", () => {
+    const allowed = getAllowedTypesForPhase("domainDrivenDesign", "strategicDesign", 0, true);
+    expect(allowed).toEqual(["subdomain", "note", "hotspot"]);
   });
 });

@@ -1,6 +1,6 @@
-# E2 — Event Storming Tool
+# E2 — Event Storming & Domain-Driven Design
 
-Browserbasiertes Event-Storming-Board mit lokaler JSON-Persistenz (`.storm.json`).  
+Browserbasiertes Board für **Event Storming** und **Domain-Driven Design** mit lokaler JSON-Persistenz (`.storm.json`).  
 Kein Server für Domänendaten — die Arbeitsdatei liegt beim Nutzer.
 
 **Live:** [abx-git.github.io/E2](https://abx-git.github.io/E2/)  
@@ -10,7 +10,7 @@ Kein Server für Domänendaten — die Arbeitsdatei liegt beim Nutzer.
 
 ## Zweck dieses Dokuments
 
-Diese README beschreibt die **implementierten Funktionen** und stellt sie den **klassischen Aspekten von Event Storming** (Brandolini u. a.) gegenüber. Damit lässt sich prüfen, welche Workshop-Bausteine abgedeckt sind und wo Lücken bleiben.
+Diese README beschreibt die **implementierten Funktionen** und stellt sie den **klassischen Aspekten von Event Storming** (Brandolini u. a.) sowie **Domain-Driven Design** (Evans / Vernon) gegenüber. Damit lässt sich prüfen, welche Workshop-Bausteine abgedeckt sind und wo Lücken bleiben.
 
 ---
 
@@ -18,10 +18,12 @@ Diese README beschreibt die **implementierten Funktionen** und stellt sie den **
 
 | Bereich | Inhalt |
 |--------|--------|
-| Sticky-Typen | Alle 10 Event-Storming-Elemente + freie Notizen |
+| Methoden-Modi | Event Storming und DDD klar getrennt (Palette/Facilitator); Board darf Elemente beider Methoden mischen |
+| Sticky-Typen | Event-Storming-Elemente + DDD-Bausteine (Entity, VO, …) + Notizen |
 | Relationen | 8 Verbindungstypen inkl. Auto-Vorschlag |
 | Fläche | Timeline, Swimlanes, Bounded Contexts, Pan/Zoom |
-| Workshop | Big Picture, Process Modeling, Software Design + Frei |
+| Workshop ES | Big Picture, Process Modeling, Software Design + Frei |
+| Workshop DDD | Strategic Design, Tactical Design + Frei |
 | Sprache | Glossary (Ubiquitous Language) |
 | Unsicherheit | Hotspots inkl. Status/Priorität |
 | I/O | `.storm.json` + Schema, SVG/PNG, Markdown-Reports |
@@ -31,7 +33,10 @@ Diese README beschreibt die **implementierten Funktionen** und stellt sie den **
 
 ## 1. Elementtypen (Stickies)
 
-Alle Typen sind in der Palette wählbar (im Facilitator-Modus phasenweise eingeschränkt).
+Die **Palette** zeigt nur Typen des aktiven Methoden-Modus (im Facilitator zusätzlich phasenweise eingeschränkt).  
+Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der anderen Methode sind leicht abgesetzt (gestrichelter Rahmen).
+
+### Event Storming
 
 | Typ | Farbe / Form | Methodische Rolle |
 |-----|--------------|-------------------|
@@ -47,6 +52,21 @@ Alle Typen sind in der Palette wählbar (im Facilitator-Modus phasenweise einges
 | **Hotspot** | Rot, gedreht | Offene Frage, Konflikt, Unklarheit |
 | **Pivotal Event** | Breiter gelber Block | Phasenwechsel / signifikanter Einschnitt |
 
+### Domain-Driven Design
+
+| Typ | Farbe / Form | Methodische Rolle |
+|-----|--------------|-------------------|
+| **Subdomain** | Violett | Problemraum: Core / Supporting / Generic |
+| **Entity** | Türkis | Identität über die Zeit |
+| **Value Object** | Cyan | Wert ohne Identität |
+| **Aggregate** | Gelbes Rechteck | Konsistenzgrenze (geteilt mit ES) |
+| **Domain Service** | Indigo | Fachlogik ohne natürlichen Entity-Sitz |
+| **Repository** | Stein | Persistenzzugriff für Aggregate Roots |
+| **Factory** | Lime | Komplexe Erzeugung |
+| **Domain Event** | Orange | Bedeutsame Zustandsänderung (geteilt) |
+| **External System** | Pink | Integration (geteilt) |
+| **Notiz / Hotspot** | Creme / Rot | Annotationen (geteilt) |
+
 ### Pro Element bearbeitbar
 
 - Label, Beschreibung  
@@ -57,6 +77,7 @@ Alle Typen sind in der Palette wählbar (im Facilitator-Modus phasenweise einges
 - **Aggregate:** Methodenliste  
 - **Hotspot:** Status (offen/gelöst), Priorität (niedrig/mittel/hoch)
 - **Notiz:** Hintergrundfarbe (Detailleiste oder Rechtsklick)
+- **Subdomain:** Art (Core / Supporting / Generic)
 
 > **Hinweis:** Aggregate-Methoden und -Invarianten lassen sich in der Detailleiste pflegen (eine Zeile pro Eintrag).
 
@@ -127,18 +148,30 @@ Methodisch: Cluster nach Sprache und Verantwortung; Context-Map-Muster modellier
 
 ---
 
-## 4. Facilitator & Workshop-Formate
+## 4. Methoden-Modi, Facilitator & Workshop-Formate
+
+In der Toolbar: **Event Storming** | **DDD**. Der Modus steuert Palette und Facilitator-Formate — nicht den Board-Inhalt.
+
+### Event Storming
 
 | Format | Fokus |
 |--------|--------|
-| **Frei** | Alle Typen, keine Phasenführung |
+| **Frei** | Alle ES-Typen, keine Phasenführung |
 | **Big Picture** | Chaotic Exploration → Timeline → Konsistenz → Commands/Actors → Policies/Read Models → Bounded Contexts → Hotspots → Wrap-Up |
 | **Process Modeling** | Commands & Policies → Pivotal Events → Contexts verfeinern → Aggregates & Read Models |
 | **Software Design** | Aggregate Design → Event Schemas → Repository & Service |
 
+### Domain-Driven Design
+
+| Format | Fokus |
+|--------|--------|
+| **Frei** | Alle DDD-Typen, keine Phasenführung |
+| **Strategic Design** | Subdomains → Ubiquitous Language → Bounded Contexts → Context Map → Wrap-Up |
+| **Tactical Design** | Aggregates & Entities → Value Objects → Services & Factories → Repositories → Domain Events → Wrap-Up |
+
 Im Facilitator-Modus:
 
-- Palette auf **erlaubte Typen der Phase** begrenzt  
+- Palette auf **erlaubte Typen der Phase** (im aktuellen Modus) begrenzt  
 - Checkliste, empfohlene Dauer, Phasenwechsel  
 - Hilfe-Dialoge zu Elementen, Relationen und Phasen  
 

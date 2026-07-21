@@ -15,6 +15,7 @@ import { useStormBoardStore } from "@/store/storm-board-store";
 function emptyDomain(overrides: Partial<BoardDomainSnapshot> = {}): BoardDomainSnapshot {
   return {
     title: "Board",
+    modelingMode: "eventStorming",
     workshopFormat: "free",
     facilitatorEnabled: false,
     facilitatorPhase: 0,
@@ -136,6 +137,7 @@ describe("store undo / import", () => {
 
     store.replaceBoardFromImport({
       title: "Imported",
+      modelingMode: "eventStorming",
       workshopFormat: "free",
       facilitatorEnabled: false,
       facilitatorPhase: 0,

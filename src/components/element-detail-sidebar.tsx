@@ -338,6 +338,27 @@ export function ElementDetailSidebar({
         </>
       )}
 
+      {selectedElement.type === "subdomain" && (
+        <Field label="Subdomain-Art">
+          <select
+            className="dock-field"
+            value={selectedElement.metadata?.subdomainKind ?? "core"}
+            onChange={(e) =>
+              updateElement(selectedElement.id, {
+                metadata: {
+                  ...selectedElement.metadata,
+                  subdomainKind: e.target.value as "core" | "supporting" | "generic",
+                },
+              })
+            }
+          >
+            <option value="core">Core Domain</option>
+            <option value="supporting">Supporting</option>
+            <option value="generic">Generic</option>
+          </select>
+        </Field>
+      )}
+
       {issues.map((issue) => (
         <div
           key={issue.id}

@@ -49,7 +49,11 @@ import {
   BOARD_SNAPSHOT_SCHEMA_FILENAME,
   stringifyBoardSnapshotSchema,
 } from "@/lib/storm-json";
-import { FACILITATOR_FORMATS, type FacilitatorPhase } from "@/lib/facilitator-phases";
+import {
+  DDD_FACILITATOR_FORMATS,
+  FACILITATOR_FORMATS,
+  type FacilitatorPhase,
+} from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
 import {
   getElementHelp,
@@ -77,13 +81,14 @@ import {
 } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { useCollabStore } from "@/lib/collab/session";
-import type { ElementType, WorkshopFormat } from "@/types/storm-element";
+import type { ElementType, ModelingMode, WorkshopFormat } from "@/types/storm-element";
+import { MODELING_MODE_LABELS } from "@/types/storm-element";
 import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
 
-const FORMAT_OPTIONS: { value: WorkshopFormat; label: string }[] = [
-  { value: "free", label: "Frei" },
-  ...FACILITATOR_FORMATS.map((f) => ({ value: f.format, label: f.label })),
-];
+function formatOptionsForMode(mode: ModelingMode): { value: WorkshopFormat; label: string }[] {
+  const defs = mode === "domainDrivenDesign" ? DDD_FACILITATOR_FORMATS : FACILITATOR_FORMATS;
+  return [{ value: "free", label: "Frei" }, ...defs.map((f) => ({ value: f.format, label: f.label }))];
+}
 
 export function StormBoard() {
   const [storageOpen, setStorageOpen] = useState(false);
@@ -126,6 +131,8 @@ export function StormBoard() {
   const setTitle = useStormBoardStore((s) => s.setTitle);
   const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
   const setWorkshopFormat = useStormBoardStore((s) => s.setWorkshopFormat);
+  const modelingMode = useStormBoardStore((s) => s.modelingMode);
+  const setModelingMode = useStormBoardStore((s) => s.setModelingMode);
   const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
   const setFacilitatorEnabled = useStormBoardStore((s) => s.setFacilitatorEnabled);
   const viewport = useStormBoardStore((s) => s.viewport);
@@ -357,12 +364,31 @@ export function StormBoard() {
             <Redo2 className="h-4 w-4" />
           </button>
         </div>
+        <div className="dock-control flex items-center gap-0.5 rounded-lg p-0.5">
+          {(["eventStorming", "domainDrivenDesign"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setModelingMode(mode)}
+              className={[
+                "rounded-md px-2 py-1 text-xs font-medium transition",
+                modelingMode === mode
+                  ? "bg-[var(--accent)] text-white"
+                  : "text-[var(--muted)] hover:text-[var(--text)]",
+              ].join(" ")}
+              title={MODELING_MODE_LABELS[mode]}
+            >
+              {mode === "eventStorming" ? "Event Storming" : "DDD"}
+            </button>
+          ))}
+        </div>
         <select
           className="dock-control rounded-lg px-2 py-1 text-xs"
           value={workshopFormat}
           onChange={(e) => setWorkshopFormat(e.target.value as WorkshopFormat)}
+          aria-label="Workshop-Format"
         >
-          {FORMAT_OPTIONS.map((o) => (
+          {formatOptionsForMode(modelingMode).map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>

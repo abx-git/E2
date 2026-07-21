@@ -19,13 +19,20 @@ import type {
   BoundedContext,
   ElementType,
   GlossaryEntry,
+  ModelingMode,
   StormElement,
   Swimlane,
   Timeline,
   Viewport,
   WorkshopFormat,
 } from "@/types/storm-element";
-import { DEFAULT_TIMELINE, DEFAULT_VIEWPORT } from "@/types/storm-element";
+import {
+  DEFAULT_MODELING_MODE,
+  DEFAULT_TIMELINE,
+  DEFAULT_VIEWPORT,
+  defaultPaletteTypeForMode,
+  isWorkshopFormatForMode,
+} from "@/types/storm-element";
 import type {
   ContextMapPattern,
   ContextRelation,
@@ -36,6 +43,7 @@ import type { ContextMenuState, ContextMenuTarget } from "@/types/context-menu";
 
 export interface StormBoardState {
   title: string;
+  modelingMode: ModelingMode;
   workshopFormat: WorkshopFormat;
   facilitatorEnabled: boolean;
   facilitatorPhase: number;
@@ -69,6 +77,7 @@ export interface StormBoardState {
   gestureSnapshotTaken: boolean;
 
   setTitle: (title: string) => void;
+  setModelingMode: (mode: ModelingMode) => void;
   setWorkshopFormat: (format: WorkshopFormat) => void;
   setFacilitatorEnabled: (enabled: boolean) => void;
   setFacilitatorPhase: (phase: number) => void;
@@ -155,13 +164,16 @@ function createElement(type: ElementType, x: number, y: number, label?: string):
       ? { hotspotStatus: "open", hotspotPriority: "medium" }
       : type === "note"
         ? { noteColor: "cream" }
-        : undefined,
+        : type === "subdomain"
+          ? { subdomainKind: "core" }
+          : undefined,
   };
 }
 
 function captureDomain(s: StormBoardState): BoardDomainSnapshot {
   return {
     title: s.title,
+    modelingMode: s.modelingMode,
     workshopFormat: s.workshopFormat,
     facilitatorEnabled: s.facilitatorEnabled,
     facilitatorPhase: s.facilitatorPhase,
@@ -181,6 +193,7 @@ function captureDomain(s: StormBoardState): BoardDomainSnapshot {
 function domainPatch(snap: BoardDomainSnapshot): Partial<StormBoardState> {
   return {
     title: snap.title,
+    modelingMode: snap.modelingMode ?? "eventStorming",
     workshopFormat: snap.workshopFormat,
     facilitatorEnabled: snap.facilitatorEnabled,
     facilitatorPhase: snap.facilitatorPhase,
@@ -228,6 +241,7 @@ function commit(
 
 export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   title: "Neues Event Storming Board",
+  modelingMode: DEFAULT_MODELING_MODE,
   workshopFormat: "free",
   facilitatorEnabled: false,
   facilitatorPhase: 0,
@@ -259,6 +273,19 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   gestureSnapshotTaken: false,
 
   setTitle: (title) => commit(set, get, () => ({ title })),
+  setModelingMode: (modelingMode) =>
+    commit(set, get, (s) => {
+      const workshopFormat = isWorkshopFormatForMode(s.workshopFormat, modelingMode)
+        ? s.workshopFormat
+        : "free";
+      return {
+        modelingMode,
+        workshopFormat,
+        facilitatorPhase: 0,
+        facilitatorEnabled: workshopFormat === "free" ? false : s.facilitatorEnabled,
+        paletteType: defaultPaletteTypeForMode(modelingMode),
+      };
+    }),
   setWorkshopFormat: (workshopFormat) =>
     commit(set, get, () => ({ workshopFormat, facilitatorPhase: 0 })),
   setFacilitatorEnabled: (facilitatorEnabled) =>
@@ -708,6 +735,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     const past = pushHistory(s.past, captureDomain(s));
     set({
       title: payload.title,
+      modelingMode: payload.modelingMode,
       workshopFormat: payload.workshopFormat,
       facilitatorEnabled: payload.facilitatorEnabled,
       facilitatorPhase: payload.facilitatorPhase,
@@ -743,6 +771,7 @@ export function boardImportPayloadFromStore(): BoardImportPayload {
   const s = useStormBoardStore.getState();
   return {
     title: s.title,
+    modelingMode: s.modelingMode,
     workshopFormat: s.workshopFormat,
     facilitatorEnabled: s.facilitatorEnabled,
     facilitatorPhase: s.facilitatorPhase,

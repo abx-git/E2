@@ -1,5 +1,5 @@
-import type { ElementType, WorkshopFormat } from "@/types/storm-element";
-import { ALL_ELEMENT_TYPES } from "@/types/storm-element";
+import type { ElementType, ModelingMode, WorkshopFormat } from "@/types/storm-element";
+import { ALL_ELEMENT_TYPES, DDD_ELEMENT_TYPES, elementTypesForMode } from "@/types/storm-element";
 
 export interface FacilitatorPhase {
   id: string;
@@ -186,6 +186,145 @@ const SOFTWARE_DESIGN_PHASES: FacilitatorPhase[] = [
   },
 ];
 
+const STRATEGIC_DESIGN_PHASES: FacilitatorPhase[] = [
+  {
+    id: "subdomains",
+    title: "Subdomains",
+    description: "Domäne in Core, Supporting und Generic Subdomains gliedern.",
+    allowedTypes: ["subdomain", "note", "hotspot"],
+    checklist: [
+      "Problemraum skizzieren",
+      "Core Domain (Wettbewerbsvorteil) benennen",
+      "Supporting und Generic abgrenzen",
+    ],
+    durationMinutes: 60,
+  },
+  {
+    id: "ubiquitous-language",
+    title: "Ubiquitous Language",
+    description: "Gemeinsame Sprache im Glossary und auf dem Board verankern.",
+    allowedTypes: ["subdomain", "note", "hotspot", "entity", "valueObject"],
+    checklist: [
+      "Zentrale Begriffe im Glossary erfassen",
+      "Mehrdeutigkeiten als Hotspots markieren",
+      "Fachsprache statt Technikjargon",
+    ],
+    durationMinutes: 45,
+  },
+  {
+    id: "bounded-contexts-ddd",
+    title: "Bounded Contexts",
+    description: "Explizite Modellgrenzen zeichnen und benennen.",
+    allowedTypes: [...DDD_ELEMENT_TYPES],
+    checklist: [
+      "Ein Modell / eine Sprache pro Context",
+      "3–8 Bounded Contexts benennen",
+      "Zuordnung Subdomain ↔ Context klären",
+    ],
+    durationMinutes: 75,
+  },
+  {
+    id: "context-map",
+    title: "Context Map",
+    description: "Beziehungen zwischen Bounded Contexts (ACL, Shared Kernel, …).",
+    allowedTypes: [...DDD_ELEMENT_TYPES],
+    checklist: [
+      "Context-Map-Modus: BCs verbinden",
+      "Upstream/Downstream und Muster wählen",
+      "Integrationsrisiken als Hotspots",
+    ],
+    durationMinutes: 60,
+  },
+  {
+    id: "strategic-wrap-up",
+    title: "Wrap-Up",
+    description: "Strategische Entscheidungen dokumentieren und nächste Schritte.",
+    allowedTypes: [...DDD_ELEMENT_TYPES],
+    checklist: [
+      "Context Map exportieren",
+      "Core Domain priorisieren",
+      "Taktisches Design planen",
+    ],
+    durationMinutes: 30,
+  },
+];
+
+const TACTICAL_DESIGN_PHASES: FacilitatorPhase[] = [
+  {
+    id: "aggregates-entities",
+    title: "Aggregates & Entities",
+    description: "Konsistenzgrenzen und identitätsbehaftete Objekte modellieren.",
+    allowedTypes: ["aggregate", "entity", "domainEvent", "hotspot", "note"],
+    checklist: [
+      "Aggregate Roots benennen",
+      "Entities innerhalb der Grenze platzieren",
+      "Transaktionsgrenzen prüfen",
+    ],
+    durationMinutes: 75,
+  },
+  {
+    id: "value-objects",
+    title: "Value Objects",
+    description: "Werte ohne Identität — Messgrößen, Beschreibungen, Kompositionen.",
+    allowedTypes: ["valueObject", "entity", "aggregate", "note", "hotspot"],
+    checklist: [
+      "Unveränderlichkeit und Gleichheit klären",
+      "Value Objects an Entities/Aggregates anbinden",
+      "Überkomplexe Entities vereinfachen",
+    ],
+    durationMinutes: 45,
+  },
+  {
+    id: "services-factories",
+    title: "Domain Services & Factories",
+    description: "Operationen ohne natürlichen Entity-Sitz und Erzeugungslogik.",
+    allowedTypes: ["domainService", "factory", "aggregate", "entity", "valueObject", "note"],
+    checklist: [
+      "Nur wenn keine Entity verantwortlich ist",
+      "Factories für komplexe Aggregate-Erzeugung",
+      "Schnittstellen kurz dokumentieren",
+    ],
+    durationMinutes: 45,
+  },
+  {
+    id: "repositories-persistence",
+    title: "Repositories",
+    description: "Persistenzzugriff pro Aggregate Root.",
+    allowedTypes: ["repository", "aggregate", "factory", "externalSystem", "note", "hotspot"],
+    checklist: [
+      "Ein Repository pro Aggregate Root",
+      "Keine Persistenzdetails im Domain Model",
+      "Externe Systeme abgrenzen",
+    ],
+    durationMinutes: 40,
+  },
+  {
+    id: "domain-events-tactical",
+    title: "Domain Events",
+    description: "Bedeutsame Zustandsänderungen als Events festhalten.",
+    allowedTypes: ["domainEvent", "aggregate", "entity", "domainService", "note", "hotspot"],
+    checklist: [
+      "Events aus Aggregates ableiten",
+      "Vergangenheitsform / Ubiquitous Language",
+      "Integration zu anderen Contexts markieren",
+    ],
+    durationMinutes: 45,
+  },
+  {
+    id: "tactical-wrap-up",
+    title: "Wrap-Up",
+    description: "Taktisches Modell dokumentieren und offene Punkte klären.",
+    allowedTypes: [...DDD_ELEMENT_TYPES],
+    checklist: [
+      "Invarianten und Methoden ergänzen",
+      "Hotspots priorisieren",
+      "Übergang zu Implementierung planen",
+    ],
+    durationMinutes: 30,
+  },
+];
+
+/** Event-Storming workshop recipes. */
 export const FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   {
     format: "bigPicture",
@@ -207,22 +346,48 @@ export const FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   },
 ];
 
+/** Domain-Driven-Design workshop recipes. */
+export const DDD_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
+  {
+    format: "strategicDesign",
+    label: "Strategic Design",
+    description: "Subdomains, Sprache, Bounded Contexts und Context Map",
+    phases: STRATEGIC_DESIGN_PHASES,
+  },
+  {
+    format: "tacticalDesign",
+    label: "Tactical Design",
+    description: "Entities, Value Objects, Aggregates, Services, Repositories",
+    phases: TACTICAL_DESIGN_PHASES,
+  },
+];
+
+export function getFacilitatorFormatsForMode(mode: ModelingMode): FacilitatorFormatDefinition[] {
+  return mode === "domainDrivenDesign" ? DDD_FACILITATOR_FORMATS : FACILITATOR_FORMATS;
+}
+
 export function getFacilitatorFormat(format: WorkshopFormat): FacilitatorFormatDefinition | null {
   if (format === "free") return null;
-  return FACILITATOR_FORMATS.find((f) => f.format === format) ?? null;
+  return (
+    [...FACILITATOR_FORMATS, ...DDD_FACILITATOR_FORMATS].find((f) => f.format === format) ?? null
+  );
 }
 
 export function getAllowedTypesForPhase(
+  mode: ModelingMode,
   format: WorkshopFormat,
   phaseIndex: number,
   facilitatorEnabled: boolean,
 ): ElementType[] {
-  if (!facilitatorEnabled || format === "free") return ALL_ELEMENT_TYPES;
+  const catalog = elementTypesForMode(mode);
+  if (!facilitatorEnabled || format === "free") return catalog;
   const def = getFacilitatorFormat(format);
-  if (!def) return ALL_ELEMENT_TYPES;
+  if (!def) return catalog;
   const phase = def.phases[phaseIndex];
-  const allowed = phase?.allowedTypes ?? ALL_ELEMENT_TYPES;
-  return allowed.includes("note") ? allowed : [...allowed, "note"];
+  const raw = phase?.allowedTypes ?? catalog;
+  const allowed = raw.filter((t) => catalog.includes(t));
+  const list = allowed.length > 0 ? allowed : catalog;
+  return list.includes("note") ? list : [...list, "note"];
 }
 
 export function getCurrentPhase(

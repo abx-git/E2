@@ -1,3 +1,5 @@
+export type ModelingMode = "eventStorming" | "domainDrivenDesign";
+
 export type ElementType =
   | "domainEvent"
   | "command"
@@ -9,10 +11,17 @@ export type ElementType =
   | "ui"
   | "note"
   | "hotspot"
-  | "pivotalEvent";
+  | "pivotalEvent"
+  | "entity"
+  | "valueObject"
+  | "domainService"
+  | "repository"
+  | "factory"
+  | "subdomain";
 
 export type HotspotStatus = "open" | "resolved";
 export type HotspotPriority = "low" | "medium" | "high";
+export type SubdomainKind = "core" | "supporting" | "generic";
 
 export type NoteColorId =
   | "cream"
@@ -33,6 +42,8 @@ export interface ElementMetadata {
   hotspotPriority?: HotspotPriority;
   /** Background preset for `note` elements. */
   noteColor?: NoteColorId;
+  /** Strategic DDD: Core / Supporting / Generic. */
+  subdomainKind?: SubdomainKind;
 }
 
 export interface StormElement {
@@ -50,7 +61,14 @@ export interface StormElement {
   metadata?: ElementMetadata;
 }
 
-export type WorkshopFormat = "bigPicture" | "processModeling" | "softwareDesign" | "free";
+/** Workshop recipe within the active modeling mode. */
+export type WorkshopFormat =
+  | "free"
+  | "bigPicture"
+  | "processModeling"
+  | "softwareDesign"
+  | "strategicDesign"
+  | "tacticalDesign";
 
 export interface Swimlane {
   id: string;
@@ -105,8 +123,19 @@ export const DEFAULT_TIMELINE: Timeline = {
   visible: true,
 };
 export const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 };
+export const DEFAULT_MODELING_MODE: ModelingMode = "eventStorming";
 
-export const ALL_ELEMENT_TYPES: ElementType[] = [
+/** Shared across Event Storming and DDD palettes. */
+export const SHARED_ELEMENT_TYPES: ElementType[] = [
+  "note",
+  "hotspot",
+  "aggregate",
+  "domainEvent",
+  "externalSystem",
+];
+
+/** Palette order for Event Storming mode (facilitator off / free). */
+export const ES_ELEMENT_TYPES: ElementType[] = [
   "domainEvent",
   "command",
   "actor",
@@ -119,3 +148,67 @@ export const ALL_ELEMENT_TYPES: ElementType[] = [
   "hotspot",
   "pivotalEvent",
 ];
+
+/** Palette order for Domain-Driven Design mode (facilitator off / free). */
+export const DDD_ELEMENT_TYPES: ElementType[] = [
+  "subdomain",
+  "entity",
+  "valueObject",
+  "aggregate",
+  "domainService",
+  "repository",
+  "factory",
+  "domainEvent",
+  "externalSystem",
+  "note",
+  "hotspot",
+];
+
+/** All sticky types that can appear on a board (both methods). */
+export const ALL_ELEMENT_TYPES: ElementType[] = [
+  ...ES_ELEMENT_TYPES,
+  "entity",
+  "valueObject",
+  "domainService",
+  "repository",
+  "factory",
+  "subdomain",
+];
+
+export const ES_WORKSHOP_FORMATS: WorkshopFormat[] = [
+  "free",
+  "bigPicture",
+  "processModeling",
+  "softwareDesign",
+];
+
+export const DDD_WORKSHOP_FORMATS: WorkshopFormat[] = [
+  "free",
+  "strategicDesign",
+  "tacticalDesign",
+];
+
+export const MODELING_MODE_LABELS: Record<ModelingMode, string> = {
+  eventStorming: "Event Storming",
+  domainDrivenDesign: "Domain-Driven Design",
+};
+
+export function elementTypesForMode(mode: ModelingMode): ElementType[] {
+  return mode === "domainDrivenDesign" ? DDD_ELEMENT_TYPES : ES_ELEMENT_TYPES;
+}
+
+export function workshopFormatsForMode(mode: ModelingMode): WorkshopFormat[] {
+  return mode === "domainDrivenDesign" ? DDD_WORKSHOP_FORMATS : ES_WORKSHOP_FORMATS;
+}
+
+export function isWorkshopFormatForMode(format: WorkshopFormat, mode: ModelingMode): boolean {
+  return workshopFormatsForMode(mode).includes(format);
+}
+
+export function defaultPaletteTypeForMode(mode: ModelingMode): ElementType {
+  return mode === "domainDrivenDesign" ? "entity" : "domainEvent";
+}
+
+export function normalizeModelingMode(value: unknown): ModelingMode {
+  return value === "domainDrivenDesign" ? "domainDrivenDesign" : "eventStorming";
+}

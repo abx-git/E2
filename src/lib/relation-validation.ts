@@ -156,6 +156,15 @@ export function defaultRelationType(source: StormElement, target: StormElement):
   if (source.type === "aggregate" && target.type === "domainEvent") return "triggers";
   if (source.type === "domainEvent" && target.type === "policy") return "reactsWith";
   if (source.type === "policy" && target.type === "command") return "reactsWith";
+  if (source.type === "aggregate" && (target.type === "entity" || target.type === "valueObject")) {
+    return "contains";
+  }
+  if (source.type === "entity" && target.type === "valueObject") return "contains";
+  if (source.type === "repository" && target.type === "aggregate") return "invokes";
+  if (source.type === "factory" && (target.type === "aggregate" || target.type === "entity")) {
+    return "invokes";
+  }
+  if (source.type === "domainService") return "invokes";
   if (source.type === "externalSystem") return "invokes";
   if (source.type === "domainEvent" && target.type === "domainEvent") return "causal";
   return "triggers";

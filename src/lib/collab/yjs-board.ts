@@ -54,6 +54,7 @@ export function readPayloadFromYDoc(doc: Y.Doc): BoardImportPayload | null {
 function normalizePayload(p: Partial<BoardImportPayload>): BoardImportPayload {
   return {
     title: p.title ?? "Board",
+    modelingMode: p.modelingMode === "domainDrivenDesign" ? "domainDrivenDesign" : "eventStorming",
     workshopFormat: p.workshopFormat ?? "free",
     facilitatorEnabled: Boolean(p.facilitatorEnabled),
     facilitatorPhase: Number(p.facilitatorPhase) || 0,

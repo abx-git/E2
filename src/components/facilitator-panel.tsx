@@ -11,7 +11,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-import { FACILITATOR_FORMATS, getCurrentPhase, type FacilitatorPhase } from "@/lib/facilitator-phases";
+import { getFacilitatorFormat, getCurrentPhase, type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { WorkshopFormat } from "@/types/storm-element";
 
@@ -70,7 +70,7 @@ export function FacilitatorPanel({ onRequestHelpPhase }: FacilitatorPanelProps) 
 
   if (!facilitatorEnabled || workshopFormat === "free") return null;
 
-  const formatDef = FACILITATOR_FORMATS.find((f) => f.format === workshopFormat);
+  const formatDef = getFacilitatorFormat(workshopFormat);
   const totalPhases = formatDef?.phases.length ?? 0;
 
   if (!formatDef || !phase) return null;

@@ -2,6 +2,7 @@ import type { BoardAppearance } from "@/lib/board-appearance";
 import type {
   BoundedContext,
   GlossaryEntry,
+  ModelingMode,
   StormElement,
   Swimlane,
   Timeline,
@@ -14,6 +15,7 @@ export const HISTORY_LIMIT = 50;
 /** Board domain state that participates in undo/redo (not UI ephemera). */
 export interface BoardDomainSnapshot {
   title: string;
+  modelingMode: ModelingMode;
   workshopFormat: WorkshopFormat;
   facilitatorEnabled: boolean;
   facilitatorPhase: number;

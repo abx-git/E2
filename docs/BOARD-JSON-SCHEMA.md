@@ -34,6 +34,7 @@ Import akzeptiert Dokumente mit `format === "event-storming-tool"` und `version 
   "version": 1,
   "exportedAt": "2026-07-20T12:00:00.000Z",
   "title": "Beispiel",
+  "modelingMode": "eventStorming",
   "workshopFormat": "free",
   "facilitatorEnabled": false,
   "facilitatorPhase": 0,
@@ -64,12 +65,15 @@ Import akzeptiert Dokumente mit `format === "event-storming-tool"` und `version 
 
 | Feld | Default beim Import |
 |------|---------------------|
+| `modelingMode` | `eventStorming` |
 | `contextRelations` | `[]` |
 | `appearance` | Standard-Farbschema |
 | `snapToTimeline` | `true` |
 | `snapToGrid` | `false` |
 | Timeline `visible` | `true` |
 
+`modelingMode` steuert Palette und Facilitator (`eventStorming` | `domainDrivenDesign`). Der Board-Inhalt darf Elementtypen beider Modi enthalten.
+
 `contextRelations` beschreibt DDD-Context-Map-Muster zwischen Bounded Contexts (`sourceContextId` / `targetContextId`, Muster z. B. `customerSupplier`, `antiCorruptionLayer`).
 
-Elementtyp `note` (freie Notiz) und Relationstyp `annotates` (Notiz ↔ Sticky) sind Teil von Schema v1.
+Elementtyp `note` (freie Notiz) und Relationstyp `annotates` (Notiz ↔ Sticky) sind Teil von Schema v1. DDD-Typen: `entity`, `valueObject`, `domainService`, `repository`, `factory`, `subdomain` (optional `metadata.subdomainKind`). Workshop-Formate DDD: `strategicDesign`, `tacticalDesign`.

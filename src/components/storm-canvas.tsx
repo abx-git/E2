@@ -63,6 +63,7 @@ export function StormCanvas() {
   const snapToGridEnabled = useStormBoardStore((s) => s.snapToGrid);
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const setPaletteType = useStormBoardStore((s) => s.setPaletteType);
+  const modelingMode = useStormBoardStore((s) => s.modelingMode);
   const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
   const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
   const facilitatorPhase = useStormBoardStore((s) => s.facilitatorPhase);
@@ -142,6 +143,7 @@ export function StormCanvas() {
         const digit = Number(digitMatch[1]);
         const index = digit === 0 ? 9 : digit - 1;
         const allowed = getAllowedTypesForPhase(
+          modelingMode,
           workshopFormat,
           facilitatorPhase,
           facilitatorEnabled,
@@ -168,6 +170,7 @@ export function StormCanvas() {
     contextMapDraftSourceId,
     setContextMapDraftSource,
     workshopFormat,
+    modelingMode,
     facilitatorPhase,
     facilitatorEnabled,
     setPaletteType,

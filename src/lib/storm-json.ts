@@ -1,12 +1,14 @@
 import type {
   BoundedContext,
   GlossaryEntry,
+  ModelingMode,
   StormElement,
   Swimlane,
   Timeline,
   Viewport,
   WorkshopFormat,
 } from "@/types/storm-element";
+import { DEFAULT_MODELING_MODE, normalizeModelingMode } from "@/types/storm-element";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 import {
   normalizeAppearance,
@@ -32,6 +34,8 @@ export interface BoardSnapshotV1 {
   version: typeof EXPORT_VERSION;
   exportedAt: string;
   title: string;
+  /** Fehlt in älteren Dateien → Import: eventStorming. */
+  modelingMode?: ModelingMode;
   workshopFormat: WorkshopFormat;
   facilitatorEnabled: boolean;
   facilitatorPhase: number;
@@ -51,6 +55,7 @@ export interface BoardSnapshotV1 {
 
 export interface BoardImportPayload {
   title: string;
+  modelingMode: ModelingMode;
   workshopFormat: WorkshopFormat;
   facilitatorEnabled: boolean;
   facilitatorPhase: number;
@@ -74,6 +79,7 @@ export function buildBoardSnapshot(state: BoardImportPayload): BoardSnapshotV1 {
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     ...state,
+    modelingMode: state.modelingMode ?? DEFAULT_MODELING_MODE,
     contextRelations: state.contextRelations ?? [],
     appearance: normalizeAppearance(state.appearance),
   };
@@ -92,6 +98,7 @@ export function isBoardSnapshot(doc: unknown): doc is BoardSnapshotV1 {
 export function boardSnapshotToReplacePayload(snap: BoardSnapshotV1): BoardImportPayload {
   return {
     title: snap.title,
+    modelingMode: normalizeModelingMode(snap.modelingMode),
     workshopFormat: snap.workshopFormat,
     facilitatorEnabled: snap.facilitatorEnabled,
     facilitatorPhase: snap.facilitatorPhase,
@@ -152,6 +159,7 @@ export function stringifyBoardSnapshotSchema(): string {
 export function stableBoardStateKey(payload: BoardImportPayload): string {
   return JSON.stringify({
     title: payload.title,
+    modelingMode: payload.modelingMode,
     workshopFormat: payload.workshopFormat,
     facilitatorEnabled: payload.facilitatorEnabled,
     facilitatorPhase: payload.facilitatorPhase,

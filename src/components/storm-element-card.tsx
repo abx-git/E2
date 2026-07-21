@@ -6,7 +6,7 @@ import { ArrowRight, Clock, RotateCcw } from "lucide-react";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import type { StormElement } from "@/types/storm-element";
+import { elementTypesForMode, type StormElement } from "@/types/storm-element";
 
 const DRAG_THRESHOLD_PX = 6;
 const MIN_SIZE = 40;
@@ -70,6 +70,8 @@ export function StormElementCard({
     border: noteColors?.stroke ?? style.stroke,
     text: noteColors?.ink ?? style.ink,
   };
+  const modelingMode = useStormBoardStore((s) => s.modelingMode);
+  const inActiveMode = elementTypesForMode(modelingMode).includes(element.type);
 
   const shapeClass =
     style.shape === "pill"
@@ -301,6 +303,7 @@ export function StormElementCard({
           connecting ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
           isRelationTargetHint ? "ring-2 ring-[var(--accent-2)]/50" : "",
           relationMode && !connecting ? "cursor-crosshair" : "",
+          !inActiveMode ? "opacity-70 outline outline-1 outline-dashed outline-[var(--muted)]" : "",
         ].join(" ")}
         style={{
           backgroundColor: colors.bg,
@@ -308,6 +311,7 @@ export function StormElementCard({
           color: colors.text,
           borderStyle: isNote ? "dashed" : undefined,
         }}
+        title={!inActiveMode ? "Element aus dem anderen Methoden-Modus" : undefined}
       >
         {editing ? (
           isNote ? (
