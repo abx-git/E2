@@ -4,12 +4,8 @@ import { elementDimensions, defaultLabelForType } from "@/lib/element-styles";
 import { defaultRelationType } from "@/lib/relation-validation";
 import {
   applyContainmentAssignments,
-  boundedContextBounds,
-  rectFullyContains,
-  swimlaneBounds,
   translateMatchingElements,
 } from "@/lib/region-containment";
-import { elementBounds } from "@/lib/selection-geometry";
 import { generateStormId } from "@/lib/storm-id";
 import type { BoardImportPayload } from "@/lib/storm-json";
 import {
@@ -141,11 +137,15 @@ export interface StormBoardState {
   connectBoundedContexts: (sourceContextId: string, targetContextId: string) => string | null;
 
   addSwimlane: (label?: string) => string;
-  updateSwimlane: (id: string, patch: Partial<Swimlane>) => void;
+  updateSwimlane: (id: string, patch: Partial<Swimlane>, options?: { moveElementIds?: string[] }) => void;
   deleteSwimlane: (id: string) => void;
 
   addBoundedContext: (x: number, y: number, width: number, height: number, label?: string) => string;
-  updateBoundedContext: (id: string, patch: Partial<BoundedContext>) => void;
+  updateBoundedContext: (
+    id: string,
+    patch: Partial<BoundedContext>,
+    options?: { moveElementIds?: string[] },
+  ) => void;
   deleteBoundedContext: (id: string) => void;
 
   setTimeline: (timeline: Partial<Timeline>) => void;
@@ -665,7 +665,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     return id;
   },
 
-  updateSwimlane: (id, patch) =>
+  updateSwimlane: (id, patch, options) =>
     commit(set, get, (s) => {
       const lane = s.swimlanes.find((l) => l.id === id);
       if (!lane) return {};
@@ -677,21 +677,18 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       const dy = nextLane.y - lane.y;
       let elements = s.elements;
       if (!resizing && (dx !== 0 || dy !== 0)) {
-        const before = swimlaneBounds(lane);
-        elements = translateMatchingElements(
-          elements,
-          (e) => e.swimlaneId === id || rectFullyContains(before, elementBounds(e)),
-          dx,
-          dy,
-        );
+        if (options?.moveElementIds) {
+          const ids = new Set(options.moveElementIds);
+          elements = translateMatchingElements(elements, (e) => ids.has(e.id), dx, dy);
+        } else {
+          elements = translateMatchingElements(elements, (e) => e.swimlaneId === id, dx, dy);
+        }
       }
 
-      const geometryChanged =
-        patch.x !== undefined ||
-        patch.y !== undefined ||
-        patch.width !== undefined ||
-        patch.height !== undefined;
-      if (geometryChanged) {
+      // During a locked move, do not re-run containment (would "pick up" passers-by).
+      // Resize and non-gesture edits still update assignments immediately.
+      const lockedMove = Boolean(options?.moveElementIds) && !resizing;
+      if (!lockedMove && (patch.x !== undefined || patch.y !== undefined || resizing)) {
         elements = applyContainmentAssignments(elements, swimlanes, s.boundedContexts);
       }
 
@@ -728,7 +725,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     return id;
   },
 
-  updateBoundedContext: (id, patch) =>
+  updateBoundedContext: (id, patch, options) =>
     commit(set, get, (s) => {
       const bc = s.boundedContexts.find((b) => b.id === id);
       if (!bc) return {};
@@ -740,21 +737,21 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       const dy = nextBc.y - bc.y;
       let elements = s.elements;
       if (!resizing && (dx !== 0 || dy !== 0)) {
-        const before = boundedContextBounds(bc);
-        elements = translateMatchingElements(
-          elements,
-          (e) => e.boundedContextId === id || rectFullyContains(before, elementBounds(e)),
-          dx,
-          dy,
-        );
+        if (options?.moveElementIds) {
+          const ids = new Set(options.moveElementIds);
+          elements = translateMatchingElements(elements, (e) => ids.has(e.id), dx, dy);
+        } else {
+          elements = translateMatchingElements(
+            elements,
+            (e) => e.boundedContextId === id,
+            dx,
+            dy,
+          );
+        }
       }
 
-      const geometryChanged =
-        patch.x !== undefined ||
-        patch.y !== undefined ||
-        patch.width !== undefined ||
-        patch.height !== undefined;
-      if (geometryChanged) {
+      const lockedMove = Boolean(options?.moveElementIds) && !resizing;
+      if (!lockedMove && (patch.x !== undefined || patch.y !== undefined || resizing)) {
         elements = applyContainmentAssignments(elements, s.swimlanes, boundedContexts);
       }
 

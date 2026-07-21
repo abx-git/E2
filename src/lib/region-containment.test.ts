@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyContainmentAssignments,
+  elementIdsInSwimlane,
   rectFullyContains,
   resolveBoundedContextId,
   resolveSwimlaneId,
@@ -91,5 +92,15 @@ describe("region-containment", () => {
     const next = translateMatchingElements(elements, (e) => e.swimlaneId === "l1", 5, -3);
     expect(next[0]).toMatchObject({ id: "a", x: 15, y: 7 });
     expect(next[1]).toBe(elements[1]);
+  });
+
+  it("snapshots swimlane members by id or containment", () => {
+    const lanes = lane({ id: "l1", x: 0, y: 0, width: 200, height: 100 });
+    const elements = [
+      el({ id: "inside", x: 10, y: 10 }),
+      el({ id: "assigned", x: 500, y: 500, swimlaneId: "l1" }),
+      el({ id: "outside", x: 300, y: 10 }),
+    ];
+    expect(elementIdsInSwimlane(elements, lanes).sort()).toEqual(["assigned", "inside"]);
   });
 });

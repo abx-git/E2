@@ -1,5 +1,6 @@
 "use client";
 
+import { elementIdsInBoundedContext } from "@/lib/region-containment";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_SIZE = 80;
@@ -52,11 +53,12 @@ export function BoundedContextLayer() {
     const startX = e.clientX;
     const startY = e.clientY;
     const orig = { x: bc.x, y: bc.y };
+    const moveElementIds = elementIdsInBoundedContext(store.elements, bc);
 
     const onMove = (ev: PointerEvent) => {
       const dx = (ev.clientX - startX) / zoom;
       const dy = (ev.clientY - startY) / zoom;
-      updateBoundedContext(bcId, { x: orig.x + dx, y: orig.y + dy });
+      updateBoundedContext(bcId, { x: orig.x + dx, y: orig.y + dy }, { moveElementIds });
     };
 
     const onUp = () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import { elementIdsInSwimlane } from "@/lib/region-containment";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_SIZE = 80;
@@ -37,11 +38,12 @@ export function SwimlaneLayer() {
     const startX = e.clientX;
     const startY = e.clientY;
     const orig = { x: lane.x ?? 0, y: lane.y };
+    const moveElementIds = elementIdsInSwimlane(useStormBoardStore.getState().elements, lane);
 
     const onMove = (ev: PointerEvent) => {
       const dx = (ev.clientX - startX) / zoom;
       const dy = (ev.clientY - startY) / zoom;
-      updateSwimlane(laneId, { x: orig.x + dx, y: orig.y + dy });
+      updateSwimlane(laneId, { x: orig.x + dx, y: orig.y + dy }, { moveElementIds });
     };
 
     const onUp = () => {

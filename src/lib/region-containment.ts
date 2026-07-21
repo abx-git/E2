@@ -82,6 +82,28 @@ export function applyContainmentAssignments(
   return changed ? next : elements;
 }
 
+/** Element IDs that should move with a swimlane (assigned or fully contained now). */
+export function elementIdsInSwimlane(
+  elements: StormElement[],
+  lane: Swimlane,
+): string[] {
+  const outer = swimlaneBounds(lane);
+  return elements
+    .filter((e) => e.swimlaneId === lane.id || rectFullyContains(outer, elementBounds(e)))
+    .map((e) => e.id);
+}
+
+/** Element IDs that should move with a bounded context (assigned or fully contained now). */
+export function elementIdsInBoundedContext(
+  elements: StormElement[],
+  bc: BoundedContext,
+): string[] {
+  const outer = boundedContextBounds(bc);
+  return elements
+    .filter((e) => e.boundedContextId === bc.id || rectFullyContains(outer, elementBounds(e)))
+    .map((e) => e.id);
+}
+
 /** Translate all elements matching `predicate` by (dx, dy). */
 export function translateMatchingElements(
   elements: StormElement[],
