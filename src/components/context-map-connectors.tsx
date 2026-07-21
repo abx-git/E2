@@ -68,21 +68,27 @@ export function ContextMapConnectors({
         const label = rel.label ?? CONTEXT_MAP_PATTERN_LABELS[rel.type];
 
         return (
-          <g
-            key={rel.id}
-            className="pointer-events-auto cursor-pointer"
-            onClick={() => onSelectContextRelation(rel.id)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const store = useStormBoardStore.getState();
-              store.selectContextRelation(rel.id);
-              store.openContextMenu(e.clientX, e.clientY, {
-                kind: "contextRelation",
-                id: rel.id,
-              });
-            }}
-          >
+          <g key={rel.id}>
+            <line
+              x1={start.x}
+              y1={start.y}
+              x2={end.x}
+              y2={end.y}
+              stroke="transparent"
+              strokeWidth={14}
+              className="pointer-events-auto cursor-pointer"
+              onClick={() => onSelectContextRelation(rel.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const store = useStormBoardStore.getState();
+                store.selectContextRelation(rel.id);
+                store.openContextMenu(e.clientX, e.clientY, {
+                  kind: "contextRelation",
+                  id: rel.id,
+                });
+              }}
+            />
             {style.double && (
               <line
                 x1={start.x}
@@ -92,6 +98,7 @@ export function ContextMapConnectors({
                 stroke={stroke}
                 strokeWidth={style.width + 4}
                 strokeOpacity={0.25}
+                className="pointer-events-none"
               />
             )}
             <line
@@ -103,21 +110,13 @@ export function ContextMapConnectors({
               strokeWidth={selected ? style.width + 1 : style.width}
               strokeDasharray={style.dash}
               markerEnd={selected ? "url(#ctx-arrow-selected)" : "url(#ctx-arrow)"}
-            />
-            {/* Hit area */}
-            <line
-              x1={start.x}
-              y1={start.y}
-              x2={end.x}
-              y2={end.y}
-              stroke="transparent"
-              strokeWidth={12}
+              className="pointer-events-none"
             />
             <text
               x={midX}
               y={midY - 8}
               textAnchor="middle"
-              className="fill-[var(--muted)] text-[10px] font-medium"
+              className="pointer-events-none fill-[var(--muted)] text-[10px] font-medium"
             >
               {label}
             </text>

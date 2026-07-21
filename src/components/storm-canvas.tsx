@@ -293,6 +293,20 @@ export function StormCanvas() {
       ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-canvas"
       onWheel={handleWheel}
+      onContextMenu={(e) => {
+        // Chrome/UI chrome (bottom dock) keeps its own menu behavior.
+        if ((e.target as Element | null)?.closest?.("[data-canvas-chrome]")) return;
+        // Stickies / lanes / connectors call stopPropagation — we only handle empty canvas here,
+        // including areas outside the fixed world rect after pan/zoom.
+        e.preventDefault();
+        const world = worldFromClient(e.clientX, e.clientY);
+        if (!world) return;
+        useStormBoardStore.getState().openContextMenu(e.clientX, e.clientY, {
+          kind: "canvas",
+          worldX: world.x,
+          worldY: world.y,
+        });
+      }}
       onPointerDown={(e) => {
         useStormBoardStore.getState().closeContextMenu();
         if (e.button === 1 || spaceDown.current) {
@@ -350,7 +364,10 @@ export function StormCanvas() {
       tabIndex={0}
     >
       {relationMode && (
-        <div className="dock-surface absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)]">
+        <div
+          data-canvas-chrome
+          className="dock-surface absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)]"
+        >
           {relationDraftSourceId && sourceElement ? (
             <>
               <span>
@@ -372,7 +389,10 @@ export function StormCanvas() {
       )}
 
       {contextMapMode && (
-        <div className="dock-surface absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)]">
+        <div
+          data-canvas-chrome
+          className="dock-surface absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)]"
+        >
           {contextMapDraftSourceId && contextMapSource ? (
             <>
               <span>
@@ -400,17 +420,6 @@ export function StormCanvas() {
           transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
           width: 4000,
           height: 3000,
-        }}
-        onContextMenu={(e) => {
-          if (e.target !== e.currentTarget) return;
-          e.preventDefault();
-          const world = worldFromClient(e.clientX, e.clientY);
-          if (!world) return;
-          useStormBoardStore.getState().openContextMenu(e.clientX, e.clientY, {
-            kind: "canvas",
-            worldX: world.x,
-            worldY: world.y,
-          });
         }}
       >
         <SwimlaneLayer />
@@ -467,7 +476,7 @@ export function StormCanvas() {
         ))}
       </div>
 
-      <div className="absolute bottom-3 left-3 flex flex-wrap gap-2">
+      <div className="absolute bottom-3 left-3 flex flex-wrap gap-2" data-canvas-chrome>
         <button
           type="button"
           onClick={() => setBcMode((v) => !v)}

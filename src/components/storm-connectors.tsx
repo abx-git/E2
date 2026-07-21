@@ -45,18 +45,25 @@ export function StormConnectors({
         const dashed = rel.type === "informs" || rel.type === "annotates";
         const selected = rel.id === selectedRelationId;
         return (
-          <g
-            key={rel.id}
-            className="pointer-events-auto cursor-pointer"
-            onClick={() => onSelectRelation(rel.id)}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const store = useStormBoardStore.getState();
-              store.selectRelation(rel.id);
-              store.openContextMenu(e.clientX, e.clientY, { kind: "relation", id: rel.id });
-            }}
-          >
+          <g key={rel.id}>
+            {/* Wide invisible stroke for hit-testing without stealing the line bbox. */}
+            <line
+              x1={start.x}
+              y1={start.y}
+              x2={end.x}
+              y2={end.y}
+              stroke="transparent"
+              strokeWidth={14}
+              className="pointer-events-auto cursor-pointer"
+              onClick={() => onSelectRelation(rel.id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const store = useStormBoardStore.getState();
+                store.selectRelation(rel.id);
+                store.openContextMenu(e.clientX, e.clientY, { kind: "relation", id: rel.id });
+              }}
+            />
             <line
               x1={start.x}
               y1={start.y}
@@ -66,13 +73,14 @@ export function StormConnectors({
               strokeWidth={selected ? 3 : 2}
               strokeDasharray={dashed ? "6 4" : undefined}
               markerEnd={selected ? "url(#storm-arrowhead-selected)" : "url(#storm-arrowhead)"}
+              className="pointer-events-none"
             />
             {rel.label && (
               <text
                 x={(start.x + end.x) / 2}
                 y={(start.y + end.y) / 2 - 6}
                 textAnchor="middle"
-                className="fill-[var(--muted)] text-[10px]"
+                className="pointer-events-none fill-[var(--muted)] text-[10px]"
               >
                 {rel.label}
               </text>
