@@ -20,6 +20,7 @@ import {
   isMobileWorkingFileMode,
   isWorkingFileAttached,
   isWorkingFileDirty,
+  isWorkingFilePersistPaused,
   markWorkingFileSessionHydrated,
   markWorkingFileSynced,
   persistWorkingFileJson,
@@ -113,6 +114,7 @@ export function WorkingFileSync({
     const flushPersist = async (): Promise<boolean> => {
       if (
         !isWorkingFileAttached() ||
+        isWorkingFilePersistPaused() ||
         saveInFlightRef.current ||
         conflictActiveRef.current ||
         suspendAutoPersistRef.current
@@ -142,7 +144,14 @@ export function WorkingFileSync({
     };
 
     const schedulePersistOnChange = () => {
-      if (!isWorkingFileAttached() || conflictActiveRef.current || suspendAutoPersistRef.current) return;
+      if (
+        !isWorkingFileAttached() ||
+        isWorkingFilePersistPaused() ||
+        conflictActiveRef.current ||
+        suspendAutoPersistRef.current
+      ) {
+        return;
+      }
       if (saveQueuedRef.current) return;
       saveQueuedRef.current = true;
       queueMicrotask(() => {
@@ -163,6 +172,7 @@ export function WorkingFileSync({
     const applyExternalFileIfNeeded = async () => {
       if (isMobileWorkingFileMode()) return;
       if (
+        isWorkingFilePersistPaused() ||
         conflictActiveRef.current ||
         suspendAutoPersistRef.current ||
         saveInFlightRef.current ||

@@ -15,6 +15,8 @@ import {
   ZoomOut,
 } from "lucide-react";
 
+import { CollabEnterConfirmDialog } from "@/components/collab-enter-confirm-dialog";
+import { CollabLeaveDialog, type CollabLeaveChoice } from "@/components/collab-leave-dialog";
 import { CollabPresenceBanner } from "@/components/collab-presence-banner";
 import { CollabRoomDialog } from "@/components/collab-room-dialog";
 import { DataStoragePanel } from "@/components/data-storage-panel";
@@ -22,14 +24,19 @@ import { CanvasContextMenu } from "@/components/canvas-context-menu";
 import { ElementDetailSidebar } from "@/components/element-detail-sidebar";
 import { ElementPalette } from "@/components/element-palette";
 import { FacilitatorPanel } from "@/components/facilitator-panel";
+import {
+  FileConflictDialog,
+  type FileConflictChoice,
+} from "@/components/file-conflict-dialog";
 import { GlossaryPanel } from "@/components/glossary-panel";
 import { HotspotList } from "@/components/hotspot-list";
 import { StormCanvas } from "@/components/storm-canvas";
 import { WorkingFileSetupDialog } from "@/components/working-file-setup-dialog";
 import { WorkingFileSync } from "@/components/working-file-sync";
 import { applyAppearanceToElement } from "@/lib/board-appearance";
+import { boardHasLocalContent, shouldConfirmCollabEnter } from "@/lib/collab/file-guard";
 import { clampZoom } from "@/lib/canvas-viewport";
-import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
+import { boardJsonFromStoreState, applyBoardJsonToStore } from "@/lib/file-board-reconcile";
 import {
   exportBoardPng,
   exportBoardSvg,
@@ -44,15 +51,29 @@ import {
 } from "@/lib/storm-json";
 import { FACILITATOR_FORMATS, type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
-import { getElementHelp, getPhaseHelp, getRelationHelp, getContextMapHelp, type HelpDialogModel } from "@/lib/storm-help";
+import {
+  getElementHelp,
+  getPhaseHelp,
+  getRelationHelp,
+  getContextMapHelp,
+  type HelpDialogModel,
+} from "@/lib/storm-help";
 import {
   attachWorkingFileFromBrowserFile,
   attachWorkingFileFromPastedText,
   attachWorkingFileFromPicker,
   createAndAttachWorkingFile,
+  getLastSyncedBoardJson,
+  getWorkingFileHandle,
+  getWorkingFileLabel,
+  hydrateStoreFromWorkingFile,
+  isMobileWorkingFileMode,
   isWorkingFileAttached,
   isWorkingFileSupported,
   isWorkingFileUiAvailable,
+  persistWorkingFileJson,
+  resolveWorkingFileImportConflict,
+  setWorkingFilePersistPaused,
 } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { useCollabStore } from "@/lib/collab/session";
@@ -76,8 +97,19 @@ export function StormBoard() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpModel, setHelpModel] = useState<HelpDialogModel | null>(null);
   const [collabOpen, setCollabOpen] = useState(false);
+  const [pendingRoomCode, setPendingRoomCode] = useState<string | null>(null);
+  const [urlJoinConfirm, setUrlJoinConfirm] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaveBusy, setLeaveBusy] = useState(false);
+  const [importConflict, setImportConflict] = useState<{
+    fileText: string;
+    fileLastModified: number;
+    fileName: string;
+  } | null>(null);
+  const [importConflictBusy, setImportConflictBusy] = useState(false);
   const collabActive = useCollabStore((s) => s.active);
   const joinRoom = useCollabStore((s) => s.joinRoom);
+  const leaveRoom = useCollabStore((s) => s.leaveRoom);
 
   const openHelp = (model: HelpDialogModel) => {
     setHelpModel(model);
@@ -128,9 +160,14 @@ export function StormBoard() {
     const params = new URLSearchParams(window.location.search);
     const room = params.get("room");
     if (!room || useCollabStore.getState().active) return;
+    setPendingRoomCode(room.trim().toUpperCase());
     setCollabOpen(true);
-    const name = useCollabStore.getState().displayName || "Gast";
-    void joinRoom(room, name);
+    if (shouldConfirmCollabEnter()) {
+      setUrlJoinConfirm(true);
+    } else {
+      const name = useCollabStore.getState().displayName || "Gast";
+      void joinRoom(room, name);
+    }
   }, [joinRoom]);
 
   useEffect(() => {
@@ -193,7 +230,16 @@ export function StormBoard() {
     setBusy(true);
     try {
       const result = await attachWorkingFileFromPicker();
-      if (result) setSetupOpen(false);
+      if (!result) return;
+      if (result.hydrate.status === "conflict") {
+        setImportConflict({
+          fileText: result.hydrate.fileText,
+          fileLastModified: result.hydrate.fileLastModified,
+          fileName: result.handle.name || "Arbeitsdatei",
+        });
+        return;
+      }
+      setSetupOpen(false);
     } finally {
       setBusy(false);
     }
@@ -205,10 +251,69 @@ export function StormBoard() {
     setBusy(true);
     try {
       const result = await attachWorkingFileFromPastedText(raw);
-      if (result.status === "read_error") window.alert(result.message);
-      else setSetupOpen(false);
+      if (result.status === "read_error") {
+        window.alert(result.message);
+        return;
+      }
+      if (result.status === "conflict") {
+        setImportConflict({
+          fileText: result.fileText,
+          fileLastModified: result.fileLastModified,
+          fileName: "Einfügen",
+        });
+        return;
+      }
+      setSetupOpen(false);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleImportConflict = async (choice: FileConflictChoice) => {
+    if (!importConflict || importConflictBusy) return;
+    setImportConflictBusy(true);
+    try {
+      await resolveWorkingFileImportConflict(
+        choice,
+        importConflict.fileText,
+        importConflict.fileLastModified,
+        importConflict.fileName,
+      );
+      setImportConflict(null);
+      setSetupOpen(false);
+    } finally {
+      setImportConflictBusy(false);
+    }
+  };
+
+  const handleLeaveChoice = async (choice: CollabLeaveChoice) => {
+    setLeaveBusy(true);
+    try {
+      // Tear down collab first so sync cannot push file reloads into the room.
+      leaveRoom();
+      if (choice === "save_file") {
+        const result = await persistWorkingFileJson(boardJsonFromStoreState());
+        if (!result.ok) window.alert("Speichern in die Arbeitsdatei fehlgeschlagen.");
+      } else if (choice === "reload_file") {
+        const handle = getWorkingFileHandle();
+        if (handle) {
+          const hydrate = await hydrateStoreFromWorkingFile(handle);
+          if (hydrate.status === "conflict") {
+            setImportConflict({
+              fileText: hydrate.fileText,
+              fileLastModified: hydrate.fileLastModified,
+              fileName: handle.name || "Arbeitsdatei",
+            });
+          }
+        } else if (isMobileWorkingFileMode()) {
+          const synced = getLastSyncedBoardJson();
+          if (synced?.trim()) applyBoardJsonToStore(synced);
+        }
+      }
+      setWorkingFilePersistPaused(false);
+      setLeaveOpen(false);
+    } finally {
+      setLeaveBusy(false);
     }
   };
 
@@ -377,7 +482,7 @@ export function StormBoard() {
         </button>
       </header>
 
-      <CollabPresenceBanner />
+      <CollabPresenceBanner onRequestLeave={() => setLeaveOpen(true)} />
 
       <div className="mx-3 mb-3 mt-2 flex min-h-0 flex-1 gap-2">
         <div className="dock-surface flex overflow-hidden rounded-dock">
@@ -443,7 +548,50 @@ export function StormBoard() {
         busy={busy}
       />
 
-      <CollabRoomDialog open={collabOpen} onClose={() => setCollabOpen(false)} />
+      <CollabRoomDialog
+        open={collabOpen}
+        onClose={() => {
+          setCollabOpen(false);
+          setPendingRoomCode(null);
+        }}
+        initialJoinCode={pendingRoomCode}
+        onExportJson={downloadJson}
+        onRequestLeave={() => setLeaveOpen(true)}
+      />
+
+      <CollabEnterConfirmDialog
+        open={urlJoinConfirm}
+        mode="join"
+        workingFileAttached={isWorkingFileAttached()}
+        boardHasContent={boardHasLocalContent()}
+        onExportJson={downloadJson}
+        onChoose={(choice) => {
+          setUrlJoinConfirm(false);
+          if (choice !== "proceed" || !pendingRoomCode) return;
+          const name = useCollabStore.getState().displayName || "Gast";
+          void joinRoom(pendingRoomCode, name);
+        }}
+      />
+
+      <CollabLeaveDialog
+        open={leaveOpen}
+        workingFileAttached={isWorkingFileAttached()}
+        workingFileLabel={workingFileName ?? getWorkingFileLabel()}
+        busy={leaveBusy}
+        onCancel={() => setLeaveOpen(false)}
+        onChoose={(choice) => void handleLeaveChoice(choice)}
+      />
+
+      <FileConflictDialog
+        open={importConflict !== null}
+        fileName={importConflict?.fileName ?? null}
+        busy={importConflictBusy}
+        title="Import-Konflikt"
+        description="Der Import und dein aktueller Board-Stand unterscheiden sich beide vom leeren Zustand. Was soll übernommen werden?"
+        keepLocalLabel="Aktuellen E2-Stand behalten"
+        loadFileLabel="Importierten Stand laden"
+        onChoose={(choice) => void handleImportConflict(choice)}
+      />
 
       <WorkingFileSetupDialog
         open={setupOpen && !isWorkingFileAttached()}
@@ -467,8 +615,19 @@ export function StormBoard() {
           setBusy(true);
           void attachWorkingFileFromBrowserFile(file).then((result) => {
             setBusy(false);
-            if (result.status === "read_error") window.alert(result.message);
-            else setSetupOpen(false);
+            if (result.status === "read_error") {
+              window.alert(result.message);
+              return;
+            }
+            if (result.status === "conflict") {
+              setImportConflict({
+                fileText: result.fileText,
+                fileLastModified: result.fileLastModified,
+                fileName: file.name || "Import",
+              });
+              return;
+            }
+            setSetupOpen(false);
           });
         }}
       />

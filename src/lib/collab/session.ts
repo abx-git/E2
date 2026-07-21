@@ -30,6 +30,7 @@ import {
   REMOTE_ORIGIN,
   readPayloadFromYDoc,
 } from "@/lib/collab/yjs-board";
+import { setWorkingFilePersistPaused } from "@/lib/working-file";
 import { buildBoardSnapshot, type BoardImportPayload } from "@/lib/storm-json";
 import {
   boardImportPayloadFromStore,
@@ -543,6 +544,8 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       userId,
       revision: result.revision,
     });
+    // Pause working-file auto-save so room content cannot silently overwrite the local file.
+    setWorkingFilePersistPaused(true);
     syncPeers(set);
     bindStoreToYjs(result.room.id, get, set);
     startSnapshotSync(result.room.id, get, set);

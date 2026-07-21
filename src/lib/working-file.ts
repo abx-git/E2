@@ -88,6 +88,17 @@ export function isWorkingFileAttached(): boolean {
   return memoryHandle !== null || mobileWorkingFileName !== null;
 }
 
+/** When true, WorkingFileSync must not auto-write (e.g. during collab). */
+let workingFilePersistPaused = false;
+
+export function setWorkingFilePersistPaused(paused: boolean): void {
+  workingFilePersistPaused = paused;
+}
+
+export function isWorkingFilePersistPaused(): boolean {
+  return workingFilePersistPaused;
+}
+
 export function markWorkingFileSynced(json: string, fileLastModified: number): void {
   lastSyncedBoardJson = json;
   lastKnownFileModified = fileLastModified;
@@ -493,6 +504,25 @@ export async function attachWorkingFileFromPastedText(
   } catch (e) {
     return { status: "read_error", message: e instanceof Error ? e.message : "Import fehlgeschlagen." };
   }
+}
+
+/** Resolve paste/import conflict after attachWorkingFileFrom* returned `conflict`. */
+export async function resolveWorkingFileImportConflict(
+  choice: "keep_local" | "load_file",
+  fileText: string,
+  fileLastModified: number,
+  fileName: string = STANDARD_WORKING_FILENAME,
+): Promise<void> {
+  if (choice === "load_file") {
+    if (fileText.trim()) loadBoardFromJsonText(fileText);
+    markWorkingFileSynced(fileText, fileLastModified);
+    await rememberMobileCopy(fileText, fileName, fileLastModified);
+  } else {
+    const localJson = boardJsonFromStoreState();
+    markWorkingFileSynced(localJson, fileLastModified);
+    await rememberMobileCopy(localJson, fileName, fileLastModified);
+  }
+  markWorkingFileSessionHydrated();
 }
 
 export async function persistWorkingFileJson(json: string): Promise<WriteWorkingFileResult> {

@@ -160,8 +160,9 @@ Im Facilitator-Modus:
 ### Arbeitsdatei
 
 - Primär: lokale `.storm.json` (File System Access API, wo verfügbar)  
-- Alternativen: Datei öffnen / JSON einfügen  
+- Alternativen: Datei öffnen / JSON einfügen (bei Konflikt: Dialog)  
 - Auto-Speichern, Konfliktbehandlung bei externer Änderung  
+- Während **Kollaboration** ist Auto-Save pausiert; beim Verlassen: speichern / Datei laden / weiter  
 - PWA / offline-fähig (Serwist)
 
 ### Export
@@ -242,7 +243,7 @@ Legende: ✅ vorhanden · 🟡 teilweise · ❌ fehlt / bewusst nicht
 | Phasenführung / Facilitator | ✅ | Drei Formate + Checklisten |
 | Typbeschränkung pro Phase | ✅ | Palette gefiltert |
 | Empfohlene Zeitfenster | ✅ | Phasen-Countdown Start/Pause/Reset im Facilitator |
-| Mehrbenutzer / Echtzeit-Kollaboration | 🟡 | Optionaler Raum-Modus (Supabase Free); Solo bleibt Default |
+| Mehrbenutzer / Echtzeit-Kollaboration | ✅ | Optionaler Raum (Supabase); Join-Bestätigung, Datei pausiert, Leave-Optionen |
 | Undo/Redo | ✅ | History-Stack, Toolbar, ⌘Z / Ctrl+Z |
 | Papier-Workshop-Extras (Opportunity, Problem, Value Stream overlays) | ❌ | Nur die 10 Kern-Typen |
 

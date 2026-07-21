@@ -3,20 +3,25 @@
 import { Wifi, WifiOff } from "lucide-react";
 
 import { useCollabStore } from "@/lib/collab/session";
+import { isWorkingFileAttached, isWorkingFilePersistPaused } from "@/lib/working-file";
+
+export interface CollabPresenceBannerProps {
+  onRequestLeave: () => void;
+}
 
 /** Live presence strip when a collab room is active. */
-export function CollabPresenceBanner() {
+export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerProps) {
   const active = useCollabStore((s) => s.active);
   const status = useCollabStore((s) => s.status);
   const room = useCollabStore((s) => s.room);
   const peers = useCollabStore((s) => s.peers);
   const isHost = useCollabStore((s) => s.isHost);
-  const leaveRoom = useCollabStore((s) => s.leaveRoom);
   const error = useCollabStore((s) => s.error);
 
   if (!active || !room) return null;
 
   const disconnected = status === "disconnected" || status === "error";
+  const filePaused = isWorkingFileAttached() && isWorkingFilePersistPaused();
 
   return (
     <div
@@ -39,6 +44,11 @@ export function CollabPresenceBanner() {
         {isHost ? " · Host" : ""}
       </span>
       <span className="text-[var(--muted)]">{peers.length} online</span>
+      {filePaused && (
+        <span className="text-[var(--accent-2)]" title="Arbeitsdatei wird während Collab nicht überschrieben">
+          Datei pausiert
+        </span>
+      )}
       <div className="flex -space-x-1">
         {peers.slice(0, 8).map((p) => (
           <span
@@ -55,7 +65,7 @@ export function CollabPresenceBanner() {
       <button
         type="button"
         className="ml-auto rounded px-2 py-0.5 text-[var(--muted)] hover:bg-[var(--control-hover)] hover:text-[var(--text)]"
-        onClick={() => leaveRoom()}
+        onClick={onRequestLeave}
       >
         Verlassen
       </button>

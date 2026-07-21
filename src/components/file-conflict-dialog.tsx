@@ -10,6 +10,11 @@ export interface FileConflictDialogProps {
   fileName: string | null;
   busy?: boolean;
   onChoose: (choice: FileConflictChoice) => void;
+  /** Override default copy for import/paste conflicts. */
+  title?: string;
+  description?: string;
+  keepLocalLabel?: string;
+  loadFileLabel?: string;
 }
 
 export function FileConflictDialog({
@@ -17,6 +22,10 @@ export function FileConflictDialog({
   fileName,
   busy,
   onChoose,
+  title,
+  description,
+  keepLocalLabel,
+  loadFileLabel,
 }: FileConflictDialogProps) {
   const titleId = useId();
   if (!open) return null;
@@ -36,10 +45,11 @@ export function FileConflictDialog({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-base font-semibold text-slate-900">
-          Datei und E2 wurden gleichzeitig geändert
+          {title ?? "Datei und E2 wurden gleichzeitig geändert"}
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          {label} wurde extern geändert, während Sie in E2 ungespeicherte Änderungen haben.
+          {description ??
+            `${label} wurde extern geändert, während Sie in E2 ungespeicherte Änderungen haben.`}
         </p>
         <div className="mt-5 flex flex-col gap-2">
           <button
@@ -48,7 +58,7 @@ export function FileConflictDialog({
             onClick={() => onChoose("keep_local")}
             className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-left text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
           >
-            E2-Stand in die Datei schreiben
+            {keepLocalLabel ?? "E2-Stand in die Datei schreiben"}
           </button>
           <button
             type="button"
@@ -56,7 +66,7 @@ export function FileConflictDialog({
             onClick={() => onChoose("load_file")}
             className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
           >
-            Datei in E2 laden
+            {loadFileLabel ?? "Datei in E2 laden"}
           </button>
         </div>
       </div>

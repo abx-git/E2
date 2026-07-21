@@ -53,14 +53,25 @@ Client-Helfer: [`src/utils/supabase/`](../src/utils/supabase/) (`@supabase/ssr`)
 
 ## Nutzung
 
-1. **Daten → Kollaboration → Raum erstellen** (oder Toolbar **Raum**).
-2. Join-Code / Link `?room=CODE` teilen.
-3. Teilnehmende: Name wählen → beitreten.
-4. Banner zeigt „Live · n online“; Disconnect wird angezeigt.
-5. Host (Ersteller) kann Raum später verlassen; Snapshot bleibt bis `expires_at`.
-6. Jederzeit **JSON exportieren** (lokaler Stand).
+1. **Daten → Kollaboration** oder Toolbar **Raum**.
+2. Bei vorhandenem Board oder angebundener Arbeitsdatei erscheint eine **Bestätigung** (optional JSON-Export als Sicherheitskopie).
+3. Join-Code / Link `?room=CODE` teilen.
+4. Teilnehmende: Name wählen → beitreten (ebenfalls mit Bestätigung, falls lokal Inhalt vorhanden).
+5. Banner zeigt „Live · n online“; bei angebundener Datei zusätzlich **Datei pausiert**.
+6. **Verlassen:** Dialog — mit aktuellem Board weiter, in Arbeitsdatei speichern, oder Datei neu laden.
+7. Raum-Snapshot bleibt bis `expires_at`.
 
-Lokale Arbeitsdatei wird beim Join **nicht** automatisch überschrieben.
+### Arbeitsdatei und Collab
+
+| Situation | Verhalten |
+|-----------|-----------|
+| Join / Raum erstellen | Auto-Save der Arbeitsdatei wird **pausiert** (Handle bleibt) |
+| Während Collab | Raum-Stand landet **nicht** still in der lokalen Datei |
+| Verlassen → speichern | Aktueller Board-Stand (meist Raum) wird bewusst in die Datei geschrieben |
+| Verlassen → Datei laden | Datei-Stand vor dem Collab-Schreiben wiederherstellen |
+| Verlassen → weiter | Board bleibt; Auto-Save wird wieder aktiv |
+
+**Beitreten ersetzt** den Editor-Inhalt durch den Raum (Undo-History wird geleert). Deshalb Bestätigung + optionaler JSON-Export.
 
 ## Datenmodell
 
