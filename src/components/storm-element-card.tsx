@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Clock, RotateCcw } from "lucide-react";
 
+import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import {
   cardAttributeLines,
@@ -252,12 +253,25 @@ export function StormElementCard({
             draggedRef.current = true;
           }
           if (relationMode && !draggedRef.current) return;
-          const worldDx = dx / zoom;
-          const worldDy = dy / zoom;
+          const overClip = isPointerOverClipboardDrop(ev.clientX, ev.clientY);
+          useStormBoardStore.getState().setClipboardDropHighlight(overClip);
           const orderedIds = [
             element.id,
             ...moveIds.filter((id) => id !== element.id),
           ];
+          if (overClip) {
+            // Park stickies at origin while hovering the clipboard drop zone.
+            onMoveMany(
+              orderedIds.flatMap((id) => {
+                const orig = origins.get(id);
+                if (!orig) return [];
+                return [{ id, x: orig.x, y: orig.y }];
+              }),
+            );
+            return;
+          }
+          const worldDx = dx / zoom;
+          const worldDy = dy / zoom;
           onMoveMany(
             orderedIds.flatMap((id) => {
               const orig = origins.get(id);
@@ -267,10 +281,24 @@ export function StormElementCard({
           );
         };
 
-        const onUp = () => {
+        const onUp = (ev: PointerEvent) => {
           window.removeEventListener("pointermove", onMoveEv);
           window.removeEventListener("pointerup", onUp);
           useStormBoardStore.getState().endGesture();
+          useStormBoardStore.getState().setClipboardDropHighlight(false);
+
+          if (draggedRef.current && isPointerOverClipboardDrop(ev.clientX, ev.clientY)) {
+            // Restore pre-drag positions, then cut into clipboard.
+            onMoveMany(
+              Array.from(origins.entries()).map(([id, pos]) => ({
+                id,
+                x: pos.x,
+                y: pos.y,
+              })),
+            );
+            useStormBoardStore.getState().moveToClipboard(moveIds);
+            return;
+          }
 
           if (draggedRef.current) return;
 

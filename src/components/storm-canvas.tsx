@@ -387,6 +387,7 @@ export function StormCanvas() {
   return (
     <div
       ref={containerRef}
+      data-storm-canvas
       className={[
         "absolute inset-0 overflow-hidden bg-canvas outline-none",
         spaceHeld || panning ? (panning ? "cursor-grabbing" : "cursor-grab") : "",

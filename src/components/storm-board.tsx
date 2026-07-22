@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { BoardViewTabs } from "@/components/board-view-tabs";
+import { ClipboardPanel } from "@/components/clipboard-panel";
 import { CollabEnterConfirmDialog } from "@/components/collab-enter-confirm-dialog";
 import { CollabLeaveDialog, type CollabLeaveChoice } from "@/components/collab-leave-dialog";
 import { CollabPresenceBanner } from "@/components/collab-presence-banner";
@@ -564,6 +565,7 @@ export function StormBoard() {
             onRequestHelpRelationType={openRelationHelp}
           />
           <div className="min-h-0 flex-1 overflow-y-auto">
+            <ClipboardPanel />
             <HotspotList />
             <GlossaryPanel />
             <FacilitatorPanel onRequestHelpPhase={(phase, format) => openPhaseHelp(phase, format)} />

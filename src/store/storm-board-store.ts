@@ -6,6 +6,12 @@ import {
   applyContainmentAssignments,
   translateMatchingElements,
 } from "@/lib/region-containment";
+import {
+  extractClipboardPayload,
+  remapClipboardForPaste,
+  selectionCentroid,
+  type BoardClipboardPayload,
+} from "@/lib/board-clipboard";
 import { generateStormId } from "@/lib/storm-id";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
 import { createEmptyBoardView, normalizeBoardDocument } from "@/lib/storm-json";
@@ -83,6 +89,9 @@ export interface StormBoardState {
   contextMapMode: boolean;
   contextMapDraftSourceId: string | null;
   contextMenu: ContextMenuState | null;
+  /** Ephemeral cut buffer (not persisted / not in undo domain snapshot as separate field — cut is undoable via board state). */
+  clipboard: BoardClipboardPayload | null;
+  clipboardDropHighlight: boolean;
 
   /** Undo stacks (not persisted). */
   past: BoardDomainSnapshot[];
@@ -109,6 +118,10 @@ export interface StormBoardState {
   setAppearance: (patch: Partial<BoardAppearance>) => void;
   setPaletteType: (type: ElementType) => void;
   setFocusMode: (enabled: boolean) => void;
+  setClipboardDropHighlight: (active: boolean) => void;
+  moveToClipboard: (ids: string[]) => boolean;
+  pasteClipboardAt: (worldX: number, worldY: number) => string[];
+  clearClipboard: () => void;
   selectElement: (id: string | null, additive?: boolean) => void;
   setSelectedElementIds: (ids: string[], additive?: boolean) => void;
   selectRelation: (id: string | null) => void;
@@ -294,6 +307,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   contextMapMode: false,
   contextMapDraftSourceId: null,
   contextMenu: null,
+  clipboard: null,
+  clipboardDropHighlight: false,
   past: [],
   future: [],
   gestureActive: false,
@@ -422,6 +437,69 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => ({ appearance: { ...s.appearance, ...patch } })),
   setPaletteType: (paletteType) => set({ paletteType }),
   setFocusMode: (focusMode) => set({ focusMode }),
+  setClipboardDropHighlight: (clipboardDropHighlight) => set({ clipboardDropHighlight }),
+
+  moveToClipboard: (ids) => {
+    const unique = Array.from(new Set(ids));
+    if (unique.length === 0) return false;
+    let ok = false;
+    commit(set, get, (s) => {
+      const extracted = extractClipboardPayload(s.elements, s.relations, unique);
+      if (!extracted) return {};
+      ok = true;
+      const idSet = new Set(unique);
+      const mergedElements = s.clipboard
+        ? [...s.clipboard.elements, ...extracted.elements]
+        : extracted.elements;
+      const mergedRelations = s.clipboard
+        ? [...s.clipboard.relations, ...extracted.relations]
+        : extracted.relations;
+      const centroid = selectionCentroid(mergedElements);
+      return {
+        clipboard: {
+          elements: mergedElements,
+          relations: mergedRelations,
+          originX: centroid.x,
+          originY: centroid.y,
+        },
+        clipboardDropHighlight: false,
+        elements: s.elements.filter((e) => !idSet.has(e.id)),
+        relations: s.relations.filter(
+          (r) => !idSet.has(r.sourceId) && !idSet.has(r.targetId),
+        ),
+        selectedElementIds: [],
+        selectedRelationId: null,
+      };
+    });
+    return ok;
+  },
+
+  pasteClipboardAt: (worldX, worldY) => {
+    const payload = get().clipboard;
+    if (!payload || payload.elements.length === 0) return [];
+    let newIds: string[] = [];
+    commit(set, get, (s) => {
+      const remapped = remapClipboardForPaste(payload, worldX, worldY);
+      newIds = remapped.newIds;
+      const elements = applyContainmentAssignments(
+        [...s.elements, ...remapped.elements],
+        s.swimlanes,
+        s.boundedContexts,
+      );
+      return {
+        elements,
+        relations: [...s.relations, ...remapped.relations],
+        selectedElementIds: remapped.newIds,
+        selectedRelationId: null,
+        selectedContextRelationId: null,
+        selectedBoundedContextId: null,
+        selectedSwimlaneId: null,
+      };
+    });
+    return newIds;
+  },
+
+  clearClipboard: () => set({ clipboard: null, clipboardDropHighlight: false }),
 
   selectElement: (id, additive) =>
     set((s) => {

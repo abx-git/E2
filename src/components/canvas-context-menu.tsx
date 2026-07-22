@@ -11,6 +11,8 @@ import {
   AlignStartHorizontal,
   AlignStartVertical,
   AlignVerticalSpaceBetween,
+  ClipboardList,
+  ClipboardPaste,
   HelpCircle,
   Link2,
   StretchHorizontal,
@@ -73,6 +75,9 @@ export function CanvasContextMenu({
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const timeline = useStormBoardStore((s) => s.timeline);
   const setTimeline = useStormBoardStore((s) => s.setTimeline);
+  const moveToClipboard = useStormBoardStore((s) => s.moveToClipboard);
+  const pasteClipboardAt = useStormBoardStore((s) => s.pasteClipboardAt);
+  const clipboard = useStormBoardStore((s) => s.clipboard);
 
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: 0, top: 0 });
@@ -283,6 +288,11 @@ export function CanvasContextMenu({
         />
         <Separator />
         <Item
+          icon={ClipboardList}
+          label="In Zwischenablage verschieben"
+          onClick={() => run(() => moveToClipboard([el.id]))}
+        />
+        <Item
           icon={Trash2}
           label="Löschen"
           danger
@@ -362,6 +372,11 @@ export function CanvasContextMenu({
           }
         />
         <Separator />
+        <Item
+          icon={ClipboardList}
+          label="In Zwischenablage verschieben"
+          onClick={() => run(() => moveToClipboard(target.ids))}
+        />
         <Item
           icon={Trash2}
           label="Alle löschen"
@@ -538,6 +553,13 @@ export function CanvasContextMenu({
             run(() => addElement(paletteType, target.worldX, target.worldY))
           }
         />
+        {clipboard && clipboard.elements.length > 0 && (
+          <Item
+            icon={ClipboardPaste}
+            label={`Zwischenablage einfügen (${clipboard.elements.length})`}
+            onClick={() => run(() => pasteClipboardAt(target.worldX, target.worldY))}
+          />
+        )}
         {timeline.visible === false && (
           <Item
             label="Timeline einblenden"

@@ -154,4 +154,25 @@ describe("store undo / views / import", () => {
     expect(useStormBoardStore.getState().workshopMode).toBe(true);
     expect(boardImportPayloadFromStore().workshopMode).toBe(true);
   });
+
+  it("moves elements to clipboard and pastes into another view", () => {
+    const store = useStormBoardStore.getState();
+    const idA = store.addElement("domainEvent", 10, 10);
+    const idB = store.addElement("command", 120, 10);
+    store.addRelation(idB, idA, "triggers");
+    expect(useStormBoardStore.getState().relations).toHaveLength(1);
+
+    store.moveToClipboard([idA, idB]);
+    expect(useStormBoardStore.getState().elements).toHaveLength(0);
+    expect(useStormBoardStore.getState().clipboard?.elements).toHaveLength(2);
+    expect(useStormBoardStore.getState().clipboard?.relations).toHaveLength(1);
+
+    const other = store.addView("Ziel");
+    expect(useStormBoardStore.getState().activeViewId).toBe(other);
+    const pasted = store.pasteClipboardAt(300, 300);
+    expect(pasted).toHaveLength(2);
+    expect(useStormBoardStore.getState().elements).toHaveLength(2);
+    expect(useStormBoardStore.getState().relations).toHaveLength(1);
+    expect(useStormBoardStore.getState().selectedElementIds).toEqual(pasted);
+  });
 });
