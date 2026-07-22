@@ -41,9 +41,13 @@ import {
   exportBoardPng,
   exportBoardSvg,
   exportContextMapMarkdown,
+  exportDomainModelMarkdown,
   exportEventCatalogMarkdown,
+  exportEventModelMarkdown,
+  exportExampleMappingMarkdown,
   exportGlossaryMarkdown,
   exportHotspotReportMarkdown,
+  exportStoryMapMarkdown,
 } from "@/lib/storm-export";
 import {
   BOARD_SNAPSHOT_SCHEMA_FILENAME,
@@ -572,6 +576,10 @@ export function StormBoard() {
         onExportGlossary={exportGlossaryMarkdown}
         onExportContextMap={exportContextMapMarkdown}
         onExportEventCatalog={exportEventCatalogMarkdown}
+        onExportDomainModel={exportDomainModelMarkdown}
+        onExportExampleMapping={exportExampleMappingMarkdown}
+        onExportStoryMap={exportStoryMapMarkdown}
+        onExportEventModel={exportEventModelMarkdown}
         onOpenCollab={() => {
           setStorageOpen(false);
           setCollabOpen(true);

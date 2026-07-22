@@ -3,7 +3,10 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AppearanceSettings } from "@/components/appearance-settings";
-import { Copy, Download, FolderOpen, Loader2, Upload, Users, X } from "lucide-react";
+import { Download, FolderOpen, Loader2, Upload, Users, X } from "lucide-react";
+import { useStormBoardStore } from "@/store/storm-board-store";
+import type { ModelingMode } from "@/types/storm-element";
+import { MODELING_MODE_LABELS } from "@/types/storm-element";
 
 export interface DataStoragePanelProps {
   open: boolean;
@@ -25,6 +28,10 @@ export interface DataStoragePanelProps {
   onExportGlossary: () => void;
   onExportContextMap: () => void;
   onExportEventCatalog: () => void;
+  onExportDomainModel: () => void;
+  onExportExampleMapping: () => void;
+  onExportStoryMap: () => void;
+  onExportEventModel: () => void;
   onOpenCollab?: () => void;
   busy?: boolean;
 }
@@ -42,21 +49,30 @@ function ActionButton({
   onClick,
   disabled,
   children,
+  emphasize,
 }: {
   onClick: () => void;
   disabled?: boolean;
   children: ReactNode;
+  emphasize?: boolean;
 }) {
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="dock-control flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
+      className={[
+        "dock-control flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50",
+        emphasize ? "ring-1 ring-[var(--accent)]/40" : "",
+      ].join(" ")}
     >
       {children}
     </button>
   );
+}
+
+function modeMatches(mode: ModelingMode, ...modes: ModelingMode[]): boolean {
+  return modes.includes(mode);
 }
 
 export function DataStoragePanel({
@@ -79,9 +95,15 @@ export function DataStoragePanel({
   onExportGlossary,
   onExportContextMap,
   onExportEventCatalog,
+  onExportDomainModel,
+  onExportExampleMapping,
+  onExportStoryMap,
+  onExportEventModel,
   onOpenCollab,
   busy,
 }: DataStoragePanelProps) {
+  const modelingMode = useStormBoardStore((s) => s.modelingMode);
+
   if (!open) return null;
 
   const layer = (
@@ -102,7 +124,8 @@ export function DataStoragePanel({
           <div>
             <h2 className="text-base font-semibold tracking-tight">Daten &amp; Darstellung</h2>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Arbeitsdatei, Farben und Export (.storm.json).
+              Arbeitsdatei, Farben und Export (.storm.json). Aktiv:{" "}
+              {MODELING_MODE_LABELS[modelingMode]}
             </p>
           </div>
           <button
@@ -121,14 +144,18 @@ export function DataStoragePanel({
 
           <Section title="Arbeitsdatei">
             {workingFileAttached ? (
-              <p className="text-sm">
-                {workingFileLabel ? `„${workingFileLabel}"` : "Verknüpft"}
-                {workingFileSaving ? " — speichert …" : workingFileDirty ? " — ungespeichert" : " — synchron"}
+              <p className="text-xs text-[var(--muted)]">
+                {workingFileLabel ?? "Arbeitsdatei"}
+                {workingFileDirty
+                  ? " · ungespeichert"
+                  : workingFileSaving
+                    ? " · speichert …"
+                    : " · gespeichert"}
               </p>
             ) : (
-              <p className="text-sm text-[var(--muted)]">Noch keine Arbeitsdatei verknüpft.</p>
+              <p className="text-xs text-[var(--muted)]">Keine Arbeitsdatei verknüpft.</p>
             )}
-            {fsAccessSupported && (
+            {fsAccessSupported ? (
               <>
                 <ActionButton onClick={onOpenWorkingFile} disabled={busy}>
                   <FolderOpen className="h-4 w-4" /> Datei öffnen
@@ -137,27 +164,32 @@ export function DataStoragePanel({
                   <Upload className="h-4 w-4" /> Neue Datei anlegen
                 </ActionButton>
               </>
+            ) : (
+              <>
+                <ActionButton onClick={onRestoreBackupFile} disabled={busy}>
+                  <FolderOpen className="h-4 w-4" /> Datei wählen
+                </ActionButton>
+                <ActionButton onClick={onRestoreBackupPaste} disabled={busy}>
+                  JSON einfügen
+                </ActionButton>
+              </>
             )}
-            <ActionButton onClick={onRestoreBackupFile} disabled={busy}>
-              <FolderOpen className="h-4 w-4" /> JSON importieren (Datei)
-            </ActionButton>
-            <ActionButton onClick={onRestoreBackupPaste} disabled={busy}>
-              <Copy className="h-4 w-4" /> JSON einfügen
-            </ActionButton>
+            {busy && (
+              <p className="flex items-center gap-2 text-xs text-[var(--muted)]">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Bitte warten …
+              </p>
+            )}
           </Section>
 
           {onOpenCollab && (
             <Section title="Kollaboration">
-              <p className="text-xs text-[var(--muted)]">
-                Optionaler Live-Raum (Supabase Free). Solo-Modus bleibt Standard.
-              </p>
-              <ActionButton onClick={onOpenCollab} disabled={busy}>
+              <ActionButton onClick={onOpenCollab}>
                 <Users className="h-4 w-4" /> Raum erstellen / beitreten
               </ActionButton>
             </Section>
           )}
 
-          <Section title="Export">
+          <Section title="Export — Board">
             <ActionButton onClick={onExportJson} disabled={busy}>
               <Download className="h-4 w-4" /> JSON herunterladen
             </ActionButton>
@@ -171,22 +203,76 @@ export function DataStoragePanel({
               <code className="rounded bg-[var(--control)] px-1">$schema</code>.
             </p>
             <ActionButton onClick={onExportSvg} disabled={busy}>
-              <Download className="h-4 w-4" /> SVG
+              <Download className="h-4 w-4" /> SVG (Draw.io)
             </ActionButton>
             <ActionButton onClick={onExportPng} disabled={busy}>
               <Download className="h-4 w-4" /> PNG
             </ActionButton>
+          </Section>
+
+          <Section title="Export — Gemeinsam">
             <ActionButton onClick={onExportHotspots} disabled={busy}>
               <Download className="h-4 w-4" /> Hotspot-Report (MD)
             </ActionButton>
             <ActionButton onClick={onExportGlossary} disabled={busy}>
               <Download className="h-4 w-4" /> Glossary (MD)
             </ActionButton>
-            <ActionButton onClick={onExportContextMap} disabled={busy}>
+            <ActionButton
+              onClick={onExportContextMap}
+              disabled={busy}
+              emphasize={modeMatches(modelingMode, "eventStorming", "domainDrivenDesign")}
+            >
               <Download className="h-4 w-4" /> Context Map (MD)
             </ActionButton>
-            <ActionButton onClick={onExportEventCatalog} disabled={busy}>
+          </Section>
+
+          <Section title="Export — Event Storming">
+            <ActionButton
+              onClick={onExportEventCatalog}
+              disabled={busy}
+              emphasize={modeMatches(modelingMode, "eventStorming", "eventModeling")}
+            >
               <Download className="h-4 w-4" /> Event Catalog (MD)
+            </ActionButton>
+          </Section>
+
+          <Section title="Export — Domain-Driven Design">
+            <ActionButton
+              onClick={onExportDomainModel}
+              disabled={busy}
+              emphasize={modeMatches(modelingMode, "domainDrivenDesign")}
+            >
+              <Download className="h-4 w-4" /> Domain Model (MD)
+            </ActionButton>
+          </Section>
+
+          <Section title="Export — BDD / Example Mapping">
+            <ActionButton
+              onClick={onExportExampleMapping}
+              disabled={busy}
+              emphasize={modeMatches(modelingMode, "bdd")}
+            >
+              <Download className="h-4 w-4" /> Example Mapping (MD)
+            </ActionButton>
+          </Section>
+
+          <Section title="Export — User Story Mapping">
+            <ActionButton
+              onClick={onExportStoryMap}
+              disabled={busy}
+              emphasize={modeMatches(modelingMode, "userStoryMapping")}
+            >
+              <Download className="h-4 w-4" /> Story Map (MD)
+            </ActionButton>
+          </Section>
+
+          <Section title="Export — Event Modeling">
+            <ActionButton
+              onClick={onExportEventModel}
+              disabled={busy}
+              emphasize={modeMatches(modelingMode, "eventModeling")}
+            >
+              <Download className="h-4 w-4" /> Event Model / Slices (MD)
             </ActionButton>
           </Section>
         </div>

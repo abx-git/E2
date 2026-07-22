@@ -262,15 +262,19 @@ Im Facilitator-Modus:
 
 ### Export
 
-| Format | Nutzen |
-|--------|--------|
-| **JSON** | Vollständiger Board-Stand inkl. Schema-Verweis |
-| **JSON Schema** | Für andere Tools, die gültige Boards erzeugen |
-| **SVG / PNG** | Visueller Snapshot |
-| **Hotspot-Report (MD)** | Offene Punkte |
-| **Glossary (MD)** | Ubiquitous Language |
-| **Context Map (MD)** | Contexts + Context-Map-Muster + Cross-Boundary-Element-Relationen |
-| **Event Catalog (MD)** | Domain Events inkl. Schema |
+| Format | Nutzen | Typisch für |
+|--------|--------|-------------|
+| **JSON** | Vollständiger Board-Stand inkl. Schema-Verweis | alle |
+| **JSON Schema** | Für andere Tools, die gültige Boards erzeugen | alle |
+| **SVG / PNG** | Visueller Snapshot; SVG als `.drawio.svg` mit eingebettetem Diagramm — in [diagrams.net](https://app.diagrams.net) / Draw.io bearbeitbar | alle |
+| **Hotspot-Report (MD)** | Offene Punkte | alle |
+| **Glossary (MD)** | Ubiquitous Language | alle |
+| **Context Map (MD)** | Contexts + Context-Map-Muster + Cross-Boundary-Relationen | ES, DDD |
+| **Event Catalog (MD)** | Domain Events inkl. Schema | ES, Event Modeling |
+| **Domain Model (MD)** | Aggregates, Entities, VOs, Services, Repos, Factories, Subdomains | DDD |
+| **Example Mapping (MD)** | Rules, Examples (Given/When/Then), Questions | BDD |
+| **Story Map (MD)** | Activities, Tasks, Stories, Releases | User Story Mapping |
+| **Event Model / Slices (MD)** | Slices mit enthaltenen Events/Commands/Read Models | Event Modeling |
 
 Schema & Formatdoku: [`docs/BOARD-JSON-SCHEMA.md`](docs/BOARD-JSON-SCHEMA.md), [`public/schemas/board-snapshot-v1.schema.json`](public/schemas/board-snapshot-v1.schema.json).
 
