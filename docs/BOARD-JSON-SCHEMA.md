@@ -97,4 +97,4 @@ Flache v1-Felder (`elements`, `relations`, …, `modelingMode`, …) werden zu `
 
 `modelingMode` steuert Palette und Facilitator pro Sicht. Der Board-Inhalt darf Elementtypen aller Modi enthalten.
 
-Weitere Typen: DDD, BDD, USM, Event Modeling, Prozess (`processFlow`), Daten (`dataModel`) — siehe Schema-`$defs` (`gatewayKind`, `dataCardinality`, Prozess-/Daten-Metadaten).
+Weitere Typen: DDD, BDD, USM, Event Modeling, Prozess (`processFlow`), Daten (`dataModel`), sowie geteilte Annotationen inkl. `link` (URL oder Sicht) — siehe Schema-`$defs`.

@@ -43,7 +43,9 @@ export type ElementType =
   | "processGateway"
   /** Data model (ER-lite) */
   | "dataEntity"
-  | "dataAssociation";
+  | "dataAssociation"
+  /** Shared: external URL or board view */
+  | "link";
 
 export type HotspotStatus = "open" | "resolved";
 export type HotspotPriority = "low" | "medium" | "high";
@@ -52,6 +54,7 @@ export type StoryPriority = "must" | "should" | "could" | "wont";
 export type QuestionStatus = "open" | "resolved";
 export type GatewayKind = "xor" | "and" | "or";
 export type DataCardinality = "1:1" | "1:n" | "n:1" | "n:m";
+export type LinkKind = "external" | "view";
 
 export type NoteColorId =
   | "cream"
@@ -138,6 +141,13 @@ export interface ElementMetadata {
   /** Data Association: linke / rechte Seite (Freitext-Namen). */
   dataLeftEntity?: string;
   dataRightEntity?: string;
+
+  /** Link: extern (URL) oder intern (Sicht/Tab). */
+  linkKind?: LinkKind;
+  /** Link (external): Ziel-URL. */
+  linkUrl?: string;
+  /** Link (view): ID einer Board-Sicht. */
+  linkViewId?: string;
 
   /** Sticky: Beschreibung auf der Karte anzeigen. */
   showDescriptionOnCard?: boolean;
@@ -242,7 +252,7 @@ export const MODELING_MODES: ModelingMode[] = [
 ];
 
 /** Shared annotation types. */
-export const SHARED_ELEMENT_TYPES: ElementType[] = ["note", "hotspot"];
+export const SHARED_ELEMENT_TYPES: ElementType[] = ["note", "hotspot", "link"];
 
 /** Palette order for Event Storming mode (facilitator off / free). */
 export const ES_ELEMENT_TYPES: ElementType[] = [
@@ -256,6 +266,7 @@ export const ES_ELEMENT_TYPES: ElementType[] = [
   "ui",
   "note",
   "hotspot",
+  "link",
   "pivotalEvent",
 ];
 
@@ -272,6 +283,7 @@ export const DDD_ELEMENT_TYPES: ElementType[] = [
   "externalSystem",
   "note",
   "hotspot",
+  "link",
 ];
 
 /** BDD / Example Mapping palette. */
@@ -282,6 +294,7 @@ export const BDD_ELEMENT_TYPES: ElementType[] = [
   "actor",
   "note",
   "hotspot",
+  "link",
 ];
 
 /** User Story Mapping palette. */
@@ -293,6 +306,7 @@ export const USM_ELEMENT_TYPES: ElementType[] = [
   "actor",
   "note",
   "hotspot",
+  "link",
 ];
 
 /** Event Modeling palette (reuses ES building blocks + slice). */
@@ -307,6 +321,7 @@ export const EM_ELEMENT_TYPES: ElementType[] = [
   "externalSystem",
   "note",
   "hotspot",
+  "link",
 ];
 
 /** Business process (BPMN-lite) palette. */
@@ -318,6 +333,7 @@ export const PROCESS_ELEMENT_TYPES: ElementType[] = [
   "actor",
   "note",
   "hotspot",
+  "link",
 ];
 
 /** Conceptual data model (ER-lite) palette. */
@@ -326,6 +342,7 @@ export const DATA_ELEMENT_TYPES: ElementType[] = [
   "dataAssociation",
   "note",
   "hotspot",
+  "link",
 ];
 
 /** All sticky types that can appear on a board. */

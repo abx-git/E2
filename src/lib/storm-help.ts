@@ -106,6 +106,19 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
       "Hotspot-Typische Idee: erst später detaillieren",
     ],
   },
+  link: {
+    title: "Link",
+    subtitle: "Himmelblau — externer URL oder Board-Sicht",
+    paragraphs: [
+      "Verweist auf eine Webseite oder wechselt zu einer anderen Sicht (Tab) im gleichen Board.",
+      "Ziel in der Detailleiste setzen; über das Link-Symbol auf der Karte oder „Öffnen“ springen.",
+    ],
+    bullets: [
+      "Extern: http(s)-URL (ohne Protokoll wird https ergänzt)",
+      "Intern: eine bestehende Sicht auswählen",
+      "Relation „annotiert“ zu anderen Stickies möglich",
+    ],
+  },
   pivotalEvent: {
     title: "Pivotal Event",
     subtitle: "Gelber Langblock — „Phasenwechsel“",

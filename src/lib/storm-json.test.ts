@@ -136,7 +136,7 @@ describe("facilitator-phases", () => {
 
   it("allows ES catalog when facilitator off", () => {
     const allowed = getAllowedTypesForPhase("eventStorming", "bigPicture", 0, false);
-    expect(allowed.length).toBe(11);
+    expect(allowed.length).toBe(12);
   });
 
   it("uses DDD catalog in DDD free mode", () => {

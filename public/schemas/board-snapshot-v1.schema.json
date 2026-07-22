@@ -169,8 +169,13 @@
         "processActivity",
         "processGateway",
         "dataEntity",
-        "dataAssociation"
+        "dataAssociation",
+        "link"
       ]
+    },
+    "linkKind": {
+      "type": "string",
+      "enum": ["external", "view"]
     },
     "gatewayKind": {
       "type": "string",
@@ -392,6 +397,17 @@
         "dataRightEntity": {
           "type": "string",
           "description": "Data Association: rechte Entität."
+        },
+        "linkKind": {
+          "$ref": "#/$defs/linkKind"
+        },
+        "linkUrl": {
+          "type": "string",
+          "description": "Link (external): Ziel-URL."
+        },
+        "linkViewId": {
+          "type": "string",
+          "description": "Link (view): ID einer Board-Sicht."
         },
         "showDescriptionOnCard": {
           "type": "boolean",

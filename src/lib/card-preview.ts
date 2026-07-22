@@ -1,7 +1,10 @@
 import type { StormElement } from "@/types/storm-element";
 
 /** Lines shown under „Attribute“ on the sticky (type-aware). */
-export function cardAttributeLines(el: StormElement): string[] {
+export function cardAttributeLines(
+  el: StormElement,
+  opts?: { viewNameById?: Record<string, string> },
+): string[] {
   const m = el.metadata;
   if (!m) return [];
   const lines: string[] = [];
@@ -41,6 +44,17 @@ export function cardAttributeLines(el: StormElement): string[] {
   if (m.dataCardinality) lines.push(m.dataCardinality);
   if (m.dataLeftEntity?.trim() || m.dataRightEntity?.trim()) {
     lines.push(`${m.dataLeftEntity?.trim() || "?"} — ${m.dataRightEntity?.trim() || "?"}`);
+  }
+
+  const linkKind = m.linkKind ?? "external";
+  if (linkKind === "view") {
+    const viewId = m.linkViewId?.trim();
+    if (viewId) {
+      const name = opts?.viewNameById?.[viewId];
+      lines.push(name ? `→ ${name}` : "→ Sicht");
+    }
+  } else if (m.linkUrl?.trim()) {
+    lines.push(m.linkUrl.trim());
   }
 
   const given = m.exampleGiven ?? [];

@@ -219,7 +219,9 @@ function createElement(type: ElementType, x: number, y: number, label?: string):
                     ? { gatewayKind: "xor" }
                     : type === "dataAssociation"
                       ? { dataCardinality: "1:n" }
-                      : undefined,
+                      : type === "link"
+                        ? { linkKind: "external" }
+                        : undefined,
   };
 }
 

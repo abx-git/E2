@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Clock, RotateCcw } from "lucide-react";
+import { ArrowRight, Clock, ExternalLink, RotateCcw } from "lucide-react";
 
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
+import { activateBoardLink, linkHasTarget } from "@/lib/board-link";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import {
   cardAttributeLines,
@@ -80,9 +81,13 @@ export function StormElementCard({
   const inActiveMode = elementTypesForMode(modelingMode).includes(element.type);
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const paletteType = useStormBoardStore((s) => s.paletteType);
+  const views = useStormBoardStore((s) => s.views);
   const dimForFocus = focusMode && element.type !== paletteType;
   const showDetails = cardShowsDetails(element);
-  const attrLines = element.metadata?.showAttributesOnCard ? cardAttributeLines(element) : [];
+  const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
+  const attrLines = element.metadata?.showAttributesOnCard
+    ? cardAttributeLines(element, { viewNameById })
+    : [];
   const methodLines = element.metadata?.showMethodsOnCard ? cardMethodLines(element) : [];
   const showDescription =
     Boolean(element.metadata?.showDescriptionOnCard) && Boolean(element.description?.trim());
@@ -452,6 +457,23 @@ export function StormElementCard({
         )}
         {element.type === "hotspot" && element.metadata?.hotspotStatus === "resolved" && !editing && (
           <RotateCcw className="absolute left-1 top-1 h-3 w-3 opacity-70" aria-hidden />
+        )}
+        {element.type === "link" && !editing && linkHasTarget(element) && (
+          <button
+            type="button"
+            title="Link öffnen"
+            aria-label="Link öffnen"
+            className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-current/25 bg-white/70 text-current opacity-80 hover:opacity-100"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              const result = activateBoardLink(element);
+              if (!result.ok) window.alert(result.reason);
+            }}
+          >
+            <ExternalLink className="h-3 w-3" aria-hidden />
+          </button>
         )}
       </div>
 

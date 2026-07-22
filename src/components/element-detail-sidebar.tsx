@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { AlertCircle, HelpCircle } from "lucide-react";
+import { AlertCircle, ExternalLink, HelpCircle } from "lucide-react";
 
+import { activateBoardLink } from "@/lib/board-link";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { validateBoard } from "@/lib/relation-validation";
@@ -12,6 +13,7 @@ import type {
   DataCardinality,
   ElementType,
   GatewayKind,
+  LinkKind,
   NoteColorId,
   QuestionStatus,
   StoryPriority,
@@ -51,6 +53,8 @@ export function ElementDetailSidebar({
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
+  const views = useStormBoardStore((s) => s.views);
+  const activeViewId = useStormBoardStore((s) => s.activeViewId);
 
   const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const selectedElement = elements.find((e) => e.id === selectedElementIds[0]);
@@ -1078,6 +1082,79 @@ export function ElementDetailSidebar({
               }
             />
           </Field>
+        </>
+      )}
+
+      {selectedElement.type === "link" && (
+        <>
+          <Field label="Zielart">
+            <select
+              className="dock-field"
+              value={selectedElement.metadata?.linkKind ?? "external"}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    linkKind: e.target.value as LinkKind,
+                  },
+                })
+              }
+            >
+              <option value="external">Externe URL</option>
+              <option value="view">Board-Sicht</option>
+            </select>
+          </Field>
+          {(selectedElement.metadata?.linkKind ?? "external") === "external" ? (
+            <Field label="URL">
+              <input
+                className="dock-field"
+                type="url"
+                placeholder="https://…"
+                value={selectedElement.metadata?.linkUrl ?? ""}
+                onChange={(e) =>
+                  updateElement(selectedElement.id, {
+                    metadata: { ...selectedElement.metadata, linkUrl: e.target.value },
+                  })
+                }
+              />
+            </Field>
+          ) : (
+            <Field label="Sicht">
+              <select
+                className="dock-field"
+                value={selectedElement.metadata?.linkViewId ?? ""}
+                onChange={(e) =>
+                  updateElement(selectedElement.id, {
+                    metadata: {
+                      ...selectedElement.metadata,
+                      linkViewId: e.target.value || undefined,
+                    },
+                  })
+                }
+              >
+                <option value="">— wählen —</option>
+                {views.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                    {v.id === activeViewId ? " (aktuell)" : ""}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
+          <button
+            type="button"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--control)] px-2 py-1.5 text-xs font-medium text-[var(--text)] hover:border-[var(--accent)]"
+            onClick={() => {
+              const result = activateBoardLink(selectedElement);
+              if (!result.ok) {
+                window.alert(result.reason);
+              }
+            }}
+          >
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            Öffnen
+          </button>
         </>
       )}
 

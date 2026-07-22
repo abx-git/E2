@@ -19,7 +19,7 @@ Diese README beschreibt die **implementierten Funktionen** und stellt sie klassi
 | Bereich | Inhalt |
 |--------|--------|
 | Methoden-Modi | ES · DDD · BDD · USM · EM · PROC · DATA (Palette/Facilitator getrennt); Board darf Typen mischen |
-| Sticky-Typen | Methodenspezifische Kataloge + geteilte Notizen/Hotspots |
+| Sticky-Typen | Methodenspezifische Kataloge + geteilte Notizen/Hotspots/Links |
 | Relationen | 8 Verbindungstypen inkl. Auto-Vorschlag |
 | Fläche | Timeline, Swimlanes, Bounded Contexts, Pan/Zoom |
 | Workshop | Pro Modus eigene Facilitator-Formate + Frei |
@@ -49,6 +49,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 | **UI** | Grau/Weiß | Screen / View |
 | **Notiz** | Creme, gestrichelt (Farbe wählbar) | Freie Annotation (Workshop-Hinweis) |
 | **Hotspot** | Rot, gedreht | Offene Frage, Konflikt, Unklarheit |
+| **Link** | Himmelblau (Pill) | Externe URL oder Sprung zu einer Board-Sicht |
 | **Pivotal Event** | Breiter gelber Block | Phasenwechsel / signifikanter Einschnitt |
 
 ### Domain-Driven Design
@@ -129,6 +130,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 - **Factory:** Erzeugter Typ, Operationen  
 - **Hotspot:** Status (offen/gelöst), Priorität (niedrig/mittel/hoch)
 - **Notiz:** Hintergrundfarbe (Detailleiste oder Rechtsklick)
+- **Link:** Zielart (URL oder Sicht), URL bzw. Sicht-Auswahl; Öffnen per Symbol / Detailleiste
 - **Subdomain:** Art (Core / Supporting / Generic)
 - **Rule:** Kriterien / Hinweise  
 - **Example:** Given / When / Then  
