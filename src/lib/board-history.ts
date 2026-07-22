@@ -1,34 +1,17 @@
 import type { BoardAppearance } from "@/lib/board-appearance";
-import type {
-  BoundedContext,
-  GlossaryEntry,
-  ModelingMode,
-  StormElement,
-  Swimlane,
-  Timeline,
-  WorkshopFormat,
-} from "@/types/storm-element";
-import type { ContextRelation, StormRelation } from "@/types/storm-relation";
+import type { BoardView } from "@/lib/storm-json";
+import type { GlossaryEntry } from "@/types/storm-element";
 
 export const HISTORY_LIMIT = 50;
 
 /** Board domain state that participates in undo/redo (not UI ephemera). */
 export interface BoardDomainSnapshot {
   title: string;
-  modelingMode: ModelingMode;
-  workshopFormat: WorkshopFormat;
-  facilitatorEnabled: boolean;
-  facilitatorPhase: number;
-  elements: StormElement[];
-  relations: StormRelation[];
-  contextRelations: ContextRelation[];
-  swimlanes: Swimlane[];
-  boundedContexts: BoundedContext[];
-  timeline: Timeline;
   glossary: GlossaryEntry[];
   appearance: BoardAppearance;
-  snapToTimeline: boolean;
-  snapToGrid: boolean;
+  workshopMode: boolean;
+  activeViewId: string;
+  views: BoardView[];
 }
 
 export function cloneDomainSnapshot(snap: BoardDomainSnapshot): BoardDomainSnapshot {

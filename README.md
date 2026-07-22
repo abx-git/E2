@@ -254,10 +254,12 @@ Im Facilitator-Modus:
 
 ### Arbeitsdatei
 
-- Primär: lokale `.storm.json` (File System Access API, wo verfügbar)  
+- Primär: lokale `.storm.json` (File System Access API, wo verfügbar) — **ein Dokument, mehrere Sichten (Tabs)**  
+- Format **v2** (`views[]`); ältere v1-Dateien werden beim Öffnen migriert  
 - Alternativen: Datei öffnen / JSON einfügen (bei Konflikt: Dialog)  
 - Auto-Speichern, Konfliktbehandlung bei externer Änderung  
 - Während **Kollaboration** ist Auto-Save pausiert; beim Verlassen: speichern / Datei laden / weiter  
+- **Workshop**-Schalter: in Collab den aktiven Tab für alle synchronisieren (sonst lokal wie Viewport)  
 - PWA / offline-fähig (Serwist)
 
 ### Export
@@ -276,7 +278,7 @@ Im Facilitator-Modus:
 | **Story Map (MD)** | Activities, Tasks, Stories, Releases | User Story Mapping |
 | **Event Model / Slices (MD)** | Slices mit enthaltenen Events/Commands/Read Models | Event Modeling |
 
-Schema & Formatdoku: [`docs/BOARD-JSON-SCHEMA.md`](docs/BOARD-JSON-SCHEMA.md), [`public/schemas/board-snapshot-v1.schema.json`](public/schemas/board-snapshot-v1.schema.json).
+Schema & Formatdoku: [`docs/BOARD-JSON-SCHEMA.md`](docs/BOARD-JSON-SCHEMA.md), [`public/schemas/board-snapshot-v2.schema.json`](public/schemas/board-snapshot-v2.schema.json).
 
 ---
 

@@ -1,0 +1,705 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abx-git.github.io/E2/schemas/board-snapshot-v2.schema.json",
+  "title": "Event Storming Board Snapshot",
+  "description": "Export-/Import-Format der E2 App (format: event-storming-tool, version: 2) mit mehreren Diagramm-Sichten (views). v1-Dateien werden beim Import migriert.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "version",
+    "exportedAt",
+    "title",
+    "glossary",
+    "workshopMode",
+    "activeViewId",
+    "views"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optionaler Verweis auf dieses JSON Schema."
+    },
+    "format": {
+      "const": "event-storming-tool"
+    },
+    "version": {
+      "const": 2,
+      "description": "Schema-/Formatversion. v1-Dateien werden beim Import migriert."
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "title": {
+      "type": "string",
+      "description": "Projekt-Titel (alle Sichten)."
+    },
+    "glossary": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/glossaryEntry"
+      }
+    },
+    "appearance": {
+      "$ref": "#/$defs/appearance"
+    },
+    "workshopMode": {
+      "type": "boolean",
+      "description": "Collab: aktiven Tab für alle synchronisieren."
+    },
+    "activeViewId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "views": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/boardView"
+      }
+    }
+  },
+  "$defs": {
+    "modelingMode": {
+      "type": "string",
+      "enum": [
+        "eventStorming",
+        "domainDrivenDesign",
+        "bdd",
+        "userStoryMapping",
+        "eventModeling"
+      ]
+    },
+    "workshopFormat": {
+      "type": "string",
+      "enum": [
+        "bigPicture",
+        "processModeling",
+        "softwareDesign",
+        "strategicDesign",
+        "tacticalDesign",
+        "exampleMapping",
+        "storyMapping",
+        "eventModelingWorkshop",
+        "free"
+      ]
+    },
+    "elementType": {
+      "type": "string",
+      "enum": [
+        "domainEvent",
+        "command",
+        "actor",
+        "aggregate",
+        "policy",
+        "readModel",
+        "externalSystem",
+        "ui",
+        "note",
+        "hotspot",
+        "pivotalEvent",
+        "entity",
+        "valueObject",
+        "domainService",
+        "repository",
+        "factory",
+        "subdomain",
+        "rule",
+        "example",
+        "question",
+        "activity",
+        "userTask",
+        "userStory",
+        "release",
+        "slice"
+      ]
+    },
+    "subdomainKind": {
+      "type": "string",
+      "enum": [
+        "core",
+        "supporting",
+        "generic"
+      ]
+    },
+    "storyPriority": {
+      "type": "string",
+      "enum": [
+        "must",
+        "should",
+        "could",
+        "wont"
+      ]
+    },
+    "questionStatus": {
+      "type": "string",
+      "enum": [
+        "open",
+        "resolved"
+      ]
+    },
+    "relationType": {
+      "type": "string",
+      "enum": [
+        "triggers",
+        "reactsWith",
+        "informs",
+        "executedBy",
+        "invokes",
+        "causal",
+        "contains",
+        "annotates"
+      ]
+    },
+    "contextMapPattern": {
+      "type": "string",
+      "enum": [
+        "partnership",
+        "sharedKernel",
+        "customerSupplier",
+        "conformist",
+        "antiCorruptionLayer",
+        "openHostService",
+        "publishedLanguage",
+        "separateWays"
+      ],
+      "description": "DDD Context-Map-Muster zwischen Bounded Contexts."
+    },
+    "hotspotStatus": {
+      "type": "string",
+      "enum": [
+        "open",
+        "resolved"
+      ]
+    },
+    "hotspotPriority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "noteColor": {
+      "type": "string",
+      "enum": [
+        "cream",
+        "yellow",
+        "mint",
+        "sky",
+        "lavender",
+        "rose",
+        "peach",
+        "slate"
+      ],
+      "description": "Hintergrundfarbe für Notizen."
+    },
+    "elementMetadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "eventSchema": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Freies JSON-Objekt für Event-/Aggregate-Schema."
+        },
+        "aggregateMethods": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aggregateInvariants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "isRecurring": {
+          "type": "boolean"
+        },
+        "hotspotStatus": {
+          "$ref": "#/$defs/hotspotStatus"
+        },
+        "hotspotPriority": {
+          "$ref": "#/$defs/hotspotPriority"
+        },
+        "noteColor": {
+          "$ref": "#/$defs/noteColor"
+        },
+        "subdomainKind": {
+          "$ref": "#/$defs/subdomainKind"
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Entity / Value Object / Aggregate: Eigenschaften („name“ oder „name: Typ“)."
+        },
+        "identityFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Entity: Identitätsfelder."
+        },
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Entity / Domain Service / Repository / Factory: Operationen."
+        },
+        "immutable": {
+          "type": "boolean",
+          "description": "Value Object: unveränderlich."
+        },
+        "stateless": {
+          "type": "boolean",
+          "description": "Domain Service: ohne eigenen Zustand."
+        },
+        "aggregateRootRef": {
+          "type": "string",
+          "description": "Repository: zugehöriger Aggregate Root."
+        },
+        "createsRef": {
+          "type": "string",
+          "description": "Factory: erzeugter Typ / Aggregate."
+        },
+        "ruleCriteria": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "BDD Rule: Akzeptanzhinweise."
+        },
+        "exampleGiven": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exampleWhen": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exampleThen": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "questionStatus": {
+          "$ref": "#/$defs/questionStatus"
+        },
+        "storyPersona": {
+          "type": "string"
+        },
+        "storyPriority": {
+          "$ref": "#/$defs/storyPriority"
+        },
+        "storyEstimate": {
+          "type": "string"
+        },
+        "storyAcceptance": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "releaseGoal": {
+          "type": "string"
+        },
+        "sliceSystems": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "showDescriptionOnCard": {
+          "type": "boolean",
+          "description": "Beschreibung auf dem Sticky anzeigen."
+        },
+        "showAttributesOnCard": {
+          "type": "boolean",
+          "description": "Attribute / Kriterien auf dem Sticky anzeigen."
+        },
+        "showMethodsOnCard": {
+          "type": "boolean",
+          "description": "Methoden / Operationen auf dem Sticky anzeigen."
+        }
+      }
+    },
+    "stormElement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "label",
+        "x",
+        "y"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stabile Element-ID (Referenzziel für Relationen)."
+        },
+        "type": {
+          "$ref": "#/$defs/elementType"
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "x": {
+          "type": "number",
+          "description": "Welt-X der linken oberen Ecke."
+        },
+        "y": {
+          "type": "number",
+          "description": "Welt-Y der linken oberen Ecke."
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "rotation": {
+          "type": "number",
+          "description": "Rotation in Grad (z. B. 45 für Hotspots)."
+        },
+        "swimlaneId": {
+          "type": "string",
+          "description": "Optionale ID einer Swimlane."
+        },
+        "boundedContextId": {
+          "type": "string",
+          "description": "Optionale ID eines Bounded Context."
+        },
+        "metadata": {
+          "$ref": "#/$defs/elementMetadata"
+        }
+      }
+    },
+    "stormRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "sourceId",
+        "targetId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/$defs/relationType"
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ID des Quell-Elements."
+        },
+        "targetId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "ID des Ziel-Elements."
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "contextRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "sourceContextId",
+        "targetContextId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/$defs/contextMapPattern"
+        },
+        "sourceContextId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Upstream-/Supplier-Bounded-Context-ID."
+        },
+        "targetContextId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Downstream-/Customer-Bounded-Context-ID."
+        },
+        "label": {
+          "type": "string"
+        }
+      }
+    },
+    "swimlane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "color": {
+          "type": "string"
+        }
+      }
+    },
+    "boundedContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "color": {
+          "type": "string"
+        }
+      }
+    },
+    "timeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "y"
+      ],
+      "properties": {
+        "y": {
+          "type": "number",
+          "description": "Vertikale Position der Timeline-Linie."
+        },
+        "startLabel": {
+          "type": "string"
+        },
+        "endLabel": {
+          "type": "string"
+        },
+        "visible": {
+          "type": "boolean",
+          "description": "Timeline-Linie anzeigen. Standard: true."
+        }
+      }
+    },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "zoom"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "description": "Pan-Offset X in Bildschirmkoordinaten."
+        },
+        "y": {
+          "type": "number",
+          "description": "Pan-Offset Y in Bildschirmkoordinaten."
+        },
+        "zoom": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "glossaryEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "term",
+        "definition"
+      ],
+      "properties": {
+        "term": {
+          "type": "string"
+        },
+        "definition": {
+          "type": "string"
+        }
+      }
+    },
+    "appearance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canvas",
+        "sidebar"
+      ],
+      "properties": {
+        "canvas": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Hintergrundfarbe des Arbeitsbereichs (Canvas)."
+        },
+        "sidebar": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Hintergrundfarbe der Seitenleisten und Docks."
+        }
+      }
+    },
+    "boardView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "modelingMode",
+        "workshopFormat",
+        "facilitatorEnabled",
+        "facilitatorPhase",
+        "elements",
+        "relations",
+        "swimlanes",
+        "boundedContexts",
+        "timeline",
+        "viewport",
+        "snapToTimeline",
+        "snapToGrid"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "modelingMode": {
+          "$ref": "#/$defs/modelingMode"
+        },
+        "workshopFormat": {
+          "$ref": "#/$defs/workshopFormat"
+        },
+        "facilitatorEnabled": {
+          "type": "boolean"
+        },
+        "facilitatorPhase": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "elements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stormElement"
+          }
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stormRelation"
+          }
+        },
+        "contextRelations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/contextRelation"
+          }
+        },
+        "swimlanes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/swimlane"
+          }
+        },
+        "boundedContexts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/boundedContext"
+          }
+        },
+        "timeline": {
+          "$ref": "#/$defs/timeline"
+        },
+        "viewport": {
+          "$ref": "#/$defs/viewport"
+        },
+        "snapToTimeline": {
+          "type": "boolean"
+        },
+        "snapToGrid": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

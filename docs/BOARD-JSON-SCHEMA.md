@@ -1,4 +1,4 @@
-# Board JSON Schema (v1)
+# Board JSON Schema (v2)
 
 Andere Tools können gültige `.storm.json`-Dateien für E2 erzeugen, indem sie gegen dieses Schema validieren.
 
@@ -6,8 +6,9 @@ Andere Tools können gültige `.storm.json`-Dateien für E2 erzeugen, indem sie 
 
 | Quelle | URL / Pfad |
 |--------|------------|
-| Im Deploy | [https://abx-git.github.io/E2/schemas/board-snapshot-v1.schema.json](https://abx-git.github.io/E2/schemas/board-snapshot-v1.schema.json) |
-| Im Repo | [`public/schemas/board-snapshot-v1.schema.json`](../public/schemas/board-snapshot-v1.schema.json) |
+| Im Deploy | [https://abx-git.github.io/E2/schemas/board-snapshot-v2.schema.json](https://abx-git.github.io/E2/schemas/board-snapshot-v2.schema.json) |
+| Im Repo | [`public/schemas/board-snapshot-v2.schema.json`](../public/schemas/board-snapshot-v2.schema.json) |
+| Legacy v1 | [`public/schemas/board-snapshot-v1.schema.json`](../public/schemas/board-snapshot-v1.schema.json) (Import weiter unterstützt) |
 | App-Export | **Daten → JSON Schema herunterladen** |
 
 ## Kennung
@@ -16,68 +17,84 @@ Exportierte Boards enthalten:
 
 ```json
 {
-  "$schema": "https://abx-git.github.io/E2/schemas/board-snapshot-v1.schema.json",
+  "$schema": "https://abx-git.github.io/E2/schemas/board-snapshot-v2.schema.json",
   "format": "event-storming-tool",
-  "version": 1,
+  "version": 2,
   ...
 }
 ```
 
-Import akzeptiert Dokumente mit `format === "event-storming-tool"` und `version === 1`. Das Feld `$schema` ist optional.
+Import akzeptiert `format === "event-storming-tool"` und `version` **1 oder 2**. v1 wird beim Laden in ein v2-Dokument mit einer Sicht `"Board"` migriert. Speichern schreibt immer v2. `$schema` ist optional.
+
+## Struktur
+
+| Ebene | Felder |
+|-------|--------|
+| **Projekt** | `title`, `glossary`, `appearance`, `workshopMode`, `activeViewId`, `views[]` |
+| **Sicht (Tab)** | `id`, `name`, Canvas-Inhalt, `modelingMode`, Facilitator, Snaps, `viewport` |
+
+`workshopMode`: In der Kollaboration steuert es, ob der aktive Tab für alle synchron ist (`true`) oder lokal bleibt (`false`, wie Viewport).
 
 ## Minimalbeispiel
 
 ```json
 {
-  "$schema": "https://abx-git.github.io/E2/schemas/board-snapshot-v1.schema.json",
+  "$schema": "https://abx-git.github.io/E2/schemas/board-snapshot-v2.schema.json",
   "format": "event-storming-tool",
-  "version": 1,
-  "exportedAt": "2026-07-20T12:00:00.000Z",
+  "version": 2,
+  "exportedAt": "2026-07-22T12:00:00.000Z",
   "title": "Beispiel",
-  "modelingMode": "eventStorming",
-  "workshopFormat": "free",
-  "facilitatorEnabled": false,
-  "facilitatorPhase": 0,
-  "elements": [
-    {
-      "id": "evt-1",
-      "type": "domainEvent",
-      "label": "Order Placed",
-      "x": 120,
-      "y": 200,
-      "width": 160,
-      "height": 72
-    }
-  ],
-  "relations": [],
-  "contextRelations": [],
-  "swimlanes": [],
-  "boundedContexts": [],
-  "timeline": { "y": 400, "startLabel": "Start", "endLabel": "Ende" },
-  "viewport": { "x": 0, "y": 0, "zoom": 1 },
   "glossary": [],
-  "snapToTimeline": true,
-  "snapToGrid": false
+  "workshopMode": false,
+  "activeViewId": "view-1",
+  "views": [
+    {
+      "id": "view-1",
+      "name": "Board",
+      "modelingMode": "eventStorming",
+      "workshopFormat": "free",
+      "facilitatorEnabled": false,
+      "facilitatorPhase": 0,
+      "elements": [
+        {
+          "id": "evt-1",
+          "type": "domainEvent",
+          "label": "Order Placed",
+          "x": 120,
+          "y": 200,
+          "width": 160,
+          "height": 72
+        }
+      ],
+      "relations": [],
+      "contextRelations": [],
+      "swimlanes": [],
+      "boundedContexts": [],
+      "timeline": { "y": 400, "startLabel": "Start", "endLabel": "Ende" },
+      "viewport": { "x": 0, "y": 0, "zoom": 1 },
+      "snapToTimeline": true,
+      "snapToGrid": false
+    }
+  ]
 }
 ```
+
+## Migration v1 → v2
+
+Flache v1-Felder (`elements`, `relations`, …, `modelingMode`, …) werden zu `views[0]` mit Namen `"Board"`. `workshopMode` startet als `false`.
 
 ## Optionale Felder (Rückwärtskompatibilität)
 
 | Feld | Default beim Import |
 |------|---------------------|
-| `modelingMode` | `eventStorming` |
-| `contextRelations` | `[]` |
 | `appearance` | Standard-Farbschema |
-| `snapToTimeline` | `true` |
-| `snapToGrid` | `false` |
+| `workshopMode` | `false` |
+| View `modelingMode` | `eventStorming` |
+| View `contextRelations` | `[]` |
+| View `snapToTimeline` | `true` |
+| View `snapToGrid` | `false` |
 | Timeline `visible` | `true` |
 
-`modelingMode` steuert Palette und Facilitator (`eventStorming` | `domainDrivenDesign` | `bdd` | `userStoryMapping` | `eventModeling`). Der Board-Inhalt darf Elementtypen aller Modi enthalten.
+`modelingMode` steuert Palette und Facilitator pro Sicht. Der Board-Inhalt darf Elementtypen aller Modi enthalten.
 
-`contextRelations` beschreibt DDD-Context-Map-Muster zwischen Bounded Contexts (`sourceContextId` / `targetContextId`, Muster z. B. `customerSupplier`, `antiCorruptionLayer`).
-
-Elementtyp `note` (freie Notiz) und Relationstyp `annotates` (Notiz ↔ Sticky) sind Teil von Schema v1.
-
-Weitere Typen: DDD (`entity`, `valueObject`, …), BDD (`rule`, `example`, `question`), USM (`activity`, `userTask`, `userStory`, `release`), Event Modeling (`slice` + ES-Bausteine).
-
-Workshop-Formate u. a.: `exampleMapping`, `storyMapping`, `eventModelingWorkshop`.
+Weitere Typen: DDD, BDD, USM, Event Modeling — siehe Schema-`$defs`.

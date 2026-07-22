@@ -9,26 +9,18 @@ import {
   undoHistory,
 } from "@/lib/board-history";
 import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
-import { DEFAULT_TIMELINE } from "@/types/storm-element";
-import { useStormBoardStore } from "@/store/storm-board-store";
+import { createEmptyBoardView } from "@/lib/storm-json";
+import { boardImportPayloadFromStore, useStormBoardStore } from "@/store/storm-board-store";
 
 function emptyDomain(overrides: Partial<BoardDomainSnapshot> = {}): BoardDomainSnapshot {
+  const view = createEmptyBoardView({ id: "v1", name: "Board" });
   return {
     title: "Board",
-    modelingMode: "eventStorming",
-    workshopFormat: "free",
-    facilitatorEnabled: false,
-    facilitatorPhase: 0,
-    elements: [],
-    relations: [],
-    contextRelations: [],
-    swimlanes: [],
-    boundedContexts: [],
-    timeline: { ...DEFAULT_TIMELINE },
     glossary: [],
     appearance: { ...DEFAULT_APPEARANCE },
-    snapToTimeline: true,
-    snapToGrid: false,
+    workshopMode: false,
+    activeViewId: view.id,
+    views: [view],
     ...overrides,
   };
 }
@@ -62,55 +54,42 @@ describe("board-history", () => {
 
   it("cloneDomainSnapshot deep-clones", () => {
     const snap = emptyDomain({
-      elements: [
-        {
-          id: "e1",
-          type: "domainEvent",
-          label: "X",
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 50,
-        },
+      views: [
+        createEmptyBoardView({
+          id: "v1",
+          name: "Board",
+          elements: [
+            {
+              id: "e1",
+              type: "domainEvent",
+              label: "X",
+              x: 0,
+              y: 0,
+              width: 100,
+              height: 50,
+            },
+          ],
+        }),
       ],
     });
     const cloned = cloneDomainSnapshot(snap);
-    cloned.elements[0]!.label = "Y";
-    expect(snap.elements[0]!.label).toBe("X");
+    cloned.views[0]!.elements[0]!.label = "Y";
+    expect(snap.views[0]!.elements[0]!.label).toBe("X");
   });
 });
 
-describe("store undo / import", () => {
+describe("store undo / views / import", () => {
   beforeEach(() => {
-    useStormBoardStore.setState({
+    const store = useStormBoardStore.getState();
+    store.replaceBoardFromImport({
       title: "Start",
-      workshopFormat: "free",
-      facilitatorEnabled: false,
-      facilitatorPhase: 0,
-      elements: [],
-      relations: [],
-      contextRelations: [],
-      swimlanes: [],
-      boundedContexts: [],
-      timeline: { ...DEFAULT_TIMELINE },
       glossary: [],
       appearance: { ...DEFAULT_APPEARANCE },
-      snapToTimeline: true,
-      snapToGrid: false,
-      past: [],
-      future: [],
-      gestureActive: false,
-      gestureSnapshotTaken: false,
-      selectedElementIds: [],
-      selectedRelationId: null,
-      selectedContextRelationId: null,
-      selectedBoundedContextId: null,
-      selectedSwimlaneId: null,
-      relationMode: false,
-      relationDraftSourceId: null,
-      contextMapMode: false,
-      contextMapDraftSourceId: null,
+      workshopMode: false,
+      activeViewId: "v1",
+      views: [createEmptyBoardView({ id: "v1", name: "Board" })],
     });
+    useStormBoardStore.setState({ past: [], future: [] });
   });
 
   it("coalesces moves inside a gesture into one undo step", () => {
@@ -137,21 +116,11 @@ describe("store undo / import", () => {
 
     store.replaceBoardFromImport({
       title: "Imported",
-      modelingMode: "eventStorming",
-      workshopFormat: "free",
-      facilitatorEnabled: false,
-      facilitatorPhase: 0,
-      elements: [],
-      relations: [],
-      contextRelations: [],
-      swimlanes: [],
-      boundedContexts: [],
-      timeline: { ...DEFAULT_TIMELINE },
-      viewport: { x: 0, y: 0, zoom: 1 },
       glossary: [],
       appearance: { ...DEFAULT_APPEARANCE },
-      snapToTimeline: true,
-      snapToGrid: false,
+      workshopMode: false,
+      activeViewId: "v2",
+      views: [createEmptyBoardView({ id: "v2", name: "Board" })],
     });
 
     expect(useStormBoardStore.getState().title).toBe("Imported");
@@ -160,5 +129,29 @@ describe("store undo / import", () => {
     store.undo();
     expect(useStormBoardStore.getState().title).toBe(beforeTitle);
     expect(useStormBoardStore.getState().elements).toHaveLength(1);
+  });
+
+  it("switches views and preserves content per tab", () => {
+    const store = useStormBoardStore.getState();
+    store.addElement("domainEvent", 5, 5);
+    const firstId = useStormBoardStore.getState().activeViewId;
+    const secondId = store.addView("Prozess");
+    expect(useStormBoardStore.getState().elements).toHaveLength(0);
+
+    store.addElement("command", 9, 9);
+    store.setActiveView(firstId);
+    expect(useStormBoardStore.getState().elements).toHaveLength(1);
+    expect(useStormBoardStore.getState().elements[0]!.type).toBe("domainEvent");
+
+    store.setActiveView(secondId);
+    expect(useStormBoardStore.getState().elements[0]!.type).toBe("command");
+    expect(useStormBoardStore.getState().views).toHaveLength(2);
+  });
+
+  it("persists workshopMode on the document", () => {
+    const store = useStormBoardStore.getState();
+    store.setWorkshopMode(true);
+    expect(useStormBoardStore.getState().workshopMode).toBe(true);
+    expect(boardImportPayloadFromStore().workshopMode).toBe(true);
   });
 });

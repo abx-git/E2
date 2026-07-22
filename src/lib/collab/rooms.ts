@@ -1,4 +1,4 @@
-import type { BoardImportPayload, BoardSnapshotV1 } from "@/lib/storm-json";
+import type { BoardImportPayload, BoardSnapshot } from "@/lib/storm-json";
 import {
   boardSnapshotToReplacePayload,
   buildBoardSnapshot,
@@ -22,7 +22,7 @@ export interface CollabRoom {
 export interface CreateRoomResult {
   room: CollabRoom;
   hostToken: string;
-  snapshot: BoardSnapshotV1;
+  snapshot: BoardSnapshot;
 }
 
 export interface JoinRoomResult {
@@ -155,7 +155,7 @@ export async function joinCollabRoom(
 
   return {
     room: mapRoom(roomRow),
-    payload: boardSnapshotToReplacePayload(snapRow.snapshot as BoardSnapshotV1),
+    payload: boardSnapshotToReplacePayload(snapRow.snapshot as BoardSnapshot),
     yjsState,
     revision: Number(snapRow.revision) || 1,
     updatedAt:
@@ -166,7 +166,7 @@ export async function joinCollabRoom(
 
 export async function saveCollabSnapshot(args: {
   roomId: string;
-  snapshot: BoardSnapshotV1;
+  snapshot: BoardSnapshot;
   yjsState?: Uint8Array | null;
   revision: number;
 }): Promise<
@@ -261,7 +261,7 @@ export async function fetchCollabSnapshot(roomId: string): Promise<
     revision: Number(snapRow.revision) || 1,
     updatedAt:
       typeof snapRow.updated_at === "string" ? snapRow.updated_at : new Date(0).toISOString(),
-    payload: boardSnapshotToReplacePayload(snapRow.snapshot as BoardSnapshotV1),
+    payload: boardSnapshotToReplacePayload(snapRow.snapshot as BoardSnapshot),
     yjsState,
   };
 }

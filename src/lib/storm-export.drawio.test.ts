@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { buildDrawioMxFile } from "@/lib/storm-export";
-import type { BoardImportPayload } from "@/lib/storm-json";
+import type { BoardActiveSlice } from "@/lib/storm-json";
 import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
 import { DEFAULT_TIMELINE, DEFAULT_VIEWPORT } from "@/types/storm-element";
 
-const sample: BoardImportPayload = {
+const sample: BoardActiveSlice = {
   title: "Demo Board",
   modelingMode: "eventStorming",
   workshopFormat: "free",
@@ -95,7 +95,6 @@ describe("buildDrawioMxFile", () => {
     expect(mx).toContain('id="bc_bc-1"');
     expect(mx).toContain('id="timeline"');
     expect(mx).toContain("Order Placed");
-    // Diagram payload must be child XML (not compressed text-only).
     expect(mx).toMatch(/<diagram[^>]*>\s*<mxGraphModel/);
   });
 });

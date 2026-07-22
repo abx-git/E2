@@ -5,8 +5,8 @@ import {
 } from "@/lib/card-preview";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { resolveNoteColor } from "@/lib/note-colors";
-import type { BoardImportPayload } from "@/lib/storm-json";
-import { boardImportPayloadFromStore } from "@/store/storm-board-store";
+import { boardActiveSliceFromStore } from "@/store/storm-board-store";
+import type { BoardActiveSlice } from "@/lib/storm-json";
 import type { StormElement } from "@/types/storm-element";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
 
@@ -21,7 +21,7 @@ function downloadText(filename: string, content: string, mime = "text/plain;char
 }
 
 export function exportHotspotReportMarkdown(): void {
-  const { elements, title } = boardImportPayloadFromStore();
+  const { elements, title } = boardActiveSliceFromStore();
   const hotspots = elements.filter((e) => e.type === "hotspot");
   const lines = [`# Hotspot Report — ${title}`, "", `Erstellt: ${new Date().toLocaleString("de-DE")}`, ""];
 
@@ -41,7 +41,7 @@ export function exportHotspotReportMarkdown(): void {
 }
 
 export function exportGlossaryMarkdown(): void {
-  const { glossary, title } = boardImportPayloadFromStore();
+  const { glossary, title } = boardActiveSliceFromStore();
   const lines = [`# Ubiquitous Language — ${title}`, "", "| Begriff | Definition |", "| --- | --- |"];
   for (const g of glossary) {
     lines.push(`| ${g.term} | ${g.definition.replace(/\|/g, "\\|")} |`);
@@ -52,7 +52,7 @@ export function exportGlossaryMarkdown(): void {
 
 export function exportContextMapMarkdown(): void {
   const { boundedContexts, elements, relations, contextRelations, title } =
-    boardImportPayloadFromStore();
+    boardActiveSliceFromStore();
   const lines = [`# Context Map — ${title}`, ""];
 
   for (const bc of boundedContexts) {
@@ -96,7 +96,7 @@ export function exportContextMapMarkdown(): void {
 }
 
 export function exportEventCatalogMarkdown(): void {
-  const { elements, title } = boardImportPayloadFromStore();
+  const { elements, title } = boardActiveSliceFromStore();
   const events = elements.filter((e) => e.type === "domainEvent");
   const lines = [`# Event Catalog — ${title}`, "", "| Event | Schema | Beschreibung |", "| --- | --- | --- |"];
 
@@ -138,7 +138,7 @@ function mdMetaBlock(el: StormElement): string[] {
 
 /** DDD: Subdomains, Aggregates, Entities, VOs, Services, Repositories, Factories. */
 export function exportDomainModelMarkdown(): void {
-  const { elements, title, boundedContexts, glossary } = boardImportPayloadFromStore();
+  const { elements, title, boundedContexts, glossary } = boardActiveSliceFromStore();
   const lines = [
     `# Domain Model — ${title}`,
     "",
@@ -223,7 +223,7 @@ export function exportDomainModelMarkdown(): void {
 
 /** BDD / Example Mapping: Rules, Examples (Given/When/Then), Questions. */
 export function exportExampleMappingMarkdown(): void {
-  const { elements, title } = boardImportPayloadFromStore();
+  const { elements, title } = boardActiveSliceFromStore();
   const lines = [
     `# Example Mapping — ${title}`,
     "",
@@ -292,7 +292,7 @@ const STORY_PRIORITY_LABEL: Record<string, string> = {
 
 /** User Story Mapping: Activities → Tasks → Stories, Releases. */
 export function exportStoryMapMarkdown(): void {
-  const { elements, title } = boardImportPayloadFromStore();
+  const { elements, title } = boardActiveSliceFromStore();
   const lines = [
     `# Story Map — ${title}`,
     "",
@@ -380,7 +380,7 @@ export function exportStoryMapMarkdown(): void {
 
 /** Event Modeling: Slices + Commands / Events / Views / UI / Policies. */
 export function exportEventModelMarkdown(): void {
-  const { elements, title, swimlanes } = boardImportPayloadFromStore();
+  const { elements, title, swimlanes } = boardActiveSliceFromStore();
   const lines = [
     `# Event Model — ${title}`,
     "",
@@ -517,7 +517,7 @@ interface BoardBounds {
   oy: number;
 }
 
-function computeBoardBounds(state: ReturnType<typeof boardImportPayloadFromStore>): BoardBounds {
+function computeBoardBounds(state: ReturnType<typeof boardActiveSliceFromStore>): BoardBounds {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -642,7 +642,7 @@ function mxStyle(parts: Record<string, string | number | boolean | undefined>): 
  * Builds an uncompressed draw.io mxfile for the board.
  * Embedded in SVG `content` so diagrams.net / draw.io can reopen the file for editing.
  */
-export function buildDrawioMxFile(state: BoardImportPayload, bounds: BoardBounds): string {
+export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds): string {
   const { width, height, ox, oy } = bounds;
   const pageW = Math.max(1, Math.ceil(width));
   const pageH = Math.max(1, Math.ceil(height));
@@ -794,7 +794,7 @@ export function buildDrawioMxFile(state: BoardImportPayload, bounds: BoardBounds
 }
 
 export function exportBoardSvg(): void {
-  const state = boardImportPayloadFromStore();
+  const state = boardActiveSliceFromStore();
   const bounds = computeBoardBounds(state);
   const { width, height, ox, oy } = bounds;
   const fontFamily = boardFontFamily();
@@ -942,7 +942,7 @@ export function exportBoardSvg(): void {
 }
 
 export async function exportBoardPng(): Promise<void> {
-  const state = boardImportPayloadFromStore();
+  const state = boardActiveSliceFromStore();
   const { width, height, ox, oy } = computeBoardBounds(state);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");

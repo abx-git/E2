@@ -73,6 +73,17 @@ Client-Helfer: [`src/utils/supabase/`](../src/utils/supabase/) (`@supabase/ssr`)
 
 **Beitreten ersetzt** den Editor-Inhalt durch den Raum (Undo-History wird geleert). Deshalb Bestätigung + optionaler JSON-Export.
 
+## Workshop-Modus (Tab-Sync)
+
+Toolbar-Schalter **Workshop**:
+
+| Zustand | Verhalten in der Kollaboration |
+|---------|--------------------------------|
+| **An** | `activeViewId` wird mitgesynct — alle sehen denselben Tab |
+| **Aus** (Standard) | Jeder Client behält den lokalen Tab (wie Viewport/Kamera) |
+
+Projektweite Felder (`title`, Glossary, Darstellung) und alle Sichten werden immer geteilt. Das Flag liegt in der `.storm.json` / im Room-Snapshot (`version: 2`).
+
 ## Datenmodell
 
 Siehe `supabase/schema.sql`:
@@ -80,7 +91,7 @@ Siehe `supabase/schema.sql`:
 | Tabelle | Zweck |
 |---------|--------|
 | `rooms` | Code, Titel, Host-Token-Hash, Expiry (default 14 Tage) |
-| `board_snapshots` | `BoardSnapshotV1` JSONB + optionales Yjs-State |
+| `board_snapshots` | Board-Snapshot JSONB (v1 oder v2) + optionales Yjs-State |
 
 RLS: Zugriff nur über bekannten Room-Code / `room_id`; keine öffentliche Raumliste.
 

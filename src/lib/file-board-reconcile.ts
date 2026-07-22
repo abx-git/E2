@@ -2,15 +2,15 @@ import {
   boardExportTextsEquivalent,
   boardImportPayloadFromExportText,
   buildBoardSnapshot,
-  isBoardSnapshot,
-  parseExportedDocument,
+  documentHasContent,
   stableBoardStateKey,
   stringifyExportedDocument,
-  type BoardSnapshotV1,
+  viewHasContent,
+  type BoardSnapshot,
+  type BoardImportPayload,
 } from "@/lib/storm-json";
 import { boardImportPayloadFromStore } from "@/store/storm-board-store";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import type { BoardImportPayload } from "@/lib/storm-json";
 
 export type FileConflictChoice = "load_file" | "keep_local";
 
@@ -21,7 +21,7 @@ export type FileReconcilePlan =
   | { action: "conflict" };
 
 function isEmptyPayload(payload: BoardImportPayload | null): boolean {
-  return !payload || (payload.elements.length === 0 && payload.relations.length === 0);
+  return !payload || !documentHasContent(payload);
 }
 
 export function planFileReconcile(localJson: string, fileJson: string): FileReconcilePlan {
@@ -32,11 +32,11 @@ export function planFileReconcile(localJson: string, fileJson: string): FileReco
   const localPayload = boardImportPayloadFromExportText(localJson);
   const filePayload = boardImportPayloadFromExportText(fileJson);
 
-  if (isEmptyPayload(localPayload) && filePayload && filePayload.elements.length > 0) {
+  if (isEmptyPayload(localPayload) && filePayload && documentHasContent(filePayload)) {
     return { action: "apply_file" };
   }
 
-  if (isEmptyPayload(filePayload) && localPayload && localPayload.elements.length > 0) {
+  if (isEmptyPayload(filePayload) && localPayload && documentHasContent(localPayload)) {
     return { action: "push_local" };
   }
 
@@ -61,15 +61,10 @@ export function boardJsonFromStoreState(): string {
   return stringifyExportedDocument(buildBoardSnapshot(boardImportPayloadFromStore()));
 }
 
-export function parseBoardSnapshotFromText(text: string): BoardSnapshotV1 | null {
-  const trimmed = text.trim();
-  if (!trimmed) return null;
-  try {
-    const doc = parseExportedDocument(trimmed);
-    return isBoardSnapshot(doc) ? doc : null;
-  } catch {
-    return null;
-  }
+export function parseBoardSnapshotFromText(text: string): BoardSnapshot | null {
+  const payload = boardImportPayloadFromExportText(text);
+  if (!payload) return null;
+  return buildBoardSnapshot(payload);
 }
 
 export function boardStatesEquivalent(a: string, b: string): boolean {
@@ -79,3 +74,5 @@ export function boardStatesEquivalent(a: string, b: string): boolean {
 export function boardPersistKeyFromStoreState(): string {
   return stableBoardStateKey(boardImportPayloadFromStore());
 }
+
+export { viewHasContent, documentHasContent };

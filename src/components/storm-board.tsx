@@ -15,6 +15,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 
+import { BoardViewTabs } from "@/components/board-view-tabs";
 import { CollabEnterConfirmDialog } from "@/components/collab-enter-confirm-dialog";
 import { CollabLeaveDialog, type CollabLeaveChoice } from "@/components/collab-leave-dialog";
 import { CollabPresenceBanner } from "@/components/collab-presence-banner";
@@ -144,6 +145,8 @@ export function StormBoard() {
   const setModelingMode = useStormBoardStore((s) => s.setModelingMode);
   const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
   const setFacilitatorEnabled = useStormBoardStore((s) => s.setFacilitatorEnabled);
+  const workshopMode = useStormBoardStore((s) => s.workshopMode);
+  const setWorkshopMode = useStormBoardStore((s) => s.setWorkshopMode);
   const viewport = useStormBoardStore((s) => s.viewport);
   const setViewport = useStormBoardStore((s) => s.setViewport);
   const snapToTimeline = useStormBoardStore((s) => s.snapToTimeline);
@@ -415,6 +418,18 @@ export function StormBoard() {
           Facilitator
         </label>
 
+        <label
+          className="dock-control flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs"
+          title="Kollaboration: aktiven Tab für alle Teilnehmer synchronisieren"
+        >
+          <input
+            type="checkbox"
+            checked={workshopMode}
+            onChange={(e) => setWorkshopMode(e.target.checked)}
+          />
+          Workshop
+        </label>
+
         <button
           type="button"
           onClick={() => {
@@ -531,6 +546,10 @@ export function StormBoard() {
       </header>
 
       <CollabPresenceBanner onRequestLeave={() => setLeaveOpen(true)} />
+
+      <div className="mx-3 flex shrink-0 items-center rounded-dock dock-surface px-1">
+        <BoardViewTabs />
+      </div>
 
       <div className="mx-3 mb-3 mt-2 flex min-h-0 flex-1 gap-2">
         <div className="dock-surface flex overflow-hidden rounded-dock">

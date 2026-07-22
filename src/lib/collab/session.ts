@@ -192,30 +192,38 @@ function applyPayloadToStore(payload: BoardImportPayload): void {
   applyingRemote = true;
   try {
     const current = useStormBoardStore.getState();
-    const elementIds = new Set(payload.elements.map((e) => e.id));
-    const relationIds = new Set(payload.relations.map((r) => r.id));
-    const contextRelationIds = new Set((payload.contextRelations ?? []).map((r) => r.id));
-    const swimlaneIds = new Set(payload.swimlanes.map((s) => s.id));
-    const bcIds = new Set(payload.boundedContexts.map((b) => b.id));
+    const localViewport = current.viewport;
+    const localActiveViewId = current.activeViewId;
+    const keepLocalTab = !payload.workshopMode;
+
+    // Import remote document (may change active view when workshopMode is on).
+    useStormBoardStore.getState().replaceBoardFromImport(payload);
+
+    let after = useStormBoardStore.getState();
+
+    if (keepLocalTab && after.views.some((v) => v.id === localActiveViewId)) {
+      if (localActiveViewId !== after.activeViewId) {
+        // Switch back without clearing history again via public API side effects —
+        // setActiveView clears undo stacks (desired after remote).
+        useStormBoardStore.getState().setActiveView(localActiveViewId);
+        after = useStormBoardStore.getState();
+      }
+      // Same (local) tab: keep camera.
+      useStormBoardStore.setState({ viewport: localViewport });
+    } else if (after.activeViewId === localActiveViewId) {
+      // Workshop sync kept us on the same tab — keep camera.
+      useStormBoardStore.setState({ viewport: localViewport });
+    }
+    // else: workshop switched tab → keep remote view viewport from import
+
+    after = useStormBoardStore.getState();
+    const elementIds = new Set(after.elements.map((e) => e.id));
+    const relationIds = new Set(after.relations.map((r) => r.id));
+    const contextRelationIds = new Set(after.contextRelations.map((r) => r.id));
+    const swimlaneIds = new Set(after.swimlanes.map((s) => s.id));
+    const bcIds = new Set(after.boundedContexts.map((b) => b.id));
 
     useStormBoardStore.setState({
-      title: payload.title,
-      modelingMode: payload.modelingMode,
-      workshopFormat: payload.workshopFormat,
-      facilitatorEnabled: payload.facilitatorEnabled,
-      facilitatorPhase: payload.facilitatorPhase,
-      elements: payload.elements,
-      relations: payload.relations,
-      contextRelations: payload.contextRelations ?? [],
-      swimlanes: payload.swimlanes,
-      boundedContexts: payload.boundedContexts,
-      timeline: payload.timeline,
-      // Keep local camera — collaborators shouldn't steal pan/zoom.
-      viewport: current.viewport,
-      glossary: payload.glossary,
-      appearance: payload.appearance,
-      snapToTimeline: payload.snapToTimeline,
-      snapToGrid: payload.snapToGrid,
       selectedElementIds: current.selectedElementIds.filter((id) => elementIds.has(id)),
       selectedRelationId:
         current.selectedRelationId && relationIds.has(current.selectedRelationId)
@@ -310,6 +318,9 @@ function bindStoreToYjs(
     const domainChanged =
       gestureEnded ||
       state.title !== prev.title ||
+      state.workshopMode !== prev.workshopMode ||
+      state.activeViewId !== prev.activeViewId ||
+      state.views !== prev.views ||
       state.elements !== prev.elements ||
       state.relations !== prev.relations ||
       state.contextRelations !== prev.contextRelations ||

@@ -7,7 +7,15 @@ import {
   translateMatchingElements,
 } from "@/lib/region-containment";
 import { generateStormId } from "@/lib/storm-id";
-import type { BoardImportPayload } from "@/lib/storm-json";
+import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
+import { createEmptyBoardView, normalizeBoardDocument } from "@/lib/storm-json";
+import {
+  applyViewToFlatPatch,
+  CLEAR_SELECTION_PATCH,
+  createInitialViewDocument,
+  flushActiveViewIntoViews,
+  resolveActiveView,
+} from "@/lib/board-views";
 import {
   DEFAULT_APPEARANCE,
   type BoardAppearance,
@@ -30,9 +38,6 @@ import type {
   WorkshopFormat,
 } from "@/types/storm-element";
 import {
-  DEFAULT_MODELING_MODE,
-  DEFAULT_TIMELINE,
-  DEFAULT_VIEWPORT,
   defaultPaletteTypeForMode,
   isWorkshopFormatForMode,
 } from "@/types/storm-element";
@@ -46,6 +51,11 @@ import type { ContextMenuState, ContextMenuTarget } from "@/types/context-menu";
 
 export interface StormBoardState {
   title: string;
+  /** Project-wide: sync active tab in collab when true. */
+  workshopMode: boolean;
+  activeViewId: string;
+  views: BoardView[];
+  /** Flat mirror of the active view (canvas). */
   modelingMode: ModelingMode;
   workshopFormat: WorkshopFormat;
   facilitatorEnabled: boolean;
@@ -81,6 +91,12 @@ export interface StormBoardState {
   gestureSnapshotTaken: boolean;
 
   setTitle: (title: string) => void;
+  setWorkshopMode: (enabled: boolean) => void;
+  setActiveView: (id: string) => void;
+  addView: (name?: string) => string;
+  renameView: (id: string, name: string) => void;
+  duplicateView: (id: string) => string | null;
+  deleteView: (id: string) => boolean;
   setModelingMode: (mode: ModelingMode) => void;
   setWorkshopFormat: (format: WorkshopFormat) => void;
   setFacilitatorEnabled: (enabled: boolean) => void;
@@ -190,42 +206,32 @@ function createElement(type: ElementType, x: number, y: number, label?: string):
 function captureDomain(s: StormBoardState): BoardDomainSnapshot {
   return {
     title: s.title,
-    modelingMode: s.modelingMode,
-    workshopFormat: s.workshopFormat,
-    facilitatorEnabled: s.facilitatorEnabled,
-    facilitatorPhase: s.facilitatorPhase,
-    elements: s.elements,
-    relations: s.relations,
-    contextRelations: s.contextRelations,
-    swimlanes: s.swimlanes,
-    boundedContexts: s.boundedContexts,
-    timeline: s.timeline,
     glossary: s.glossary,
     appearance: s.appearance,
-    snapToTimeline: s.snapToTimeline,
-    snapToGrid: s.snapToGrid,
+    workshopMode: s.workshopMode,
+    activeViewId: s.activeViewId,
+    views: flushActiveViewIntoViews(s),
   };
 }
 
 function domainPatch(snap: BoardDomainSnapshot): Partial<StormBoardState> {
+  const views = snap.views.length
+    ? snap.views
+    : [createEmptyBoardView({ id: generateStormId(), name: "Board" })];
+  const active = resolveActiveView(views, snap.activeViewId);
   return {
     title: snap.title,
-    modelingMode: snap.modelingMode ?? "eventStorming",
-    workshopFormat: snap.workshopFormat,
-    facilitatorEnabled: snap.facilitatorEnabled,
-    facilitatorPhase: snap.facilitatorPhase,
-    elements: snap.elements,
-    relations: snap.relations,
-    contextRelations: snap.contextRelations,
-    swimlanes: snap.swimlanes,
-    boundedContexts: snap.boundedContexts,
-    timeline: snap.timeline,
     glossary: snap.glossary,
     appearance: snap.appearance,
-    snapToTimeline: snap.snapToTimeline,
-    snapToGrid: snap.snapToGrid,
+    workshopMode: snap.workshopMode,
+    activeViewId: active.id,
+    views,
+    ...applyViewToFlatPatch(active),
+    ...CLEAR_SELECTION_PATCH,
   };
 }
+
+const initialViewDoc = createInitialViewDocument("Neues Event Storming Board");
 
 type SetFn = (
   partial:
@@ -258,27 +264,30 @@ function commit(
 
 export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   title: "Neues Event Storming Board",
-  modelingMode: DEFAULT_MODELING_MODE,
-  workshopFormat: "free",
-  facilitatorEnabled: false,
-  facilitatorPhase: 0,
-  elements: [],
-  relations: [],
-  contextRelations: [],
-  swimlanes: [],
-  boundedContexts: [],
-  timeline: { ...DEFAULT_TIMELINE },
-  viewport: { ...DEFAULT_VIEWPORT },
+  workshopMode: false,
+  activeViewId: initialViewDoc.activeViewId,
+  views: initialViewDoc.views,
+  modelingMode: initialViewDoc.modelingMode,
+  workshopFormat: initialViewDoc.workshopFormat,
+  facilitatorEnabled: initialViewDoc.facilitatorEnabled,
+  facilitatorPhase: initialViewDoc.facilitatorPhase,
+  elements: initialViewDoc.elements,
+  relations: initialViewDoc.relations,
+  contextRelations: initialViewDoc.contextRelations,
+  swimlanes: initialViewDoc.swimlanes,
+  boundedContexts: initialViewDoc.boundedContexts,
+  timeline: initialViewDoc.timeline,
+  viewport: initialViewDoc.viewport,
   glossary: [],
   appearance: { ...DEFAULT_APPEARANCE },
-  snapToTimeline: true,
-  snapToGrid: false,
+  snapToTimeline: initialViewDoc.snapToTimeline,
+  snapToGrid: initialViewDoc.snapToGrid,
   selectedElementIds: [],
   selectedRelationId: null,
   selectedContextRelationId: null,
   selectedBoundedContextId: null,
   selectedSwimlaneId: null,
-  paletteType: "domainEvent",
+  paletteType: defaultPaletteTypeForMode(initialViewDoc.modelingMode),
   focusMode: false,
   relationMode: false,
   relationDraftSourceId: null,
@@ -291,6 +300,99 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   gestureSnapshotTaken: false,
 
   setTitle: (title) => commit(set, get, () => ({ title })),
+  setWorkshopMode: (workshopMode) => commit(set, get, () => ({ workshopMode })),
+
+  setActiveView: (id) => {
+    const s = get();
+    if (id === s.activeViewId || !s.views.some((v) => v.id === id)) return;
+    const views = flushActiveViewIntoViews(s);
+    const next = resolveActiveView(views, id);
+    set({
+      views,
+      activeViewId: next.id,
+      ...applyViewToFlatPatch(next),
+      ...CLEAR_SELECTION_PATCH,
+      past: [],
+      future: [],
+      gestureActive: false,
+      gestureSnapshotTaken: false,
+    });
+  },
+
+  addView: (name) => {
+    let createdId = "";
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      createdId = generateStormId();
+      const view = createEmptyBoardView({
+        id: createdId,
+        name: name?.trim() || `Sicht ${views.length + 1}`,
+        modelingMode: s.modelingMode,
+        workshopFormat: isWorkshopFormatForMode(s.workshopFormat, s.modelingMode)
+          ? s.workshopFormat
+          : "free",
+      });
+      return {
+        views: [...views, view],
+        activeViewId: createdId,
+        ...applyViewToFlatPatch(view),
+        ...CLEAR_SELECTION_PATCH,
+      };
+    });
+    return createdId;
+  },
+
+  renameView: (id, name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s).map((v) =>
+        v.id === id ? { ...v, name: trimmed } : v,
+      );
+      return { views };
+    });
+  },
+
+  duplicateView: (id) => {
+    let createdId: string | null = null;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const source = views.find((v) => v.id === id);
+      if (!source) return {};
+      createdId = generateStormId();
+      const copy = structuredClone(source);
+      copy.id = createdId;
+      copy.name = `${source.name} Kopie`;
+      return {
+        views: [...views, copy],
+        activeViewId: createdId,
+        ...applyViewToFlatPatch(copy),
+        ...CLEAR_SELECTION_PATCH,
+      };
+    });
+    return createdId;
+  },
+
+  deleteView: (id) => {
+    const s = get();
+    if (s.views.length <= 1) return false;
+    if (!s.views.some((v) => v.id === id)) return false;
+    commit(set, get, (state) => {
+      const views = flushActiveViewIntoViews(state).filter((v) => v.id !== id);
+      const nextActive =
+        state.activeViewId === id
+          ? views[0]!
+          : resolveActiveView(views, state.activeViewId);
+      return {
+        views,
+        activeViewId: nextActive.id,
+        ...applyViewToFlatPatch(nextActive),
+        ...CLEAR_SELECTION_PATCH,
+      };
+    });
+    return true;
+  },
+
   setModelingMode: (modelingMode) =>
     commit(set, get, (s) => {
       const workshopFormat = isWorkshopFormatForMode(s.workshopFormat, modelingMode)
@@ -803,32 +905,17 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   replaceBoardFromImport: (payload) => {
     const s = get();
     const past = pushHistory(s.past, captureDomain(s));
+    const doc = normalizeBoardDocument(payload);
+    const active = resolveActiveView(doc.views, doc.activeViewId);
     set({
-      title: payload.title,
-      modelingMode: payload.modelingMode,
-      workshopFormat: payload.workshopFormat,
-      facilitatorEnabled: payload.facilitatorEnabled,
-      facilitatorPhase: payload.facilitatorPhase,
-      elements: payload.elements,
-      relations: payload.relations,
-      contextRelations: payload.contextRelations ?? [],
-      swimlanes: payload.swimlanes,
-      boundedContexts: payload.boundedContexts,
-      timeline: payload.timeline,
-      viewport: payload.viewport,
-      glossary: payload.glossary,
-      appearance: payload.appearance,
-      snapToTimeline: payload.snapToTimeline,
-      snapToGrid: payload.snapToGrid,
-      selectedElementIds: [],
-      selectedRelationId: null,
-      selectedContextRelationId: null,
-      selectedBoundedContextId: null,
-      selectedSwimlaneId: null,
-      relationMode: false,
-      relationDraftSourceId: null,
-      contextMapMode: false,
-      contextMapDraftSourceId: null,
+      title: doc.title,
+      glossary: doc.glossary,
+      appearance: doc.appearance,
+      workshopMode: doc.workshopMode,
+      activeViewId: active.id,
+      views: doc.views,
+      ...applyViewToFlatPatch(active),
+      ...CLEAR_SELECTION_PATCH,
       past,
       future: [],
       gestureActive: false,
@@ -841,6 +928,21 @@ export function boardImportPayloadFromStore(): BoardImportPayload {
   const s = useStormBoardStore.getState();
   return {
     title: s.title,
+    glossary: s.glossary,
+    appearance: s.appearance,
+    workshopMode: s.workshopMode,
+    activeViewId: s.activeViewId,
+    views: flushActiveViewIntoViews(s),
+  };
+}
+
+/** Flat globals + active view — for SVG/PNG/Markdown exports. */
+export function boardActiveSliceFromStore() {
+  const s = useStormBoardStore.getState();
+  return {
+    title: s.title,
+    glossary: s.glossary,
+    appearance: s.appearance,
     modelingMode: s.modelingMode,
     workshopFormat: s.workshopFormat,
     facilitatorEnabled: s.facilitatorEnabled,
@@ -852,8 +954,6 @@ export function boardImportPayloadFromStore(): BoardImportPayload {
     boundedContexts: s.boundedContexts,
     timeline: s.timeline,
     viewport: s.viewport,
-    glossary: s.glossary,
-    appearance: s.appearance,
     snapToTimeline: s.snapToTimeline,
     snapToGrid: s.snapToGrid,
   };

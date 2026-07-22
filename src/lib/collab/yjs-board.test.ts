@@ -17,46 +17,72 @@ import {
   saveLocalSupabaseConnection,
 } from "@/lib/collab/config";
 import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
-import { DEFAULT_TIMELINE, DEFAULT_VIEWPORT } from "@/types/storm-element";
+import { createDefaultBoardDocument, createEmptyBoardView } from "@/lib/storm-json";
 import type { BoardImportPayload } from "@/lib/storm-json";
 
-const sample: BoardImportPayload = {
+const sample: BoardImportPayload = createDefaultBoardDocument({
   title: "Collab Test",
-  modelingMode: "eventStorming",
-  workshopFormat: "free",
-  facilitatorEnabled: false,
-  facilitatorPhase: 0,
-  elements: [
-    {
-      id: "e1",
-      type: "domainEvent",
-      label: "Order Placed",
-      x: 10,
-      y: 20,
-      width: 100,
-      height: 50,
-    },
+  activeViewId: "v1",
+  views: [
+    createEmptyBoardView({
+      id: "v1",
+      name: "Board",
+      elements: [
+        {
+          id: "e1",
+          type: "domainEvent",
+          label: "Order Placed",
+          x: 10,
+          y: 20,
+          width: 100,
+          height: 50,
+        },
+      ],
+    }),
   ],
-  relations: [],
-  contextRelations: [],
-  swimlanes: [],
-  boundedContexts: [],
-  timeline: { ...DEFAULT_TIMELINE },
-  viewport: { ...DEFAULT_VIEWPORT },
-  glossary: [],
   appearance: { ...DEFAULT_APPEARANCE },
-  snapToTimeline: true,
-  snapToGrid: false,
-};
+});
 
 describe("collab yjs-board", () => {
-  it("round-trips payload through Y.Doc", () => {
+  it("round-trips multi-view payload through Y.Doc", () => {
     const doc = createBoardYDoc();
     applyPayloadToYDoc(doc, sample);
     const read = readPayloadFromYDoc(doc);
     expect(read?.title).toBe("Collab Test");
-    expect(read?.elements).toHaveLength(1);
-    expect(read?.elements[0]?.label).toBe("Order Placed");
+    expect(read?.views).toHaveLength(1);
+    expect(read?.views[0]?.elements).toHaveLength(1);
+    expect(read?.views[0]?.elements[0]?.label).toBe("Order Placed");
+  });
+
+  it("migrates legacy flat v1-shaped Y payload", () => {
+    const doc = createBoardYDoc();
+    const root = doc.getMap("board");
+    doc.transact(() => {
+      root.set(
+        "payloadJson",
+        JSON.stringify({
+          title: "Legacy",
+          modelingMode: "eventStorming",
+          workshopFormat: "free",
+          facilitatorEnabled: false,
+          facilitatorPhase: 0,
+          elements: [{ id: "e1", type: "command", label: "Go", x: 0, y: 0 }],
+          relations: [],
+          swimlanes: [],
+          boundedContexts: [],
+          timeline: { y: 400 },
+          viewport: { x: 0, y: 0, zoom: 1 },
+          glossary: [],
+          appearance: { ...DEFAULT_APPEARANCE },
+          snapToTimeline: true,
+          snapToGrid: false,
+        }),
+      );
+    });
+    const read = readPayloadFromYDoc(doc);
+    expect(read?.title).toBe("Legacy");
+    expect(read?.views).toHaveLength(1);
+    expect(read?.views[0]?.elements[0]?.label).toBe("Go");
   });
 
   it("encodes and re-applies state update", () => {
@@ -78,25 +104,32 @@ describe("collab yjs-board", () => {
       Y.applyUpdate(b, u);
     });
 
-    applyPayloadToYDoc(a, {
+    const next = createDefaultBoardDocument({
       ...sample,
       title: "Updated",
-      elements: [
-        ...sample.elements,
-        {
-          id: "e2",
-          type: "command",
-          label: "Place Order",
-          x: 40,
-          y: 60,
-          width: 100,
-          height: 50,
-        },
+      views: [
+        createEmptyBoardView({
+          id: "v1",
+          name: "Board",
+          elements: [
+            ...sample.views[0]!.elements,
+            {
+              id: "e2",
+              type: "command",
+              label: "Place Order",
+              x: 40,
+              y: 60,
+              width: 100,
+              height: 50,
+            },
+          ],
+        }),
       ],
     });
+    applyPayloadToYDoc(a, next);
 
     expect(readPayloadFromYDoc(b)?.title).toBe("Updated");
-    expect(readPayloadFromYDoc(b)?.elements).toHaveLength(2);
+    expect(readPayloadFromYDoc(b)?.views[0]?.elements).toHaveLength(2);
   });
 });
 
