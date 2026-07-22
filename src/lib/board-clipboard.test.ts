@@ -4,6 +4,7 @@ import {
   extractClipboardPayload,
   remapClipboardForPaste,
   selectionCentroid,
+  takeIdsFromClipboard,
 } from "@/lib/board-clipboard";
 import type { StormElement } from "@/types/storm-element";
 import type { StormRelation } from "@/types/storm-relation";
@@ -42,5 +43,16 @@ describe("board-clipboard", () => {
     const c = selectionCentroid(remapped.elements);
     expect(c.x).toBeCloseTo(1000, 5);
     expect(c.y).toBeCloseTo(500, 5);
+  });
+
+  it("takes individual ids out of the clipboard payload", () => {
+    const payload = extractClipboardPayload(elements, relations, ["a", "b", "c"])!;
+    const { taken, remaining } = takeIdsFromClipboard(payload, ["a"]);
+    expect(taken!.elements).toHaveLength(1);
+    expect(taken!.elements[0]!.id).toBe("a");
+    expect(taken!.relations).toHaveLength(0);
+    expect(remaining!.elements.map((e) => e.id).sort()).toEqual(["b", "c"]);
+    expect(remaining!.relations).toHaveLength(1);
+    expect(remaining!.relations[0]!.id).toBe("r2");
   });
 });

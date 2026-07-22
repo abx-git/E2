@@ -111,3 +111,53 @@ export function isPointerOverClipboardDrop(clientX: number, clientY: number): bo
   const el = document.elementFromPoint(clientX, clientY);
   return Boolean(el?.closest(`[${CLIPBOARD_DROP_ATTR}]`));
 }
+
+export function isPointerOverStormCanvas(clientX: number, clientY: number): boolean {
+  if (typeof document === "undefined") return false;
+  const el = document.elementFromPoint(clientX, clientY);
+  return Boolean(el?.closest("[data-storm-canvas]"));
+}
+
+/**
+ * Split clipboard: `ids` leave with their fully-internal relations;
+ * remaining clipboard keeps the rest (relations only if both ends remain).
+ */
+export function takeIdsFromClipboard(
+  payload: BoardClipboardPayload,
+  ids: string[],
+): { taken: BoardClipboardPayload | null; remaining: BoardClipboardPayload | null } {
+  const idSet = new Set(ids);
+  const takenEls = payload.elements.filter((e) => idSet.has(e.id));
+  if (takenEls.length === 0) {
+    return { taken: null, remaining: payload };
+  }
+  const remainingEls = payload.elements.filter((e) => !idSet.has(e.id));
+  const takenRels = payload.relations.filter(
+    (r) => idSet.has(r.sourceId) && idSet.has(r.targetId),
+  );
+  const remainingRels = payload.relations.filter(
+    (r) => !idSet.has(r.sourceId) && !idSet.has(r.targetId),
+  );
+
+  const takenCentroid = selectionCentroid(takenEls);
+  const remainingCentroid = selectionCentroid(remainingEls);
+
+  return {
+    taken: {
+      elements: structuredClone(takenEls),
+      relations: structuredClone(takenRels),
+      originX: takenCentroid.x,
+      originY: takenCentroid.y,
+    },
+    remaining:
+      remainingEls.length === 0
+        ? null
+        : {
+            elements: structuredClone(remainingEls),
+            relations: structuredClone(remainingRels),
+            originX: remainingCentroid.x,
+            originY: remainingCentroid.y,
+          },
+  };
+}
+

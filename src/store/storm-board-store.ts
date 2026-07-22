@@ -10,6 +10,7 @@ import {
   extractClipboardPayload,
   remapClipboardForPaste,
   selectionCentroid,
+  takeIdsFromClipboard,
   type BoardClipboardPayload,
 } from "@/lib/board-clipboard";
 import { generateStormId } from "@/lib/storm-id";
@@ -121,6 +122,8 @@ export interface StormBoardState {
   setClipboardDropHighlight: (active: boolean) => void;
   moveToClipboard: (ids: string[]) => boolean;
   pasteClipboardAt: (worldX: number, worldY: number) => string[];
+  /** Paste subset from clipboard onto the board and remove those items from the clipboard. */
+  takeClipboardElementsAt: (ids: string[], worldX: number, worldY: number) => string[];
   clearClipboard: () => void;
   selectElement: (id: string | null, additive?: boolean) => void;
   setSelectedElementIds: (ids: string[], additive?: boolean) => void;
@@ -487,6 +490,34 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         s.boundedContexts,
       );
       return {
+        elements,
+        relations: [...s.relations, ...remapped.relations],
+        selectedElementIds: remapped.newIds,
+        selectedRelationId: null,
+        selectedContextRelationId: null,
+        selectedBoundedContextId: null,
+        selectedSwimlaneId: null,
+      };
+    });
+    return newIds;
+  },
+
+  takeClipboardElementsAt: (ids, worldX, worldY) => {
+    const payload = get().clipboard;
+    if (!payload) return [];
+    const { taken, remaining } = takeIdsFromClipboard(payload, ids);
+    if (!taken) return [];
+    let newIds: string[] = [];
+    commit(set, get, (s) => {
+      const remapped = remapClipboardForPaste(taken, worldX, worldY);
+      newIds = remapped.newIds;
+      const elements = applyContainmentAssignments(
+        [...s.elements, ...remapped.elements],
+        s.swimlanes,
+        s.boundedContexts,
+      );
+      return {
+        clipboard: remaining,
         elements,
         relations: [...s.relations, ...remapped.relations],
         selectedElementIds: remapped.newIds,

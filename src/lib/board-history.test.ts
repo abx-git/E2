@@ -89,7 +89,7 @@ describe("store undo / views / import", () => {
       activeViewId: "v1",
       views: [createEmptyBoardView({ id: "v1", name: "Board" })],
     });
-    useStormBoardStore.setState({ past: [], future: [] });
+    useStormBoardStore.setState({ past: [], future: [], clipboard: null });
   });
 
   it("coalesces moves inside a gesture into one undo step", () => {
@@ -174,5 +174,17 @@ describe("store undo / views / import", () => {
     expect(useStormBoardStore.getState().elements).toHaveLength(2);
     expect(useStormBoardStore.getState().relations).toHaveLength(1);
     expect(useStormBoardStore.getState().selectedElementIds).toEqual(pasted);
+  });
+
+  it("takes a single clipboard element onto the board", () => {
+    const store = useStormBoardStore.getState();
+    const idA = store.addElement("domainEvent", 10, 10);
+    const idB = store.addElement("command", 120, 10);
+    store.moveToClipboard([idA, idB]);
+    const clipIds = useStormBoardStore.getState().clipboard!.elements.map((e) => e.id);
+    const taken = store.takeClipboardElementsAt([clipIds[0]!], 50, 50);
+    expect(taken).toHaveLength(1);
+    expect(useStormBoardStore.getState().elements).toHaveLength(1);
+    expect(useStormBoardStore.getState().clipboard?.elements).toHaveLength(1);
   });
 });
