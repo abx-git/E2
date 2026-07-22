@@ -201,6 +201,21 @@ export function defaultRelationType(source: StormElement, target: StormElement):
   if (source.type === "activity" && target.type === "userTask") return "contains";
   if (source.type === "userTask" && target.type === "userStory") return "contains";
   if (source.type === "slice") return "informs";
+  if (
+    source.type === "processStart" ||
+    source.type === "processActivity" ||
+    source.type === "processGateway" ||
+    source.type === "processEnd" ||
+    target.type === "processStart" ||
+    target.type === "processActivity" ||
+    target.type === "processGateway" ||
+    target.type === "processEnd"
+  ) {
+    return "causal";
+  }
+  if (source.type === "dataEntity" || target.type === "dataEntity" || source.type === "dataAssociation") {
+    return "contains";
+  }
   if (source.type === "externalSystem") return "invokes";
   if (source.type === "domainEvent" && target.type === "domainEvent") return "causal";
   return "triggers";

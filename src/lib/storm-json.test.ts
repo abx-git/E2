@@ -168,4 +168,18 @@ describe("facilitator-phases", () => {
       "hotspot",
     ]);
   });
+
+  it("uses Process and Data catalogs", () => {
+    expect(getAllowedTypesForPhase("processFlow", "free", 0, false)).toContain("processActivity");
+    expect(getAllowedTypesForPhase("processFlow", "free", 0, false)).toContain("processGateway");
+    expect(getAllowedTypesForPhase("processFlow", "processWorkshop", 0, true)).toEqual([
+      "processStart",
+      "processActivity",
+      "processEnd",
+      "note",
+    ]);
+    expect(getAllowedTypesForPhase("dataModel", "free", 0, false)).toContain("dataEntity");
+    expect(getAllowedTypesForPhase("dataModel", "free", 0, false)).toContain("dataAssociation");
+    expect(getAllowedTypesForPhase("dataModel", "dataModelWorkshop", 0, true)).toContain("dataEntity");
+  });
 });

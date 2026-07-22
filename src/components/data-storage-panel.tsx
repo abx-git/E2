@@ -32,6 +32,8 @@ export interface DataStoragePanelProps {
   onExportExampleMapping: () => void;
   onExportStoryMap: () => void;
   onExportEventModel: () => void;
+  onExportProcess: () => void;
+  onExportDataModel: () => void;
   onOpenCollab?: () => void;
   busy?: boolean;
 }
@@ -99,6 +101,8 @@ export function DataStoragePanel({
   onExportExampleMapping,
   onExportStoryMap,
   onExportEventModel,
+  onExportProcess,
+  onExportDataModel,
   onOpenCollab,
   busy,
 }: DataStoragePanelProps) {
@@ -273,6 +277,26 @@ export function DataStoragePanel({
               emphasize={modeMatches(modelingMode, "eventModeling")}
             >
               <Download className="h-4 w-4" /> Event Model / Slices (MD)
+            </ActionButton>
+          </Section>
+
+          <Section title="Export — Prozess">
+            <ActionButton
+              onClick={onExportProcess}
+              disabled={busy}
+              emphasize={modeMatches(modelingMode, "processFlow")}
+            >
+              <Download className="h-4 w-4" /> Prozessmodell (MD)
+            </ActionButton>
+          </Section>
+
+          <Section title="Export — Daten">
+            <ActionButton
+              onClick={onExportDataModel}
+              disabled={busy}
+              emphasize={modeMatches(modelingMode, "dataModel")}
+            >
+              <Download className="h-4 w-4" /> Datenmodell (MD)
             </ActionButton>
           </Section>
         </div>

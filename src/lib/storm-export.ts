@@ -459,6 +459,162 @@ export function exportEventModelMarkdown(): void {
   downloadText(`${slugTitle(title)}-event-model.md`, lines.join("\n"));
 }
 
+/** Process flow (BPMN-lite): Start, Activities, Gateways, End. */
+export function exportProcessMarkdown(): void {
+  const { elements, title, swimlanes } = boardActiveSliceFromStore();
+  const lines = [
+    `# Prozessmodell — ${title}`,
+    "",
+    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
+    "",
+  ];
+
+  const starts = elements.filter((e) => e.type === "processStart");
+  const activities = elements.filter((e) => e.type === "processActivity");
+  const gateways = elements.filter((e) => e.type === "processGateway");
+  const ends = elements.filter((e) => e.type === "processEnd");
+
+  if (starts.length) {
+    lines.push("## Start", "");
+    for (const s of starts) {
+      lines.push(`### ${s.label}`);
+      if (s.metadata?.processTrigger) lines.push(`- Auslöser: ${s.metadata.processTrigger}`);
+      lines.push(...mdMetaBlock(s), "");
+    }
+  }
+
+  if (activities.length) {
+    lines.push("## Aktivitäten", "");
+    for (const a of [...activities].sort((x, y) => x.x - y.x || x.y - y.y)) {
+      lines.push(`### ${a.label}`);
+      if (a.metadata?.processRole) lines.push(`- Rolle: ${a.metadata.processRole}`);
+      if (a.metadata?.processSystem) lines.push(`- System: ${a.metadata.processSystem}`);
+      if (a.metadata?.processDuration) lines.push(`- Dauer: ${a.metadata.processDuration}`);
+      if (a.metadata?.processInputs?.length) {
+        lines.push("- Eingaben:");
+        lines.push(...mdBulletList(a.metadata.processInputs));
+      }
+      if (a.metadata?.processOutputs?.length) {
+        lines.push("- Ausgaben:");
+        lines.push(...mdBulletList(a.metadata.processOutputs));
+      }
+      lines.push(...mdMetaBlock(a), "");
+    }
+  }
+
+  if (gateways.length) {
+    lines.push("## Gateways", "");
+    for (const g of gateways) {
+      lines.push(`### ${g.label} (${(g.metadata?.gatewayKind ?? "xor").toUpperCase()})`);
+      if (g.metadata?.gatewayConditions?.length) {
+        lines.push("- Pfade / Bedingungen:");
+        lines.push(...mdBulletList(g.metadata.gatewayConditions));
+      }
+      lines.push(...mdMetaBlock(g), "");
+    }
+  }
+
+  if (ends.length) {
+    lines.push("## Ende", "");
+    for (const e of ends) {
+      lines.push(`### ${e.label}`);
+      if (e.metadata?.processResult) lines.push(`- Ergebnis: ${e.metadata.processResult}`);
+      lines.push(...mdMetaBlock(e), "");
+    }
+  }
+
+  if (swimlanes.length) {
+    lines.push("## Swimlanes", "");
+    for (const lane of swimlanes) {
+      const inside = elements.filter((el) => el.swimlaneId === lane.id);
+      lines.push(`### ${lane.label}`);
+      if (inside.length === 0) lines.push("- _(leer)_");
+      else for (const el of inside) lines.push(`- ${ELEMENT_STYLES[el.type].shortLabel}: ${el.label}`);
+      lines.push("");
+    }
+  }
+
+  if (starts.length + activities.length + gateways.length + ends.length === 0) {
+    lines.push("_Keine Prozess-Bausteine auf dem Board._", "");
+  }
+
+  downloadText(`${slugTitle(title)}-process.md`, lines.join("\n"));
+}
+
+/** Conceptual data model: entities, associations, attributes/keys. */
+export function exportDataModelMarkdown(): void {
+  const { elements, title, relations } = boardActiveSliceFromStore();
+  const lines = [
+    `# Datenmodell — ${title}`,
+    "",
+    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
+    "",
+  ];
+
+  const entities = elements.filter((e) => e.type === "dataEntity");
+  const associations = elements.filter((e) => e.type === "dataAssociation");
+
+  lines.push("## Entitäten", "");
+  if (entities.length === 0) {
+    lines.push("_Keine Entitäten._", "");
+  } else {
+    for (const ent of entities) {
+      lines.push(`### ${ent.label}`);
+      if (ent.metadata?.dataTableName) lines.push(`- Tabelle: \`${ent.metadata.dataTableName}\``);
+      if (ent.metadata?.identityFields?.length) {
+        lines.push("- Primärschlüssel / Identität:");
+        lines.push(...mdBulletList(ent.metadata.identityFields));
+      }
+      if (ent.metadata?.attributes?.length) {
+        lines.push("- Attribute:");
+        lines.push(...mdBulletList(ent.metadata.attributes));
+      }
+      if (ent.metadata?.dataUniqueKeys?.length) {
+        lines.push("- Unique Keys:");
+        lines.push(...mdBulletList(ent.metadata.dataUniqueKeys));
+      }
+      lines.push(...mdMetaBlock(ent), "");
+    }
+  }
+
+  if (associations.length) {
+    lines.push("## Assoziationen", "");
+    for (const a of associations) {
+      const card = a.metadata?.dataCardinality ?? "1:n";
+      const left = a.metadata?.dataLeftEntity ?? "?";
+      const right = a.metadata?.dataRightEntity ?? "?";
+      lines.push(`### ${a.label} (${card})`);
+      lines.push(`- ${left} — ${right}`);
+      if (a.metadata?.attributes?.length) {
+        lines.push("- Beziehungsattribute:");
+        lines.push(...mdBulletList(a.metadata.attributes));
+      }
+      lines.push(...mdMetaBlock(a), "");
+    }
+  }
+
+  const entityIds = new Set(entities.map((e) => e.id));
+  const assocIds = new Set(associations.map((e) => e.id));
+  const dataRels = relations.filter(
+    (r) =>
+      (entityIds.has(r.sourceId) || assocIds.has(r.sourceId)) &&
+      (entityIds.has(r.targetId) || assocIds.has(r.targetId)),
+  );
+  if (dataRels.length) {
+    lines.push("## Relationen auf dem Board", "");
+    for (const r of dataRels) {
+      const src = elements.find((e) => e.id === r.sourceId);
+      const tgt = elements.find((e) => e.id === r.targetId);
+      lines.push(
+        `- ${src?.label ?? r.sourceId} → ${tgt?.label ?? r.targetId}${r.label ? ` (${r.label})` : ""}`,
+      );
+    }
+    lines.push("");
+  }
+
+  downloadText(`${slugTitle(title)}-data-model.md`, lines.join("\n"));
+}
+
 function elementRect(el: StormElement): { x: number; y: number; w: number; h: number } {
   return geomElementRect(el);
 }

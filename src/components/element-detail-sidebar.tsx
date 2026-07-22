@@ -9,7 +9,9 @@ import { validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
 import type { RelationType } from "@/types/storm-relation";
 import type {
+  DataCardinality,
   ElementType,
+  GatewayKind,
   NoteColorId,
   QuestionStatus,
   StoryPriority,
@@ -819,6 +821,264 @@ export function ElementDetailSidebar({
             placeholder={"z. B. Web UI\nOrder Service"}
           />
         </Field>
+      )}
+
+      {selectedElement.type === "processActivity" && (
+        <>
+          <Field label="Rolle / Verantwortlich">
+            <input
+              className="dock-field"
+              value={selectedElement.metadata?.processRole ?? ""}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: { ...selectedElement.metadata, processRole: e.target.value },
+                })
+              }
+            />
+          </Field>
+          <Field label="System">
+            <input
+              className="dock-field"
+              value={selectedElement.metadata?.processSystem ?? ""}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: { ...selectedElement.metadata, processSystem: e.target.value },
+                })
+              }
+            />
+          </Field>
+          <Field label="Dauer / SLA">
+            <input
+              className="dock-field"
+              value={selectedElement.metadata?.processDuration ?? ""}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: { ...selectedElement.metadata, processDuration: e.target.value },
+                })
+              }
+              placeholder="z. B. < 1 Tag"
+            />
+          </Field>
+          <Field label="Eingaben (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[3rem]"
+              rows={2}
+              value={linesFromMeta(selectedElement.metadata?.processInputs)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    processInputs: linesToMeta(e.target.value),
+                  },
+                })
+              }
+            />
+          </Field>
+          <Field label="Ausgaben (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[3rem]"
+              rows={2}
+              value={linesFromMeta(selectedElement.metadata?.processOutputs)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    processOutputs: linesToMeta(e.target.value),
+                  },
+                })
+              }
+            />
+          </Field>
+        </>
+      )}
+
+      {selectedElement.type === "processGateway" && (
+        <>
+          <Field label="Gateway-Art">
+            <select
+              className="dock-field"
+              value={selectedElement.metadata?.gatewayKind ?? "xor"}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    gatewayKind: e.target.value as GatewayKind,
+                  },
+                })
+              }
+            >
+              <option value="xor">XOR (exklusiv)</option>
+              <option value="and">AND (parallel)</option>
+              <option value="or">OR (inklusiv)</option>
+            </select>
+          </Field>
+          <Field label="Bedingungen / Pfade (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[3rem]"
+              rows={3}
+              value={linesFromMeta(selectedElement.metadata?.gatewayConditions)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    gatewayConditions: linesToMeta(e.target.value),
+                  },
+                })
+              }
+              placeholder={"z. B. genehmigt\nabgelehnt"}
+            />
+          </Field>
+        </>
+      )}
+
+      {selectedElement.type === "processStart" && (
+        <Field label="Auslöser">
+          <input
+            className="dock-field"
+            value={selectedElement.metadata?.processTrigger ?? ""}
+            onChange={(e) =>
+              updateElement(selectedElement.id, {
+                metadata: { ...selectedElement.metadata, processTrigger: e.target.value },
+              })
+            }
+          />
+        </Field>
+      )}
+
+      {selectedElement.type === "processEnd" && (
+        <Field label="Ergebnis">
+          <input
+            className="dock-field"
+            value={selectedElement.metadata?.processResult ?? ""}
+            onChange={(e) =>
+              updateElement(selectedElement.id, {
+                metadata: { ...selectedElement.metadata, processResult: e.target.value },
+              })
+            }
+          />
+        </Field>
+      )}
+
+      {selectedElement.type === "dataEntity" && (
+        <>
+          <Field label="Tabellenname (optional)">
+            <input
+              className="dock-field"
+              value={selectedElement.metadata?.dataTableName ?? ""}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: { ...selectedElement.metadata, dataTableName: e.target.value },
+                })
+              }
+            />
+          </Field>
+          <Field label="Primärschlüssel / Identität (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[3rem]"
+              rows={2}
+              value={linesFromMeta(selectedElement.metadata?.identityFields)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    identityFields: linesToMeta(e.target.value),
+                  },
+                })
+              }
+            />
+          </Field>
+          <Field label="Attribute (eine pro Zeile, z. B. name: string)">
+            <textarea
+              className="dock-field min-h-[4rem]"
+              rows={4}
+              value={linesFromMeta(selectedElement.metadata?.attributes)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    attributes: linesToMeta(e.target.value),
+                  },
+                })
+              }
+            />
+          </Field>
+          <Field label="Unique Keys (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[2.5rem]"
+              rows={2}
+              value={linesFromMeta(selectedElement.metadata?.dataUniqueKeys)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    dataUniqueKeys: linesToMeta(e.target.value),
+                  },
+                })
+              }
+            />
+          </Field>
+        </>
+      )}
+
+      {selectedElement.type === "dataAssociation" && (
+        <>
+          <Field label="Kardinalität">
+            <select
+              className="dock-field"
+              value={selectedElement.metadata?.dataCardinality ?? "1:n"}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    dataCardinality: e.target.value as DataCardinality,
+                  },
+                })
+              }
+            >
+              <option value="1:1">1:1</option>
+              <option value="1:n">1:n</option>
+              <option value="n:1">n:1</option>
+              <option value="n:m">n:m</option>
+            </select>
+          </Field>
+          <Field label="Linke Entität">
+            <input
+              className="dock-field"
+              value={selectedElement.metadata?.dataLeftEntity ?? ""}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: { ...selectedElement.metadata, dataLeftEntity: e.target.value },
+                })
+              }
+            />
+          </Field>
+          <Field label="Rechte Entität">
+            <input
+              className="dock-field"
+              value={selectedElement.metadata?.dataRightEntity ?? ""}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: { ...selectedElement.metadata, dataRightEntity: e.target.value },
+                })
+              }
+            />
+          </Field>
+          <Field label="Beziehungsattribute (eine pro Zeile)">
+            <textarea
+              className="dock-field min-h-[3rem]"
+              rows={2}
+              value={linesFromMeta(selectedElement.metadata?.attributes)}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    attributes: linesToMeta(e.target.value),
+                  },
+                })
+              }
+            />
+          </Field>
+        </>
       )}
 
       {issues.map((issue) => (

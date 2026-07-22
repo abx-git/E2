@@ -3,7 +3,9 @@ export type ModelingMode =
   | "domainDrivenDesign"
   | "bdd"
   | "userStoryMapping"
-  | "eventModeling";
+  | "eventModeling"
+  | "processFlow"
+  | "dataModel";
 
 export type ElementType =
   | "domainEvent"
@@ -33,13 +35,23 @@ export type ElementType =
   | "userStory"
   | "release"
   /** Event Modeling */
-  | "slice";
+  | "slice"
+  /** Process (BPMN-lite) */
+  | "processStart"
+  | "processEnd"
+  | "processActivity"
+  | "processGateway"
+  /** Data model (ER-lite) */
+  | "dataEntity"
+  | "dataAssociation";
 
 export type HotspotStatus = "open" | "resolved";
 export type HotspotPriority = "low" | "medium" | "high";
 export type SubdomainKind = "core" | "supporting" | "generic";
 export type StoryPriority = "must" | "should" | "could" | "wont";
 export type QuestionStatus = "open" | "resolved";
+export type GatewayKind = "xor" | "and" | "or";
+export type DataCardinality = "1:1" | "1:n" | "n:1" | "n:m";
 
 export type NoteColorId =
   | "cream"
@@ -63,9 +75,9 @@ export interface ElementMetadata {
   /** Strategic DDD: Core / Supporting / Generic. */
   subdomainKind?: SubdomainKind;
 
-  /** Entity / Value Object / Aggregate: Eigenschaften („name“ oder „name: Typ“). */
+  /** Entity / Value Object / Aggregate / Data Entity: Eigenschaften („name“ oder „name: Typ“). */
   attributes?: string[];
-  /** Entity: Identitätsfelder (z. B. „id“, „customerId“). */
+  /** Entity / Data Entity: Identitätsfelder (z. B. „id“, „customerId“). */
   identityFields?: string[];
   /** Entity / Domain Service / Repository / Factory: Operationen / Methoden. */
   operations?: string[];
@@ -97,6 +109,35 @@ export interface ElementMetadata {
   releaseGoal?: string;
   /** Event-Modeling-Slice: beteiligte Systeme / Lanes. */
   sliceSystems?: string[];
+
+  /** Process Activity: Rolle / Verantwortlich. */
+  processRole?: string;
+  /** Process Activity: System / Anwendung. */
+  processSystem?: string;
+  /** Process Activity: Eingaben. */
+  processInputs?: string[];
+  /** Process Activity: Ausgaben. */
+  processOutputs?: string[];
+  /** Process Activity: Dauer / SLA (Freitext). */
+  processDuration?: string;
+  /** Process Gateway: Art der Verzweigung. */
+  gatewayKind?: GatewayKind;
+  /** Process Gateway: Bedingungen / Pfade. */
+  gatewayConditions?: string[];
+  /** Process Start: Auslöser. */
+  processTrigger?: string;
+  /** Process End: Ergebnis. */
+  processResult?: string;
+
+  /** Data Entity: physischer / technischer Name (Tabelle). */
+  dataTableName?: string;
+  /** Data Entity: eindeutige Schlüssel (neben PK). */
+  dataUniqueKeys?: string[];
+  /** Data Association: Kardinalität. */
+  dataCardinality?: DataCardinality;
+  /** Data Association: linke / rechte Seite (Freitext-Namen). */
+  dataLeftEntity?: string;
+  dataRightEntity?: string;
 
   /** Sticky: Beschreibung auf der Karte anzeigen. */
   showDescriptionOnCard?: boolean;
@@ -131,7 +172,9 @@ export type WorkshopFormat =
   | "tacticalDesign"
   | "exampleMapping"
   | "storyMapping"
-  | "eventModelingWorkshop";
+  | "eventModelingWorkshop"
+  | "processWorkshop"
+  | "dataModelWorkshop";
 
 export interface Swimlane {
   id: string;
@@ -194,6 +237,8 @@ export const MODELING_MODES: ModelingMode[] = [
   "bdd",
   "userStoryMapping",
   "eventModeling",
+  "processFlow",
+  "dataModel",
 ];
 
 /** Shared annotation types. */
@@ -264,6 +309,25 @@ export const EM_ELEMENT_TYPES: ElementType[] = [
   "hotspot",
 ];
 
+/** Business process (BPMN-lite) palette. */
+export const PROCESS_ELEMENT_TYPES: ElementType[] = [
+  "processStart",
+  "processActivity",
+  "processGateway",
+  "processEnd",
+  "actor",
+  "note",
+  "hotspot",
+];
+
+/** Conceptual data model (ER-lite) palette. */
+export const DATA_ELEMENT_TYPES: ElementType[] = [
+  "dataEntity",
+  "dataAssociation",
+  "note",
+  "hotspot",
+];
+
 /** All sticky types that can appear on a board. */
 export const ALL_ELEMENT_TYPES: ElementType[] = [
   ...ES_ELEMENT_TYPES,
@@ -281,6 +345,12 @@ export const ALL_ELEMENT_TYPES: ElementType[] = [
   "userStory",
   "release",
   "slice",
+  "processStart",
+  "processEnd",
+  "processActivity",
+  "processGateway",
+  "dataEntity",
+  "dataAssociation",
 ];
 
 export const ES_WORKSHOP_FORMATS: WorkshopFormat[] = [
@@ -302,12 +372,18 @@ export const USM_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "storyMapping"];
 
 export const EM_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "eventModelingWorkshop"];
 
+export const PROCESS_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "processWorkshop"];
+
+export const DATA_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "dataModelWorkshop"];
+
 export const MODELING_MODE_LABELS: Record<ModelingMode, string> = {
   eventStorming: "Event Storming",
   domainDrivenDesign: "Domain-Driven Design",
   bdd: "BDD / Example Mapping",
   userStoryMapping: "User Story Mapping",
   eventModeling: "Event Modeling",
+  processFlow: "Prozess",
+  dataModel: "Daten",
 };
 
 export const MODELING_MODE_SHORT_LABELS: Record<ModelingMode, string> = {
@@ -316,6 +392,8 @@ export const MODELING_MODE_SHORT_LABELS: Record<ModelingMode, string> = {
   bdd: "BDD",
   userStoryMapping: "USM",
   eventModeling: "EM",
+  processFlow: "PROC",
+  dataModel: "DATA",
 };
 
 const ELEMENT_TYPES_BY_MODE: Record<ModelingMode, ElementType[]> = {
@@ -324,6 +402,8 @@ const ELEMENT_TYPES_BY_MODE: Record<ModelingMode, ElementType[]> = {
   bdd: BDD_ELEMENT_TYPES,
   userStoryMapping: USM_ELEMENT_TYPES,
   eventModeling: EM_ELEMENT_TYPES,
+  processFlow: PROCESS_ELEMENT_TYPES,
+  dataModel: DATA_ELEMENT_TYPES,
 };
 
 const WORKSHOP_FORMATS_BY_MODE: Record<ModelingMode, WorkshopFormat[]> = {
@@ -332,6 +412,8 @@ const WORKSHOP_FORMATS_BY_MODE: Record<ModelingMode, WorkshopFormat[]> = {
   bdd: BDD_WORKSHOP_FORMATS,
   userStoryMapping: USM_WORKSHOP_FORMATS,
   eventModeling: EM_WORKSHOP_FORMATS,
+  processFlow: PROCESS_WORKSHOP_FORMATS,
+  dataModel: DATA_WORKSHOP_FORMATS,
 };
 
 const DEFAULT_PALETTE_BY_MODE: Record<ModelingMode, ElementType> = {
@@ -340,6 +422,8 @@ const DEFAULT_PALETTE_BY_MODE: Record<ModelingMode, ElementType> = {
   bdd: "rule",
   userStoryMapping: "activity",
   eventModeling: "domainEvent",
+  processFlow: "processActivity",
+  dataModel: "dataEntity",
 };
 
 export function elementTypesForMode(mode: ModelingMode): ElementType[] {
@@ -363,7 +447,9 @@ export function normalizeModelingMode(value: unknown): ModelingMode {
     value === "domainDrivenDesign" ||
     value === "bdd" ||
     value === "userStoryMapping" ||
-    value === "eventModeling"
+    value === "eventModeling" ||
+    value === "processFlow" ||
+    value === "dataModel"
   ) {
     return value;
   }

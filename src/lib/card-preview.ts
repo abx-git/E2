@@ -18,6 +18,31 @@ export function cardAttributeLines(el: StormElement): string[] {
   if (m.aggregateRootRef?.trim()) lines.push(`Root: ${m.aggregateRootRef.trim()}`);
   if (m.createsRef?.trim()) lines.push(`→ ${m.createsRef.trim()}`);
 
+  if (m.processRole?.trim()) lines.push(`Rolle: ${m.processRole.trim()}`);
+  if (m.processSystem?.trim()) lines.push(`System: ${m.processSystem.trim()}`);
+  if (m.processDuration?.trim()) lines.push(`Dauer: ${m.processDuration.trim()}`);
+  if (m.processTrigger?.trim()) lines.push(`Trigger: ${m.processTrigger.trim()}`);
+  if (m.processResult?.trim()) lines.push(`Ergebnis: ${m.processResult.trim()}`);
+  if (m.gatewayKind) {
+    lines.push(`Gateway: ${m.gatewayKind.toUpperCase()}`);
+  }
+  if (m.gatewayConditions?.length) lines.push(...m.gatewayConditions);
+  if (m.processInputs?.length) {
+    for (const i of m.processInputs) lines.push(`In: ${i}`);
+  }
+  if (m.processOutputs?.length) {
+    for (const o of m.processOutputs) lines.push(`Out: ${o}`);
+  }
+
+  if (m.dataTableName?.trim()) lines.push(`Tabelle: ${m.dataTableName.trim()}`);
+  if (m.dataUniqueKeys?.length) {
+    for (const u of m.dataUniqueKeys) lines.push(`unique: ${u}`);
+  }
+  if (m.dataCardinality) lines.push(m.dataCardinality);
+  if (m.dataLeftEntity?.trim() || m.dataRightEntity?.trim()) {
+    lines.push(`${m.dataLeftEntity?.trim() || "?"} — ${m.dataRightEntity?.trim() || "?"}`);
+  }
+
   const given = m.exampleGiven ?? [];
   const when = m.exampleWhen ?? [];
   const then = m.exampleThen ?? [];

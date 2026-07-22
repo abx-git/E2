@@ -68,7 +68,9 @@
         "domainDrivenDesign",
         "bdd",
         "userStoryMapping",
-        "eventModeling"
+        "eventModeling",
+        "processFlow",
+        "dataModel"
       ]
     },
     "workshopFormat": {
@@ -82,6 +84,8 @@
         "exampleMapping",
         "storyMapping",
         "eventModelingWorkshop",
+        "processWorkshop",
+        "dataModelWorkshop",
         "free"
       ]
     },
@@ -112,8 +116,22 @@
         "userTask",
         "userStory",
         "release",
-        "slice"
+        "slice",
+        "processStart",
+        "processEnd",
+        "processActivity",
+        "processGateway",
+        "dataEntity",
+        "dataAssociation"
       ]
+    },
+    "gatewayKind": {
+      "type": "string",
+      "enum": ["xor", "and", "or"]
+    },
+    "dataCardinality": {
+      "type": "string",
+      "enum": ["1:1", "1:n", "n:1", "n:m"]
     },
     "subdomainKind": {
       "type": "string",
@@ -236,14 +254,14 @@
           "items": {
             "type": "string"
           },
-          "description": "Entity / Value Object / Aggregate: Eigenschaften („name“ oder „name: Typ“)."
+          "description": "Entity / Value Object / Aggregate / Data Entity: Eigenschaften („name“ oder „name: Typ“)."
         },
         "identityFields": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Entity: Identitätsfelder."
+          "description": "Entity / Data Entity: Identitätsfelder."
         },
         "operations": {
           "type": "array",
@@ -319,6 +337,72 @@
           "items": {
             "type": "string"
           }
+        },
+        "processRole": {
+          "type": "string",
+          "description": "Process Activity: Rolle / Verantwortlich."
+        },
+        "processSystem": {
+          "type": "string",
+          "description": "Process Activity: System / Anwendung."
+        },
+        "processInputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Process Activity: Eingaben."
+        },
+        "processOutputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Process Activity: Ausgaben."
+        },
+        "processDuration": {
+          "type": "string",
+          "description": "Process Activity: Dauer / SLA."
+        },
+        "gatewayKind": {
+          "$ref": "#/$defs/gatewayKind"
+        },
+        "gatewayConditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Process Gateway: Bedingungen / Pfade."
+        },
+        "processTrigger": {
+          "type": "string",
+          "description": "Process Start: Auslöser."
+        },
+        "processResult": {
+          "type": "string",
+          "description": "Process End: Ergebnis."
+        },
+        "dataTableName": {
+          "type": "string",
+          "description": "Data Entity: Tabellenname."
+        },
+        "dataUniqueKeys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Data Entity: Unique Keys."
+        },
+        "dataCardinality": {
+          "$ref": "#/$defs/dataCardinality"
+        },
+        "dataLeftEntity": {
+          "type": "string",
+          "description": "Data Association: linke Entität."
+        },
+        "dataRightEntity": {
+          "type": "string",
+          "description": "Data Association: rechte Entität."
         },
         "showDescriptionOnCard": {
           "type": "boolean",

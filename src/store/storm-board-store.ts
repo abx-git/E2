@@ -215,7 +215,11 @@ function createElement(type: ElementType, x: number, y: number, label?: string):
                 ? { questionStatus: "open" }
                 : type === "userStory"
                   ? { storyPriority: "must" }
-                  : undefined,
+                  : type === "processGateway"
+                    ? { gatewayKind: "xor" }
+                    : type === "dataAssociation"
+                      ? { dataCardinality: "1:n" }
+                      : undefined,
   };
 }
 

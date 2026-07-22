@@ -2,8 +2,10 @@ import type { ElementType, ModelingMode, WorkshopFormat } from "@/types/storm-el
 import {
   ALL_ELEMENT_TYPES,
   BDD_ELEMENT_TYPES,
+  DATA_ELEMENT_TYPES,
   DDD_ELEMENT_TYPES,
   EM_ELEMENT_TYPES,
+  PROCESS_ELEMENT_TYPES,
   USM_ELEMENT_TYPES,
   elementTypesForMode,
 } from "@/types/storm-element";
@@ -549,12 +551,117 @@ export const EM_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   },
 ];
 
+const PROCESS_WORKSHOP_PHASES: FacilitatorPhase[] = [
+  {
+    id: "process-happy-path",
+    title: "Happy Path",
+    description: "Start, Aktivitäten und Ende des Hauptpfads skizzieren.",
+    allowedTypes: ["processStart", "processActivity", "processEnd", "note"],
+    checklist: [
+      "Auslöser und Ergebnis benennen",
+      "Schritte in Reihenfolge legen (links → rechts)",
+      "Noch keine Verzweigungen",
+    ],
+    durationMinutes: 40,
+  },
+  {
+    id: "process-decisions",
+    title: "Entscheidungen",
+    description: "Gateways und Alternativpfade ergänzen.",
+    allowedTypes: [
+      "processStart",
+      "processActivity",
+      "processGateway",
+      "processEnd",
+      "note",
+      "hotspot",
+    ],
+    checklist: [
+      "XOR / AND / OR festlegen",
+      "Bedingungen an Gateways dokumentieren",
+      "Offene Klärungen als Hotspots",
+    ],
+    durationMinutes: 45,
+  },
+  {
+    id: "process-roles-systems",
+    title: "Rollen & Systeme",
+    description: "Verantwortung und Systeme an Aktivitäten pflegen, Swimlanes nutzen.",
+    allowedTypes: [...PROCESS_ELEMENT_TYPES],
+    checklist: [
+      "Rolle / System pro Aktivität",
+      "Eingaben und Ausgaben ergänzen",
+      "Swimlanes nach Rolle oder System",
+    ],
+    durationMinutes: 40,
+  },
+];
+
+const DATA_MODEL_PHASES: FacilitatorPhase[] = [
+  {
+    id: "data-entities",
+    title: "Entitäten finden",
+    description: "Zentrale Informationsobjekte sammeln und benennen.",
+    allowedTypes: ["dataEntity", "note"],
+    checklist: [
+      "Substantive aus dem Glossar / Domain-Sprache",
+      "Keine technischen Tabellen-Namen erzwingen",
+      "Duplikate zusammenführen",
+    ],
+    durationMinutes: 35,
+  },
+  {
+    id: "data-attributes-keys",
+    title: "Attribute & Schlüssel",
+    description: "Felder, Identität und Eindeutigkeit modellieren.",
+    allowedTypes: ["dataEntity", "note", "hotspot"],
+    checklist: [
+      "Primärschlüssel / Identitätsfelder",
+      "Attribute als „name: Typ“",
+      "Unklare Felder als Hotspot",
+    ],
+    durationMinutes: 45,
+  },
+  {
+    id: "data-relationships",
+    title: "Beziehungen",
+    description: "Assoziationen und Kardinalitäten festlegen.",
+    allowedTypes: [...DATA_ELEMENT_TYPES],
+    checklist: [
+      "1:1 / 1:n / n:m wählen",
+      "n:m ggf. als Assoziation mit Attributen",
+      "Relationen zwischen Entitäten ziehen",
+    ],
+    durationMinutes: 40,
+  },
+];
+
+export const PROCESS_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
+  {
+    format: "processWorkshop",
+    label: "Prozessmodellierung",
+    description: "Konkrete Abläufe mit Schritten, Gateways und Rollen",
+    phases: PROCESS_WORKSHOP_PHASES,
+  },
+];
+
+export const DATA_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
+  {
+    format: "dataModelWorkshop",
+    label: "Datenmodellierung",
+    description: "Konzeptuelle Entitäten, Attribute und Beziehungen",
+    phases: DATA_MODEL_PHASES,
+  },
+];
+
 const ALL_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   ...FACILITATOR_FORMATS,
   ...DDD_FACILITATOR_FORMATS,
   ...BDD_FACILITATOR_FORMATS,
   ...USM_FACILITATOR_FORMATS,
   ...EM_FACILITATOR_FORMATS,
+  ...PROCESS_FACILITATOR_FORMATS,
+  ...DATA_FACILITATOR_FORMATS,
 ];
 
 export function getFacilitatorFormatsForMode(mode: ModelingMode): FacilitatorFormatDefinition[] {
@@ -567,6 +674,10 @@ export function getFacilitatorFormatsForMode(mode: ModelingMode): FacilitatorFor
       return USM_FACILITATOR_FORMATS;
     case "eventModeling":
       return EM_FACILITATOR_FORMATS;
+    case "processFlow":
+      return PROCESS_FACILITATOR_FORMATS;
+    case "dataModel":
+      return DATA_FACILITATOR_FORMATS;
     default:
       return FACILITATOR_FORMATS;
   }

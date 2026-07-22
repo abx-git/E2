@@ -282,6 +282,54 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
       "Reihenfolge der Umsetzung festlegen",
     ],
   },
+  processStart: {
+    title: "Prozess-Start",
+    subtitle: "Grün rund — Einstieg in den Ablauf",
+    paragraphs: ["Markiert den Beginn eines konkreten Geschäftsprozesses."],
+    bullets: ["Auslöser dokumentieren (Event, Anfrage, Zeit)", "Pro Prozess ein klarer Start"],
+  },
+  processEnd: {
+    title: "Prozess-Ende",
+    subtitle: "Grau rund — Abschluss",
+    paragraphs: ["Erfolgreiches oder alternatives Ende eines Ablaufs."],
+    bullets: ["Ergebnis / Outcome benennen", "Mehrere Enden bei Alternativpfaden erlaubt"],
+  },
+  processActivity: {
+    title: "Aktivität / Schritt",
+    subtitle: "Blau — konkrete Arbeit im Prozess",
+    paragraphs: ["Ein Schritt mit klarer Verantwortung und ggf. Systembezug."],
+    bullets: [
+      "Rolle und System pflegen",
+      "Eingaben / Ausgaben als Attribute",
+      "In Swimlanes nach Rolle oder System ordnen",
+    ],
+  },
+  processGateway: {
+    title: "Gateway",
+    subtitle: "Gelb — Entscheidung / Verzweigung",
+    paragraphs: ["XOR (exklusiv), AND (parallel) oder OR (inklusiv)."],
+    bullets: ["Gateway-Art wählen", "Bedingungen / Pfade als Attribute listen"],
+  },
+  dataEntity: {
+    title: "Daten-Entität",
+    subtitle: "Cyan — Konzeptuelles Datenobjekt",
+    paragraphs: ["Kernbaustein des Informationsmodells (nicht zwingend Tabelle)."],
+    bullets: [
+      "Primärschlüssel / Identitätspflege",
+      "Attribute als „name: Typ“",
+      "Optionalen Tabellennamen für Umsetzung",
+    ],
+  },
+  dataAssociation: {
+    title: "Assoziation",
+    subtitle: "Violett — Beziehung zwischen Entitäten",
+    paragraphs: ["Besonders nützlich für n:m mit eigenen Attributen."],
+    bullets: [
+      "Kardinalität setzen (1:1, 1:n, n:1, n:m)",
+      "Mit Relationen an die beteiligten Entitäten koppeln",
+      "Beziehungattribute in der Beschreibung oder als Attribute",
+    ],
+  },
 };
 
 const RELATION_HELP: Record<RelationType, HelpDialogModel> = {

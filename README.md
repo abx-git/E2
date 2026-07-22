@@ -1,6 +1,6 @@
 # E2 — Collaborative Domain Modeling
 
-Browserbasiertes Board für **Event Storming**, **Domain-Driven Design**, **BDD / Example Mapping**, **User Story Mapping** und **Event Modeling** mit lokaler JSON-Persistenz (`.storm.json`).  
+Browserbasiertes Board für **Event Storming**, **Domain-Driven Design**, **BDD / Example Mapping**, **User Story Mapping**, **Event Modeling**, **Prozess** und **Daten** mit lokaler JSON-Persistenz (`.storm.json`).  
 Kein Server für Domänendaten — die Arbeitsdatei liegt beim Nutzer.
 
 **Live:** [abx-git.github.io/E2](https://abx-git.github.io/E2/)  
@@ -10,7 +10,7 @@ Kein Server für Domänendaten — die Arbeitsdatei liegt beim Nutzer.
 
 ## Zweck dieses Dokuments
 
-Diese README beschreibt die **implementierten Funktionen** und stellt sie klassischen Workshop-Methoden gegenüber (Brandolini, Evans/Vernon, Example Mapping, Story Mapping, Event Modeling).
+Diese README beschreibt die **implementierten Funktionen** und stellt sie klassischen Workshop-Methoden gegenüber (Brandolini, Evans/Vernon, Example Mapping, Story Mapping, Event Modeling, Prozess-/Datenmodellierung).
 
 ---
 
@@ -18,7 +18,7 @@ Diese README beschreibt die **implementierten Funktionen** und stellt sie klassi
 
 | Bereich | Inhalt |
 |--------|--------|
-| Methoden-Modi | ES · DDD · BDD · USM · EM (Palette/Facilitator getrennt); Board darf Typen mischen |
+| Methoden-Modi | ES · DDD · BDD · USM · EM · PROC · DATA (Palette/Facilitator getrennt); Board darf Typen mischen |
 | Sticky-Typen | Methodenspezifische Kataloge + geteilte Notizen/Hotspots |
 | Relationen | 8 Verbindungstypen inkl. Auto-Vorschlag |
 | Fläche | Timeline, Swimlanes, Bounded Contexts, Pan/Zoom |
@@ -95,6 +95,24 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 | **Domain Event / Command / Read Model / UI / Policy / Actor / External System** | wie ES | Bausteine der Timeline |
 | **Notiz / Hotspot** | Creme / Rot | Annotationen |
 
+### Prozess (BPMN-lite)
+
+| Typ | Farbe / Form | Methodische Rolle |
+|-----|--------------|-------------------|
+| **Start** | Grün, rund | Prozessbeginn / Auslöser |
+| **Aktivität** | Blau | Arbeitsschritt (Rolle, System, I/O, Dauer) |
+| **Gateway** | Raute | XOR / AND / OR-Verzweigung mit Bedingungen |
+| **Ende** | Rot, rund | Prozessende / Ergebnis |
+| **Notiz / Hotspot** | Creme / Rot | Annotationen |
+
+### Daten (ER-lite)
+
+| Typ | Farbe / Form | Methodische Rolle |
+|-----|--------------|-------------------|
+| **Entität** | Türkis | Tabelle / Konzept (PK, Attribute, Unique Keys) |
+| **Assoziation** | Grau | Beziehung mit Kardinalität (1:1, 1:n, …) |
+| **Notiz / Hotspot** | Creme / Rot | Annotationen |
+
 ### Pro Element bearbeitbar
 
 - Label, Beschreibung  
@@ -117,6 +135,11 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 - **Question:** Status (offen/geklärt)  
 - **User Story:** Persona, MoSCoW-Priorität, Schätzung, Akzeptanzkriterien  
 - **Release / Slice:** Ziel; Slice zusätzlich Systeme/Lanes  
+- **Process Start / End:** Auslöser bzw. Ergebnis  
+- **Process Activity:** Rolle, System, Eingaben/Ausgaben, Dauer  
+- **Process Gateway:** Art (XOR/AND/OR), Bedingungen/Pfade  
+- **Data Entity:** Tabellenname, Identitätsfelder, Attribute, Unique Keys  
+- **Data Association:** Kardinalität, linke/rechte Entität, Beziehungsattribute  
 
 > **Hinweis:** Listenfelder (Attribute, Methoden, …) werden in der Detailleiste zeilenweise gepflegt.
 
@@ -191,7 +214,7 @@ Methodisch: Cluster nach Sprache und Verantwortung; Context-Map-Muster modellier
 
 ## 4. Methoden-Modi, Facilitator & Workshop-Formate
 
-In der Toolbar: **ES | DDD | BDD | USM | EM**. Der Modus steuert Palette und Facilitator-Formate — nicht den Board-Inhalt.
+In der Toolbar: **ES | DDD | BDD | USM | EM | PROC | DATA**. Der Modus steuert Palette und Facilitator-Formate — nicht den Board-Inhalt.
 
 ### Event Storming
 
@@ -230,6 +253,20 @@ In der Toolbar: **ES | DDD | BDD | USM | EM**. Der Modus steuert Palette und Fac
 |--------|--------|
 | **Frei** | Slice + ES-Bausteine |
 | **Event Modeling** | Events → Commands & UI → Views & Automation → Vertical Slices |
+
+### Prozess
+
+| Format | Fokus |
+|--------|--------|
+| **Frei** | Start, Aktivitäten, Gateways, Ende |
+| **Prozessmodellierung** | Happy Path → Entscheidungen (Gateways) → Rollen & Systeme |
+
+### Daten
+
+| Format | Fokus |
+|--------|--------|
+| **Frei** | Entitäten & Assoziationen |
+| **Datenmodellierung** | Entitäten → Attribute & Schlüssel → Beziehungen |
 
 Im Facilitator-Modus:
 
@@ -277,6 +314,8 @@ Im Facilitator-Modus:
 | **Example Mapping (MD)** | Rules, Examples (Given/When/Then), Questions | BDD |
 | **Story Map (MD)** | Activities, Tasks, Stories, Releases | User Story Mapping |
 | **Event Model / Slices (MD)** | Slices mit enthaltenen Events/Commands/Read Models | Event Modeling |
+| **Prozessmodell (MD)** | Start, Aktivitäten (Rolle/System/I/O), Gateways, Ende | Prozess |
+| **Datenmodell (MD)** | Entitäten (PK/Attribute/Keys), Assoziationen, Relationen | Daten |
 
 Schema & Formatdoku: [`docs/BOARD-JSON-SCHEMA.md`](docs/BOARD-JSON-SCHEMA.md), [`public/schemas/board-snapshot-v2.schema.json`](public/schemas/board-snapshot-v2.schema.json).
 
