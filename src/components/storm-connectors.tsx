@@ -22,6 +22,8 @@ export function StormConnectors({
 }: StormConnectorsProps) {
   const byId = new Map(elements.map((e) => [e.id, e]));
   const draftSource = relationDraftSourceId ? byId.get(relationDraftSourceId) : undefined;
+  const focusMode = useStormBoardStore((s) => s.focusMode);
+  const paletteType = useStormBoardStore((s) => s.paletteType);
 
   return (
     <svg className="pointer-events-none absolute inset-0 overflow-visible" style={{ zIndex: 10 }}>
@@ -44,8 +46,11 @@ export function StormConnectors({
         const { start, end } = relationAnchors(src, tgt);
         const dashed = rel.type === "informs" || rel.type === "annotates";
         const selected = rel.id === selectedRelationId;
+        const involvesFocusType =
+          src.type === paletteType || tgt.type === paletteType;
+        const dimForFocus = focusMode && !involvesFocusType;
         return (
-          <g key={rel.id}>
+          <g key={rel.id} opacity={dimForFocus ? 0.22 : 1}>
             {/* Wide invisible stroke for hit-testing without stealing the line bbox. */}
             <line
               x1={start.x}

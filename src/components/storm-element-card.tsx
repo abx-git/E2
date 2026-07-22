@@ -77,6 +77,9 @@ export function StormElementCard({
   };
   const modelingMode = useStormBoardStore((s) => s.modelingMode);
   const inActiveMode = elementTypesForMode(modelingMode).includes(element.type);
+  const focusMode = useStormBoardStore((s) => s.focusMode);
+  const paletteType = useStormBoardStore((s) => s.paletteType);
+  const dimForFocus = focusMode && element.type !== paletteType;
   const showDetails = cardShowsDetails(element);
   const attrLines = element.metadata?.showAttributesOnCard ? cardAttributeLines(element) : [];
   const methodLines = element.metadata?.showMethodsOnCard ? cardMethodLines(element) : [];
@@ -213,7 +216,10 @@ export function StormElementCard({
         width: w,
         height: h,
         transform: rotation ? `rotate(${rotation}deg)` : undefined,
-        zIndex: selected || connecting || editing ? 30 : 20,
+        zIndex: selected || connecting || editing ? 30 : focusMode && !dimForFocus ? 25 : 20,
+        opacity: dimForFocus ? 0.28 : undefined,
+        filter: dimForFocus ? "saturate(0.55) brightness(0.72)" : undefined,
+        transition: "opacity 120ms ease, filter 120ms ease",
       }}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
@@ -318,7 +324,10 @@ export function StormElementCard({
           connecting ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
           isRelationTargetHint ? "ring-2 ring-[var(--accent-2)]/50" : "",
           relationMode && !connecting ? "cursor-crosshair" : "",
-          !inActiveMode ? "opacity-70 outline outline-1 outline-dashed outline-[var(--muted)]" : "",
+          !inActiveMode && !dimForFocus
+            ? "opacity-70 outline outline-1 outline-dashed outline-[var(--muted)]"
+            : "",
+          !inActiveMode && dimForFocus ? "outline outline-1 outline-dashed outline-[var(--muted)]" : "",
         ].join(" ")}
         style={{
           backgroundColor: colors.bg,
@@ -326,7 +335,13 @@ export function StormElementCard({
           color: colors.text,
           borderStyle: isNote ? "dashed" : undefined,
         }}
-        title={!inActiveMode ? "Element aus dem anderen Methoden-Modus" : undefined}
+        title={
+          dimForFocus
+            ? `Fokus: ${ELEMENT_STYLES[paletteType].label} — anderes Element abgedunkelt`
+            : !inActiveMode
+              ? "Element aus dem anderen Methoden-Modus"
+              : undefined
+        }
       >
         {editing ? (
           isNote ? (

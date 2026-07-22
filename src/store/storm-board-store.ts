@@ -67,6 +67,7 @@ export interface StormBoardState {
   selectedBoundedContextId: string | null;
   selectedSwimlaneId: string | null;
   paletteType: ElementType;
+  focusMode: boolean;
   relationMode: boolean;
   relationDraftSourceId: string | null;
   contextMapMode: boolean;
@@ -91,6 +92,7 @@ export interface StormBoardState {
   setSnapToGrid: (v: boolean) => void;
   setAppearance: (patch: Partial<BoardAppearance>) => void;
   setPaletteType: (type: ElementType) => void;
+  setFocusMode: (enabled: boolean) => void;
   selectElement: (id: string | null, additive?: boolean) => void;
   setSelectedElementIds: (ids: string[], additive?: boolean) => void;
   selectRelation: (id: string | null) => void;
@@ -277,6 +279,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   selectedBoundedContextId: null,
   selectedSwimlaneId: null,
   paletteType: "domainEvent",
+  focusMode: false,
   relationMode: false,
   relationDraftSourceId: null,
   contextMapMode: false,
@@ -316,6 +319,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   setAppearance: (patch) =>
     commit(set, get, (s) => ({ appearance: { ...s.appearance, ...patch } })),
   setPaletteType: (paletteType) => set({ paletteType }),
+  setFocusMode: (focusMode) => set({ focusMode }),
 
   selectElement: (id, additive) =>
     set((s) => {

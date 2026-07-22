@@ -150,6 +150,8 @@ export function StormBoard() {
   const setSnapToTimeline = useStormBoardStore((s) => s.setSnapToTimeline);
   const snapToGrid = useStormBoardStore((s) => s.snapToGrid);
   const setSnapToGrid = useStormBoardStore((s) => s.setSnapToGrid);
+  const focusMode = useStormBoardStore((s) => s.focusMode);
+  const setFocusMode = useStormBoardStore((s) => s.setFocusMode);
   const timeline = useStormBoardStore((s) => s.timeline);
   const setTimeline = useStormBoardStore((s) => s.setTimeline);
   const appearance = useStormBoardStore((s) => s.appearance);
@@ -470,6 +472,17 @@ export function StormBoard() {
         <label className="flex items-center gap-1 text-xs text-[var(--muted)]">
           <input type="checkbox" checked={snapToGrid} onChange={(e) => setSnapToGrid(e.target.checked)} />
           Grid
+        </label>
+        <label
+          className="flex items-center gap-1 text-xs text-[var(--muted)]"
+          title="Nur den aktuell gewählten Elementtyp (Palette) voll sichtbar; andere abdunkeln"
+        >
+          <input
+            type="checkbox"
+            checked={focusMode}
+            onChange={(e) => setFocusMode(e.target.checked)}
+          />
+          Fokus
         </label>
 
         <div className="dock-control flex items-center gap-0.5 rounded-lg">
