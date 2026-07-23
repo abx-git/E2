@@ -86,6 +86,8 @@ export interface StormBoardState {
   selectedSwimlaneId: string | null;
   paletteType: ElementType;
   focusMode: boolean;
+  /** Ephemeral canvas text search (not persisted / not undo). */
+  searchQuery: string;
   relationMode: boolean;
   relationDraftSourceId: string | null;
   contextMapMode: boolean;
@@ -120,6 +122,7 @@ export interface StormBoardState {
   setAppearance: (patch: Partial<BoardAppearance>) => void;
   setPaletteType: (type: ElementType) => void;
   setFocusMode: (enabled: boolean) => void;
+  setSearchQuery: (query: string) => void;
   setClipboardDropHighlight: (active: boolean) => void;
   moveToClipboard: (ids: string[]) => boolean;
   pasteClipboardAt: (worldX: number, worldY: number) => string[];
@@ -321,6 +324,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   selectedSwimlaneId: null,
   paletteType: defaultPaletteTypeForMode(initialViewDoc.modelingMode),
   focusMode: false,
+  searchQuery: "",
   relationMode: false,
   relationDraftSourceId: null,
   contextMapMode: false,
@@ -456,6 +460,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => ({ appearance: { ...s.appearance, ...patch } })),
   setPaletteType: (paletteType) => set({ paletteType }),
   setFocusMode: (focusMode) => set({ focusMode }),
+  setSearchQuery: (searchQuery) => set({ searchQuery }),
   setClipboardDropHighlight: (clipboardDropHighlight) => set({ clipboardDropHighlight }),
 
   moveToClipboard: (ids) => {

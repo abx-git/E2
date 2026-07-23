@@ -25,7 +25,8 @@ export interface DataStoragePanelProps {
   onBackupIntervalChange: (minutes: BackupIntervalMinutes) => void;
   onBackupNow: () => void;
   onOpenWorkingFile: () => void;
-  onCreateWorkingFile: () => void;
+  /** Speichern unter… — pick a new path; becomes the Arbeitsdatei. */
+  onSaveWorkingFileAs: () => void;
   onRestoreBackupFile: () => void;
   onRestoreBackupPaste: () => void;
   /** Import E2 file as new view tab(s); keeps open document appearance/globals. */
@@ -100,7 +101,7 @@ export function DataStoragePanel({
   onBackupIntervalChange,
   onBackupNow,
   onOpenWorkingFile,
-  onCreateWorkingFile,
+  onSaveWorkingFileAs,
   onRestoreBackupFile,
   onRestoreBackupPaste,
   onImportAsNewViews,
@@ -179,8 +180,8 @@ export function DataStoragePanel({
                 <ActionButton onClick={onOpenWorkingFile} disabled={busy}>
                   <FolderOpen className="h-4 w-4" /> Datei öffnen
                 </ActionButton>
-                <ActionButton onClick={onCreateWorkingFile} disabled={busy}>
-                  <Upload className="h-4 w-4" /> Neue Datei anlegen
+                <ActionButton onClick={onSaveWorkingFileAs} disabled={busy}>
+                  <Save className="h-4 w-4" /> Speichern unter…
                 </ActionButton>
               </>
             ) : (

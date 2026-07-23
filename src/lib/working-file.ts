@@ -468,11 +468,31 @@ export async function attachWorkingFileOpen(): Promise<FileSystemFileHandle | nu
   }
 }
 
-export async function attachWorkingFileCreate(): Promise<FileSystemFileHandle | null> {
+/** Ensure a picker-friendly `.storm.json` file name. */
+export function suggestedWorkingFileName(
+  titleOrLabel: string | null | undefined,
+  fallback: string = STANDARD_WORKING_FILENAME,
+): string {
+  const raw = titleOrLabel?.trim();
+  if (!raw) return fallback;
+  if (/\.storm\.json$/i.test(raw)) return raw;
+  if (/\.json$/i.test(raw)) return raw.replace(/\.json$/i, ".storm.json");
+  const slug = raw
+    .replace(/[\\/:*?"<>|]+/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+  return `${slug || "board"}.storm.json`;
+}
+
+export async function attachWorkingFileCreate(
+  suggestedName: string = STANDARD_WORKING_FILENAME,
+): Promise<FileSystemFileHandle | null> {
   if (!isWorkingFileSupported() || !window.showSaveFilePicker) return null;
   try {
     const handle = await window.showSaveFilePicker({
-      suggestedName: STANDARD_WORKING_FILENAME,
+      suggestedName: suggestedWorkingFileName(suggestedName),
       types: JSON_PICKER_TYPES,
     });
     await rememberHandle(handle);
@@ -594,8 +614,11 @@ export async function persistWorkingFileJson(json: string): Promise<WriteWorking
   }
 }
 
-export async function createAndAttachWorkingFile(initialJson: string): Promise<FileSystemFileHandle | null> {
-  const handle = await attachWorkingFileCreate();
+export async function createAndAttachWorkingFile(
+  initialJson: string,
+  suggestedName: string = STANDARD_WORKING_FILENAME,
+): Promise<FileSystemFileHandle | null> {
+  const handle = await attachWorkingFileCreate(suggestedName);
   if (!handle) return null;
   const result = await writeWorkingFileJson(initialJson, handle);
   if (!result.ok) {
@@ -604,6 +627,20 @@ export async function createAndAttachWorkingFile(initialJson: string): Promise<F
   }
   markWorkingFileSessionHydrated();
   return handle;
+}
+
+/**
+ * Speichern unter… — current board JSON to a newly picked path; that file becomes the Arbeitsdatei.
+ */
+export async function saveWorkingFileAs(
+  json: string,
+  suggestedName?: string | null,
+): Promise<FileSystemFileHandle | null> {
+  const name =
+    suggestedName?.trim() ||
+    getWorkingFileLabel() ||
+    STANDARD_WORKING_FILENAME;
+  return createAndAttachWorkingFile(json, name);
 }
 
 export async function restoreWorkingFileFromDisk(): Promise<FileSystemFileHandle | null> {

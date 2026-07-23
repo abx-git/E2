@@ -1,6 +1,7 @@
 "use client";
 
 import { elementCenter, relationAnchors } from "@/lib/connector-geometry";
+import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
 import type { StormRelation } from "@/types/storm-relation";
@@ -24,6 +25,17 @@ export function StormConnectors({
   const draftSource = relationDraftSourceId ? byId.get(relationDraftSourceId) : undefined;
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const paletteType = useStormBoardStore((s) => s.paletteType);
+  const searchQuery = useStormBoardStore((s) => s.searchQuery);
+  const views = useStormBoardStore((s) => s.views);
+  const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
+  const searchActive = Boolean(normalizeSearchQuery(searchQuery));
+  const searchHitIds = searchActive
+    ? new Set(
+        elements
+          .filter((el) => matchElementSearch(el, searchQuery, { viewNameById }).match)
+          .map((el) => el.id),
+      )
+    : null;
 
   return (
     <svg className="pointer-events-none absolute inset-0 overflow-visible" style={{ zIndex: 10 }}>
@@ -49,8 +61,11 @@ export function StormConnectors({
         const involvesFocusType =
           src.type === paletteType || tgt.type === paletteType;
         const dimForFocus = focusMode && !involvesFocusType;
+        const dimForSearch =
+          searchHitIds !== null && !searchHitIds.has(src.id) && !searchHitIds.has(tgt.id);
+        const dimmed = dimForFocus || dimForSearch;
         return (
-          <g key={rel.id} opacity={dimForFocus ? 0.22 : 1}>
+          <g key={rel.id} opacity={dimmed ? 0.22 : 1}>
             {/* Wide invisible stroke for hit-testing without stealing the line bbox. */}
             <line
               x1={start.x}

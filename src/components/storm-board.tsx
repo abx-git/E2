@@ -84,6 +84,8 @@ import {
   isWorkingFileUiAvailable,
   persistWorkingFileJson,
   resolveWorkingFileImportConflict,
+  saveWorkingFileAs,
+  suggestedWorkingFileName,
 } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { flushCollabSnapshotNow, useCollabStore } from "@/lib/collab/session";
@@ -213,8 +215,29 @@ export function StormBoard() {
   const handleCreateWorkingFile = async () => {
     setBusy(true);
     try {
-      const handle = await createAndAttachWorkingFile(boardJsonFromStoreState());
-      if (handle) setSetupOpen(false);
+      const suggested = suggestedWorkingFileName(title || getWorkingFileLabel());
+      const handle = await createAndAttachWorkingFile(boardJsonFromStoreState(), suggested);
+      if (handle) {
+        setWorkingFileName(getWorkingFileLabel());
+        setSetupOpen(false);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSaveWorkingFileAs = async () => {
+    setBusy(true);
+    try {
+      const suggested = suggestedWorkingFileName(
+        getWorkingFileLabel() || title || undefined,
+      );
+      const handle = await saveWorkingFileAs(boardJsonFromStoreState(), suggested);
+      if (handle) {
+        setWorkingFileName(getWorkingFileLabel());
+        setSetupOpen(false);
+        setStorageOpen(false);
+      }
     } finally {
       setBusy(false);
     }
@@ -444,7 +467,7 @@ export function StormBoard() {
         }}
         onBackupNow={() => runManualBoardBackup(setBackupLastLabel)}
         onOpenWorkingFile={() => void handleOpenWorkingFile()}
-        onCreateWorkingFile={() => void handleCreateWorkingFile()}
+        onSaveWorkingFileAs={() => void handleSaveWorkingFileAs()}
         onRestoreBackupFile={() => fileInputRef.current?.click()}
         onRestoreBackupPaste={() => void handlePasteJson()}
         onImportAsNewViews={handleImportAsNewViews}

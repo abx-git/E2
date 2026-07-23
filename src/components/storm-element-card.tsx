@@ -11,6 +11,8 @@ import {
   cardMethodLines,
   cardShowsDetails,
 } from "@/lib/card-preview";
+import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
+import { HighlightedText } from "@/components/highlighted-text";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { elementTypesForMode, type StormElement } from "@/types/storm-element";
@@ -81,10 +83,18 @@ export function StormElementCard({
   const inActiveMode = elementTypesForMode(modelingMode).includes(element.type);
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const paletteType = useStormBoardStore((s) => s.paletteType);
+  const searchQuery = useStormBoardStore((s) => s.searchQuery);
   const views = useStormBoardStore((s) => s.views);
-  const dimForFocus = focusMode && element.type !== paletteType;
-  const showDetails = cardShowsDetails(element);
   const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
+  const searchActive = Boolean(normalizeSearchQuery(searchQuery));
+  const searchHit = searchActive
+    ? matchElementSearch(element, searchQuery, { viewNameById })
+    : null;
+  const dimForFocus = focusMode && element.type !== paletteType;
+  const dimForSearch = searchActive && !searchHit?.match;
+  const dimmed = dimForFocus || dimForSearch;
+  const searchEmphasize = Boolean(searchHit?.emphasizeCard);
+  const showDetails = cardShowsDetails(element);
   const attrLines = element.metadata?.showAttributesOnCard
     ? cardAttributeLines(element, { viewNameById })
     : [];
@@ -222,9 +232,14 @@ export function StormElementCard({
         width: w,
         height: h,
         transform: rotation ? `rotate(${rotation}deg)` : undefined,
-        zIndex: selected || connecting || editing ? 30 : focusMode && !dimForFocus ? 25 : 20,
-        opacity: dimForFocus ? 0.28 : undefined,
-        filter: dimForFocus ? "saturate(0.55) brightness(0.72)" : undefined,
+        zIndex:
+          selected || connecting || editing || searchEmphasize
+            ? 30
+            : (focusMode && !dimForFocus) || (searchActive && searchHit?.match)
+              ? 25
+              : 20,
+        opacity: dimmed ? 0.28 : undefined,
+        filter: dimmed ? "saturate(0.55) brightness(0.72)" : undefined,
         transition: "opacity 120ms ease, filter 120ms ease",
       }}
       onPointerDown={(e) => {
@@ -355,12 +370,15 @@ export function StormElementCard({
           shapeClass,
           selected || editing ? "ring-2 ring-[var(--accent)]" : "",
           connecting ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
+          searchEmphasize && !selected && !editing && !connecting
+            ? "ring-2 ring-[var(--accent-2)] shadow-md"
+            : "",
           isRelationTargetHint ? "ring-2 ring-[var(--accent-2)]/50" : "",
           relationMode && !connecting ? "cursor-crosshair" : "",
-          !inActiveMode && !dimForFocus
+          !inActiveMode && !dimmed
             ? "opacity-70 outline outline-1 outline-dashed outline-[var(--muted)]"
             : "",
-          !inActiveMode && dimForFocus ? "outline outline-1 outline-dashed outline-[var(--muted)]" : "",
+          !inActiveMode && dimmed ? "outline outline-1 outline-dashed outline-[var(--muted)]" : "",
         ].join(" ")}
         style={{
           backgroundColor: colors.bg,
@@ -369,11 +387,13 @@ export function StormElementCard({
           borderStyle: isNote ? "dashed" : undefined,
         }}
         title={
-          dimForFocus
-            ? `Fokus: ${ELEMENT_STYLES[paletteType].label} — anderes Element abgedunkelt`
-            : !inActiveMode
-              ? "Element aus dem anderen Methoden-Modus"
-              : undefined
+          dimForSearch
+            ? "Kein Suchtreffer"
+            : dimForFocus
+              ? `Fokus: ${ELEMENT_STYLES[paletteType].label} — anderes Element abgedunkelt`
+              : !inActiveMode
+                ? "Element aus dem anderen Methoden-Modus"
+                : undefined
         }
       >
         {editing ? (
@@ -420,19 +440,29 @@ export function StormElementCard({
               }}
             />
           )
+        ) : searchActive && searchHit?.inLabel ? (
+          <HighlightedText text={element.label} query={searchQuery} className={labelClass} />
         ) : (
           <span className={labelClass}>{element.label}</span>
         )}
         {!editing && showDescription && (
           <p className="w-full whitespace-pre-wrap break-words text-left text-[0.65rem] leading-snug opacity-80">
-            {element.description}
+            {searchActive && searchHit?.inDescription ? (
+              <HighlightedText text={element.description!} query={searchQuery} />
+            ) : (
+              element.description
+            )}
           </p>
         )}
         {!editing && attrLines.length > 0 && (
           <ul className="w-full min-w-0 list-none space-y-0.5 text-left text-[0.62rem] leading-snug opacity-85">
             {attrLines.slice(0, 8).map((line, i) => (
               <li key={`${i}-${line}`} className="whitespace-pre-wrap break-words">
-                {line}
+                {searchActive && searchHit?.inAttributes ? (
+                  <HighlightedText text={line} query={searchQuery} />
+                ) : (
+                  line
+                )}
               </li>
             ))}
             {attrLines.length > 8 && (
@@ -444,7 +474,11 @@ export function StormElementCard({
           <ul className="w-full min-w-0 list-none space-y-0.5 border-t border-current/15 pt-0.5 text-left text-[0.62rem] leading-snug opacity-85">
             {methodLines.slice(0, 8).map((line, i) => (
               <li key={`${i}-${line}`} className="whitespace-pre-wrap break-words font-medium">
-                {line}
+                {searchActive && searchHit?.inMethods ? (
+                  <HighlightedText text={line} query={searchQuery} />
+                ) : (
+                  line
+                )}
               </li>
             ))}
             {methodLines.length > 8 && (

@@ -6,11 +6,14 @@ import {
   Link2,
   Map,
   MoreHorizontal,
+  Search,
+  X,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 
 import { clampZoom } from "@/lib/canvas-viewport";
+import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 function ToolButton({
@@ -142,14 +145,88 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, hint }: CanvasBoardC
   const setViewport = useStormBoardStore((s) => s.setViewport);
   const snapToGrid = useStormBoardStore((s) => s.snapToGrid);
   const focusMode = useStormBoardStore((s) => s.focusMode);
+  const searchQuery = useStormBoardStore((s) => s.searchQuery);
+  const setSearchQuery = useStormBoardStore((s) => s.setSearchQuery);
+  const elements = useStormBoardStore((s) => s.elements);
+  const views = useStormBoardStore((s) => s.views);
 
   const [viewOpen, setViewOpen] = useState(false);
   const viewBtnRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const viewHighlighted = viewOpen || snapToGrid || focusMode;
+  const searchActive = Boolean(normalizeSearchQuery(searchQuery));
+  const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
+  const hitCount = searchActive
+    ? elements.filter((el) => matchElementSearch(el, searchQuery, { viewNameById }).match).length
+    : 0;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "f") return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) {
+        if (t === searchInputRef.current) {
+          e.preventDefault();
+          searchInputRef.current?.select();
+        }
+        return;
+      }
+      e.preventDefault();
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <>
+      <div
+        className="absolute right-3 top-3 z-30 flex max-w-[min(100%-1.5rem,18rem)] items-center gap-1.5"
+        data-canvas-chrome
+      >
+        <label className="dock-surface flex min-w-0 flex-1 items-center gap-1.5 rounded-xl px-2 py-1 shadow-dock">
+          <Search className="h-3.5 w-3.5 shrink-0 text-[var(--muted)]" aria-hidden />
+          <input
+            ref={searchInputRef}
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Escape") {
+                e.preventDefault();
+                if (searchQuery) setSearchQuery("");
+                else (e.target as HTMLInputElement).blur();
+              }
+            }}
+            placeholder="Suchen…"
+            aria-label="Elemente suchen"
+            className="min-w-0 flex-1 bg-transparent text-xs text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
+          />
+          {searchActive && (
+            <span className="shrink-0 text-[0.65rem] tabular-nums text-[var(--muted)]">
+              {hitCount}
+            </span>
+          )}
+          {searchQuery ? (
+            <button
+              type="button"
+              className="rounded p-0.5 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)]"
+              title="Suche leeren"
+              aria-label="Suche leeren"
+              onClick={() => {
+                setSearchQuery("");
+                searchInputRef.current?.focus();
+              }}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+        </label>
+      </div>
+
       <div
         className="absolute bottom-3 left-3 z-30 flex max-w-[min(100%-6rem,40rem)] flex-wrap items-center gap-1.5"
         data-canvas-chrome
