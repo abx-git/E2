@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
+import { CanvasBoardChrome } from "@/components/canvas-board-chrome";
 import { BoundedContextLayer } from "@/components/bounded-context-layer";
 import { ContextMapConnectors } from "@/components/context-map-connectors";
 import { StormConnectors } from "@/components/storm-connectors";
@@ -91,6 +92,10 @@ export function StormCanvas() {
   const [bcDraft, setBcDraft] = useState<WorldRect | null>(null);
   const [bcMode, setBcMode] = useState(false);
   const bcStart = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (relationMode || contextMapMode) setBcMode(false);
+  }, [relationMode, contextMapMode]);
 
   const [marqueeDraft, setMarqueeDraft] = useState<WorldRect | null>(null);
   const marqueeStart = useRef<{ x: number; y: number; additive: boolean } | null>(null);
@@ -580,25 +585,19 @@ export function StormCanvas() {
         ))}
       </div>
 
-      <div className="absolute bottom-3 left-3 flex flex-wrap gap-2" data-canvas-chrome>
-        <button
-          type="button"
-          onClick={() => setBcMode((v) => !v)}
-          className={[
-            "rounded-lg px-3 py-1.5 text-xs font-medium shadow-dock",
-            bcMode ? "dock-control-active" : "dock-surface text-[var(--text)]",
-          ].join(" ")}
-        >
-          {bcMode ? "Bounded Context zeichnen…" : "Bounded Context"}
-        </button>
-        <span className="dock-surface rounded-lg px-2 py-1.5 text-xs text-[var(--muted)]">
-          {relationMode
+      <CanvasBoardChrome
+        bcMode={bcMode}
+        onToggleBcMode={() => setBcMode((v) => !v)}
+        hint={
+          relationMode
             ? "Verbinden · Esc: Abbrechen"
             : contextMapMode
               ? "Context Map · Esc: Abbrechen"
-              : "1–9/0 Typ · Leertaste+Ziehen / Trackpad: Pan · Rechtsklick · Rahmen"}
-        </span>
-      </div>
+              : bcMode
+                ? "Rechteck ziehen · Esc: Abbrechen"
+                : "1–9/0 Typ · Leertaste+Ziehen / Trackpad: Pan · Rechtsklick · Rahmen"
+        }
+      />
     </div>
   );
 }

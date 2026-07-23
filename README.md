@@ -149,9 +149,9 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 
 ## 2. Relationen
 
-Elemente lassen sich verbinden (Header **Verbinden**, Pfeil am Sticky oder Rechtsklick → Relation starten).
+Elemente lassen sich verbinden (Canvas **Verbinden**, Pfeil am Sticky oder Rechtsklick → Relation starten).
 
-**Undo/Redo:** Toolbar-Buttons oder ⌘Z / Ctrl+Z (Undo) und ⌘⇧Z / Ctrl+Y (Redo). Drag einer Gruppe zählt als ein Schritt. History wird nicht in `.storm.json` gespeichert.
+**Undo/Redo:** App-Leiste oder ⌘Z / Ctrl+Z (Undo) und ⌘⇧Z / Ctrl+Y (Redo). Drag einer Gruppe zählt als ein Schritt. History wird nicht in `.storm.json` gespeichert.
 
 | Typ | Bedeutung (UI) |
 |-----|----------------|
@@ -173,7 +173,7 @@ Der Relationstyp wird beim Verbinden **heuristisch vorgeschlagen** und kann per 
 ### Navigation & Auswahl
 
 - **Pan:** Trackpad-Scroll, Leertaste + Ziehen, oder mittlere Maustaste  
-- **Zoom:** Pinch / Ctrl+Scroll (⌘+Scroll), ± in der Toolbar (ca. 25 %–250 %)
+- **Zoom:** Pinch / Ctrl+Scroll (⌘+Scroll), ± unten rechts am Canvas (ca. 25 %–250 %)
 - **Auswahl:** Klick, Shift+Klick, Rahmen ziehen (Marquee)  
 - **Verschieben:** ein Element oder die Mehrfachauswahl  
 - **Größe:** acht Anfasser am ausgewählten Element  
@@ -184,7 +184,7 @@ Der Relationstyp wird beim Verbinden **heuristisch vorgeschlagen** und kann per 
 
 ### Timeline
 
-- Sichtbar/unsichtbar (Header **Timeline**)  
+- Sichtbar/unsichtbar (Canvas **Ansicht → Timeline**)  
 - Vertikal verschiebbar  
 - Start-/Ende-Labels (Rechtsklick)  
 - Optional **Snap T**: Elemente rasten an der Timeline-Höhe ein  
@@ -193,7 +193,7 @@ Methodisch: chronologische Achse links → rechts für Domain Events.
 
 ### Swimlanes
 
-- Anlegen über Toolbar  
+- Anlegen über Canvas-Werkzeugleiste  
 - Verschieben und in der Größe ändern (wie Bounded Contexts)  
 - Elemente werden **automatisch zugeordnet**, wenn sie vollständig in der Lane liegen (und wieder entfernt, wenn nicht mehr vollständig drin)  
 - Beim **Verschieben** wandern vollständig enthaltene Elemente mit  
@@ -208,7 +208,7 @@ Methodisch: parallele Akteure / Streams / Verantwortlichkeiten.
 - Elemente werden **automatisch zugeordnet** bei vollständiger Umschließung (bei überlappenden BCs: der kleinste)  
 - Beim **Verschieben** wandern vollständig enthaltene Elemente mit  
 - Manuelle Zuordnung weiterhin per Rechtsklick  
-- **Context Map:** Toolbar-Button → zwei BCs anklicken; Muster (ACL, Shared Kernel, Customer/Supplier, …) per Rechtsklick auf die Linie  
+- **Context Map:** Canvas-Button → zwei BCs anklicken; Muster (ACL, Shared Kernel, Customer/Supplier, …) per Rechtsklick auf die Linie  
 
 Methodisch: Cluster nach Sprache und Verantwortung; Context-Map-Muster modellieren die Schnittstellen zwischen Contexts.
 
@@ -216,7 +216,7 @@ Methodisch: Cluster nach Sprache und Verantwortung; Context-Map-Muster modellier
 
 ## 4. Methoden-Modi, Facilitator & Workshop-Formate
 
-In der Toolbar: **ES | DDD | BDD | USM | EM | PROC | DATA**. Der Modus steuert Palette und Facilitator-Formate — nicht den Board-Inhalt.
+In der App-Leiste: Methoden-Dropdown (**Event Storming**, DDD, …). Der Modus steuert Palette und Facilitator-Formate — nicht den Board-Inhalt. Workshop-Format und Facilitator liegen unter **Session**.
 
 ### Event Storming
 
@@ -296,8 +296,9 @@ Im Facilitator-Modus:
 - Primär: lokale `.storm.json` (File System Access API, wo verfügbar) — **ein Dokument, mehrere Sichten (Tabs)**  
 - Format **v2** (`views[]`); ältere v1-Dateien werden beim Öffnen migriert  
 - Alternativen: Datei öffnen / JSON einfügen (bei Konflikt: Dialog)  
+- **Import als neue Seite:** Daten → *Als neue Seite importieren* — Sichten aus einer `.storm.json` als neue Tabs; **Farben / Titel / Glossary / Workshop-Modus** bleiben aus der geöffneten Datei  
 - Auto-Speichern, Konfliktbehandlung bei externer Änderung  
-- **Backup:** Toolbar / Daten → zeitgestempelte `.storm.json`-Kopie (manuell oder alle 5–30 Min.)  
+- **Backup:** Daten → zeitgestempelte `.storm.json`-Kopie (manuell oder alle 5–30 Min.)  
 - Während **Kollaboration** spiegelt die Arbeitsdatei den Editor (Autosave aktiv); beim Verlassen: Board behalten oder Stand vor dem Raum wiederherstellen  
 - **Workshop**-Schalter: in Collab den aktiven Tab für alle synchronisieren (sonst lokal wie Viewport)  
 - PWA / offline-fähig (Serwist)
@@ -386,8 +387,8 @@ Legende: ✅ vorhanden · 🟡 teilweise · ❌ fehlt / bewusst nicht
 | Phasenführung / Facilitator | ✅ | Drei Formate + Checklisten |
 | Typbeschränkung pro Phase | ✅ | Palette gefiltert |
 | Empfohlene Zeitfenster | ✅ | Phasen-Countdown Start/Pause/Reset im Facilitator |
-| Mehrbenutzer / Echtzeit-Kollaboration | ✅ | Optionaler Raum (Supabase); Join-Bestätigung, lokales Datei-Mirror, Leave mit optionalem Pre-Collab-Restore |
-| Undo/Redo | ✅ | History-Stack, Toolbar, ⌘Z / Ctrl+Z |
+| Mehrbenutzer / Echtzeit-Kollaboration | ✅ | Raum mit Single-Writer, CAS-Writes, Sync-Konflikt-Dialog (kein stilles Überschreiben) |
+| Undo/Redo | ✅ | History-Stack, App-Leiste, ⌘Z / Ctrl+Z |
 | Papier-Workshop-Extras (Opportunity, Problem, Value Stream overlays) | ❌ | Nur die 10 Kern-Typen |
 
 ### Tooling / Übergabe
@@ -405,10 +406,10 @@ Legende: ✅ vorhanden · 🟡 teilweise · ❌ fehlt / bewusst nicht
 
 1. Arbeitsdatei unter **Daten** anlegen oder öffnen.  
 2. Elementtyp in der linken Palette wählen → **Doppelklick** auf die Fläche — oder **1–9/0** für Typ und **Enter/A** für Anlegen in der Viewport-Mitte.  
-3. Relationen: **Verbinden** oder Pfeil am Sticky.  
-4. Struktur: Timeline, Swimlanes, Bounded Contexts.  
+3. Relationen: Canvas **Verbinden** oder Pfeil am Sticky.  
+4. Struktur: Canvas **Ansicht** / Swimlane / Bounded Context.  
 5. Feinschliff: Rechtsklick-Menü; Text/Schema/Invarianten in der rechten Leiste.  
-6. Optional Facilitator-Format einschalten (inkl. Phasen-Timer).  
+6. Optional unter **Session** Facilitator-Format einschalten (inkl. Phasen-Timer).  
 7. Export über **Daten**.
 
 ---

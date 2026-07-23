@@ -14,6 +14,7 @@ import {
   type BoardClipboardPayload,
 } from "@/lib/board-clipboard";
 import { generateStormId } from "@/lib/storm-id";
+import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
 import { createEmptyBoardView, normalizeBoardDocument } from "@/lib/storm-json";
 import {
@@ -188,6 +189,15 @@ export interface StormBoardState {
   deleteGlossaryEntry: (term: string) => void;
 
   replaceBoardFromImport: (payload: BoardImportPayload) => void;
+  /**
+   * Append views from an imported E2 document as new tabs.
+   * Keeps open-document globals (title, appearance, glossary, workshopMode).
+   */
+  importDocumentAsNewViews: (payload: BoardImportPayload) => {
+    ok: true;
+    viewIds: string[];
+    activeViewId: string;
+  } | { ok: false; error: string };
 }
 
 function createElement(type: ElementType, x: number, y: number, label?: string): StormElement {
@@ -1036,6 +1046,31 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       gestureActive: false,
       gestureSnapshotTaken: false,
     });
+  },
+
+  importDocumentAsNewViews: (payload) => {
+    const prepared = prepareImportedViewsAsNewPages(
+      payload,
+      get().views.map((v) => v.name),
+    );
+    if (prepared.views.length === 0) {
+      return { ok: false, error: "Die Datei enthält keine Sichten." };
+    }
+    commit(set, get, (s) => {
+      const views = [...flushActiveViewIntoViews(s), ...prepared.views];
+      const active = resolveActiveView(views, prepared.activeViewId);
+      return {
+        views,
+        activeViewId: active.id,
+        ...applyViewToFlatPatch(active),
+        ...CLEAR_SELECTION_PATCH,
+      };
+    });
+    return {
+      ok: true,
+      viewIds: prepared.views.map((v) => v.id),
+      activeViewId: prepared.activeViewId,
+    };
   },
 }));
 

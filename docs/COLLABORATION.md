@@ -61,6 +61,25 @@ Client-Helfer: [`src/utils/supabase/`](../src/utils/supabase/) (`@supabase/ssr`)
 6. **Verlassen:** Dialog — Raum verlassen (Board behalten) oder optional Stand vor dem Raum wiederherstellen.
 7. Raum-Snapshot bleibt bis `expires_at`.
 
+### Mehrere Browser-Tabs (Single-Writer)
+
+Pro Raum und Browser-Profil schreibt **nur der sichtbare Tab** in den Server-Snapshot (Web Locks).
+
+| Situation | Verhalten |
+|-----------|-----------|
+| Aktiver Tab | Banner „Live“ — darf Snapshots pushen |
+| Zweiter Tab / Hintergrund | Banner **„Passiver Tab · schreibt nicht“** — empfängt Updates, pusht nicht |
+| Fokus auf passiven Tab | Tab wird Writer und prüft Server-Stand (bei Divergenz: Dialog) |
+
+### Kein stilles Überschreiben (Write-Policy)
+
+| Regel | Verhalten |
+|-------|-----------|
+| Speichern | CAS gegen die **zuletzt bekannte** Revision — nie „neueste Revision holen und lokalen Inhalt drüberlegen“ |
+| Server neuer + lokale Änderungen | **Sync-Konflikt-Dialog** — Server übernehmen oder bewusst eigenen Stand pushen |
+| Server neuer + keine lokalen Änderungen | Server-Stand sicher übernehmen |
+| Konflikt | **Kein Retry** mit altem Payload; Broadcast überschreibt den Editor nicht bei dirty local |
+
 ### Arbeitsdatei und Collab
 
 | Situation | Verhalten |

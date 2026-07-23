@@ -1,22 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Database,
-  Layers,
-  Link2,
-  Loader2,
-  Map,
-  Presentation,
-  Redo2,
-  Save,
-  Undo2,
-  Users,
-  ZoomIn,
-  ZoomOut,
-} from "lucide-react";
 
-import { BoardViewTabs } from "@/components/board-view-tabs";
+import { BoardAppBar } from "@/components/board-app-bar";
 import {
   BoardBackupSync,
   runManualBoardBackup,
@@ -26,6 +12,7 @@ import { CollabEnterConfirmDialog } from "@/components/collab-enter-confirm-dial
 import { CollabLeaveDialog, type CollabLeaveChoice } from "@/components/collab-leave-dialog";
 import { CollabPresenceBanner } from "@/components/collab-presence-banner";
 import { CollabRoomDialog } from "@/components/collab-room-dialog";
+import { CollabSyncConflictDialog } from "@/components/collab-sync-conflict-dialog";
 import { DataStoragePanel } from "@/components/data-storage-panel";
 import { CanvasContextMenu } from "@/components/canvas-context-menu";
 import { ElementDetailSidebar } from "@/components/element-detail-sidebar";
@@ -55,7 +42,6 @@ import {
   getPreCollabStash,
   hasPreCollabStash,
 } from "@/lib/collab/pre-collab-stash";
-import { clampZoom } from "@/lib/canvas-viewport";
 import { boardJsonFromStoreState, applyBoardJsonToStore } from "@/lib/file-board-reconcile";
 import {
   exportBoardPng,
@@ -73,12 +59,10 @@ import {
 } from "@/lib/storm-export";
 import {
   BOARD_SNAPSHOT_SCHEMA_FILENAME,
+  boardImportPayloadFromExportText,
   stringifyBoardSnapshotSchema,
 } from "@/lib/storm-json";
-import {
-  getFacilitatorFormatsForMode,
-  type FacilitatorPhase,
-} from "@/lib/facilitator-phases";
+import { type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
 import {
   getElementHelp,
@@ -103,20 +87,8 @@ import {
 } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { flushCollabSnapshotNow, useCollabStore } from "@/lib/collab/session";
-import type { ElementType, ModelingMode, WorkshopFormat } from "@/types/storm-element";
-import {
-  MODELING_MODES,
-  MODELING_MODE_LABELS,
-  MODELING_MODE_SHORT_LABELS,
-} from "@/types/storm-element";
+import type { ElementType, WorkshopFormat } from "@/types/storm-element";
 import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
-
-function formatOptionsForMode(mode: ModelingMode): { value: WorkshopFormat; label: string }[] {
-  return [
-    { value: "free", label: "Frei" },
-    ...getFacilitatorFormatsForMode(mode).map((f) => ({ value: f.format, label: f.label })),
-  ];
-}
 
 export function StormBoard() {
   const [storageOpen, setStorageOpen] = useState(false);
@@ -130,6 +102,7 @@ export function StormBoard() {
     formatLastBackupLabel(readLastBackupAt()),
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importViewsInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setBackupIntervalMinutes(readBackupIntervalMinutes());
@@ -148,9 +121,10 @@ export function StormBoard() {
     fileName: string;
   } | null>(null);
   const [importConflictBusy, setImportConflictBusy] = useState(false);
-  const collabActive = useCollabStore((s) => s.active);
   const joinRoom = useCollabStore((s) => s.joinRoom);
   const leaveRoom = useCollabStore((s) => s.leaveRoom);
+  const syncConflict = useCollabStore((s) => s.syncConflict);
+  const resolveSyncConflict = useCollabStore((s) => s.resolveSyncConflict);
 
   const openHelp = (model: HelpDialogModel) => {
     setHelpModel(model);
@@ -164,37 +138,9 @@ export function StormBoard() {
     openHelp(getPhaseHelp(format, phase));
 
   const title = useStormBoardStore((s) => s.title);
-  const setTitle = useStormBoardStore((s) => s.setTitle);
-  const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
-  const setWorkshopFormat = useStormBoardStore((s) => s.setWorkshopFormat);
-  const modelingMode = useStormBoardStore((s) => s.modelingMode);
-  const setModelingMode = useStormBoardStore((s) => s.setModelingMode);
-  const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
-  const setFacilitatorEnabled = useStormBoardStore((s) => s.setFacilitatorEnabled);
-  const workshopMode = useStormBoardStore((s) => s.workshopMode);
-  const setWorkshopMode = useStormBoardStore((s) => s.setWorkshopMode);
-  const viewport = useStormBoardStore((s) => s.viewport);
-  const setViewport = useStormBoardStore((s) => s.setViewport);
-  const snapToTimeline = useStormBoardStore((s) => s.snapToTimeline);
-  const setSnapToTimeline = useStormBoardStore((s) => s.setSnapToTimeline);
-  const snapToGrid = useStormBoardStore((s) => s.snapToGrid);
-  const setSnapToGrid = useStormBoardStore((s) => s.setSnapToGrid);
-  const focusMode = useStormBoardStore((s) => s.focusMode);
-  const setFocusMode = useStormBoardStore((s) => s.setFocusMode);
-  const timeline = useStormBoardStore((s) => s.timeline);
-  const setTimeline = useStormBoardStore((s) => s.setTimeline);
   const appearance = useStormBoardStore((s) => s.appearance);
-  const addSwimlane = useStormBoardStore((s) => s.addSwimlane);
-  const relationMode = useStormBoardStore((s) => s.relationMode);
-  const setRelationMode = useStormBoardStore((s) => s.setRelationMode);
-  const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
-  const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
-  const setContextMapMode = useStormBoardStore((s) => s.setContextMapMode);
-  const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
   const undo = useStormBoardStore((s) => s.undo);
   const redo = useStormBoardStore((s) => s.redo);
-  const pastLen = useStormBoardStore((s) => s.past.length);
-  const futureLen = useStormBoardStore((s) => s.future.length);
   const boardRootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -397,6 +343,22 @@ export function StormBoard() {
 
   const handleBrowserFile = () => fileInputRef.current?.click();
 
+  const handleImportAsNewViews = () => importViewsInputRef.current?.click();
+
+  const applyImportedFileAsNewViews = (text: string) => {
+    const payload = boardImportPayloadFromExportText(text);
+    if (!payload) {
+      window.alert("Ungültige E2-Datei (.storm.json).");
+      return;
+    }
+    const result = useStormBoardStore.getState().importDocumentAsNewViews(payload);
+    if (!result.ok) {
+      window.alert(result.error);
+      return;
+    }
+    setStorageOpen(false);
+  };
+
   return (
     <div ref={boardRootRef} className="flex h-screen min-h-0 flex-col bg-[var(--bg)] text-[var(--text)]">
       <WorkingFileSync
@@ -410,216 +372,23 @@ export function StormBoard() {
         onLastBackupChange={setBackupLastLabel}
       />
 
-      <header className="dock-surface z-10 mx-3 mt-3 flex shrink-0 flex-wrap items-center gap-2 rounded-dock px-3 py-2">
-        <input
-          className="min-w-[140px] flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1 text-sm font-semibold tracking-tight text-[var(--text)] hover:border-[var(--border)] focus:border-[var(--accent)] focus:outline-none"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onFocus={() => useStormBoardStore.getState().beginGesture()}
-          onBlur={() => useStormBoardStore.getState().endGesture()}
-        />
-
-        <div className="dock-control flex items-center gap-0.5 rounded-lg">
-          <button
-            type="button"
-            onClick={() => undo()}
-            disabled={pastLen === 0}
-            className="p-1.5 hover:text-[var(--accent)] disabled:opacity-40"
-            title="Rückgängig (⌘Z / Ctrl+Z)"
-          >
-            <Undo2 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => redo()}
-            disabled={futureLen === 0}
-            className="p-1.5 hover:text-[var(--accent)] disabled:opacity-40"
-            title="Wiederholen (⌘⇧Z / Ctrl+Y)"
-          >
-            <Redo2 className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="dock-control flex max-w-full flex-wrap items-center gap-0.5 rounded-lg p-0.5">
-          {MODELING_MODES.map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              onClick={() => setModelingMode(mode)}
-              className={[
-                "rounded-md px-2 py-1 text-xs font-medium transition",
-                modelingMode === mode
-                  ? "bg-[var(--accent)] text-white"
-                  : "text-[var(--muted)] hover:text-[var(--text)]",
-              ].join(" ")}
-              title={MODELING_MODE_LABELS[mode]}
-            >
-              {MODELING_MODE_SHORT_LABELS[mode]}
-            </button>
-          ))}
-        </div>
-        <select
-          className="dock-control rounded-lg px-2 py-1 text-xs"
-          value={workshopFormat}
-          onChange={(e) => setWorkshopFormat(e.target.value as WorkshopFormat)}
-          aria-label="Workshop-Format"
-        >
-          {formatOptionsForMode(modelingMode).map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-
-        <label className="dock-control flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs">
-          <input
-            type="checkbox"
-            checked={facilitatorEnabled}
-            onChange={(e) => setFacilitatorEnabled(e.target.checked)}
-            disabled={workshopFormat === "free"}
-          />
-          <Presentation className="h-3.5 w-3.5" />
-          Facilitator
-        </label>
-
-        <label
-          className="dock-control flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs"
-          title="Kollaboration: aktiven Tab für alle Teilnehmer synchronisieren"
-        >
-          <input
-            type="checkbox"
-            checked={workshopMode}
-            onChange={(e) => setWorkshopMode(e.target.checked)}
-          />
-          Workshop
-        </label>
-
-        <button
-          type="button"
-          onClick={() => {
-            const next = !relationMode;
-            setRelationMode(next);
-            if (!next) setRelationDraftSource(null);
-          }}
-          className={[
-            "flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium",
-            relationMode ? "dock-control-active" : "dock-control",
-          ].join(" ")}
-          title="Relationen zwischen Elementen verbinden"
-        >
-          <Link2 className="h-4 w-4" />
-          Verbinden
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            const next = !contextMapMode;
-            setContextMapMode(next);
-            if (!next) setContextMapDraftSource(null);
-          }}
-          className={[
-            "flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium",
-            contextMapMode ? "dock-control-active" : "dock-control",
-          ].join(" ")}
-          title="Context-Map: zwei Bounded Contexts verbinden"
-        >
-          <Map className="h-4 w-4" />
-          Context Map
-        </button>
-        <button
-          type="button"
-          onClick={() => addSwimlane()}
-          className="dock-control rounded-lg p-1.5"
-          title="Swimlane hinzufügen"
-        >
-          <Layers className="h-4 w-4" />
-        </button>
-
-        <label className="flex items-center gap-1 text-xs text-[var(--muted)]" title="Timeline-Linie anzeigen">
-          <input
-            type="checkbox"
-            checked={timeline.visible !== false}
-            onChange={(e) => setTimeline({ visible: e.target.checked })}
-          />
-          Timeline
-        </label>
-        <label className="flex items-center gap-1 text-xs text-[var(--muted)]" title="Elemente an Timeline einrasten">
-          <input type="checkbox" checked={snapToTimeline} onChange={(e) => setSnapToTimeline(e.target.checked)} />
-          Snap T
-        </label>
-        <label className="flex items-center gap-1 text-xs text-[var(--muted)]">
-          <input type="checkbox" checked={snapToGrid} onChange={(e) => setSnapToGrid(e.target.checked)} />
-          Grid
-        </label>
-        <label
-          className="flex items-center gap-1 text-xs text-[var(--muted)]"
-          title="Nur den aktuell gewählten Elementtyp (Palette) voll sichtbar; andere abdunkeln"
-        >
-          <input
-            type="checkbox"
-            checked={focusMode}
-            onChange={(e) => setFocusMode(e.target.checked)}
-          />
-          Fokus
-        </label>
-
-        <div className="dock-control flex items-center gap-0.5 rounded-lg">
-          <button
-            type="button"
-            onClick={() => setViewport({ ...viewport, zoom: clampZoom(viewport.zoom - 0.1) })}
-            className="p-1.5 hover:text-[var(--accent)]"
-          >
-            <ZoomOut className="h-4 w-4" />
-          </button>
-          <span className="px-1 text-xs tabular-nums text-[var(--muted)]">{Math.round(viewport.zoom * 100)}%</span>
-          <button
-            type="button"
-            onClick={() => setViewport({ ...viewport, zoom: clampZoom(viewport.zoom + 0.1) })}
-            className="p-1.5 hover:text-[var(--accent)]"
-          >
-            <ZoomIn className="h-4 w-4" />
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setCollabOpen(true)}
-          className={[
-            "flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium",
-            collabActive ? "dock-control-active" : "dock-control",
-          ].join(" ")}
-          title="Kollaborations-Raum"
-        >
-          <Users className="h-4 w-4" />
-          Raum
-        </button>
-
-        <button
-          type="button"
-          onClick={() => runManualBoardBackup(setBackupLastLabel)}
-          className="dock-control flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium"
-          title={backupLastLabel}
-        >
-          <Save className="h-4 w-4" />
-          Backup
-        </button>
-        <button
-          type="button"
-          onClick={() => setStorageOpen(true)}
-          className="dock-control flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium"
-        >
-          {workingFileSaving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Database className="h-4 w-4" />
-          )}
-          Daten
-        </button>
-      </header>
+      <BoardAppBar
+        workingFileSaving={workingFileSaving}
+        onOpenCollab={() => setCollabOpen(true)}
+        onOpenStorage={() => setStorageOpen(true)}
+      />
 
       <CollabPresenceBanner onRequestLeave={() => setLeaveOpen(true)} />
 
-      <div className="mx-3 flex shrink-0 items-center rounded-dock dock-surface px-1">
-        <BoardViewTabs />
-      </div>
+      <CollabSyncConflictDialog
+        open={syncConflict !== null}
+        onExportJson={downloadJson}
+        onChoose={(choice) => {
+          void resolveSyncConflict(choice).then((r) => {
+            if (!r.ok) window.alert(r.error);
+          });
+        }}
+      />
 
       <div className="mx-3 mb-3 mt-2 flex min-h-0 flex-1 gap-2">
         <div className="dock-surface flex overflow-hidden rounded-dock">
@@ -678,6 +447,7 @@ export function StormBoard() {
         onCreateWorkingFile={() => void handleCreateWorkingFile()}
         onRestoreBackupFile={() => fileInputRef.current?.click()}
         onRestoreBackupPaste={() => void handlePasteJson()}
+        onImportAsNewViews={handleImportAsNewViews}
         onExportJson={downloadJson}
         onExportJsonSchema={downloadJsonSchema}
         onExportSvg={exportBoardSvg}
@@ -790,6 +560,28 @@ export function StormBoard() {
             }
             setSetupOpen(false);
           });
+        }}
+      />
+
+      <input
+        ref={importViewsInputRef}
+        type="file"
+        accept=".json,.storm.json,application/json"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (!file) return;
+          setBusy(true);
+          void file
+            .text()
+            .then((text) => {
+              applyImportedFileAsNewViews(text);
+            })
+            .catch(() => {
+              window.alert("Datei konnte nicht gelesen werden.");
+            })
+            .finally(() => setBusy(false));
         }}
       />
 

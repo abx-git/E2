@@ -1,6 +1,6 @@
 "use client";
 
-import { Wifi, WifiOff } from "lucide-react";
+import { EyeOff, Wifi, WifiOff } from "lucide-react";
 
 import { useCollabStore } from "@/lib/collab/session";
 import { isWorkingFileAttached, isWorkingFileDirty } from "@/lib/working-file";
@@ -17,35 +17,61 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
   const peers = useCollabStore((s) => s.peers);
   const isHost = useCollabStore((s) => s.isHost);
   const error = useCollabStore((s) => s.error);
-  // Re-read on each render; dirty flips with board edits via parent re-renders / store.
+  const tabWriterRole = useCollabStore((s) => s.tabWriterRole);
+  const syncConflict = useCollabStore((s) => s.syncConflict);
   const fileAttached = isWorkingFileAttached();
   const fileDirty = fileAttached && isWorkingFileDirty();
 
   if (!active || !room) return null;
 
   const disconnected = status === "disconnected" || status === "error";
+  const isFollower = tabWriterRole === "follower";
+  const hasConflict = syncConflict !== null;
 
   return (
     <div
       className={[
         "mx-3 mt-2 flex flex-wrap items-center gap-2 rounded-dock px-3 py-1.5 text-xs",
-        disconnected
-          ? "border border-[var(--accent-2)] bg-[rgba(233,196,106,0.12)] text-[var(--accent-2)]"
-          : "dock-surface text-[var(--text)]",
+        hasConflict || isFollower
+          ? "border border-[var(--accent-2)] bg-[rgba(233,196,106,0.14)] text-[var(--text)]"
+          : disconnected
+            ? "border border-[var(--accent-2)] bg-[rgba(233,196,106,0.12)] text-[var(--accent-2)]"
+            : "dock-surface text-[var(--text)]",
       ].join(" ")}
     >
-      {disconnected ? (
+      {isFollower ? (
+        <EyeOff className="h-3.5 w-3.5 shrink-0 text-[var(--accent-2)]" />
+      ) : disconnected ? (
         <WifiOff className="h-3.5 w-3.5 shrink-0" />
       ) : (
         <Wifi className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
       )}
       <span className="font-medium">
-        {disconnected ? "Broadcast getrennt" : "Live"}
+        {hasConflict
+          ? "Sync-Konflikt"
+          : isFollower
+            ? "Passiver Tab"
+            : disconnected
+              ? "Broadcast getrennt"
+              : "Live"}
         {" · "}
         {room.code}
         {isHost ? " · Host" : ""}
       </span>
-      {disconnected && (
+      {hasConflict && (
+        <span className="text-[var(--accent-2)]">
+          Server und dieser Tab weichen ab — bitte Dialog wählen
+        </span>
+      )}
+      {isFollower && !hasConflict && (
+        <span
+          className="text-[var(--accent-2)]"
+          title="Nur der aktive Browser-Tab schreibt in den Raum."
+        >
+          schreibt nicht · Fokus hier prüft Server-Stand
+        </span>
+      )}
+      {disconnected && !isFollower && !hasConflict && (
         <span className="text-[var(--muted)]" title="Postgres-Snapshot-Sync läuft weiter">
           Snapshot-Sync aktiv
         </span>

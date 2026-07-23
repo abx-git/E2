@@ -28,6 +28,8 @@ export interface DataStoragePanelProps {
   onCreateWorkingFile: () => void;
   onRestoreBackupFile: () => void;
   onRestoreBackupPaste: () => void;
+  /** Import E2 file as new view tab(s); keeps open document appearance/globals. */
+  onImportAsNewViews: () => void;
   onExportJson: () => void;
   onExportJsonSchema: () => void;
   onExportSvg: () => void;
@@ -101,6 +103,7 @@ export function DataStoragePanel({
   onCreateWorkingFile,
   onRestoreBackupFile,
   onRestoreBackupPaste,
+  onImportAsNewViews,
   onExportJson,
   onExportJsonSchema,
   onExportSvg,
@@ -230,6 +233,16 @@ export function DataStoragePanel({
               </ActionButton>
             </Section>
           )}
+
+          <Section title="Import">
+            <p className="text-xs text-[var(--muted)]">
+              E2-Datei (.storm.json) als neue Sicht(en) hinzufügen. Farben und andere
+              Projekt-Angaben bleiben aus der geöffneten Datei.
+            </p>
+            <ActionButton onClick={onImportAsNewViews} disabled={busy}>
+              <Upload className="h-4 w-4" /> Als neue Seite importieren
+            </ActionButton>
+          </Section>
 
           <Section title="Export — Board">
             <ActionButton onClick={onExportJson} disabled={busy}>

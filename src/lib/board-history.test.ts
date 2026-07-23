@@ -155,6 +155,57 @@ describe("store undo / views / import", () => {
     expect(boardImportPayloadFromStore().workshopMode).toBe(true);
   });
 
+  it("imports another document as new views without replacing globals", () => {
+    const store = useStormBoardStore.getState();
+    store.setTitle("Offen");
+    store.setAppearance({ canvas: "#112233" });
+    store.addGlossaryEntry("Lokal", "bleibt");
+    store.setWorkshopMode(false);
+    store.addElement("domainEvent", 1, 1);
+
+    const result = store.importDocumentAsNewViews({
+      title: "Fremd",
+      glossary: [{ term: "Fremd", definition: "nein" }],
+      appearance: { ...DEFAULT_APPEARANCE, canvas: "#ff00aa" },
+      workshopMode: true,
+      activeViewId: "imp",
+      views: [
+        createEmptyBoardView({
+          id: "imp",
+          name: "Board",
+          elements: [
+            {
+              id: "ie",
+              type: "command",
+              label: "Imported",
+              x: 9,
+              y: 9,
+              width: 100,
+              height: 50,
+            },
+          ],
+        }),
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const s = useStormBoardStore.getState();
+    expect(s.title).toBe("Offen");
+    expect(s.appearance.canvas).toBe("#112233");
+    expect(s.glossary).toEqual([{ term: "Lokal", definition: "bleibt" }]);
+    expect(s.workshopMode).toBe(false);
+    expect(s.views).toHaveLength(2);
+    expect(s.activeViewId).toBe(result.activeViewId);
+    expect(s.elements).toHaveLength(1);
+    expect(s.elements[0]!.label).toBe("Imported");
+    expect(s.elements[0]!.id).not.toBe("ie");
+
+    store.undo();
+    expect(useStormBoardStore.getState().views).toHaveLength(1);
+    expect(useStormBoardStore.getState().elements[0]!.type).toBe("domainEvent");
+  });
+
   it("moves elements to clipboard and pastes into another view", () => {
     const store = useStormBoardStore.getState();
     const idA = store.addElement("domainEvent", 10, 10);
