@@ -119,7 +119,7 @@ export function BoardAppBar({
           "Workshop");
 
   return (
-    <header className="dock-surface z-10 mx-3 mt-3 shrink-0 overflow-hidden rounded-dock">
+    <header className="dock-surface relative z-40 mx-3 mt-3 shrink-0 rounded-dock">
       <div className="flex items-center gap-2 px-3 py-2">
         <input
           className="min-w-0 flex-1 rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-[0.95rem] font-semibold tracking-tight text-[var(--text)] placeholder:text-[var(--muted)] hover:border-[var(--border)] focus:border-[var(--accent)] focus:outline-none"
