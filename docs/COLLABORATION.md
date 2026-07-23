@@ -65,12 +65,12 @@ Client-Helfer: [`src/utils/supabase/`](../src/utils/supabase/) (`@supabase/ssr`)
 
 | Situation | Verhalten |
 |-----------|-----------|
-| Join / Raum erstellen | Pre-Collab-Stand wird gestasht; Editor lädt Raum-Inhalt |
-| Während Collab | Arbeitsdatei-Autosave bleibt **aktiv** — lokales Mirror/Backup des Editors |
+| Join / Raum erstellen | Pre-Collab-Stand wird gestasht; Editor lädt Raum-Inhalt; **Datei→Editor ist blockiert** |
+| Während Collab | Editor→Datei (Mirror) aktiv; Datei darf den Editor/Raum **nicht** überschreiben |
 | Broadcast getrennt | Banner: Snapshot-Sync aktiv; ausstehende Edits werden best-effort geflusht |
 | Verlassen | Zuerst Room-Snapshot flushen, dann Session beenden |
-| Verlassen → Board behalten | Editor bleibt auf Raum-Stand; Stash verworfen |
-| Verlassen → Stand vor dem Raum | Stash → Editor + Arbeitsdatei (Force, kein Konflikt-Dialog) |
+| Verlassen → Board behalten | Editor bleibt auf Raum-Stand; Stash verworfen (**empfohlen**, wenn Remote behalten) |
+| Verlassen → Stand vor dem Raum | Nur nach Bestätigung: Stash → Editor + Datei (überschreibt lokalen Raum-Spiegel) |
 
 **Beitreten ersetzt** den Editor-Inhalt durch den Raum (Undo-History wird geleert). Deshalb Bestätigung + optionaler JSON-Export / Speichern & beitreten.
 

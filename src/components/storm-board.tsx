@@ -275,6 +275,12 @@ export function StormBoard() {
   };
 
   const handleOpenWorkingFile = async () => {
+    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+      window.alert(
+        "Während der Kollaboration kann keine andere Datei in den Editor geladen werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
+      );
+      return;
+    }
     setBusy(true);
     try {
       const result = await attachWorkingFileFromPicker();
@@ -294,6 +300,12 @@ export function StormBoard() {
   };
 
   const handlePasteJson = async () => {
+    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+      window.alert(
+        "Während der Kollaboration kann kein JSON in den Editor geladen werden. Bitte zuerst den Raum verlassen.",
+      );
+      return;
+    }
     const raw = window.prompt("JSON einfügen:");
     if (!raw?.trim()) return;
     setBusy(true);
@@ -337,6 +349,13 @@ export function StormBoard() {
   const handleLeaveChoice = async (choice: CollabLeaveChoice) => {
     setLeaveBusy(true);
     try {
+      if (choice === "restore_pre_collab") {
+        const ok = window.confirm(
+          "Stand vor dem Raum wiederherstellen?\n\nDer aktuelle Board-Inhalt (Raum-Stand) wird im Editor und in der Arbeitsdatei durch die ältere lokale Kopie ersetzt.\n\nWähle Abbrechen und danach „Raum verlassen“, wenn du den Remote-Stand behalten willst.",
+        );
+        if (!ok) return;
+      }
+
       await flushCollabSnapshotNow();
       leaveRoom();
 
@@ -748,6 +767,12 @@ export function StormBoard() {
           const file = e.target.files?.[0];
           e.target.value = "";
           if (!file) return;
+          if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+            window.alert(
+              "Während der Kollaboration kann keine Datei in den Editor geladen werden. Bitte zuerst den Raum verlassen.",
+            );
+            return;
+          }
           setBusy(true);
           void attachWorkingFileFromBrowserFile(file).then((result) => {
             setBusy(false);

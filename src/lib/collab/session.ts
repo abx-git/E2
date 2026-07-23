@@ -33,6 +33,8 @@ import {
 import {
   isWorkingFileAttached,
   persistWorkingFileJson,
+  setWorkingFileToStoreBlocked,
+  suppressWorkingFileExternalPoll,
 } from "@/lib/working-file";
 import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
 import { buildBoardSnapshot, type BoardImportPayload } from "@/lib/storm-json";
@@ -246,6 +248,7 @@ function teardownSession(): void {
   lastAppliedUpdatedAt = "";
   localDirty = false;
   activeRoomId = null;
+  setWorkingFileToStoreBlocked(false);
 }
 
 /** Apply remote board without wiping local viewport / selection / undo-hostile UX. */
@@ -521,8 +524,14 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     const sb = getSupabase();
     if (!sb) return { ok: false, error: "Supabase nicht konfiguriert" };
 
+    // Block disk→editor for the whole join + session (prevents old file overwriting the room).
+    setWorkingFileToStoreBlocked(true);
+    suppressWorkingFileExternalPoll(15_000);
     set({ connecting: true, error: null, status: "connecting" });
     teardownSession();
+    // teardown clears the block — re-assert for the new session.
+    setWorkingFileToStoreBlocked(true);
+    suppressWorkingFileExternalPoll(15_000);
 
     const hostToken =
       typeof window !== "undefined"
@@ -531,6 +540,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
     const result = await joinCollabRoom(code, hostToken);
     if ("error" in result) {
+      setWorkingFileToStoreBlocked(false);
       set({ connecting: false, status: "error", error: result.error });
       return { ok: false, error: result.error };
     }
@@ -622,15 +632,19 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       userId,
       revision: result.revision,
     });
+
+    // Mirror room → file BEFORE binding store→Yjs, so an old disk snapshot cannot
+    // win a race into the editor and then broadcast into the room.
+    if (isWorkingFileAttached()) {
+      suppressWorkingFileExternalPoll(10_000);
+      await persistWorkingFileJson(boardJsonFromStoreState());
+      suppressWorkingFileExternalPoll(5_000);
+    }
+
     syncPeers(set);
     bindStoreToYjs(result.room.id, get, set);
     startSnapshotSync(result.room.id, get, set);
     bindPageHideFlush();
-
-    // Mirror room content into the attached working file (local backup).
-    if (isWorkingFileAttached()) {
-      void persistWorkingFileJson(boardJsonFromStoreState());
-    }
 
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);

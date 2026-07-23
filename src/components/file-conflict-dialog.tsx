@@ -15,6 +15,8 @@ export interface FileConflictDialogProps {
   description?: string;
   keepLocalLabel?: string;
   loadFileLabel?: string;
+  /** When false, only keep-editor → file is offered (collab safety). Default true. */
+  allowLoadFile?: boolean;
 }
 
 export function FileConflictDialog({
@@ -26,6 +28,7 @@ export function FileConflictDialog({
   description,
   keepLocalLabel,
   loadFileLabel,
+  allowLoadFile = true,
 }: FileConflictDialogProps) {
   const titleId = useId();
   if (!open) return null;
@@ -60,14 +63,16 @@ export function FileConflictDialog({
           >
             {keepLocalLabel ?? "E2-Stand in die Datei schreiben"}
           </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onChoose("load_file")}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
-          >
-            {loadFileLabel ?? "Datei in E2 laden"}
-          </button>
+          {allowLoadFile && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onChoose("load_file")}
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+            >
+              {loadFileLabel ?? "Datei in E2 laden"}
+            </button>
+          )}
         </div>
       </div>
     </div>

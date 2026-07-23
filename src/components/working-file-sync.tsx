@@ -21,6 +21,7 @@ import {
   isWorkingFileAttached,
   isWorkingFileDirty,
   isWorkingFilePersistPaused,
+  isWorkingFileToStoreBlocked,
   markWorkingFileSessionHydrated,
   markWorkingFileSynced,
   persistWorkingFileJson,
@@ -31,6 +32,16 @@ import {
   writeWorkingFileJson,
 } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
+
+function urlHasPendingRoomJoin(): boolean {
+  if (typeof window === "undefined") return false;
+  return Boolean(new URLSearchParams(window.location.search).get("room")?.trim());
+}
+
+/** Disk must not replace the editor while collab owns the board (or a join is pending). */
+function mustNotApplyFileToStore(): boolean {
+  return isWorkingFileToStoreBlocked() || urlHasPendingRoomJoin();
+}
 
 export interface WorkingFileSyncProps {
   onWorkingFileNameChange: (fileName: string | null) => void;
@@ -76,7 +87,11 @@ export function WorkingFileSync({
     setConflictOpen(false);
 
     try {
-      if (choice === "load_file" && handle) {
+      // During collab, never load disk into the editor (would overwrite the room via Yjs).
+      const resolved: FileConflictChoice =
+        choice === "load_file" && mustNotApplyFileToStore() ? "keep_local" : choice;
+
+      if (resolved === "load_file" && handle) {
         const snap = await readWorkingFileSnapshot(handle);
         if (!snap) return;
         if (snap.text.trim()) applyBoardJsonToStore(snap.text);
@@ -172,6 +187,7 @@ export function WorkingFileSync({
     const applyExternalFileIfNeeded = async () => {
       if (isMobileWorkingFileMode()) return;
       if (
+        mustNotApplyFileToStore() ||
         isWorkingFilePersistPaused() ||
         conflictActiveRef.current ||
         suspendAutoPersistRef.current ||
@@ -196,6 +212,8 @@ export function WorkingFileSync({
       }
 
       if (!isWorkingFileDirty()) {
+        // Editor matches last sync, but disk differs — only safe to pull when not in collab.
+        if (mustNotApplyFileToStore()) return;
         suspendAutoPersistRef.current = true;
         try {
           if (snap.text.trim()) applyBoardJsonToStore(snap.text);
@@ -221,6 +239,13 @@ export function WorkingFileSync({
         if (!snap || !mountedRef.current) return;
 
         markWorkingFileSessionHydrated();
+
+        // Join pending / collab: attach handle + remember disk bytes, never replace editor.
+        if (mustNotApplyFileToStore()) {
+          markWorkingFileSynced(snap.text, snap.lastModified);
+          return;
+        }
+
         suspendAutoPersistRef.current = true;
         try {
           if (snap.text.trim()) {
@@ -243,6 +268,9 @@ export function WorkingFileSync({
           return;
         }
         markWorkingFileSessionHydrated();
+        if (mustNotApplyFileToStore()) {
+          return;
+        }
         suspendAutoPersistRef.current = true;
         try {
           applyBoardJsonToStore(synced);
@@ -298,6 +326,15 @@ export function WorkingFileSync({
       open={conflictOpen}
       fileName={getWorkingFileLabel()}
       busy={conflictBusy}
+      allowLoadFile={!mustNotApplyFileToStore()}
+      description={
+        mustNotApplyFileToStore()
+          ? "Während der Kollaboration wird die Arbeitsdatei nur vom Editor aus aktualisiert. Der Editor-/Raum-Stand bleibt erhalten."
+          : undefined
+      }
+      keepLocalLabel={
+        mustNotApplyFileToStore() ? "Raum-/Editor-Stand in die Datei schreiben" : undefined
+      }
       onChoose={(choice) => void handleConflictChoice(choice)}
     />
   );

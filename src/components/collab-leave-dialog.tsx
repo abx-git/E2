@@ -71,11 +71,12 @@ export function CollabLeaveDialog({
               type="button"
               disabled={busy}
               onClick={() => choose("restore_pre_collab")}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+              className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-left text-sm font-medium text-amber-950 hover:bg-amber-100 disabled:opacity-60"
             >
               <span className="block">{stashLabel} wiederherstellen</span>
-              <span className="mt-0.5 block text-[0.72rem] font-normal text-slate-500">
-                Editor und Arbeitsdatei auf den Stand vor dem Beitritt zurücksetzen
+              <span className="mt-0.5 block text-[0.72rem] font-normal text-amber-900/70">
+                Achtung: ersetzt den aktuellen Editor-Stand (Raum-Inhalt) lokal — nicht den
+                Default, wenn du den Remote-Stand behalten willst
               </span>
             </button>
           )}

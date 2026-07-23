@@ -47,6 +47,22 @@ export function clearWorkingFileSessionHydrated(): void {
 
 const OWN_WRITE_SUPPRESS_MS = 1500;
 
+/** When true, working-file must never push disk content into the editor (collab/join). */
+let workingFileToStoreBlocked = false;
+
+export function setWorkingFileToStoreBlocked(blocked: boolean): void {
+  workingFileToStoreBlocked = blocked;
+}
+
+export function isWorkingFileToStoreBlocked(): boolean {
+  return workingFileToStoreBlocked;
+}
+
+/** Extend external-poll suppression (e.g. after join while mirroring room → file). */
+export function suppressWorkingFileExternalPoll(ms: number): void {
+  suppressExternalPollUntil = Math.max(suppressExternalPollUntil, Date.now() + Math.max(0, ms));
+}
+
 export type WriteWorkingFileResult =
   | { ok: true; lastModified: number }
   | { ok: false; reason: "no_handle" | "permission_denied" | "conflict" | "io_error" };
