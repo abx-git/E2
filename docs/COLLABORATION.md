@@ -57,21 +57,22 @@ Client-Helfer: [`src/utils/supabase/`](../src/utils/supabase/) (`@supabase/ssr`)
 2. Bei vorhandenem Board oder angebundener Arbeitsdatei erscheint eine **Bestätigung** (optional JSON-Export als Sicherheitskopie).
 3. Join-Code / Link `?room=CODE` teilen.
 4. Teilnehmende: Name wählen → beitreten (ebenfalls mit Bestätigung, falls lokal Inhalt vorhanden).
-5. Banner zeigt „Live · n online“; bei angebundener Datei zusätzlich **Datei pausiert**.
-6. **Verlassen:** Dialog — mit aktuellem Board weiter, in Arbeitsdatei speichern, oder Datei neu laden.
+5. Banner zeigt „Live · n online“; bei angebundener Datei **Lokal gesichert** / **Lokal ungespeichert**.
+6. **Verlassen:** Dialog — Raum verlassen (Board behalten) oder optional Stand vor dem Raum wiederherstellen.
 7. Raum-Snapshot bleibt bis `expires_at`.
 
 ### Arbeitsdatei und Collab
 
 | Situation | Verhalten |
 |-----------|-----------|
-| Join / Raum erstellen | Auto-Save der Arbeitsdatei wird **pausiert** (Handle bleibt) |
-| Während Collab | Raum-Stand landet **nicht** still in der lokalen Datei |
-| Verlassen → speichern | Aktueller Board-Stand (meist Raum) wird bewusst in die Datei geschrieben |
-| Verlassen → Datei laden | Datei-Stand vor dem Collab-Schreiben wiederherstellen |
-| Verlassen → weiter | Board bleibt; Auto-Save wird wieder aktiv |
+| Join / Raum erstellen | Pre-Collab-Stand wird gestasht; Editor lädt Raum-Inhalt |
+| Während Collab | Arbeitsdatei-Autosave bleibt **aktiv** — lokales Mirror/Backup des Editors |
+| Broadcast getrennt | Banner: Snapshot-Sync aktiv; ausstehende Edits werden best-effort geflusht |
+| Verlassen | Zuerst Room-Snapshot flushen, dann Session beenden |
+| Verlassen → Board behalten | Editor bleibt auf Raum-Stand; Stash verworfen |
+| Verlassen → Stand vor dem Raum | Stash → Editor + Arbeitsdatei (Force, kein Konflikt-Dialog) |
 
-**Beitreten ersetzt** den Editor-Inhalt durch den Raum (Undo-History wird geleert). Deshalb Bestätigung + optionaler JSON-Export.
+**Beitreten ersetzt** den Editor-Inhalt durch den Raum (Undo-History wird geleert). Deshalb Bestätigung + optionaler JSON-Export / Speichern & beitreten.
 
 ## Workshop-Modus (Tab-Sync)
 

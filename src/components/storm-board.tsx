@@ -9,6 +9,7 @@ import {
   Map,
   Presentation,
   Redo2,
+  Save,
   Undo2,
   Users,
   ZoomIn,
@@ -16,6 +17,10 @@ import {
 } from "lucide-react";
 
 import { BoardViewTabs } from "@/components/board-view-tabs";
+import {
+  BoardBackupSync,
+  runManualBoardBackup,
+} from "@/components/board-backup-sync";
 import { ClipboardPanel } from "@/components/clipboard-panel";
 import { CollabEnterConfirmDialog } from "@/components/collab-enter-confirm-dialog";
 import { CollabLeaveDialog, type CollabLeaveChoice } from "@/components/collab-leave-dialog";
@@ -36,7 +41,20 @@ import { StormCanvas } from "@/components/storm-canvas";
 import { WorkingFileSetupDialog } from "@/components/working-file-setup-dialog";
 import { WorkingFileSync } from "@/components/working-file-sync";
 import { applyAppearanceToElement } from "@/lib/board-appearance";
+import {
+  formatLastBackupLabel,
+  readBackupIntervalMinutes,
+  readLastBackupAt,
+  type BackupIntervalMinutes,
+  writeBackupIntervalMinutes,
+} from "@/lib/board-backup";
 import { boardHasLocalContent, shouldConfirmCollabEnter } from "@/lib/collab/file-guard";
+import {
+  capturePreCollabStash,
+  clearPreCollabStash,
+  getPreCollabStash,
+  hasPreCollabStash,
+} from "@/lib/collab/pre-collab-stash";
 import { clampZoom } from "@/lib/canvas-viewport";
 import { boardJsonFromStoreState, applyBoardJsonToStore } from "@/lib/file-board-reconcile";
 import {
@@ -70,24 +88,21 @@ import {
   type HelpDialogModel,
 } from "@/lib/storm-help";
 import {
+  forceApplyBoardJson,
   attachWorkingFileFromBrowserFile,
   attachWorkingFileFromPastedText,
   attachWorkingFileFromPicker,
   createAndAttachWorkingFile,
-  getLastSyncedBoardJson,
-  getWorkingFileHandle,
   getWorkingFileLabel,
-  hydrateStoreFromWorkingFile,
-  isMobileWorkingFileMode,
   isWorkingFileAttached,
+  isWorkingFileDirty,
   isWorkingFileSupported,
   isWorkingFileUiAvailable,
   persistWorkingFileJson,
   resolveWorkingFileImportConflict,
-  setWorkingFilePersistPaused,
 } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { useCollabStore } from "@/lib/collab/session";
+import { flushCollabSnapshotNow, useCollabStore } from "@/lib/collab/session";
 import type { ElementType, ModelingMode, WorkshopFormat } from "@/types/storm-element";
 import {
   MODELING_MODES,
@@ -110,7 +125,15 @@ export function StormBoard() {
   const [workingFileDirty, setWorkingFileDirty] = useState(false);
   const [workingFileSaving, setWorkingFileSaving] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [backupIntervalMinutes, setBackupIntervalMinutes] = useState<BackupIntervalMinutes>(0);
+  const [backupLastLabel, setBackupLastLabel] = useState(() =>
+    formatLastBackupLabel(readLastBackupAt()),
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setBackupIntervalMinutes(readBackupIntervalMinutes());
+  }, []);
 
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpModel, setHelpModel] = useState<HelpDialogModel | null>(null);
@@ -190,6 +213,7 @@ export function StormBoard() {
       setUrlJoinConfirm(true);
     } else {
       const name = useCollabStore.getState().displayName || "Gast";
+      capturePreCollabStash();
       void joinRoom(room, name);
     }
   }, [joinRoom]);
@@ -313,32 +337,43 @@ export function StormBoard() {
   const handleLeaveChoice = async (choice: CollabLeaveChoice) => {
     setLeaveBusy(true);
     try {
-      // Tear down collab first so sync cannot push file reloads into the room.
+      await flushCollabSnapshotNow();
       leaveRoom();
-      if (choice === "save_file") {
-        const result = await persistWorkingFileJson(boardJsonFromStoreState());
-        if (!result.ok) window.alert("Speichern in die Arbeitsdatei fehlgeschlagen.");
-      } else if (choice === "reload_file") {
-        const handle = getWorkingFileHandle();
-        if (handle) {
-          const hydrate = await hydrateStoreFromWorkingFile(handle);
-          if (hydrate.status === "conflict") {
-            setImportConflict({
-              fileText: hydrate.fileText,
-              fileLastModified: hydrate.fileLastModified,
-              fileName: handle.name || "Arbeitsdatei",
-            });
+
+      if (choice === "restore_pre_collab") {
+        const stash = getPreCollabStash();
+        if (stash?.json.trim()) {
+          if (!forceApplyBoardJson(stash.json)) {
+            window.alert("Vorheriger Stand konnte nicht wiederhergestellt werden.");
+          } else if (isWorkingFileAttached()) {
+            const result = await persistWorkingFileJson(boardJsonFromStoreState());
+            if (!result.ok) {
+              window.alert("Wiederhergestellt, aber Speichern in die Arbeitsdatei fehlgeschlagen.");
+            }
           }
-        } else if (isMobileWorkingFileMode()) {
-          const synced = getLastSyncedBoardJson();
-          if (synced?.trim()) applyBoardJsonToStore(synced);
         }
       }
-      setWorkingFilePersistPaused(false);
+
+      clearPreCollabStash();
       setLeaveOpen(false);
     } finally {
       setLeaveBusy(false);
     }
+  };
+
+  const beginCollabEnter = async (
+    choice: "proceed" | "save_and_proceed",
+    enter: () => Promise<void>,
+  ) => {
+    if (choice === "save_and_proceed" && isWorkingFileAttached()) {
+      const result = await persistWorkingFileJson(boardJsonFromStoreState());
+      if (!result.ok) {
+        window.alert("Speichern in die Arbeitsdatei fehlgeschlagen.");
+        return;
+      }
+    }
+    capturePreCollabStash();
+    await enter();
   };
 
   const handleBrowserFile = () => fileInputRef.current?.click();
@@ -350,6 +385,10 @@ export function StormBoard() {
         onDirtyChange={setWorkingFileDirty}
         onSavingChange={setWorkingFileSaving}
         onNeedsFileSetup={() => setSetupOpen(true)}
+      />
+      <BoardBackupSync
+        intervalMinutes={backupIntervalMinutes}
+        onLastBackupChange={setBackupLastLabel}
       />
 
       <header className="dock-surface z-10 mx-3 mt-3 flex shrink-0 flex-wrap items-center gap-2 rounded-dock px-3 py-2">
@@ -536,6 +575,15 @@ export function StormBoard() {
 
         <button
           type="button"
+          onClick={() => runManualBoardBackup(setBackupLastLabel)}
+          className="dock-control flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium"
+          title={backupLastLabel}
+        >
+          <Save className="h-4 w-4" />
+          Backup
+        </button>
+        <button
+          type="button"
           onClick={() => setStorageOpen(true)}
           className="dock-control flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium"
         >
@@ -600,6 +648,13 @@ export function StormBoard() {
         workingFileAttached={isWorkingFileAttached()}
         workingFileDirty={workingFileDirty}
         workingFileSaving={workingFileSaving}
+        backupIntervalMinutes={backupIntervalMinutes}
+        backupLastLabel={backupLastLabel}
+        onBackupIntervalChange={(minutes) => {
+          writeBackupIntervalMinutes(minutes);
+          setBackupIntervalMinutes(minutes);
+        }}
+        onBackupNow={() => runManualBoardBackup(setBackupLastLabel)}
         onOpenWorkingFile={() => void handleOpenWorkingFile()}
         onCreateWorkingFile={() => void handleCreateWorkingFile()}
         onRestoreBackupFile={() => fileInputRef.current?.click()}
@@ -640,20 +695,24 @@ export function StormBoard() {
         open={urlJoinConfirm}
         mode="join"
         workingFileAttached={isWorkingFileAttached()}
+        workingFileDirty={isWorkingFileDirty()}
         boardHasContent={boardHasLocalContent()}
         onExportJson={downloadJson}
         onChoose={(choice) => {
           setUrlJoinConfirm(false);
-          if (choice !== "proceed" || !pendingRoomCode) return;
+          if (choice === "cancel" || !pendingRoomCode) return;
           const name = useCollabStore.getState().displayName || "Gast";
-          void joinRoom(pendingRoomCode, name);
+          const code = pendingRoomCode;
+          void beginCollabEnter(choice, async () => {
+            await joinRoom(code, name);
+          });
         }}
       />
 
       <CollabLeaveDialog
         open={leaveOpen}
-        workingFileAttached={isWorkingFileAttached()}
-        workingFileLabel={workingFileName ?? getWorkingFileLabel()}
+        hasPreCollabStash={hasPreCollabStash()}
+        preCollabFileLabel={getPreCollabStash()?.fileLabel ?? workingFileName ?? getWorkingFileLabel()}
         busy={leaveBusy}
         onCancel={() => setLeaveOpen(false)}
         onChoose={(choice) => void handleLeaveChoice(choice)}

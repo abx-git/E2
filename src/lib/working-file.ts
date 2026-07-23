@@ -88,7 +88,7 @@ export function isWorkingFileAttached(): boolean {
   return memoryHandle !== null || mobileWorkingFileName !== null;
 }
 
-/** When true, WorkingFileSync must not auto-write (e.g. during collab). */
+/** When true, WorkingFileSync must not auto-write (reserved; unused in normal collab). */
 let workingFilePersistPaused = false;
 
 export function setWorkingFilePersistPaused(paused: boolean): void {
@@ -479,6 +479,46 @@ export async function hydrateStoreFromWorkingFile(handle: FileSystemFileHandle):
     await rememberMobileCopy(syncedJson, fileName, snap.lastModified);
   }
   return result;
+}
+
+/**
+ * Always apply the working-file contents to the editor (no conflict UI).
+ * Used when the user explicitly chooses to restore from disk / stash mirror.
+ */
+export async function forceHydrateFromWorkingFile(
+  handle: FileSystemFileHandle,
+): Promise<"loaded" | "empty" | "error"> {
+  try {
+    const snap = await readWorkingFileSnapshot(handle);
+    if (!snap) return "empty";
+    if (!snap.text.trim()) {
+      markWorkingFileSynced(boardJsonFromStoreState(), snap.lastModified);
+      markWorkingFileSessionHydrated();
+      return "empty";
+    }
+    if (!loadBoardFromJsonText(snap.text)) return "error";
+    markWorkingFileSynced(snap.text, snap.lastModified);
+    markWorkingFileSessionHydrated();
+    const fileName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
+    await rememberMobileCopy(snap.text, fileName, snap.lastModified);
+    return "loaded";
+  } catch (e) {
+    console.error("Arbeitsdatei force-hydrate:", e);
+    return "error";
+  }
+}
+
+/**
+ * Apply arbitrary board JSON to the store and mark the working file as needing
+ * a persist (caller should `persistWorkingFileJson` afterwards).
+ */
+export function forceApplyBoardJson(json: string): boolean {
+  if (!json.trim()) return false;
+  if (!loadBoardFromJsonText(json)) return false;
+  // Leave sync marker stale so autosave / explicit persist writes the restored stand.
+  lastSyncedBoardJson = null;
+  markWorkingFileSessionHydrated();
+  return true;
 }
 
 export async function attachWorkingFileFromBrowserFile(

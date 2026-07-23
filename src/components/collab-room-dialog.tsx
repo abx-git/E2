@@ -13,9 +13,15 @@ import {
   saveLocalSupabaseConnection,
 } from "@/lib/collab/config";
 import { boardHasLocalContent, shouldConfirmCollabEnter } from "@/lib/collab/file-guard";
+import { capturePreCollabStash } from "@/lib/collab/pre-collab-stash";
 import { getCollabShareUrl, useCollabStore } from "@/lib/collab/session";
 import { resetSupabaseClient } from "@/lib/collab/supabase";
-import { isWorkingFileAttached } from "@/lib/working-file";
+import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
+import {
+  isWorkingFileAttached,
+  isWorkingFileDirty,
+  persistWorkingFileJson,
+} from "@/lib/working-file";
 
 export interface CollabRoomDialogProps {
   open: boolean;
@@ -114,9 +120,20 @@ export function CollabRoomDialog({
     setShowConnection(true);
   };
 
-  const runEnter = async (mode: "create" | "join") => {
+  const runEnter = async (
+    mode: "create" | "join",
+    options?: { saveFirst?: boolean },
+  ) => {
     setLocalError(null);
     setDisplayName(name);
+    if (options?.saveFirst && isWorkingFileAttached()) {
+      const result = await persistWorkingFileJson(boardJsonFromStoreState());
+      if (!result.ok) {
+        setLocalError("Speichern in die Arbeitsdatei fehlgeschlagen.");
+        return;
+      }
+    }
+    capturePreCollabStash();
     if (mode === "create") {
       const r = await createRoom();
       if (!r.ok) setLocalError(r.error);
@@ -367,13 +384,15 @@ export function CollabRoomDialog({
         open={enterConfirm !== null}
         mode={enterConfirm ?? "join"}
         workingFileAttached={isWorkingFileAttached()}
+        workingFileDirty={isWorkingFileDirty()}
         boardHasContent={boardHasLocalContent()}
         busy={connecting}
         onExportJson={onExportJson}
         onChoose={(choice) => {
           const mode = enterConfirm;
           setEnterConfirm(null);
-          if (choice === "proceed" && mode) void runEnter(mode);
+          if (choice === "cancel" || !mode) return;
+          void runEnter(mode, { saveFirst: choice === "save_and_proceed" });
         }}
       />
     </>

@@ -3,7 +3,11 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AppearanceSettings } from "@/components/appearance-settings";
-import { Download, FolderOpen, Loader2, Upload, Users, X } from "lucide-react";
+import { Download, FolderOpen, Loader2, Save, Upload, Users, X } from "lucide-react";
+import {
+  BACKUP_INTERVAL_OPTIONS_MINUTES,
+  type BackupIntervalMinutes,
+} from "@/lib/board-backup";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ModelingMode } from "@/types/storm-element";
 import { MODELING_MODE_LABELS } from "@/types/storm-element";
@@ -16,6 +20,10 @@ export interface DataStoragePanelProps {
   workingFileAttached: boolean;
   workingFileDirty: boolean;
   workingFileSaving: boolean;
+  backupIntervalMinutes: BackupIntervalMinutes;
+  backupLastLabel: string;
+  onBackupIntervalChange: (minutes: BackupIntervalMinutes) => void;
+  onBackupNow: () => void;
   onOpenWorkingFile: () => void;
   onCreateWorkingFile: () => void;
   onRestoreBackupFile: () => void;
@@ -85,6 +93,10 @@ export function DataStoragePanel({
   workingFileAttached,
   workingFileDirty,
   workingFileSaving,
+  backupIntervalMinutes,
+  backupLastLabel,
+  onBackupIntervalChange,
+  onBackupNow,
   onOpenWorkingFile,
   onCreateWorkingFile,
   onRestoreBackupFile,
@@ -183,6 +195,32 @@ export function DataStoragePanel({
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Bitte warten …
               </p>
             )}
+          </Section>
+
+          <Section title="Backup">
+            <p className="text-xs text-[var(--muted)]">
+              Zeitstempel-Kopie (.storm.json) — unabhängig von der Arbeitsdatei.{" "}
+              {backupLastLabel}.
+            </p>
+            <ActionButton onClick={onBackupNow} disabled={busy}>
+              <Save className="h-4 w-4" /> Jetzt sichern
+            </ActionButton>
+            <label className="flex flex-col gap-1 text-xs text-[var(--text)]">
+              <span className="text-[var(--muted)]">Automatisch alle …</span>
+              <select
+                className="dock-field"
+                value={backupIntervalMinutes}
+                onChange={(e) =>
+                  onBackupIntervalChange(Number(e.target.value) as BackupIntervalMinutes)
+                }
+              >
+                {BACKUP_INTERVAL_OPTIONS_MINUTES.map((m) => (
+                  <option key={m} value={m}>
+                    {m === 0 ? "Aus" : `${m} Minuten`}
+                  </option>
+                ))}
+              </select>
+            </label>
           </Section>
 
           {onOpenCollab && (

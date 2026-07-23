@@ -297,7 +297,8 @@ Im Facilitator-Modus:
 - Format **v2** (`views[]`); ältere v1-Dateien werden beim Öffnen migriert  
 - Alternativen: Datei öffnen / JSON einfügen (bei Konflikt: Dialog)  
 - Auto-Speichern, Konfliktbehandlung bei externer Änderung  
-- Während **Kollaboration** ist Auto-Save pausiert; beim Verlassen: speichern / Datei laden / weiter  
+- **Backup:** Toolbar / Daten → zeitgestempelte `.storm.json`-Kopie (manuell oder alle 5–30 Min.)  
+- Während **Kollaboration** spiegelt die Arbeitsdatei den Editor (Autosave aktiv); beim Verlassen: Board behalten oder Stand vor dem Raum wiederherstellen  
 - **Workshop**-Schalter: in Collab den aktiven Tab für alle synchronisieren (sonst lokal wie Viewport)  
 - PWA / offline-fähig (Serwist)
 
@@ -385,7 +386,7 @@ Legende: ✅ vorhanden · 🟡 teilweise · ❌ fehlt / bewusst nicht
 | Phasenführung / Facilitator | ✅ | Drei Formate + Checklisten |
 | Typbeschränkung pro Phase | ✅ | Palette gefiltert |
 | Empfohlene Zeitfenster | ✅ | Phasen-Countdown Start/Pause/Reset im Facilitator |
-| Mehrbenutzer / Echtzeit-Kollaboration | ✅ | Optionaler Raum (Supabase); Join-Bestätigung, Datei pausiert, Leave-Optionen |
+| Mehrbenutzer / Echtzeit-Kollaboration | ✅ | Optionaler Raum (Supabase); Join-Bestätigung, lokales Datei-Mirror, Leave mit optionalem Pre-Collab-Restore |
 | Undo/Redo | ✅ | History-Stack, Toolbar, ⌘Z / Ctrl+Z |
 | Papier-Workshop-Extras (Opportunity, Problem, Value Stream overlays) | ❌ | Nur die 10 Kern-Typen |
 

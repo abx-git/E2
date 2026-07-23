@@ -30,7 +30,11 @@ import {
   REMOTE_ORIGIN,
   readPayloadFromYDoc,
 } from "@/lib/collab/yjs-board";
-import { setWorkingFilePersistPaused } from "@/lib/working-file";
+import {
+  isWorkingFileAttached,
+  persistWorkingFileJson,
+} from "@/lib/working-file";
+import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
 import { buildBoardSnapshot, type BoardImportPayload } from "@/lib/storm-json";
 import {
   boardImportPayloadFromStore,
@@ -82,6 +86,9 @@ let storeUnsub: (() => void) | null = null;
 let lastAppliedUpdatedAt = "";
 /** True while local domain edits are waiting to be written. */
 let localDirty = false;
+/** Room id for the active session — used by flush / pagehide. */
+let activeRoomId: string | null = null;
+let pagehideBound = false;
 
 function hostTokenKey(code: string): string {
   return `${HOST_TOKEN_STORAGE_KEY}:${code}`;
@@ -101,49 +108,101 @@ function clearPollTimer(): void {
   }
 }
 
+async function persistSnapshotNow(
+  roomId: string,
+  setRevision?: (n: number) => void,
+): Promise<boolean> {
+  if (!doc || applyingRemote) return false;
+  // Wait out an in-flight save, then write again with latest doc.
+  if (savingSnapshot) {
+    for (let i = 0; i < 40 && savingSnapshot; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    if (savingSnapshot) return false;
+  }
+
+  const payload = readPayloadFromYDoc(doc) ?? boardImportPayloadFromStore();
+  const snapshot = buildBoardSnapshot(payload);
+  const yjsState = encodeYDocState(doc);
+  savingSnapshot = true;
+  try {
+    const latest = await fetchCollabSnapshot(roomId);
+    if ("error" in latest) return false;
+
+    let result = await saveCollabSnapshot({
+      roomId,
+      snapshot,
+      yjsState,
+      revision: latest.revision,
+    });
+
+    if ("conflict" in result && result.conflict) {
+      result = await saveCollabSnapshot({
+        roomId,
+        snapshot,
+        yjsState,
+        revision: result.revision,
+      });
+    }
+
+    if ("error" in result || "conflict" in result) return false;
+
+    lastAppliedUpdatedAt = result.updatedAt;
+    localDirty = false;
+    setRevision?.(result.revision);
+    return true;
+  } finally {
+    savingSnapshot = false;
+  }
+}
+
 function scheduleSnapshot(roomId: string, setRevision: (n: number) => void): void {
   localDirty = true;
   clearSnapshotTimer();
   snapshotTimer = setTimeout(() => {
-    void (async () => {
-      snapshotTimer = null;
-      if (!doc || applyingRemote || savingSnapshot) return;
-      const payload = readPayloadFromYDoc(doc) ?? boardImportPayloadFromStore();
-      const snapshot = buildBoardSnapshot(payload);
-      const yjsState = encodeYDocState(doc);
-      savingSnapshot = true;
-      try {
-        // Always rebase onto the server revision so local clocks can't drift ahead.
-        const latest = await fetchCollabSnapshot(roomId);
-        if ("error" in latest) return;
-        let baseRevision = latest.revision;
-
-        let result = await saveCollabSnapshot({
-          roomId,
-          snapshot,
-          yjsState,
-          revision: baseRevision,
-        });
-
-        if ("conflict" in result && result.conflict) {
-          result = await saveCollabSnapshot({
-            roomId,
-            snapshot,
-            yjsState,
-            revision: result.revision,
-          });
-        }
-
-        if ("error" in result || "conflict" in result) return;
-
-        lastAppliedUpdatedAt = result.updatedAt;
-        localDirty = false;
-        setRevision(result.revision);
-      } finally {
-        savingSnapshot = false;
-      }
-    })();
+    snapshotTimer = null;
+    void persistSnapshotNow(roomId, setRevision);
   }, SNAPSHOT_DEBOUNCE_MS);
+}
+
+/**
+ * Cancel debounce and write the current board to the room snapshot immediately.
+ * Call before leave / pagehide so peers don't miss the last edits.
+ */
+export async function flushCollabSnapshotNow(): Promise<void> {
+  clearSnapshotTimer();
+  const roomId = activeRoomId ?? useCollabStore.getState().room?.id ?? null;
+  if (!roomId || !doc) {
+    localDirty = false;
+    return;
+  }
+  if (!localDirty && !snapshotTimer) {
+    // Still flush if we might have missed marking dirty — cheap when already synced.
+  }
+  await persistSnapshotNow(roomId, (n) => useCollabStore.setState({ revision: n }));
+}
+
+function onCollabPageHide(): void {
+  if (!useCollabStore.getState().active) return;
+  // Best-effort sync flush (may not finish if the tab is killed immediately).
+  void flushCollabSnapshotNow();
+  if (isWorkingFileAttached()) {
+    void persistWorkingFileJson(boardJsonFromStoreState());
+  }
+}
+
+function bindPageHideFlush(): void {
+  if (typeof window === "undefined" || pagehideBound) return;
+  window.addEventListener("pagehide", onCollabPageHide);
+  window.addEventListener("beforeunload", onCollabPageHide);
+  pagehideBound = true;
+}
+
+function unbindPageHideFlush(): void {
+  if (typeof window === "undefined" || !pagehideBound) return;
+  window.removeEventListener("pagehide", onCollabPageHide);
+  window.removeEventListener("beforeunload", onCollabPageHide);
+  pagehideBound = false;
 }
 
 function syncPeers(set: (p: Partial<CollabState>) => void): void {
@@ -166,6 +225,7 @@ function syncPeers(set: (p: Partial<CollabState>) => void): void {
 }
 
 function teardownSession(): void {
+  unbindPageHideFlush();
   clearSnapshotTimer();
   clearPollTimer();
   storeUnsub?.();
@@ -185,6 +245,7 @@ function teardownSession(): void {
   savingSnapshot = false;
   lastAppliedUpdatedAt = "";
   localDirty = false;
+  activeRoomId = null;
 }
 
 /** Apply remote board without wiping local viewport / selection / undo-hostile UX. */
@@ -530,8 +591,11 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       awareness,
       onStatus: (s) => {
         if (s === "connected") set({ status: "connected" });
-        else if (s === "disconnected") set({ status: "disconnected" });
-        else set({ status: "connecting" });
+        else if (s === "disconnected") {
+          set({ status: "disconnected" });
+          // Best-effort: push pending edits via Postgres while broadcast is down.
+          void flushCollabSnapshotNow();
+        } else set({ status: "connecting" });
       },
       onError: (message) => {
         // Don't fail the room for broadcast issues — snapshot poll keeps content in sync.
@@ -547,6 +611,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       set({ error: msg, status: "connected" });
     }
 
+    activeRoomId = result.room.id;
     set({
       active: true,
       connecting: false,
@@ -557,11 +622,15 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       userId,
       revision: result.revision,
     });
-    // Pause working-file auto-save so room content cannot silently overwrite the local file.
-    setWorkingFilePersistPaused(true);
     syncPeers(set);
     bindStoreToYjs(result.room.id, get, set);
     startSnapshotSync(result.room.id, get, set);
+    bindPageHideFlush();
+
+    // Mirror room content into the attached working file (local backup).
+    if (isWorkingFileAttached()) {
+      void persistWorkingFileJson(boardJsonFromStoreState());
+    }
 
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);

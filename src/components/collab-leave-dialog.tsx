@@ -3,12 +3,12 @@
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
 
-export type CollabLeaveChoice = "continue" | "save_file" | "reload_file";
+export type CollabLeaveChoice = "leave" | "restore_pre_collab";
 
 export interface CollabLeaveDialogProps {
   open: boolean;
-  workingFileAttached: boolean;
-  workingFileLabel: string | null;
+  hasPreCollabStash: boolean;
+  preCollabFileLabel: string | null;
   busy?: boolean;
   onChoose: (choice: CollabLeaveChoice) => void;
   onCancel: () => void;
@@ -16,8 +16,8 @@ export interface CollabLeaveDialogProps {
 
 export function CollabLeaveDialog({
   open,
-  workingFileAttached,
-  workingFileLabel,
+  hasPreCollabStash,
+  preCollabFileLabel,
   busy,
   onChoose,
   onCancel,
@@ -26,7 +26,9 @@ export function CollabLeaveDialog({
   const [pending, setPending] = useState<CollabLeaveChoice | null>(null);
   if (!open) return null;
 
-  const fileLabel = workingFileLabel?.trim() ? `„${workingFileLabel.trim()}"` : "Arbeitsdatei";
+  const stashLabel = preCollabFileLabel?.trim()
+    ? `Stand vor dem Raum (${preCollabFileLabel.trim()})`
+    : "Stand vor dem Raum";
 
   const choose = (choice: CollabLeaveChoice) => {
     setPending(choice);
@@ -49,46 +51,33 @@ export function CollabLeaveDialog({
           Raum verlassen
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          Die Live-Verbindung endet. Was soll mit dem Board und der lokalen Datei passieren?
+          Die Live-Verbindung endet. Der aktuelle Board-Stand bleibt im Editor; die Arbeitsdatei
+          wurde während des Raums mitgeschrieben.
         </p>
         <div className="mt-5 flex flex-col gap-2">
           <button
             type="button"
             disabled={busy}
-            onClick={() => choose("continue")}
+            onClick={() => choose("leave")}
             className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-left text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
           >
-            <span className="block">Mit aktuellem Board weiter</span>
+            <span className="block">Raum verlassen</span>
             <span className="mt-0.5 block text-[0.72rem] font-normal text-sky-900/70">
-              Raum-Stand bleibt im Editor
-              {workingFileAttached ? "; Datei-Speichern wird wieder aktiv" : ""}
+              Board behalten und Solo weiterarbeiten
             </span>
           </button>
-          {workingFileAttached && (
-            <>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => choose("save_file")}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
-              >
-                <span className="block">In {fileLabel} speichern</span>
-                <span className="mt-0.5 block text-[0.72rem] font-normal text-slate-500">
-                  Aktuellen Board-Stand in die Arbeitsdatei schreiben, dann Solo
-                </span>
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => choose("reload_file")}
-                className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
-              >
-                <span className="block">{fileLabel} neu laden</span>
-                <span className="mt-0.5 block text-[0.72rem] font-normal text-slate-500">
-                  Datei-Stand vor / neben dem Raum wiederherstellen
-                </span>
-              </button>
-            </>
+          {hasPreCollabStash && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => choose("restore_pre_collab")}
+              className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+            >
+              <span className="block">{stashLabel} wiederherstellen</span>
+              <span className="mt-0.5 block text-[0.72rem] font-normal text-slate-500">
+                Editor und Arbeitsdatei auf den Stand vor dem Beitritt zurücksetzen
+              </span>
+            </button>
           )}
           <button
             type="button"

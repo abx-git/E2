@@ -3,7 +3,7 @@
 import { Wifi, WifiOff } from "lucide-react";
 
 import { useCollabStore } from "@/lib/collab/session";
-import { isWorkingFileAttached, isWorkingFilePersistPaused } from "@/lib/working-file";
+import { isWorkingFileAttached, isWorkingFileDirty } from "@/lib/working-file";
 
 export interface CollabPresenceBannerProps {
   onRequestLeave: () => void;
@@ -17,11 +17,13 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
   const peers = useCollabStore((s) => s.peers);
   const isHost = useCollabStore((s) => s.isHost);
   const error = useCollabStore((s) => s.error);
+  // Re-read on each render; dirty flips with board edits via parent re-renders / store.
+  const fileAttached = isWorkingFileAttached();
+  const fileDirty = fileAttached && isWorkingFileDirty();
 
   if (!active || !room) return null;
 
   const disconnected = status === "disconnected" || status === "error";
-  const filePaused = isWorkingFileAttached() && isWorkingFilePersistPaused();
 
   return (
     <div
@@ -38,15 +40,27 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
         <Wifi className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
       )}
       <span className="font-medium">
-        {disconnected ? "Verbindung getrennt" : "Live"}
+        {disconnected ? "Broadcast getrennt" : "Live"}
         {" · "}
         {room.code}
         {isHost ? " · Host" : ""}
       </span>
+      {disconnected && (
+        <span className="text-[var(--muted)]" title="Postgres-Snapshot-Sync läuft weiter">
+          Snapshot-Sync aktiv
+        </span>
+      )}
       <span className="text-[var(--muted)]">{peers.length} online</span>
-      {filePaused && (
-        <span className="text-[var(--accent-2)]" title="Arbeitsdatei wird während Collab nicht überschrieben">
-          Datei pausiert
+      {fileAttached && (
+        <span
+          className={fileDirty ? "text-[var(--accent-2)]" : "text-[var(--muted)]"}
+          title={
+            fileDirty
+              ? "Editor-Stand noch nicht in die Arbeitsdatei geschrieben"
+              : "Arbeitsdatei spiegelt den Editor-Stand"
+          }
+        >
+          {fileDirty ? "Lokal ungespeichert" : "Lokal gesichert"}
         </span>
       )}
       <div className="flex -space-x-1">
