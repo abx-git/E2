@@ -86,6 +86,64 @@ function ActionButton({
   );
 }
 
+function ExportGroup({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--control)]/35 p-2.5">
+      <div className="mb-2 flex items-baseline justify-between gap-2 px-0.5">
+        <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
+          {title}
+        </p>
+        {hint ? <p className="text-[0.65rem] text-[var(--muted)]">{hint}</p> : null}
+      </div>
+      <div className="grid grid-cols-2 gap-1.5">{children}</div>
+    </div>
+  );
+}
+
+function ExportTile({
+  onClick,
+  disabled,
+  label,
+  detail,
+  emphasize,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  label: string;
+  detail?: string;
+  emphasize?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={[
+        "flex min-h-[3.25rem] flex-col items-start justify-center gap-0.5 rounded-lg border px-2.5 py-2 text-left transition disabled:opacity-50",
+        emphasize
+          ? "border-[var(--accent)]/55 bg-[var(--accent)]/12 text-[var(--text)]"
+          : "border-[var(--border)] bg-[var(--panel-solid)] text-[var(--text)] hover:bg-[var(--control-hover)]",
+      ].join(" ")}
+    >
+      <span className="flex items-center gap-1.5 text-xs font-medium leading-tight">
+        <Download className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+        {label}
+      </span>
+      {detail ? (
+        <span className="pl-5 text-[0.65rem] leading-snug text-[var(--muted)]">{detail}</span>
+      ) : null}
+    </button>
+  );
+}
+
 function modeMatches(mode: ModelingMode, ...modes: ModelingMode[]): boolean {
   return modes.includes(mode);
 }
@@ -288,111 +346,107 @@ export function DataStoragePanel({
             </ActionButton>
           </Section>
 
-          <Section title="Export — Board">
-            <ActionButton onClick={onExportJson} disabled={busy}>
-              <Download className="h-4 w-4" /> JSON herunterladen
-            </ActionButton>
-            <ActionButton onClick={onExportJsonSchema} disabled={busy}>
-              <Download className="h-4 w-4" /> JSON Schema herunterladen
-            </ActionButton>
+          <Section title="Export">
             <p className="text-xs text-[var(--muted)]">
-              Schema für{" "}
-              <code className="rounded bg-[var(--control)] px-1">.storm.json</code>
-              — exportierte Boards enthalten{" "}
-              <code className="rounded bg-[var(--control)] px-1">$schema</code>.
+              Aktive Methode: {MODELING_MODE_LABELS[modelingMode]} — passende Formate sind
+              hervorgehoben.
             </p>
-            <ActionButton onClick={onExportSvg} disabled={busy}>
-              <Download className="h-4 w-4" /> SVG (Draw.io)
-            </ActionButton>
-            <ActionButton onClick={onExportPng} disabled={busy}>
-              <Download className="h-4 w-4" /> PNG
-            </ActionButton>
-          </Section>
 
-          <Section title="Export — Gemeinsam">
-            <ActionButton onClick={onExportHotspots} disabled={busy}>
-              <Download className="h-4 w-4" /> Hotspot-Report (MD)
-            </ActionButton>
-            <ActionButton onClick={onExportGlossary} disabled={busy}>
-              <Download className="h-4 w-4" /> Glossary (MD)
-            </ActionButton>
-            <ActionButton
-              onClick={onExportContextMap}
-              disabled={busy}
-              emphasize={modeMatches(modelingMode, "eventStorming", "domainDrivenDesign")}
-            >
-              <Download className="h-4 w-4" /> Context Map (MD)
-            </ActionButton>
-          </Section>
+            <ExportGroup title="Board" hint="Datei & Bild">
+              <ExportTile
+                onClick={onExportJson}
+                disabled={busy}
+                label="JSON"
+                detail=".storm.json"
+              />
+              <ExportTile
+                onClick={onExportJsonSchema}
+                disabled={busy}
+                label="Schema"
+                detail="JSON Schema"
+              />
+              <ExportTile
+                onClick={onExportSvg}
+                disabled={busy}
+                label="SVG"
+                detail="Draw.io"
+              />
+              <ExportTile onClick={onExportPng} disabled={busy} label="PNG" detail="Rasterbild" />
+            </ExportGroup>
 
-          <Section title="Export — Event Storming">
-            <ActionButton
-              onClick={onExportEventCatalog}
-              disabled={busy}
-              emphasize={modeMatches(modelingMode, "eventStorming", "eventModeling")}
-            >
-              <Download className="h-4 w-4" /> Event Catalog (MD)
-            </ActionButton>
-          </Section>
+            <ExportGroup title="Berichte" hint="Markdown">
+              <ExportTile
+                onClick={onExportHotspots}
+                disabled={busy}
+                label="Hotspots"
+                detail="Report"
+              />
+              <ExportTile
+                onClick={onExportGlossary}
+                disabled={busy}
+                label="Glossary"
+                detail="Begriffe"
+              />
+              <ExportTile
+                onClick={onExportContextMap}
+                disabled={busy}
+                label="Context Map"
+                detail="BC-Schnittstellen"
+                emphasize={modeMatches(modelingMode, "eventStorming", "domainDrivenDesign")}
+              />
+            </ExportGroup>
 
-          <Section title="Export — Domain-Driven Design">
-            <ActionButton
-              onClick={onExportDomainModel}
-              disabled={busy}
-              emphasize={modeMatches(modelingMode, "domainDrivenDesign")}
-            >
-              <Download className="h-4 w-4" /> Domain Model (MD)
-            </ActionButton>
-          </Section>
-
-          <Section title="Export — BDD / Example Mapping">
-            <ActionButton
-              onClick={onExportExampleMapping}
-              disabled={busy}
-              emphasize={modeMatches(modelingMode, "bdd")}
-            >
-              <Download className="h-4 w-4" /> Example Mapping (MD)
-            </ActionButton>
-          </Section>
-
-          <Section title="Export — User Story Mapping">
-            <ActionButton
-              onClick={onExportStoryMap}
-              disabled={busy}
-              emphasize={modeMatches(modelingMode, "userStoryMapping")}
-            >
-              <Download className="h-4 w-4" /> Story Map (MD)
-            </ActionButton>
-          </Section>
-
-          <Section title="Export — Event Modeling">
-            <ActionButton
-              onClick={onExportEventModel}
-              disabled={busy}
-              emphasize={modeMatches(modelingMode, "eventModeling")}
-            >
-              <Download className="h-4 w-4" /> Event Model / Slices (MD)
-            </ActionButton>
-          </Section>
-
-          <Section title="Export — Prozess">
-            <ActionButton
-              onClick={onExportProcess}
-              disabled={busy}
-              emphasize={modeMatches(modelingMode, "processFlow")}
-            >
-              <Download className="h-4 w-4" /> Prozessmodell (MD)
-            </ActionButton>
-          </Section>
-
-          <Section title="Export — Daten">
-            <ActionButton
-              onClick={onExportDataModel}
-              disabled={busy}
-              emphasize={modeMatches(modelingMode, "dataModel")}
-            >
-              <Download className="h-4 w-4" /> Datenmodell (MD)
-            </ActionButton>
+            <ExportGroup title="Methoden" hint="Markdown">
+              <ExportTile
+                onClick={onExportEventCatalog}
+                disabled={busy}
+                label="Event Catalog"
+                detail="Event Storming"
+                emphasize={modeMatches(modelingMode, "eventStorming", "eventModeling")}
+              />
+              <ExportTile
+                onClick={onExportDomainModel}
+                disabled={busy}
+                label="Domain Model"
+                detail="DDD"
+                emphasize={modeMatches(modelingMode, "domainDrivenDesign")}
+              />
+              <ExportTile
+                onClick={onExportExampleMapping}
+                disabled={busy}
+                label="Example Mapping"
+                detail="BDD"
+                emphasize={modeMatches(modelingMode, "bdd")}
+              />
+              <ExportTile
+                onClick={onExportStoryMap}
+                disabled={busy}
+                label="Story Map"
+                detail="USM"
+                emphasize={modeMatches(modelingMode, "userStoryMapping")}
+              />
+              <ExportTile
+                onClick={onExportEventModel}
+                disabled={busy}
+                label="Event Model"
+                detail="Slices"
+                emphasize={modeMatches(modelingMode, "eventModeling")}
+              />
+              <ExportTile
+                onClick={onExportProcess}
+                disabled={busy}
+                label="Prozess"
+                detail="Ablauf"
+                emphasize={modeMatches(modelingMode, "processFlow")}
+              />
+              <ExportTile
+                onClick={onExportDataModel}
+                disabled={busy}
+                label="Datenmodell"
+                detail="Entitäten"
+                emphasize={modeMatches(modelingMode, "dataModel")}
+              />
+            </ExportGroup>
           </Section>
         </div>
       </aside>
