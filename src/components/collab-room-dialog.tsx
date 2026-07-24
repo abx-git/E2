@@ -16,6 +16,7 @@ import { boardHasLocalContent, shouldConfirmCollabEnter } from "@/lib/collab/fil
 import { capturePreCollabStash } from "@/lib/collab/pre-collab-stash";
 import { getCollabShareUrl, useCollabStore } from "@/lib/collab/session";
 import { resetSupabaseClient } from "@/lib/collab/supabase";
+import { backupBeforeSuspiciousSwitch } from "@/lib/board-backup";
 import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
 import {
   isWorkingFileAttached,
@@ -134,6 +135,7 @@ export function CollabRoomDialog({
       }
     }
     capturePreCollabStash();
+    backupBeforeSuspiciousSwitch("room");
     if (mode === "create") {
       const r = await createRoom();
       if (!r.ok) setLocalError(r.error);

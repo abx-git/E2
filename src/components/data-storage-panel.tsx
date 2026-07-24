@@ -1,13 +1,14 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AppearanceSettings } from "@/components/appearance-settings";
-import { Download, FolderOpen, Loader2, Save, Upload, Users, X } from "lucide-react";
+import { Clock, Download, FolderOpen, Loader2, Save, Upload, Users, X } from "lucide-react";
 import {
   BACKUP_INTERVAL_OPTIONS_MINUTES,
   type BackupIntervalMinutes,
 } from "@/lib/board-backup";
+import { listRecentWorkingFiles } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ModelingMode } from "@/types/storm-element";
 import { MODELING_MODE_LABELS } from "@/types/storm-element";
@@ -27,6 +28,7 @@ export interface DataStoragePanelProps {
   onOpenWorkingFile: () => void;
   /** Speichern unter… — pick a new path; becomes the Arbeitsdatei. */
   onSaveWorkingFileAs: () => void;
+  onOpenRecentWorkingFile: (handle: FileSystemFileHandle) => void;
   onRestoreBackupFile: () => void;
   onRestoreBackupPaste: () => void;
   /** Import E2 file as new view tab(s); keeps open document appearance/globals. */
@@ -102,6 +104,7 @@ export function DataStoragePanel({
   onBackupNow,
   onOpenWorkingFile,
   onSaveWorkingFileAs,
+  onOpenRecentWorkingFile,
   onRestoreBackupFile,
   onRestoreBackupPaste,
   onImportAsNewViews,
@@ -123,6 +126,20 @@ export function DataStoragePanel({
   busy,
 }: DataStoragePanelProps) {
   const modelingMode = useStormBoardStore((s) => s.modelingMode);
+  const [recentFiles, setRecentFiles] = useState<
+    Array<{ name: string; openedAt: number; handle: FileSystemFileHandle }>
+  >([]);
+
+  useEffect(() => {
+    if (!open || !fsAccessSupported) return;
+    let cancelled = false;
+    void listRecentWorkingFiles().then((entries) => {
+      if (!cancelled) setRecentFiles(entries);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, fsAccessSupported, workingFileLabel, busy]);
 
   if (!open) return null;
 
@@ -183,6 +200,32 @@ export function DataStoragePanel({
                 <ActionButton onClick={onSaveWorkingFileAs} disabled={busy}>
                   <Save className="h-4 w-4" /> Speichern unter…
                 </ActionButton>
+                {recentFiles.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-[0.7rem] font-medium text-[var(--muted)]">Zuletzt verwendet</p>
+                    <ul className="space-y-1">
+                      {recentFiles.map((entry) => (
+                        <li key={`${entry.name}-${entry.openedAt}`}>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => onOpenRecentWorkingFile(entry.handle)}
+                            className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
+                            title={new Date(entry.openedAt).toLocaleString("de-DE")}
+                          >
+                            <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate font-medium">{entry.name}</span>
+                              <span className="block text-[0.65rem] text-[var(--muted)]">
+                                {new Date(entry.openedAt).toLocaleString("de-DE")}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </>
             ) : (
               <>

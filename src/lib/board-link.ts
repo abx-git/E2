@@ -1,4 +1,5 @@
 import type { StormElement } from "@/types/storm-element";
+import { backupBeforeSuspiciousSwitch } from "@/lib/board-backup";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 /** Normalize user input into an absolute http(s) URL, or null if empty/invalid. */
@@ -39,6 +40,7 @@ export function activateBoardLink(el: StormElement): ActivateLinkResult {
     const view = store.views.find((v) => v.id === viewId);
     if (!view) return { ok: false, reason: "Sicht nicht gefunden (gelöscht?)." };
     if (store.activeViewId !== viewId) {
+      backupBeforeSuspiciousSwitch("view");
       store.setActiveView(viewId);
     }
     return { ok: true, kind: "view", viewId, viewName: view.name };

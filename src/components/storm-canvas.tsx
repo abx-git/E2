@@ -13,6 +13,7 @@ import { TimelineGuide } from "@/components/timeline-guide";
 import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint } from "@/lib/canvas-viewport";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { elementsInMarquee, type WorldRect } from "@/lib/selection-geometry";
+import { sortElementsByZOrder } from "@/lib/element-z-order";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MARQUEE_THRESHOLD_PX = 4;
@@ -566,7 +567,7 @@ export function StormCanvas() {
           relationDraftSourceId={relationDraftSourceId}
           onSelectRelation={selectRelation}
         />
-        {elements.map((el) => (
+        {sortElementsByZOrder(elements).map((el) => (
           <StormElementCard
             key={el.id}
             element={el}

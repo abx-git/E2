@@ -4,6 +4,7 @@ import {
   cardMethodLines,
 } from "@/lib/card-preview";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { sortElementsByZOrder } from "@/lib/element-z-order";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { boardActiveSliceFromStore } from "@/store/storm-board-store";
 import type { BoardActiveSlice } from "@/lib/storm-json";
@@ -884,7 +885,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
     );
   }
 
-  for (const el of state.elements) {
+  for (const el of sortElementsByZOrder(state.elements)) {
     const r = elementRect(el);
     const { fill, stroke, ink } = elementFillStrokeInk(el);
     const shape = ELEMENT_STYLES[el.type].shape;
@@ -1017,7 +1018,7 @@ export function exportBoardSvg(): void {
     );
   }
 
-  for (const el of state.elements) {
+  for (const el of sortElementsByZOrder(state.elements)) {
     const r = elementRect(el);
     const { fill, stroke, ink } = elementFillStrokeInk(el);
     const x = r.x + ox;
@@ -1176,7 +1177,7 @@ export async function exportBoardPng(): Promise<void> {
     drawArrowHead(ctx, start.x + ox, start.y + oy, end.x + ox, end.y + oy);
   }
 
-  for (const el of state.elements) {
+  for (const el of sortElementsByZOrder(state.elements)) {
     const r = elementRect(el);
     const x = r.x + ox;
     const y = r.y + oy;

@@ -479,6 +479,10 @@
           "type": "number",
           "description": "Rotation in Grad (z. B. 45 für Hotspots)."
         },
+        "zIndex": {
+          "type": "integer",
+          "description": "Stapelreihenfolge auf dem Canvas (höher = weiter vorn)."
+        },
         "swimlaneId": {
           "type": "string",
           "description": "Optionale ID einer Swimlane."

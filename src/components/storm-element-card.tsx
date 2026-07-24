@@ -12,6 +12,7 @@ import {
   cardShowsDetails,
 } from "@/lib/card-preview";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
+import { cssStackingZIndex } from "@/lib/element-z-order";
 import { HighlightedText } from "@/components/highlighted-text";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -233,11 +234,11 @@ export function StormElementCard({
         height: h,
         transform: rotation ? `rotate(${rotation}deg)` : undefined,
         zIndex:
-          selected || connecting || editing || searchEmphasize
-            ? 30
-            : (focusMode && !dimForFocus) || (searchActive && searchHit?.match)
-              ? 25
-              : 20,
+          cssStackingZIndex(element, {
+            elevated: selected || connecting || editing || searchEmphasize,
+            highlighted:
+              (focusMode && !dimForFocus) || (searchActive && Boolean(searchHit?.match)),
+          }),
         opacity: dimmed ? 0.28 : undefined,
         filter: dimmed ? "saturate(0.55) brightness(0.72)" : undefined,
         transition: "opacity 120ms ease, filter 120ms ease",

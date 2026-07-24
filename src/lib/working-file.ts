@@ -17,7 +17,15 @@ const IDB_VERSION = 1;
 const IDB_STORE = "handles";
 const IDB_KEY = "board-json";
 const IDB_MOBILE_COPY_KEY = "mobile-working-copy";
+const IDB_RECENT_KEY = "recent-working-files";
 const LS_LAST_FILE_NAME = "e2-last-working-file-name";
+const RECENT_WORKING_FILES_LIMIT = 8;
+
+export interface RecentWorkingFileRecord {
+  name: string;
+  openedAt: number;
+  handle: FileSystemFileHandle;
+}
 
 let memoryHandle: FileSystemFileHandle | null = null;
 let mobileWorkingFileName: string | null = null;
@@ -313,6 +321,119 @@ async function idbClearMobileCopy(): Promise<void> {
   }
 }
 
+async function idbGetRecent(): Promise<RecentWorkingFileRecord[]> {
+  try {
+    const db = await openIdb();
+    try {
+      const raw = await new Promise<unknown>((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, "readonly");
+        tx.onerror = () => reject(tx.error ?? new Error("tx"));
+        const r = tx.objectStore(IDB_STORE).get(IDB_RECENT_KEY);
+        r.onsuccess = () => resolve(r.result);
+      });
+      if (!Array.isArray(raw)) return [];
+      return raw.filter(
+        (entry): entry is RecentWorkingFileRecord =>
+          Boolean(
+            entry &&
+              typeof entry === "object" &&
+              typeof (entry as RecentWorkingFileRecord).name === "string" &&
+              typeof (entry as RecentWorkingFileRecord).openedAt === "number" &&
+              (entry as RecentWorkingFileRecord).handle,
+          ),
+      );
+    } finally {
+      db.close();
+    }
+  } catch {
+    return [];
+  }
+}
+
+async function idbPutRecent(entries: RecentWorkingFileRecord[]): Promise<void> {
+  const db = await openIdb();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("tx"));
+      tx.objectStore(IDB_STORE).put(entries, IDB_RECENT_KEY);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+async function handlesAreSame(
+  a: FileSystemFileHandle,
+  b: FileSystemFileHandle,
+): Promise<boolean> {
+  try {
+    if (typeof a.isSameEntry === "function") return await a.isSameEntry(b);
+  } catch {
+    /* ignore */
+  }
+  return a.name === b.name;
+}
+
+async function rememberRecentWorkingFile(handle: FileSystemFileHandle): Promise<void> {
+  const name = handle.name?.trim() || STANDARD_WORKING_FILENAME;
+  const openedAt = Date.now();
+  try {
+    const existing = await idbGetRecent();
+    const next: RecentWorkingFileRecord[] = [{ name, openedAt, handle }];
+    for (const entry of existing) {
+      if (await handlesAreSame(entry.handle, handle)) continue;
+      next.push(entry);
+      if (next.length >= RECENT_WORKING_FILES_LIMIT) break;
+    }
+    await idbPutRecent(next);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Recent Arbeitsdateien (File System Access handles), newest first. */
+export async function listRecentWorkingFiles(): Promise<
+  Array<{ name: string; openedAt: number; handle: FileSystemFileHandle }>
+> {
+  if (!isWorkingFileSupported()) return [];
+  return idbGetRecent();
+}
+
+export async function clearRecentWorkingFiles(): Promise<void> {
+  try {
+    await idbPutRecent([]);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Re-open a recent file (must be called from a user gesture for permission).
+ * Promotes it to the current Arbeitsdatei and hydrates the editor.
+ */
+export async function openRecentWorkingFile(
+  handle: FileSystemFileHandle,
+): Promise<{
+  handle: FileSystemFileHandle;
+  hydrate: HydrateWorkingFileResult;
+} | null> {
+  if (!isWorkingFileSupported()) return null;
+  try {
+    let granted = (await handle.queryPermission({ mode: "readwrite" })) === "granted";
+    if (!granted) {
+      granted = (await handle.requestPermission({ mode: "readwrite" })) === "granted";
+    }
+    if (!granted) return null;
+    await rememberHandle(handle);
+    return { handle, hydrate: await hydrateStoreFromWorkingFile(handle) };
+  } catch (e) {
+    console.error("Recent file open:", e);
+    return null;
+  }
+}
+
 async function ensureReadWritePermission(handle: FileSystemFileHandle): Promise<boolean> {
   let ok = (await handle.queryPermission({ mode: "readwrite" })) === "granted";
   if (!ok) ok = (await handle.requestPermission({ mode: "readwrite" })) === "granted";
@@ -454,6 +575,7 @@ async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
   } catch {
     /* ignore */
   }
+  await rememberRecentWorkingFile(handle);
 }
 
 export async function attachWorkingFileOpen(): Promise<FileSystemFileHandle | null> {

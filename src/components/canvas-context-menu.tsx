@@ -11,10 +11,12 @@ import {
   AlignStartHorizontal,
   AlignStartVertical,
   AlignVerticalSpaceBetween,
+  BringToFront,
   ClipboardList,
   ClipboardPaste,
   HelpCircle,
   Link2,
+  SendToBack,
   StretchHorizontal,
   StretchVertical,
   Trash2,
@@ -60,6 +62,10 @@ export function CanvasContextMenu({
   const updateElement = useStormBoardStore((s) => s.updateElement);
   const deleteElement = useStormBoardStore((s) => s.deleteElement);
   const patchElements = useStormBoardStore((s) => s.patchElements);
+  const bringElementsToFront = useStormBoardStore((s) => s.bringElementsToFront);
+  const sendElementsToBack = useStormBoardStore((s) => s.sendElementsToBack);
+  const bringElementsForward = useStormBoardStore((s) => s.bringElementsForward);
+  const sendElementsBackward = useStormBoardStore((s) => s.sendElementsBackward);
   const updateRelation = useStormBoardStore((s) => s.updateRelation);
   const deleteRelation = useStormBoardStore((s) => s.deleteRelation);
   const updateContextRelation = useStormBoardStore((s) => s.updateContextRelation);
@@ -287,6 +293,26 @@ export function CanvasContextMenu({
           onClick={() => run(() => onRequestHelpElementType?.(el.type))}
         />
         <Separator />
+        <Section label="Ebene" />
+        <Item
+          icon={BringToFront}
+          label="In den Vordergrund"
+          onClick={() => run(() => bringElementsToFront([el.id]))}
+        />
+        <Item
+          label="Eine Ebene nach vorn"
+          onClick={() => run(() => bringElementsForward([el.id]))}
+        />
+        <Item
+          label="Eine Ebene nach hinten"
+          onClick={() => run(() => sendElementsBackward([el.id]))}
+        />
+        <Item
+          icon={SendToBack}
+          label="In den Hintergrund"
+          onClick={() => run(() => sendElementsToBack([el.id]))}
+        />
+        <Separator />
         <Item
           icon={ClipboardList}
           label="In Zwischenablage verschieben"
@@ -370,6 +396,26 @@ export function CanvasContextMenu({
               if (patches.length) patchElements(patches);
             })
           }
+        />
+        <Separator />
+        <Section label="Ebene" />
+        <Item
+          icon={BringToFront}
+          label="In den Vordergrund"
+          onClick={() => run(() => bringElementsToFront(target.ids))}
+        />
+        <Item
+          label="Eine Ebene nach vorn"
+          onClick={() => run(() => bringElementsForward(target.ids))}
+        />
+        <Item
+          label="Eine Ebene nach hinten"
+          onClick={() => run(() => sendElementsBackward(target.ids))}
+        />
+        <Item
+          icon={SendToBack}
+          label="In den Hintergrund"
+          onClick={() => run(() => sendElementsToBack(target.ids))}
         />
         <Separator />
         <Item

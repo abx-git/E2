@@ -13,6 +13,13 @@ import {
   takeIdsFromClipboard,
   type BoardClipboardPayload,
 } from "@/lib/board-clipboard";
+import {
+  bringElementsForward as computeBringForward,
+  bringElementsToFront as computeBringToFront,
+  nextElementZIndex,
+  sendElementsBackward as computeSendBackward,
+  sendElementsToBack as computeSendToBack,
+} from "@/lib/element-z-order";
 import { generateStormId } from "@/lib/storm-id";
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
@@ -152,8 +159,19 @@ export interface StormBoardState {
   moveElement: (id: string, x: number, y: number) => void;
   moveElements: (updates: Array<{ id: string; x: number; y: number }>) => void;
   patchElements: (
-    updates: Array<{ id: string; x?: number; y?: number; width?: number; height?: number }>,
+    updates: Array<{
+      id: string;
+      x?: number;
+      y?: number;
+      width?: number;
+      height?: number;
+      zIndex?: number;
+    }>,
   ) => void;
+  bringElementsToFront: (ids: string[]) => void;
+  sendElementsToBack: (ids: string[]) => void;
+  bringElementsForward: (ids: string[]) => void;
+  sendElementsBackward: (ids: string[]) => void;
 
   addRelation: (sourceId: string, targetId: string, type?: RelationType, label?: string) => string | null;
   updateRelation: (id: string, patch: Partial<StormRelation>) => void;
@@ -203,7 +221,13 @@ export interface StormBoardState {
   } | { ok: false; error: string };
 }
 
-function createElement(type: ElementType, x: number, y: number, label?: string): StormElement {
+function createElement(
+  type: ElementType,
+  x: number,
+  y: number,
+  label?: string,
+  zIndex = 0,
+): StormElement {
   const dims = elementDimensions(type);
   return {
     id: generateStormId(),
@@ -213,6 +237,7 @@ function createElement(type: ElementType, x: number, y: number, label?: string):
     y,
     width: dims.width,
     height: dims.height,
+    zIndex,
     rotation: type === "hotspot" ? 45 : undefined,
     metadata: type === "hotspot"
       ? { hotspotStatus: "open", hotspotPriority: "medium" }
@@ -703,8 +728,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   canRedo: () => get().future.length > 0,
 
   addElement: (type, x, y, label) => {
-    const el = createElement(type, x, y, label);
+    let createdId = "";
     commit(set, get, (s) => {
+      const el = createElement(type, x, y, label, nextElementZIndex(s.elements));
+      createdId = el.id;
       const elements = applyContainmentAssignments(
         [...s.elements, el],
         s.swimlanes,
@@ -715,7 +742,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedElementIds: [el.id],
       };
     });
-    return el.id;
+    return createdId;
   },
 
   updateElement: (id, patch) =>
@@ -767,10 +794,39 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         const { id: _id, ...patch } = u;
         return { ...e, ...patch, id: e.id };
       });
+      const geometryChanged = updates.some(
+        (u) =>
+          u.x !== undefined ||
+          u.y !== undefined ||
+          u.width !== undefined ||
+          u.height !== undefined,
+      );
       return {
-        elements: applyContainmentAssignments(elements, s.swimlanes, s.boundedContexts),
+        elements: geometryChanged
+          ? applyContainmentAssignments(elements, s.swimlanes, s.boundedContexts)
+          : elements,
       };
     }),
+
+  bringElementsToFront: (ids) => {
+    const patches = computeBringToFront(get().elements, ids);
+    if (patches.length) get().patchElements(patches);
+  },
+
+  sendElementsToBack: (ids) => {
+    const patches = computeSendToBack(get().elements, ids);
+    if (patches.length) get().patchElements(patches);
+  },
+
+  bringElementsForward: (ids) => {
+    const patches = computeBringForward(get().elements, ids);
+    if (patches.length) get().patchElements(patches);
+  },
+
+  sendElementsBackward: (ids) => {
+    const patches = computeSendBackward(get().elements, ids);
+    if (patches.length) get().patchElements(patches);
+  },
 
   addRelation: (sourceId, targetId, type, label) => {
     if (sourceId === targetId) return null;

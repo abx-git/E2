@@ -62,6 +62,44 @@ export function createBoardBackupNow(
   return { filename, skipped: false };
 }
 
+export type SuspiciousSwitchKind = "view" | "file" | "room";
+
+const LAST_SWITCH_BACKUP_AT: Partial<Record<SuspiciousSwitchKind | "any", number>> = {};
+
+/**
+ * Download a safety backup before replacing or switching board context
+ * (Sicht-Tab, andere Datei, Kollaborations-Raum).
+ * Debounced per kind so confirm-dialogs don't double-download.
+ */
+export function backupBeforeSuspiciousSwitch(
+  kind: SuspiciousSwitchKind,
+  options?: { allowEmpty?: boolean; debounceMs?: number },
+): { filename: string; skipped: false } | { skipped: true; reason: "empty" | "debounced" } {
+  const debounceMs =
+    options?.debounceMs ?? (kind === "view" ? 4000 : 2000);
+  const now = Date.now();
+  const lastKind = LAST_SWITCH_BACKUP_AT[kind] ?? 0;
+  const lastAny = LAST_SWITCH_BACKUP_AT.any ?? 0;
+  if (now - lastKind < debounceMs || now - lastAny < Math.min(debounceMs, 1500)) {
+    return { skipped: true, reason: "debounced" };
+  }
+  const result = createBoardBackupNow({ allowEmpty: options?.allowEmpty ?? false });
+  if (!result.skipped) {
+    LAST_SWITCH_BACKUP_AT[kind] = now;
+    LAST_SWITCH_BACKUP_AT.any = now;
+  }
+  return result;
+}
+
+/** @internal test helper */
+export function resetSuspiciousSwitchBackupDebounce(): void {
+  for (const key of Object.keys(LAST_SWITCH_BACKUP_AT) as Array<
+    keyof typeof LAST_SWITCH_BACKUP_AT
+  >) {
+    delete LAST_SWITCH_BACKUP_AT[key];
+  }
+}
+
 export function readBackupIntervalMinutes(): BackupIntervalMinutes {
   if (typeof localStorage === "undefined") return 0;
   try {

@@ -34,6 +34,7 @@ import {
   readLastBackupAt,
   type BackupIntervalMinutes,
   writeBackupIntervalMinutes,
+  backupBeforeSuspiciousSwitch,
 } from "@/lib/board-backup";
 import { boardHasLocalContent, shouldConfirmCollabEnter } from "@/lib/collab/file-guard";
 import {
@@ -82,6 +83,7 @@ import {
   isWorkingFileDirty,
   isWorkingFileSupported,
   isWorkingFileUiAvailable,
+  openRecentWorkingFile,
   persistWorkingFileJson,
   resolveWorkingFileImportConflict,
   saveWorkingFileAs,
@@ -161,6 +163,7 @@ export function StormBoard() {
       setUrlJoinConfirm(true);
     } else {
       const name = useCollabStore.getState().displayName || "Gast";
+      backupBeforeSuspiciousSwitch("room");
       capturePreCollabStash();
       void joinRoom(room, name);
     }
@@ -252,6 +255,7 @@ export function StormBoard() {
     }
     setBusy(true);
     try {
+      backupBeforeSuspiciousSwitch("file");
       const result = await attachWorkingFileFromPicker();
       if (!result) return;
       if (result.hydrate.status === "conflict") {
@@ -262,7 +266,41 @@ export function StormBoard() {
         });
         return;
       }
+      setWorkingFileName(getWorkingFileLabel());
       setSetupOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleOpenRecentWorkingFile = async (handle: FileSystemFileHandle) => {
+    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+      window.alert(
+        "Während der Kollaboration kann keine andere Datei in den Editor geladen werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      backupBeforeSuspiciousSwitch("file");
+      const result = await openRecentWorkingFile(handle);
+      if (!result) {
+        window.alert(
+          "Datei konnte nicht geöffnet werden. Bitte Berechtigung erteilen oder die Datei erneut über „Datei öffnen“ wählen.",
+        );
+        return;
+      }
+      if (result.hydrate.status === "conflict") {
+        setImportConflict({
+          fileText: result.hydrate.fileText,
+          fileLastModified: result.hydrate.fileLastModified,
+          fileName: result.handle.name || "Arbeitsdatei",
+        });
+        return;
+      }
+      setWorkingFileName(getWorkingFileLabel());
+      setSetupOpen(false);
+      setStorageOpen(false);
     } finally {
       setBusy(false);
     }
@@ -279,6 +317,7 @@ export function StormBoard() {
     if (!raw?.trim()) return;
     setBusy(true);
     try {
+      backupBeforeSuspiciousSwitch("file");
       const result = await attachWorkingFileFromPastedText(raw);
       if (result.status === "read_error") {
         window.alert(result.message);
@@ -323,6 +362,7 @@ export function StormBoard() {
           "Stand vor dem Raum wiederherstellen?\n\nDer aktuelle Board-Inhalt (Raum-Stand) wird im Editor und in der Arbeitsdatei durch die ältere lokale Kopie ersetzt.\n\nWähle Abbrechen und danach „Raum verlassen“, wenn du den Remote-Stand behalten willst.",
         );
         if (!ok) return;
+        backupBeforeSuspiciousSwitch("room");
       }
 
       await flushCollabSnapshotNow();
@@ -360,6 +400,7 @@ export function StormBoard() {
         return;
       }
     }
+    backupBeforeSuspiciousSwitch("room");
     capturePreCollabStash();
     await enter();
   };
@@ -468,6 +509,7 @@ export function StormBoard() {
         onBackupNow={() => runManualBoardBackup(setBackupLastLabel)}
         onOpenWorkingFile={() => void handleOpenWorkingFile()}
         onSaveWorkingFileAs={() => void handleSaveWorkingFileAs()}
+        onOpenRecentWorkingFile={(handle) => void handleOpenRecentWorkingFile(handle)}
         onRestoreBackupFile={() => fileInputRef.current?.click()}
         onRestoreBackupPaste={() => void handlePasteJson()}
         onImportAsNewViews={handleImportAsNewViews}
@@ -567,6 +609,7 @@ export function StormBoard() {
             return;
           }
           setBusy(true);
+          backupBeforeSuspiciousSwitch("file");
           void attachWorkingFileFromBrowserFile(file).then((result) => {
             setBusy(false);
             if (result.status === "read_error") {
@@ -581,6 +624,7 @@ export function StormBoard() {
               });
               return;
             }
+            setWorkingFileName(getWorkingFileLabel());
             setSetupOpen(false);
           });
         }}

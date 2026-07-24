@@ -167,6 +167,8 @@ export interface StormElement {
   width?: number;
   height?: number;
   rotation?: number;
+  /** Stacking order within the canvas (higher = in front). */
+  zIndex?: number;
   swimlaneId?: string;
   boundedContextId?: string;
   metadata?: ElementMetadata;
