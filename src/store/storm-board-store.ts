@@ -21,6 +21,8 @@ import {
   sendElementsToBack as computeSendToBack,
 } from "@/lib/element-z-order";
 import { generateStormId } from "@/lib/storm-id";
+
+const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
 import { createEmptyBoardView, normalizeBoardDocument } from "@/lib/storm-json";
@@ -131,7 +133,12 @@ export interface StormBoardState {
   setFocusMode: (enabled: boolean) => void;
   setSearchQuery: (query: string) => void;
   setClipboardDropHighlight: (active: boolean) => void;
+  /** Cut selection into the board clipboard (removes from canvas). */
   moveToClipboard: (ids: string[]) => boolean;
+  /** Copy selection into the board clipboard (keeps originals). */
+  copyToClipboard: (ids: string[]) => boolean;
+  /** Duplicate selection in place with a slight offset. */
+  duplicateElements: (ids: string[]) => string[];
   pasteClipboardAt: (worldX: number, worldY: number) => string[];
   /** Paste subset from clipboard onto the board and remove those items from the clipboard. */
   takeClipboardElementsAt: (ids: string[], worldX: number, worldY: number) => string[];
@@ -521,6 +528,66 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       };
     });
     return ok;
+  },
+
+  copyToClipboard: (ids) => {
+    const unique = Array.from(new Set(ids));
+    if (unique.length === 0) return false;
+    const s = get();
+    const extracted = extractClipboardPayload(s.elements, s.relations, unique);
+    if (!extracted) return false;
+    const mergedElements = s.clipboard
+      ? [...s.clipboard.elements, ...extracted.elements]
+      : extracted.elements;
+    const mergedRelations = s.clipboard
+      ? [...s.clipboard.relations, ...extracted.relations]
+      : extracted.relations;
+    const centroid = selectionCentroid(mergedElements);
+    set({
+      clipboard: {
+        elements: mergedElements,
+        relations: mergedRelations,
+        originX: centroid.x,
+        originY: centroid.y,
+      },
+    });
+    return true;
+  },
+
+  duplicateElements: (ids) => {
+    const unique = Array.from(new Set(ids));
+    if (unique.length === 0) return [];
+    let newIds: string[] = [];
+    commit(set, get, (s) => {
+      const extracted = extractClipboardPayload(s.elements, s.relations, unique);
+      if (!extracted) return {};
+      const remapped = remapClipboardForPaste(
+        extracted,
+        extracted.originX + DUPLICATE_OFFSET_PX,
+        extracted.originY + DUPLICATE_OFFSET_PX,
+      );
+      let z = nextElementZIndex(s.elements);
+      const elementsWithZ = remapped.elements.map((el) => ({
+        ...el,
+        zIndex: z++,
+      }));
+      newIds = remapped.newIds;
+      const elements = applyContainmentAssignments(
+        [...s.elements, ...elementsWithZ],
+        s.swimlanes,
+        s.boundedContexts,
+      );
+      return {
+        elements,
+        relations: [...s.relations, ...remapped.relations],
+        selectedElementIds: remapped.newIds,
+        selectedRelationId: null,
+        selectedContextRelationId: null,
+        selectedBoundedContextId: null,
+        selectedSwimlaneId: null,
+      };
+    });
+    return newIds;
   },
 
   pasteClipboardAt: (worldX, worldY) => {

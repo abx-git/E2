@@ -12,8 +12,10 @@ import {
   AlignStartVertical,
   AlignVerticalSpaceBetween,
   BringToFront,
+  ClipboardCopy,
   ClipboardList,
   ClipboardPaste,
+  Copy,
   HelpCircle,
   Link2,
   SendToBack,
@@ -82,6 +84,8 @@ export function CanvasContextMenu({
   const timeline = useStormBoardStore((s) => s.timeline);
   const setTimeline = useStormBoardStore((s) => s.setTimeline);
   const moveToClipboard = useStormBoardStore((s) => s.moveToClipboard);
+  const copyToClipboard = useStormBoardStore((s) => s.copyToClipboard);
+  const duplicateElements = useStormBoardStore((s) => s.duplicateElements);
   const pasteClipboardAt = useStormBoardStore((s) => s.pasteClipboardAt);
   const clipboard = useStormBoardStore((s) => s.clipboard);
 
@@ -314,6 +318,16 @@ export function CanvasContextMenu({
         />
         <Separator />
         <Item
+          icon={Copy}
+          label="Duplizieren"
+          onClick={() => run(() => duplicateElements([el.id]))}
+        />
+        <Item
+          icon={ClipboardCopy}
+          label="In Zwischenablage kopieren"
+          onClick={() => run(() => copyToClipboard([el.id]))}
+        />
+        <Item
           icon={ClipboardList}
           label="In Zwischenablage verschieben"
           onClick={() => run(() => moveToClipboard([el.id]))}
@@ -418,6 +432,16 @@ export function CanvasContextMenu({
           onClick={() => run(() => sendElementsToBack(target.ids))}
         />
         <Separator />
+        <Item
+          icon={Copy}
+          label="Duplizieren"
+          onClick={() => run(() => duplicateElements(target.ids))}
+        />
+        <Item
+          icon={ClipboardCopy}
+          label="In Zwischenablage kopieren"
+          onClick={() => run(() => copyToClipboard(target.ids))}
+        />
         <Item
           icon={ClipboardList}
           label="In Zwischenablage verschieben"

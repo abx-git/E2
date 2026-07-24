@@ -227,15 +227,25 @@ describe("store undo / views / import", () => {
     expect(useStormBoardStore.getState().selectedElementIds).toEqual(pasted);
   });
 
-  it("takes a single clipboard element onto the board", () => {
+  it("copies elements to clipboard without removing them", () => {
     const store = useStormBoardStore.getState();
     const idA = store.addElement("domainEvent", 10, 10);
-    const idB = store.addElement("command", 120, 10);
-    store.moveToClipboard([idA, idB]);
-    const clipIds = useStormBoardStore.getState().clipboard!.elements.map((e) => e.id);
-    const taken = store.takeClipboardElementsAt([clipIds[0]!], 50, 50);
-    expect(taken).toHaveLength(1);
+    store.copyToClipboard([idA]);
     expect(useStormBoardStore.getState().elements).toHaveLength(1);
     expect(useStormBoardStore.getState().clipboard?.elements).toHaveLength(1);
+  });
+
+  it("duplicates elements with an offset", () => {
+    const store = useStormBoardStore.getState();
+    const idA = store.addElement("domainEvent", 40, 50);
+    const before = useStormBoardStore.getState().elements.find((e) => e.id === idA)!;
+    const duplicated = store.duplicateElements([idA]);
+    expect(duplicated).toHaveLength(1);
+    const state = useStormBoardStore.getState();
+    expect(state.elements).toHaveLength(2);
+    const copy = state.elements.find((e) => e.id === duplicated[0])!;
+    expect(copy.x).toBe(before.x + 28);
+    expect(copy.y).toBe(before.y + 28);
+    expect(state.selectedElementIds).toEqual(duplicated);
   });
 });

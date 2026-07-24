@@ -226,7 +226,7 @@ export function StormElementCard({
 
   return (
     <div
-      className="absolute select-none"
+      className="group absolute select-none"
       style={{
         left: element.x,
         top: element.y,
@@ -488,17 +488,17 @@ export function StormElementCard({
           </ul>
         )}
         {element.metadata?.isRecurring && !editing && (
-          <Clock className="absolute right-1 top-1 h-3 w-3 opacity-70" aria-hidden />
+          <Clock className="absolute bottom-1 left-1 h-3 w-3 opacity-70" aria-hidden />
         )}
         {element.type === "hotspot" && element.metadata?.hotspotStatus === "resolved" && !editing && (
-          <RotateCcw className="absolute left-1 top-1 h-3 w-3 opacity-70" aria-hidden />
+          <RotateCcw className="absolute bottom-1 right-1 h-3 w-3 opacity-70" aria-hidden />
         )}
         {element.type === "link" && !editing && linkHasTarget(element) && (
           <button
             type="button"
             title="Link öffnen"
             aria-label="Link öffnen"
-            className="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-current/25 bg-white/70 text-current opacity-80 hover:opacity-100"
+            className="absolute bottom-1.5 left-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-current/25 bg-white/70 text-current opacity-80 hover:opacity-100"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
@@ -527,18 +527,22 @@ export function StormElementCard({
           />
         ))}
 
-      {!editing && (!selected || relationMode || connecting || isRelationTargetHint) && (
+      {!editing && (
         <button
           type="button"
           className={[
-            "absolute -right-2.5 top-1/2 z-10 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border shadow-sm transition-colors",
-          connecting
-            ? "border-[var(--accent-2)] bg-[#1e3a36] text-[var(--accent-2)] hover:bg-[#244840]"
-            : isRelationTargetHint
-              ? "border-[var(--accent-2)]/60 bg-[var(--control)] text-[var(--accent-2)]"
-              : "border-[var(--border)] bg-[var(--panel-solid)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]",
+            "absolute right-1.5 top-1.5 z-30 flex h-5 w-5 items-center justify-center rounded-full border shadow-sm transition-[opacity,colors]",
+            selected || connecting || relationMode || isRelationTargetHint
+              ? "opacity-100"
+              : "opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
+            connecting
+              ? "border-[var(--accent-2)] bg-[#1e3a36] text-[var(--accent-2)] hover:bg-[#244840]"
+              : isRelationTargetHint
+                ? "border-[var(--accent-2)]/60 bg-[var(--control)] text-[var(--accent-2)]"
+                : "border-[var(--border)] bg-[var(--panel-solid)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]",
           ].join(" ")}
           title={connecting ? "Als Ziel wählen (Abbrechen: erneut klicken)" : "Relation starten"}
+          aria-label={connecting ? "Als Ziel wählen" : "Relation starten"}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
