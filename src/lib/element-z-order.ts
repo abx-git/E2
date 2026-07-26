@@ -1,91 +1,113 @@
 import type { StormElement } from "@/types/storm-element";
 
+/** Anything with a stable id and optional stacking rank. */
+export type ZOrderable = { id: string; zIndex?: number };
+
 /** Stable stacking rank; missing values count as 0. */
-export function elementZIndex(el: Pick<StormElement, "zIndex">): number {
-  return Number.isFinite(el.zIndex) ? Number(el.zIndex) : 0;
+export function itemZIndex(item: Pick<ZOrderable, "zIndex">): number {
+  return Number.isFinite(item.zIndex) ? Number(item.zIndex) : 0;
 }
 
+/** @deprecated Prefer itemZIndex — kept for element call sites. */
+export const elementZIndex = itemZIndex;
+
 /** Paint / export order: lower first, then id for stability. */
-export function compareElementsByZOrder(a: StormElement, b: StormElement): number {
-  const dz = elementZIndex(a) - elementZIndex(b);
+export function compareByZOrder(a: ZOrderable, b: ZOrderable): number {
+  const dz = itemZIndex(a) - itemZIndex(b);
   if (dz !== 0) return dz;
   return a.id.localeCompare(b.id);
 }
 
+export function sortByZOrder<T extends ZOrderable>(items: T[]): T[] {
+  return [...items].sort(compareByZOrder);
+}
+
 export function sortElementsByZOrder(elements: StormElement[]): StormElement[] {
-  return [...elements].sort(compareElementsByZOrder);
+  return sortByZOrder(elements);
 }
 
-export function maxElementZIndex(elements: StormElement[]): number {
-  if (elements.length === 0) return 0;
-  return Math.max(...elements.map(elementZIndex));
+export function compareElementsByZOrder(a: StormElement, b: StormElement): number {
+  return compareByZOrder(a, b);
 }
 
-export function minElementZIndex(elements: StormElement[]): number {
-  if (elements.length === 0) return 0;
-  return Math.min(...elements.map(elementZIndex));
+export function maxZIndex(items: ZOrderable[]): number {
+  if (items.length === 0) return 0;
+  return Math.max(...items.map(itemZIndex));
 }
 
-/** Next zIndex for a newly created element (above everything). */
-export function nextElementZIndex(elements: StormElement[]): number {
-  return elements.length === 0 ? 0 : maxElementZIndex(elements) + 1;
+export function minZIndex(items: ZOrderable[]): number {
+  if (items.length === 0) return 0;
+  return Math.min(...items.map(itemZIndex));
 }
+
+export const maxElementZIndex = maxZIndex;
+export const minElementZIndex = minZIndex;
+
+/** Next zIndex for a newly created item (above everything in `items`). */
+export function nextZIndex(items: ZOrderable[]): number {
+  return items.length === 0 ? 0 : maxZIndex(items) + 1;
+}
+
+export const nextElementZIndex = nextZIndex;
 
 /**
- * Raise `ids` above all other elements (preserving relative order among them).
- * Returns patches for elements whose zIndex changes.
+ * Raise `ids` above all other items (preserving relative order among them).
+ * Returns patches for items whose zIndex changes.
  */
-export function bringElementsToFront(
-  elements: StormElement[],
+export function bringToFront(
+  items: ZOrderable[],
   ids: string[],
 ): Array<{ id: string; zIndex: number }> {
   const idSet = new Set(ids);
-  const selected = sortElementsByZOrder(elements.filter((e) => idSet.has(e.id)));
+  const selected = sortByZOrder(items.filter((e) => idSet.has(e.id)));
   if (selected.length === 0) return [];
-  const others = elements.filter((e) => !idSet.has(e.id));
-  let z = others.length === 0 ? 0 : maxElementZIndex(others) + 1;
+  const others = items.filter((e) => !idSet.has(e.id));
+  let z = others.length === 0 ? 0 : maxZIndex(others) + 1;
   const patches: Array<{ id: string; zIndex: number }> = [];
   for (const el of selected) {
-    if (elementZIndex(el) !== z) patches.push({ id: el.id, zIndex: z });
+    if (itemZIndex(el) !== z) patches.push({ id: el.id, zIndex: z });
     z += 1;
   }
   return patches;
 }
 
-/** Lower `ids` below all other elements (preserving relative order among them). */
-export function sendElementsToBack(
-  elements: StormElement[],
+export const bringElementsToFront = bringToFront;
+
+/** Lower `ids` below all other items (preserving relative order among them). */
+export function sendToBack(
+  items: ZOrderable[],
   ids: string[],
 ): Array<{ id: string; zIndex: number }> {
   const idSet = new Set(ids);
-  const selected = sortElementsByZOrder(elements.filter((e) => idSet.has(e.id)));
+  const selected = sortByZOrder(items.filter((e) => idSet.has(e.id)));
   if (selected.length === 0) return [];
-  const others = elements.filter((e) => !idSet.has(e.id));
-  const start =
-    others.length === 0 ? 0 : minElementZIndex(others) - selected.length;
+  const others = items.filter((e) => !idSet.has(e.id));
+  const start = others.length === 0 ? 0 : minZIndex(others) - selected.length;
   let z = start;
   const patches: Array<{ id: string; zIndex: number }> = [];
   for (const el of selected) {
-    if (elementZIndex(el) !== z) patches.push({ id: el.id, zIndex: z });
+    if (itemZIndex(el) !== z) patches.push({ id: el.id, zIndex: z });
     z += 1;
   }
   return patches;
 }
 
-/** Move selection one step forward in the z-order among all elements. */
-export function bringElementsForward(
-  elements: StormElement[],
+export const sendElementsToBack = sendToBack;
+
+/** Move selection one step forward in the z-order among all items. */
+export function bringForward(
+  items: ZOrderable[],
   ids: string[],
 ): Array<{ id: string; zIndex: number }> {
   const idSet = new Set(ids);
-  const ordered = sortElementsByZOrder(elements);
+  const ordered = sortByZOrder(items);
   const patches: Array<{ id: string; zIndex: number }> = [];
   for (let i = ordered.length - 2; i >= 0; i--) {
     const cur = ordered[i]!;
     const next = ordered[i + 1]!;
     if (idSet.has(cur.id) && !idSet.has(next.id)) {
-      const a = elementZIndex(cur);
-      const b = elementZIndex(next);
+      const a = itemZIndex(cur);
+      const b = itemZIndex(next);
       if (a !== b) {
         patches.push({ id: cur.id, zIndex: b }, { id: next.id, zIndex: a });
       } else {
@@ -98,20 +120,22 @@ export function bringElementsForward(
   return dedupeZPatches(patches);
 }
 
-/** Move selection one step backward in the z-order among all elements. */
-export function sendElementsBackward(
-  elements: StormElement[],
+export const bringElementsForward = bringForward;
+
+/** Move selection one step backward in the z-order among all items. */
+export function sendBackward(
+  items: ZOrderable[],
   ids: string[],
 ): Array<{ id: string; zIndex: number }> {
   const idSet = new Set(ids);
-  const ordered = sortElementsByZOrder(elements);
+  const ordered = sortByZOrder(items);
   const patches: Array<{ id: string; zIndex: number }> = [];
   for (let i = 1; i < ordered.length; i++) {
     const cur = ordered[i]!;
     const prev = ordered[i - 1]!;
     if (idSet.has(cur.id) && !idSet.has(prev.id)) {
-      const a = elementZIndex(cur);
-      const b = elementZIndex(prev);
+      const a = itemZIndex(cur);
+      const b = itemZIndex(prev);
       if (a !== b) {
         patches.push({ id: cur.id, zIndex: b }, { id: prev.id, zIndex: a });
       } else {
@@ -124,6 +148,8 @@ export function sendElementsBackward(
   return dedupeZPatches(patches);
 }
 
+export const sendElementsBackward = sendBackward;
+
 function dedupeZPatches(
   patches: Array<{ id: string; zIndex: number }>,
 ): Array<{ id: string; zIndex: number }> {
@@ -132,13 +158,34 @@ function dedupeZPatches(
   return Array.from(byId, ([id, zIndex]) => ({ id, zIndex }));
 }
 
-/** CSS stacking: base from persisted zIndex, boost for interaction. */
+/** CSS stacking for stickies: base from persisted zIndex, boost for interaction. */
 export function cssStackingZIndex(
   el: Pick<StormElement, "zIndex">,
   opts: { elevated?: boolean; highlighted?: boolean },
 ): number {
-  const base = 20 + elementZIndex(el);
+  const base = 20 + itemZIndex(el);
   if (opts.elevated) return Math.max(base, 10_000);
   if (opts.highlighted) return Math.max(base, 25);
   return base;
+}
+
+/**
+ * CSS stacking for swimlanes / bounded contexts inside their own stacking context.
+ * Selected regions rise above siblings but stay within the region layer.
+ */
+export function cssRegionStackingZIndex(
+  item: Pick<ZOrderable, "zIndex">,
+  opts: { elevated?: boolean } = {},
+): number {
+  const base = 2 + itemZIndex(item);
+  if (opts.elevated) return Math.max(base, 10_000);
+  return base;
+}
+
+/** Combined region list for shared z-order among swimlanes and bounded contexts. */
+export function regionZOrderItems(
+  swimlanes: ZOrderable[],
+  boundedContexts: ZOrderable[],
+): ZOrderable[] {
+  return [...swimlanes, ...boundedContexts];
 }

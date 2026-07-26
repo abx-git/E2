@@ -1,5 +1,6 @@
 "use client";
 
+import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
 import { elementIdsInSwimlane } from "@/lib/region-containment";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -24,6 +25,7 @@ export function SwimlaneLayer() {
   const selectSwimlane = useStormBoardStore((s) => s.selectSwimlane);
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
+  const ordered = sortByZOrder(swimlanes);
 
   const startMove = (laneId: string, e: React.PointerEvent) => {
     if (e.button !== 0) return;
@@ -112,7 +114,7 @@ export function SwimlaneLayer() {
 
   return (
     <>
-      {swimlanes.map((lane) => {
+      {ordered.map((lane) => {
         const selected = selectedSwimlaneId === lane.id;
         return (
           <div
@@ -128,7 +130,7 @@ export function SwimlaneLayer() {
               width: lane.width ?? 4000,
               height: lane.height,
               backgroundColor: lane.color ?? "rgba(148,163,184,0.12)",
-              zIndex: selected ? 6 : 2,
+              zIndex: cssRegionStackingZIndex(lane, { elevated: selected }),
             }}
             onPointerDown={(e) => startMove(lane.id, e)}
             onContextMenu={(e) => {

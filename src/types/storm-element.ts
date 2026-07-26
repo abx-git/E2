@@ -196,6 +196,8 @@ export interface Swimlane {
   width: number;
   height: number;
   color?: string;
+  /** Stacking order among swimlanes and bounded contexts (higher = in front). */
+  zIndex?: number;
 }
 
 export interface BoundedContext {
@@ -207,6 +209,8 @@ export interface BoundedContext {
   width: number;
   height: number;
   color?: string;
+  /** Stacking order among swimlanes and bounded contexts (higher = in front). */
+  zIndex?: number;
 }
 
 export interface Timeline {

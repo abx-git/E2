@@ -137,6 +137,11 @@ export function ElementDetailSidebar({
               min={80}
               onChange={(v) => updateSwimlane(selectedSwimlane.id, { height: Math.max(80, v) })}
             />
+            <NumberField
+              label="Ebene (z)"
+              value={selectedSwimlane.zIndex ?? 0}
+              onChange={(v) => updateSwimlane(selectedSwimlane.id, { zIndex: v })}
+            />
           </div>
           <p className="text-[0.72rem] text-[var(--muted)]">Löschen: Rechtsklick.</p>
         </DockPanel>
@@ -191,6 +196,11 @@ export function ElementDetailSidebar({
               onChange={(v) =>
                 updateBoundedContext(selectedBoundedContext.id, { height: Math.max(80, v) })
               }
+            />
+            <NumberField
+              label="Ebene (z)"
+              value={selectedBoundedContext.zIndex ?? 0}
+              onChange={(v) => updateBoundedContext(selectedBoundedContext.id, { zIndex: v })}
             />
           </div>
           <Field label="Farbe">

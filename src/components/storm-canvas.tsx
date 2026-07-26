@@ -532,8 +532,13 @@ export function StormCanvas() {
           height: 3000,
         }}
       >
-        <SwimlaneLayer />
-        <BoundedContextLayer />
+        <div
+          className="absolute left-0 top-0"
+          style={{ zIndex: 1, width: 4000, height: 3000 }}
+        >
+          <SwimlaneLayer />
+          <BoundedContextLayer />
+        </div>
         <ContextMapConnectors
           boundedContexts={boundedContexts}
           contextRelations={contextRelations}

@@ -544,7 +544,11 @@
         "y": { "type": "number" },
         "width": { "type": "number", "exclusiveMinimum": 0 },
         "height": { "type": "number", "exclusiveMinimum": 0 },
-        "color": { "type": "string" }
+        "color": { "type": "string" },
+        "zIndex": {
+          "type": "integer",
+          "description": "Stapelreihenfolge unter Swimlanes und Bounded Contexts (höher = weiter vorn)."
+        }
       }
     },
     "boundedContext": {
@@ -559,7 +563,11 @@
         "y": { "type": "number" },
         "width": { "type": "number", "exclusiveMinimum": 0 },
         "height": { "type": "number", "exclusiveMinimum": 0 },
-        "color": { "type": "string" }
+        "color": { "type": "string" },
+        "zIndex": {
+          "type": "integer",
+          "description": "Stapelreihenfolge unter Swimlanes und Bounded Contexts (höher = weiter vorn)."
+        }
       }
     },
     "timeline": {

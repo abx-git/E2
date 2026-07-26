@@ -1,5 +1,6 @@
 "use client";
 
+import { contextRelationAnchors, boundedContextCenter } from "@/lib/connector-geometry";
 import { CONTEXT_MAP_PATTERN_LABELS, type ContextMapPattern, type ContextRelation } from "@/types/storm-relation";
 import type { BoundedContext } from "@/types/storm-element";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -25,10 +26,6 @@ const PATTERN_STYLE: Record<
   publishedLanguage: { stroke: "#264653", width: 2, dash: "2 2" },
   separateWays: { stroke: "#adb5bd", width: 2, dash: "10 6" },
 };
-
-function bcCenter(bc: BoundedContext) {
-  return { x: bc.x + bc.width / 2, y: bc.y + bc.height / 2 };
-}
 
 export function ContextMapConnectors({
   boundedContexts,
@@ -58,8 +55,7 @@ export function ContextMapConnectors({
         const src = byId.get(rel.sourceContextId);
         const tgt = byId.get(rel.targetContextId);
         if (!src || !tgt) return null;
-        const start = bcCenter(src);
-        const end = bcCenter(tgt);
+        const { start, end } = contextRelationAnchors(src, tgt);
         const style = PATTERN_STYLE[rel.type];
         const selected = rel.id === selectedContextRelationId;
         const stroke = selected ? "#2a9d8f" : style.stroke;
@@ -124,18 +120,21 @@ export function ContextMapConnectors({
         );
       })}
 
-      {draftSource && (
-        <line
-          x1={bcCenter(draftSource).x}
-          y1={bcCenter(draftSource).y}
-          x2={bcCenter(draftSource).x + 40}
-          y2={bcCenter(draftSource).y - 40}
-          stroke="#e9c46a"
-          strokeWidth={2}
-          strokeDasharray="4 3"
-          markerEnd="url(#ctx-arrow-draft)"
-        />
-      )}
+      {draftSource && (() => {
+        const c = boundedContextCenter(draftSource);
+        return (
+          <line
+            x1={c.x}
+            y1={c.y}
+            x2={c.x + 40}
+            y2={c.y - 40}
+            stroke="#e9c46a"
+            strokeWidth={2}
+            strokeDasharray="4 3"
+            markerEnd="url(#ctx-arrow-draft)"
+          />
+        );
+      })()}
     </svg>
   );
 }

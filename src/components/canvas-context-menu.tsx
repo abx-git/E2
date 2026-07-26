@@ -84,6 +84,10 @@ export function CanvasContextMenu({
   const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
   const deleteSwimlane = useStormBoardStore((s) => s.deleteSwimlane);
   const deleteBoundedContext = useStormBoardStore((s) => s.deleteBoundedContext);
+  const bringRegionsToFront = useStormBoardStore((s) => s.bringRegionsToFront);
+  const sendRegionsToBack = useStormBoardStore((s) => s.sendRegionsToBack);
+  const bringRegionsForward = useStormBoardStore((s) => s.bringRegionsForward);
+  const sendRegionsBackward = useStormBoardStore((s) => s.sendRegionsBackward);
   const clearSelection = useStormBoardStore((s) => s.clearSelection);
   const addElement = useStormBoardStore((s) => s.addElement);
   const paletteType = useStormBoardStore((s) => s.paletteType);
@@ -627,6 +631,26 @@ export function CanvasContextMenu({
     body = (
       <>
         <Header title={lane.label} subtitle="Swimlane" />
+        <Section label="Ebene" />
+        <Item
+          icon={BringToFront}
+          label="In den Vordergrund"
+          onClick={() => run(() => bringRegionsToFront([lane.id]))}
+        />
+        <Item
+          label="Eine Ebene nach vorn"
+          onClick={() => run(() => bringRegionsForward([lane.id]))}
+        />
+        <Item
+          label="Eine Ebene nach hinten"
+          onClick={() => run(() => sendRegionsBackward([lane.id]))}
+        />
+        <Item
+          icon={SendToBack}
+          label="In den Hintergrund"
+          onClick={() => run(() => sendRegionsToBack([lane.id]))}
+        />
+        <Separator />
         <Item
           icon={Trash2}
           label="Löschen"
@@ -656,6 +680,27 @@ export function CanvasContextMenu({
             })
           }
         />
+        <Separator />
+        <Section label="Ebene" />
+        <Item
+          icon={BringToFront}
+          label="In den Vordergrund"
+          onClick={() => run(() => bringRegionsToFront([bc.id]))}
+        />
+        <Item
+          label="Eine Ebene nach vorn"
+          onClick={() => run(() => bringRegionsForward([bc.id]))}
+        />
+        <Item
+          label="Eine Ebene nach hinten"
+          onClick={() => run(() => sendRegionsBackward([bc.id]))}
+        />
+        <Item
+          icon={SendToBack}
+          label="In den Hintergrund"
+          onClick={() => run(() => sendRegionsToBack([bc.id]))}
+        />
+        <Separator />
         <Item
           icon={Trash2}
           label="Löschen"

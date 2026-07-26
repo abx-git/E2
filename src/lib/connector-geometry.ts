@@ -1,5 +1,5 @@
 import { ELEMENT_STYLES } from "@/lib/element-styles";
-import type { StormElement } from "@/types/storm-element";
+import type { BoundedContext, StormElement } from "@/types/storm-element";
 
 export interface Point {
   x: number;
@@ -26,6 +26,14 @@ export function elementRect(el: StormElement): ElementRect {
 export function elementCenter(el: StormElement): Point {
   const rect = elementRect(el);
   return { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 };
+}
+
+export function boundedContextRect(bc: BoundedContext): ElementRect {
+  return { x: bc.x, y: bc.y, w: bc.width, h: bc.height };
+}
+
+export function boundedContextCenter(bc: BoundedContext): Point {
+  return { x: bc.x + bc.width / 2, y: bc.y + bc.height / 2 };
 }
 
 /** Intersection of the ray from `from` toward `toward` with the rectangle edge. */
@@ -56,5 +64,18 @@ export function relationAnchors(source: StormElement, target: StormElement): { s
   return {
     start: rectEdgePoint(sRect, sc, tc),
     end: rectEdgePoint(tRect, tc, sc),
+  };
+}
+
+/** Context-map arrows: edge of source BC → edge of target BC. */
+export function contextRelationAnchors(
+  source: BoundedContext,
+  target: BoundedContext,
+): { start: Point; end: Point } {
+  const sc = boundedContextCenter(source);
+  const tc = boundedContextCenter(target);
+  return {
+    start: rectEdgePoint(boundedContextRect(source), sc, tc),
+    end: rectEdgePoint(boundedContextRect(target), tc, sc),
   };
 }

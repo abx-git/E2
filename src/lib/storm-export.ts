@@ -4,16 +4,42 @@ import {
   cardMethodLines,
 } from "@/lib/card-preview";
 import { effectiveElementRotation } from "@/lib/element-rotation";
+import {
+  regionZOrderItems,
+  sortByZOrder,
+  sortElementsByZOrder,
+} from "@/lib/element-z-order";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
-import { sortElementsByZOrder } from "@/lib/element-z-order";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { boardActiveSliceFromStore } from "@/store/storm-board-store";
 import type { BoardActiveSlice } from "@/lib/storm-json";
-import type { StormElement } from "@/types/storm-element";
+import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
 
 function elementExportRotation(el: StormElement): number {
   return effectiveElementRotation(el.rotation, ELEMENT_STYLES[el.type].rotation);
+}
+
+function sortedRegions(state: Pick<BoardActiveSlice, "swimlanes" | "boundedContexts">): Array<
+  | { kind: "swimlane"; region: Swimlane }
+  | { kind: "boundedContext"; region: BoundedContext }
+> {
+  const laneById = new Map(state.swimlanes.map((l) => [l.id, l]));
+  const bcById = new Map(state.boundedContexts.map((b) => [b.id, b]));
+  const result: Array<
+    | { kind: "swimlane"; region: Swimlane }
+    | { kind: "boundedContext"; region: BoundedContext }
+  > = [];
+  for (const item of sortByZOrder(regionZOrderItems(state.swimlanes, state.boundedContexts))) {
+    const lane = laneById.get(item.id);
+    if (lane) {
+      result.push({ kind: "swimlane", region: lane });
+      continue;
+    }
+    const bc = bcById.get(item.id);
+    if (bc) result.push({ kind: "boundedContext", region: bc });
+  }
+  return result;
 }
 
 function downloadText(filename: string, content: string, mime = "text/plain;charset=utf-8"): void {
@@ -813,40 +839,41 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
     `<mxCell id="1" parent="0"/>`,
   ];
 
-  for (const lane of state.swimlanes) {
-    const x = (lane.x ?? 0) + ox;
-    const y = lane.y + oy;
-    const w = lane.width ?? 4000;
-    const h = lane.height;
-    const { hex, opacityPct } = parseCssColor(lane.color ?? "rgba(148,163,184,0.18)");
-    const style = mxStyle({
-      rounded: 0,
-      whiteSpace: "wrap",
-      html: 1,
-      align: "left",
-      verticalAlign: "top",
-      spacingLeft: 12,
-      spacingTop: 4,
-      fillColor: hex,
-      fillOpacity: opacityPct ?? 40,
-      strokeColor: "#94a3b8",
-      strokeWidth: 2,
-      fontColor: "#475569",
-      fontStyle: 1,
-      fontSize: REGION_LABEL_FONT_PX,
-    });
-    cells.push(
-      `<mxCell id="${mxCellId("lane", lane.id)}" value="${mxLabelValue(lane.label)}" style="${style}" vertex="1" parent="1">`,
-      `<mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/>`,
-      `</mxCell>`,
-    );
-  }
-
-  for (const bc of state.boundedContexts) {
-    const { hex } = parseCssColor(bc.color ?? "#dbeafe");
-    const style = mxStyle({
-      rounded: 1,
-      arcSize: 8,
+  for (const entry of sortedRegions(state)) {
+    if (entry.kind === "swimlane") {
+      const lane = entry.region;
+      const x = (lane.x ?? 0) + ox;
+      const y = lane.y + oy;
+      const w = lane.width ?? 4000;
+      const h = lane.height;
+      const { hex, opacityPct } = parseCssColor(lane.color ?? "rgba(148,163,184,0.18)");
+      const style = mxStyle({
+        rounded: 0,
+        whiteSpace: "wrap",
+        html: 1,
+        align: "left",
+        verticalAlign: "top",
+        spacingLeft: 12,
+        spacingTop: 4,
+        fillColor: hex,
+        fillOpacity: opacityPct ?? 40,
+        strokeColor: "#94a3b8",
+        strokeWidth: 2,
+        fontColor: "#475569",
+        fontStyle: 1,
+        fontSize: REGION_LABEL_FONT_PX,
+      });
+      cells.push(
+        `<mxCell id="${mxCellId("lane", lane.id)}" value="${mxLabelValue(lane.label)}" style="${style}" vertex="1" parent="1">`,
+        `<mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/>`,
+        `</mxCell>`,
+      );
+    } else {
+      const bc = entry.region;
+      const { hex } = parseCssColor(bc.color ?? "#dbeafe");
+      const style = mxStyle({
+        rounded: 1,
+        arcSize: 8,
       whiteSpace: "wrap",
       html: 1,
       align: "left",
@@ -866,6 +893,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       `<mxGeometry x="${bc.x + ox}" y="${bc.y + oy}" width="${bc.width}" height="${bc.height}" as="geometry"/>`,
       `</mxCell>`,
     );
+    }
   }
 
   if (state.timeline.visible !== false) {
@@ -985,24 +1013,26 @@ export function exportBoardSvg(): void {
     `</defs>`,
   ];
 
-  for (const lane of state.swimlanes) {
-    const x = (lane.x ?? 0) + ox;
-    const y = lane.y + oy;
-    const w = lane.width ?? 4000;
-    const h = lane.height;
-    const fill = lane.color ?? "rgba(148,163,184,0.18)";
-    parts.push(
-      `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${escapeXml(fill)}" stroke="#94a3b8" stroke-width="2"/>`,
-      `<text class="region" x="${x + 12}" y="${y + 18}" fill="#475569">${escapeXml(lane.label)}</text>`,
-    );
-  }
-
-  for (const bc of state.boundedContexts) {
-    const fill = bc.color ?? "#dbeafe";
-    parts.push(
-      `<rect x="${bc.x + ox}" y="${bc.y + oy}" width="${bc.width}" height="${bc.height}" fill="${escapeXml(fill)}" fill-opacity="0.4" stroke="#3b82f6" stroke-width="2" rx="8"/>`,
-      `<text class="region" x="${bc.x + ox + 8}" y="${bc.y + oy + 18}" fill="#1e40af">${escapeXml(bc.label)}</text>`,
-    );
+  for (const entry of sortedRegions(state)) {
+    if (entry.kind === "swimlane") {
+      const lane = entry.region;
+      const x = (lane.x ?? 0) + ox;
+      const y = lane.y + oy;
+      const w = lane.width ?? 4000;
+      const h = lane.height;
+      const fill = lane.color ?? "rgba(148,163,184,0.18)";
+      parts.push(
+        `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${escapeXml(fill)}" stroke="#94a3b8" stroke-width="2"/>`,
+        `<text class="region" x="${x + 12}" y="${y + 18}" fill="#475569">${escapeXml(lane.label)}</text>`,
+      );
+    } else {
+      const bc = entry.region;
+      const fill = bc.color ?? "#dbeafe";
+      parts.push(
+        `<rect x="${bc.x + ox}" y="${bc.y + oy}" width="${bc.width}" height="${bc.height}" fill="${escapeXml(fill)}" fill-opacity="0.4" stroke="#3b82f6" stroke-width="2" rx="8"/>`,
+        `<text class="region" x="${bc.x + ox + 8}" y="${bc.y + oy + 18}" fill="#1e40af">${escapeXml(bc.label)}</text>`,
+      );
+    }
   }
 
   if (state.timeline.visible !== false) {
@@ -1120,39 +1150,41 @@ export async function exportBoardPng(): Promise<void> {
   ctx.fillStyle = "#f4f5f7";
   ctx.fillRect(0, 0, width, height);
 
-  for (const lane of state.swimlanes) {
-    const x = (lane.x ?? 0) + ox;
-    const y = lane.y + oy;
-    const w = lane.width ?? 4000;
-    const h = lane.height;
-    ctx.fillStyle = lane.color ?? "rgba(148,163,184,0.18)";
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = "#94a3b8";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, w, h);
-    ctx.fillStyle = "#475569";
-    ctx.font = cssFont(LABEL_FONT_WEIGHT, REGION_LABEL_FONT_PX);
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText(lane.label, x + 12, y + 18);
-  }
-
-  for (const bc of state.boundedContexts) {
-    const x = bc.x + ox;
-    const y = bc.y + oy;
-    ctx.globalAlpha = 0.4;
-    ctx.fillStyle = bc.color ?? "#dbeafe";
-    roundRect(ctx, x, y, bc.width, bc.height, 8);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = "#3b82f6";
-    ctx.lineWidth = 2;
-    roundRect(ctx, x, y, bc.width, bc.height, 8);
-    ctx.stroke();
-    ctx.fillStyle = "#1e40af";
-    ctx.font = cssFont(LABEL_FONT_WEIGHT, REGION_LABEL_FONT_PX);
-    ctx.textAlign = "left";
-    ctx.fillText(bc.label, x + 8, y + 18);
+  for (const entry of sortedRegions(state)) {
+    if (entry.kind === "swimlane") {
+      const lane = entry.region;
+      const x = (lane.x ?? 0) + ox;
+      const y = lane.y + oy;
+      const w = lane.width ?? 4000;
+      const h = lane.height;
+      ctx.fillStyle = lane.color ?? "rgba(148,163,184,0.18)";
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = "#475569";
+      ctx.font = cssFont(LABEL_FONT_WEIGHT, REGION_LABEL_FONT_PX);
+      ctx.textAlign = "left";
+      ctx.textBaseline = "alphabetic";
+      ctx.fillText(lane.label, x + 12, y + 18);
+    } else {
+      const bc = entry.region;
+      const x = bc.x + ox;
+      const y = bc.y + oy;
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = bc.color ?? "#dbeafe";
+      roundRect(ctx, x, y, bc.width, bc.height, 8);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = "#3b82f6";
+      ctx.lineWidth = 2;
+      roundRect(ctx, x, y, bc.width, bc.height, 8);
+      ctx.stroke();
+      ctx.fillStyle = "#1e40af";
+      ctx.font = cssFont(LABEL_FONT_WEIGHT, REGION_LABEL_FONT_PX);
+      ctx.textAlign = "left";
+      ctx.fillText(bc.label, x + 8, y + 18);
+    }
   }
 
   if (state.timeline.visible !== false) {

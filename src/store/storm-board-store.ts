@@ -16,9 +16,15 @@ import {
 import {
   bringElementsForward as computeBringForward,
   bringElementsToFront as computeBringToFront,
+  bringForward as computeBringRegionsForward,
+  bringToFront as computeBringRegionsToFront,
   nextElementZIndex,
+  nextZIndex,
+  regionZOrderItems,
+  sendBackward as computeSendRegionsBackward,
   sendElementsBackward as computeSendBackward,
   sendElementsToBack as computeSendToBack,
+  sendToBack as computeSendRegionsToBack,
 } from "@/lib/element-z-order";
 import { generateStormId } from "@/lib/storm-id";
 
@@ -212,6 +218,12 @@ export interface StormBoardState {
   ) => void;
   deleteBoundedContext: (id: string) => void;
 
+  /** Shared z-order among swimlanes and bounded contexts. */
+  bringRegionsToFront: (ids: string[]) => void;
+  sendRegionsToBack: (ids: string[]) => void;
+  bringRegionsForward: (ids: string[]) => void;
+  sendRegionsBackward: (ids: string[]) => void;
+
   setTimeline: (timeline: Partial<Timeline>) => void;
   addGlossaryEntry: (term: string, definition: string) => void;
   updateGlossaryEntry: (term: string, definition: string) => void;
@@ -307,6 +319,36 @@ type SetFn = (
     | ((state: StormBoardState) => Partial<StormBoardState> | StormBoardState),
 ) => void;
 type GetFn = () => StormBoardState;
+
+function applyRegionZPatches(
+  set: SetFn,
+  get: GetFn,
+  patches: Array<{ id: string; zIndex: number }>,
+): void {
+  if (patches.length === 0) return;
+  const byId = new Map(patches.map((p) => [p.id, p.zIndex]));
+  commit(set, get, (s) => {
+    let swimlanesChanged = false;
+    let bcsChanged = false;
+    const swimlanes = s.swimlanes.map((lane) => {
+      const z = byId.get(lane.id);
+      if (z === undefined || lane.zIndex === z) return lane;
+      swimlanesChanged = true;
+      return { ...lane, zIndex: z };
+    });
+    const boundedContexts = s.boundedContexts.map((bc) => {
+      const z = byId.get(bc.id);
+      if (z === undefined || bc.zIndex === z) return bc;
+      bcsChanged = true;
+      return { ...bc, zIndex: z };
+    });
+    if (!swimlanesChanged && !bcsChanged) return {};
+    return {
+      ...(swimlanesChanged ? { swimlanes } : {}),
+      ...(bcsChanged ? { boundedContexts } : {}),
+    };
+  });
+}
 
 /** Apply a domain mutation, pushing history once (or once per gesture). */
 function commit(
@@ -1013,6 +1055,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       y,
       width: 1200,
       height: 160,
+      zIndex: nextZIndex(regionZOrderItems(get().swimlanes, get().boundedContexts)),
     };
     commit(set, get, (s) => {
       const swimlanes = [...s.swimlanes, lane];
@@ -1074,6 +1117,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       width,
       height,
       color: "#dbeafe",
+      zIndex: nextZIndex(regionZOrderItems(get().swimlanes, get().boundedContexts)),
     };
     commit(set, get, (s) => {
       const boundedContexts = [...s.boundedContexts, bc];
@@ -1138,6 +1182,30 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
             : s.selectedContextRelationId,
       };
     }),
+
+  bringRegionsToFront: (ids) => {
+    const s = get();
+    const patches = computeBringRegionsToFront(regionZOrderItems(s.swimlanes, s.boundedContexts), ids);
+    if (patches.length) applyRegionZPatches(set, get, patches);
+  },
+
+  sendRegionsToBack: (ids) => {
+    const s = get();
+    const patches = computeSendRegionsToBack(regionZOrderItems(s.swimlanes, s.boundedContexts), ids);
+    if (patches.length) applyRegionZPatches(set, get, patches);
+  },
+
+  bringRegionsForward: (ids) => {
+    const s = get();
+    const patches = computeBringRegionsForward(regionZOrderItems(s.swimlanes, s.boundedContexts), ids);
+    if (patches.length) applyRegionZPatches(set, get, patches);
+  },
+
+  sendRegionsBackward: (ids) => {
+    const s = get();
+    const patches = computeSendRegionsBackward(regionZOrderItems(s.swimlanes, s.boundedContexts), ids);
+    if (patches.length) applyRegionZPatches(set, get, patches);
+  },
 
   setTimeline: (timeline) =>
     commit(set, get, (s) => ({ timeline: { ...s.timeline, ...timeline } })),

@@ -1,5 +1,6 @@
 "use client";
 
+import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
 import { elementIdsInBoundedContext } from "@/lib/region-containment";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -26,6 +27,7 @@ export function BoundedContextLayer() {
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
   const contextMapDraftSourceId = useStormBoardStore((s) => s.contextMapDraftSourceId);
+  const ordered = sortByZOrder(boundedContexts);
 
   const startMove = (bcId: string, e: React.PointerEvent) => {
     if (e.button !== 0) return;
@@ -122,7 +124,7 @@ export function BoundedContextLayer() {
 
   return (
     <>
-      {boundedContexts.map((bc) => {
+      {ordered.map((bc) => {
         const selected = selectedBoundedContextId === bc.id;
         const draftSource = contextMapDraftSourceId === bc.id;
         return (
@@ -140,7 +142,7 @@ export function BoundedContextLayer() {
               width: bc.width,
               height: bc.height,
               backgroundColor: bc.color ? `${bc.color}66` : "rgba(219,234,254,0.35)",
-              zIndex: selected ? 6 : 2,
+              zIndex: cssRegionStackingZIndex(bc, { elevated: selected || draftSource }),
             }}
             onPointerDown={(e) => startMove(bc.id, e)}
             onContextMenu={(e) => {

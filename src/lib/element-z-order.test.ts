@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   bringElementsForward,
   bringElementsToFront,
+  bringToFront,
+  regionZOrderItems,
   sendElementsBackward,
   sendElementsToBack,
+  sortByZOrder,
   sortElementsByZOrder,
 } from "@/lib/element-z-order";
 import type { StormElement } from "@/types/storm-element";
@@ -46,5 +49,18 @@ describe("element z-order", () => {
       { id: "c", zIndex: 1 },
       { id: "b", zIndex: 2 },
     ]);
+  });
+});
+
+describe("region z-order", () => {
+  it("shares order across swimlanes and bounded contexts", () => {
+    const swimlanes = [
+      { id: "lane-a", zIndex: 0 },
+      { id: "lane-b", zIndex: 2 },
+    ];
+    const bcs = [{ id: "bc-a", zIndex: 1 }];
+    const ordered = sortByZOrder(regionZOrderItems(swimlanes, bcs));
+    expect(ordered.map((r) => r.id)).toEqual(["lane-a", "bc-a", "lane-b"]);
+    expect(bringToFront(ordered, ["lane-a"])).toEqual([{ id: "lane-a", zIndex: 3 }]);
   });
 });
