@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AppearanceSettings } from "@/components/appearance-settings";
-import { Clock, Download, FolderOpen, Loader2, Save, Upload, Users, X } from "lucide-react";
+import { Clock, ClipboardCopy, Download, FolderOpen, Loader2, Save, Upload, Users, X } from "lucide-react";
 import {
   BACKUP_INTERVAL_OPTIONS_MINUTES,
   type BackupIntervalMinutes,
@@ -34,6 +34,8 @@ export interface DataStoragePanelProps {
   /** Import E2 file as new view tab(s); keeps open document appearance/globals. */
   onImportAsNewViews: () => void;
   onExportJson: () => void;
+  /** Full board JSON into the OS clipboard (not the in-app sticky clipboard). */
+  onCopyJsonToClipboard: () => boolean | Promise<boolean>;
   onExportJsonSchema: () => void;
   onExportSvg: () => void;
   onExportPng: () => void;
@@ -114,12 +116,14 @@ function ExportTile({
   label,
   detail,
   emphasize,
+  icon: Icon = Download,
 }: {
   onClick: () => void;
   disabled?: boolean;
   label: string;
   detail?: string;
   emphasize?: boolean;
+  icon?: typeof Download;
 }) {
   return (
     <button
@@ -134,7 +138,7 @@ function ExportTile({
       ].join(" ")}
     >
       <span className="flex items-center gap-1.5 text-xs font-medium leading-tight">
-        <Download className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+        <Icon className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
         {label}
       </span>
       {detail ? (
@@ -167,6 +171,7 @@ export function DataStoragePanel({
   onRestoreBackupPaste,
   onImportAsNewViews,
   onExportJson,
+  onCopyJsonToClipboard,
   onExportJsonSchema,
   onExportSvg,
   onExportPng,
@@ -187,6 +192,7 @@ export function DataStoragePanel({
   const [recentFiles, setRecentFiles] = useState<
     Array<{ name: string; openedAt: number; handle: FileSystemFileHandle }>
   >([]);
+  const [jsonCopied, setJsonCopied] = useState(false);
 
   useEffect(() => {
     if (!open || !fsAccessSupported) return;
@@ -357,7 +363,21 @@ export function DataStoragePanel({
                 onClick={onExportJson}
                 disabled={busy}
                 label="JSON"
-                detail=".storm.json"
+                detail=".storm.json herunterladen"
+              />
+              <ExportTile
+                onClick={() => {
+                  void Promise.resolve(onCopyJsonToClipboard()).then((ok) => {
+                    if (!ok) return;
+                    setJsonCopied(true);
+                    window.setTimeout(() => setJsonCopied(false), 2000);
+                  });
+                }}
+                disabled={busy}
+                label={jsonCopied ? "Kopiert" : "JSON kopieren"}
+                detail="System-Zwischenablage"
+                icon={ClipboardCopy}
+                emphasize={jsonCopied}
               />
               <ExportTile
                 onClick={onExportJsonSchema}

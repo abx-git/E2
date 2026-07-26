@@ -205,6 +205,19 @@ export function StormBoard() {
     URL.revokeObjectURL(url);
   }, [title]);
 
+  const copyJsonToClipboard = useCallback(async (): Promise<boolean> => {
+    const json = boardJsonFromStoreState();
+    try {
+      await navigator.clipboard.writeText(json);
+      return true;
+    } catch {
+      window.alert(
+        "JSON konnte nicht in die System-Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen oder JSON herunterladen.",
+      );
+      return false;
+    }
+  }, []);
+
   const downloadJsonSchema = useCallback(() => {
     const json = stringifyBoardSnapshotSchema();
     const blob = new Blob([json], { type: "application/schema+json" });
@@ -541,6 +554,7 @@ export function StormBoard() {
         onRestoreBackupPaste={() => void handlePasteJson()}
         onImportAsNewViews={handleImportAsNewViews}
         onExportJson={downloadJson}
+        onCopyJsonToClipboard={copyJsonToClipboard}
         onExportJsonSchema={downloadJsonSchema}
         onExportSvg={exportBoardSvg}
         onExportPng={() => void exportBoardPng()}
