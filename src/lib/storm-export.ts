@@ -3,6 +3,7 @@ import {
   cardAttributeLines,
   cardMethodLines,
 } from "@/lib/card-preview";
+import { effectiveElementRotation } from "@/lib/element-rotation";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { sortElementsByZOrder } from "@/lib/element-z-order";
 import { resolveNoteColor } from "@/lib/note-colors";
@@ -10,6 +11,10 @@ import { boardActiveSliceFromStore } from "@/store/storm-board-store";
 import type { BoardActiveSlice } from "@/lib/storm-json";
 import type { StormElement } from "@/types/storm-element";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
+
+function elementExportRotation(el: StormElement): number {
+  return effectiveElementRotation(el.rotation, ELEMENT_STYLES[el.type].rotation);
+}
 
 function downloadText(filename: string, content: string, mime = "text/plain;charset=utf-8"): void {
   const blob = new Blob([content], { type: mime });
@@ -904,7 +909,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       fontSize: LABEL_FONT_PX,
       dashed: el.type === "note" ? 1 : undefined,
       dashPattern: el.type === "note" ? "4 3" : undefined,
-      rotation: el.rotation || undefined,
+      rotation: elementExportRotation(el) || undefined,
     });
     cells.push(
       `<mxCell id="${mxCellId("el", el.id)}" value="${mxLabelValue(el.label)}" style="${style}" vertex="1" parent="1">`,
@@ -1024,8 +1029,9 @@ export function exportBoardSvg(): void {
     const x = r.x + ox;
     const y = r.y + oy;
     const rx = cornerRadius(el, r.h);
-    const rot = el.rotation
-      ? ` transform="rotate(${el.rotation} ${x + r.w / 2} ${y + r.h / 2})"`
+    const rotDeg = elementExportRotation(el);
+    const rot = rotDeg
+      ? ` transform="rotate(${rotDeg} ${x + r.w / 2} ${y + r.h / 2})"`
       : "";
     const dash = el.type === "note" ? ` stroke-dasharray="4 3"` : "";
     parts.push(
@@ -1185,9 +1191,10 @@ export async function exportBoardPng(): Promise<void> {
     const rx = cornerRadius(el, r.h);
 
     ctx.save();
-    if (el.rotation) {
+    const rotDeg = elementExportRotation(el);
+    if (rotDeg) {
       ctx.translate(x + r.w / 2, y + r.h / 2);
-      ctx.rotate((el.rotation * Math.PI) / 180);
+      ctx.rotate((rotDeg * Math.PI) / 180);
       ctx.translate(-(x + r.w / 2), -(y + r.h / 2));
     }
 

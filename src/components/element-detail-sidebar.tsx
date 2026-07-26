@@ -5,6 +5,7 @@ import { AlertCircle, ExternalLink, HelpCircle } from "lucide-react";
 
 import { activateBoardLink } from "@/lib/board-link";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { normalizeRotationDegrees } from "@/lib/element-rotation";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
@@ -334,6 +335,15 @@ export function ElementDetailSidebar({
           onChange={(v) =>
             updateElement(selectedElement.id, {
               height: Math.max(MIN_ELEMENT_SIZE, v),
+            })
+          }
+        />
+        <NumberField
+          label="Drehung (°)"
+          value={selectedElement.rotation ?? style.rotation ?? 0}
+          onChange={(v) =>
+            updateElement(selectedElement.id, {
+              rotation: normalizeRotationDegrees(v),
             })
           }
         />

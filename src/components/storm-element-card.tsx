@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Clock, ExternalLink, RotateCcw } from "lucide-react";
+import { ArrowRight, Clock, ExternalLink, RotateCcw, RotateCw } from "lucide-react";
 
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkHasTarget } from "@/lib/board-link";
@@ -12,6 +12,11 @@ import {
   cardShowsDetails,
 } from "@/lib/card-preview";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
+import {
+  effectiveElementRotation,
+  normalizeRotationDegrees,
+  snapRotationDegrees,
+} from "@/lib/element-rotation";
 import { cssStackingZIndex } from "@/lib/element-z-order";
 import { HighlightedText } from "@/components/highlighted-text";
 import { resolveNoteColor } from "@/lib/note-colors";
@@ -20,6 +25,7 @@ import { elementTypesForMode, type StormElement } from "@/types/storm-element";
 
 const DRAG_THRESHOLD_PX = 6;
 const MIN_SIZE = 40;
+const ROTATION_SNAP_STEP = 15;
 
 type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
@@ -66,7 +72,7 @@ export function StormElementCard({
   const style = ELEMENT_STYLES[element.type];
   const w = element.width ?? style.defaultWidth;
   const h = element.height ?? style.defaultHeight;
-  const rotation = element.rotation ?? style.rotation ?? 0;
+  const rotation = effectiveElementRotation(element.rotation, style.rotation);
   const draggedRef = useRef(false);
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
   const draftRef = useRef(element.label);
@@ -210,6 +216,49 @@ export function StormElementCard({
     window.addEventListener("pointerup", onUp);
   };
 
+  const startRotate = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    useStormBoardStore.getState().beginGesture();
+
+    const card = e.currentTarget.parentElement;
+    if (!card) {
+      useStormBoardStore.getState().endGesture();
+      return;
+    }
+
+    const centerOf = () => {
+      const rect = card.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    };
+
+    const angleAt = (clientX: number, clientY: number) => {
+      const c = centerOf();
+      return (Math.atan2(clientY - c.y, clientX - c.x) * 180) / Math.PI;
+    };
+
+    const startPointerAngle = angleAt(e.clientX, e.clientY);
+    const startRotation = rotation;
+
+    const onMove = (ev: PointerEvent) => {
+      const delta = angleAt(ev.clientX, ev.clientY) - startPointerAngle;
+      let next = startRotation + delta;
+      if (ev.shiftKey) next = snapRotationDegrees(next, ROTATION_SNAP_STEP);
+      else next = normalizeRotationDegrees(next);
+      useStormBoardStore.getState().updateElement(element.id, { rotation: next });
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      useStormBoardStore.getState().endGesture();
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
   const labelClass = [
     "text-xs font-semibold leading-tight",
     isNote && !showDetails
@@ -233,6 +282,7 @@ export function StormElementCard({
         width: w,
         height: h,
         transform: rotation ? `rotate(${rotation}deg)` : undefined,
+        transformOrigin: "center center",
         zIndex:
           cssStackingZIndex(element, {
             elevated: selected || connecting || editing || searchEmphasize,
@@ -526,6 +576,18 @@ export function StormElementCard({
             onPointerDown={(e) => startResize(handle, e)}
           />
         ))}
+
+      {selected && !editing && (
+        <button
+          type="button"
+          aria-label="Drehen"
+          title="Drehen (Shift: 15°-Raster)"
+          className="absolute left-1/2 top-0 z-20 flex h-5 w-5 -translate-x-1/2 -translate-y-[1.65rem] cursor-grab items-center justify-center rounded-full border border-sky-600 bg-white text-sky-700 shadow-sm active:cursor-grabbing"
+          onPointerDown={startRotate}
+        >
+          <RotateCw className="h-3 w-3" aria-hidden />
+        </button>
+      )}
 
       {!editing && (
         <button

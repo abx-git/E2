@@ -18,6 +18,8 @@ import {
   Copy,
   HelpCircle,
   Link2,
+  RotateCcw,
+  RotateCw,
   SendToBack,
   StretchHorizontal,
   StretchVertical,
@@ -25,6 +27,10 @@ import {
 } from "lucide-react";
 
 import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
+import {
+  effectiveElementRotation,
+  normalizeRotationDegrees,
+} from "@/lib/element-rotation";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -297,6 +303,42 @@ export function CanvasContextMenu({
           onClick={() => run(() => onRequestHelpElementType?.(el.type))}
         />
         <Separator />
+        <Section label="Drehung" />
+        <Item
+          icon={RotateCw}
+          label="45° drehen"
+          onClick={() =>
+            run(() => {
+              const current = effectiveElementRotation(el.rotation, ELEMENT_STYLES[el.type].rotation);
+              updateElement(el.id, {
+                rotation: normalizeRotationDegrees(current + 45),
+              });
+            })
+          }
+        />
+        <Item
+          icon={RotateCcw}
+          label="−45° drehen"
+          onClick={() =>
+            run(() => {
+              const current = effectiveElementRotation(el.rotation, ELEMENT_STYLES[el.type].rotation);
+              updateElement(el.id, {
+                rotation: normalizeRotationDegrees(current - 45),
+              });
+            })
+          }
+        />
+        <Item
+          label="Aufrecht (0°)"
+          onClick={() => run(() => updateElement(el.id, { rotation: 0 }))}
+        />
+        {el.type === "hotspot" && (
+          <Item
+            label="Hotspot-Schräge (45°)"
+            onClick={() => run(() => updateElement(el.id, { rotation: 45 }))}
+          />
+        )}
+        <Separator />
         <Section label="Ebene" />
         <Item
           icon={BringToFront}
@@ -408,6 +450,48 @@ export function CanvasContextMenu({
             run(() => {
               const patches = computeAlignPatches(selected, "sameHeight", target.ids[0]);
               if (patches.length) patchElements(patches);
+            })
+          }
+        />
+        <Separator />
+        <Section label="Drehung" />
+        <Item
+          icon={RotateCw}
+          label="Alle 45° drehen"
+          onClick={() =>
+            run(() => {
+              patchElements(
+                selected.map((el) => ({
+                  id: el.id,
+                  rotation: normalizeRotationDegrees(
+                    effectiveElementRotation(el.rotation, ELEMENT_STYLES[el.type].rotation) + 45,
+                  ),
+                })),
+              );
+            })
+          }
+        />
+        <Item
+          icon={RotateCcw}
+          label="Alle −45° drehen"
+          onClick={() =>
+            run(() => {
+              patchElements(
+                selected.map((el) => ({
+                  id: el.id,
+                  rotation: normalizeRotationDegrees(
+                    effectiveElementRotation(el.rotation, ELEMENT_STYLES[el.type].rotation) - 45,
+                  ),
+                })),
+              );
+            })
+          }
+        />
+        <Item
+          label="Alle aufrecht (0°)"
+          onClick={() =>
+            run(() => {
+              patchElements(selected.map((el) => ({ id: el.id, rotation: 0 })));
             })
           }
         />

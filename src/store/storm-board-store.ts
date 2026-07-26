@@ -173,6 +173,7 @@ export interface StormBoardState {
       width?: number;
       height?: number;
       zIndex?: number;
+      rotation?: number;
     }>,
   ) => void;
   bringElementsToFront: (ids: string[]) => void;
