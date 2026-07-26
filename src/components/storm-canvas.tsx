@@ -12,7 +12,7 @@ import { SwimlaneLayer } from "@/components/swimlane-layer";
 import { TimelineGuide } from "@/components/timeline-guide";
 import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint } from "@/lib/canvas-viewport";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
-import { elementsInMarquee, type WorldRect } from "@/lib/selection-geometry";
+import { elementsInMarquee, topRegionInMarquee, type WorldRect } from "@/lib/selection-geometry";
 import { sortElementsByZOrder } from "@/lib/element-z-order";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -340,17 +340,29 @@ export function StormCanvas() {
     setMarqueeDraft(null);
     if (!start || !draft) return;
 
-    const zoom = useStormBoardStore.getState().viewport.zoom;
+    const store = useStormBoardStore.getState();
+    const zoom = store.viewport.zoom;
     const largeEnough =
       draft.w * zoom >= MARQUEE_THRESHOLD_PX || draft.h * zoom >= MARQUEE_THRESHOLD_PX;
     if (!largeEnough) {
       if (!start.additive) clearSelection();
       return;
     }
-    const ids = elementsInMarquee(useStormBoardStore.getState().elements, draft);
-    if (ids.length > 0 || !start.additive) {
+
+    const ids = elementsInMarquee(store.elements, draft);
+    if (ids.length > 0) {
       setSelectedElementIds(ids, start.additive);
+      return;
     }
+
+    const region = topRegionInMarquee(store.swimlanes, store.boundedContexts, draft);
+    if (region) {
+      if (region.kind === "swimlane") store.selectSwimlane(region.id);
+      else store.selectBoundedContext(region.id);
+      return;
+    }
+
+    if (!start.additive) clearSelection();
   }, [clearSelection, setSelectedElementIds]);
 
   const startMarquee = useCallback(
