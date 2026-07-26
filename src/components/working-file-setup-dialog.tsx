@@ -7,9 +7,9 @@ export interface WorkingFileSetupDialogProps {
   open: boolean;
   fsAccessSupported: boolean;
   busy?: boolean;
+  onStartWithoutFile: () => void;
   onOpenFile: () => void;
   onCreateFile: () => void;
-  onPasteJson: () => void;
   onPickBrowserFile: () => void;
 }
 
@@ -17,9 +17,9 @@ export function WorkingFileSetupDialog({
   open,
   fsAccessSupported,
   busy,
+  onStartWithoutFile,
   onOpenFile,
   onCreateFile,
-  onPasteJson,
   onPickBrowserFile,
 }: WorkingFileSetupDialogProps) {
   const titleId = useId();
@@ -34,29 +34,38 @@ export function WorkingFileSetupDialog({
         className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl"
       >
         <h2 id={titleId} className="text-base font-semibold text-slate-900">
-          Arbeitsdatei einrichten
+          Willkommen bei E2
         </h2>
         <p className="mt-2 text-sm text-slate-600">
-          E2 speichert alle Board-Daten in einer lokalen JSON-Datei. Bitte öffnen oder erstellen Sie eine Arbeitsdatei.
+          Du kannst sofort mit einem leeren Board starten. Einen Speicherort für die
+          Arbeitsdatei wählst du jetzt oder später über „Speichern unter…“.
         </p>
         <div className="mt-4 flex flex-col gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onStartWithoutFile}
+            className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
+          >
+            Ohne Datei starten
+          </button>
           {fsAccessSupported && (
             <>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={onOpenFile}
-                className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
-              >
-                Bestehende Datei öffnen
-              </button>
               <button
                 type="button"
                 disabled={busy}
                 onClick={onCreateFile}
                 className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60"
               >
-                Neue Datei anlegen
+                Speicherort wählen…
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={onOpenFile}
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60"
+              >
+                Bestehende Datei öffnen
               </button>
             </>
           )}
@@ -67,14 +76,6 @@ export function WorkingFileSetupDialog({
             className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60"
           >
             Datei über Browser-Dialog wählen
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onPasteJson}
-            className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60"
-          >
-            JSON einfügen
           </button>
         </div>
       </div>

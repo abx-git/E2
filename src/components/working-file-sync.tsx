@@ -264,6 +264,7 @@ export function WorkingFileSync({
       if (isMobileWorkingFileMode()) {
         const synced = getLastSyncedBoardJson();
         if (!synced?.trim()) {
+          // Optional welcome: user may start without a file and pick a save location later.
           callbacksRef.current.onNeedsFileSetup?.();
           return;
         }
@@ -280,6 +281,7 @@ export function WorkingFileSync({
         return;
       }
 
+      // No remembered handle — offer setup, but allow starting without a file.
       callbacksRef.current.onNeedsFileSetup?.();
     };
 

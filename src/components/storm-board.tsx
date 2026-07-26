@@ -83,6 +83,7 @@ import {
   isWorkingFileDirty,
   isWorkingFileSupported,
   isWorkingFileUiAvailable,
+  markWorkingFileSessionHydrated,
   openRecentWorkingFile,
   persistWorkingFileJson,
   resolveWorkingFileImportConflict,
@@ -214,6 +215,11 @@ export function StormBoard() {
     a.click();
     URL.revokeObjectURL(url);
   }, []);
+
+  const handleStartWithoutFile = () => {
+    markWorkingFileSessionHydrated();
+    setSetupOpen(false);
+  };
 
   const handleCreateWorkingFile = async () => {
     setBusy(true);
@@ -481,7 +487,28 @@ export function StormBoard() {
             ? `Arbeitsdatei: ${workingFileName}${workingFileDirty ? " · ungespeichert" : workingFileSaving ? " · speichert …" : " · gespeichert"}`
             : isWorkingFileAttached()
               ? "Arbeitsdatei verknüpft"
-              : "Keine Arbeitsdatei — bitte einrichten"}
+              : (
+                <>
+                  Keine Arbeitsdatei —{" "}
+                  {isWorkingFileUiAvailable() ? (
+                    <button
+                      type="button"
+                      className="underline decoration-dotted underline-offset-2 hover:text-[var(--text)]"
+                      onClick={() => void handleSaveWorkingFileAs()}
+                    >
+                      Speichern unter…
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="underline decoration-dotted underline-offset-2 hover:text-[var(--text)]"
+                      onClick={() => setStorageOpen(true)}
+                    >
+                      Speicherort wählen
+                    </button>
+                  )}
+                </>
+              )}
         </span>
         <span>Rechtsklick · Aktionen · E2</span>
       </footer>
@@ -587,9 +614,9 @@ export function StormBoard() {
         open={setupOpen && !isWorkingFileAttached()}
         fsAccessSupported={isWorkingFileUiAvailable()}
         busy={busy}
+        onStartWithoutFile={handleStartWithoutFile}
         onOpenFile={() => void handleOpenWorkingFile()}
         onCreateFile={() => void handleCreateWorkingFile()}
-        onPasteJson={() => void handlePasteJson()}
         onPickBrowserFile={handleBrowserFile}
       />
 
