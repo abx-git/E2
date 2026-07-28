@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Clock, ExternalLink, RotateCcw, RotateCw } from "lucide-react";
+import { ArrowRight, Clock, ExternalLink, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
 
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkHasTarget } from "@/lib/board-link";
@@ -176,6 +176,22 @@ export function StormElementCard({
   const handleConnect = () => {
     if (connecting) onCompleteConnect(element.id);
     else onStartConnect(element.id);
+  };
+
+  const openElementContextMenu = (clientX: number, clientY: number) => {
+    if (editing) commitLabel(draftRef.current);
+    const store = useStormBoardStore.getState();
+    if (!store.selectedElementIds.includes(element.id)) {
+      store.selectElement(element.id);
+    }
+    const ids = store.selectedElementIds.includes(element.id)
+      ? store.selectedElementIds
+      : [element.id];
+    store.openContextMenu(
+      clientX,
+      clientY,
+      ids.length > 1 ? { kind: "elements", ids } : { kind: "element", id: element.id },
+    );
   };
 
   const startResize = (handle: ResizeHandle, e: React.PointerEvent) => {
@@ -406,19 +422,7 @@ export function StormElementCard({
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (editing) commitLabel(draftRef.current);
-        const store = useStormBoardStore.getState();
-        if (!store.selectedElementIds.includes(element.id)) {
-          store.selectElement(element.id);
-        }
-        const ids = store.selectedElementIds.includes(element.id)
-          ? store.selectedElementIds
-          : [element.id];
-        store.openContextMenu(
-          e.clientX,
-          e.clientY,
-          ids.length > 1 ? { kind: "elements", ids } : { kind: "element", id: element.id },
-        );
+        openElementContextMenu(e.clientX, e.clientY);
       }}
     >
       <div
@@ -619,6 +623,24 @@ export function StormElementCard({
           }}
         >
           <ArrowRight className="h-3 w-3" aria-hidden />
+        </button>
+      )}
+
+      {selected && !editing && (
+        <button
+          type="button"
+          className="absolute bottom-1.5 right-1.5 z-30 flex h-5 w-5 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel-solid)] text-[var(--muted)] shadow-sm transition-[opacity,colors] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          title="Aktionen"
+          aria-label="Kontextmenü öffnen"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            openElementContextMenu(rect.left + rect.width / 2, rect.bottom + 4);
+          }}
+        >
+          <MoreVertical className="h-3 w-3" aria-hidden />
         </button>
       )}
     </div>
