@@ -6,11 +6,20 @@ import {
   selectionCentroid,
   takeIdsFromClipboard,
 } from "@/lib/board-clipboard";
-import type { StormElement } from "@/types/storm-element";
-import type { StormRelation } from "@/types/storm-relation";
+import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
+import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 
 const elements: StormElement[] = [
-  { id: "a", type: "domainEvent", label: "A", x: 0, y: 0, width: 100, height: 50 },
+  {
+    id: "a",
+    type: "domainEvent",
+    label: "A",
+    x: 10,
+    y: 10,
+    width: 100,
+    height: 50,
+    boundedContextId: "bc1",
+  },
   { id: "b", type: "command", label: "B", x: 200, y: 0, width: 100, height: 50 },
   { id: "c", type: "actor", label: "C", x: 400, y: 0, width: 80, height: 40 },
 ];
@@ -18,6 +27,19 @@ const elements: StormElement[] = [
 const relations: StormRelation[] = [
   { id: "r1", type: "triggers", sourceId: "b", targetId: "a" },
   { id: "r2", type: "executedBy", sourceId: "b", targetId: "c" },
+];
+
+const swimlanes: Swimlane[] = [
+  { id: "l1", label: "Lane", x: 0, y: 0, width: 400, height: 120 },
+];
+
+const boundedContexts: BoundedContext[] = [
+  { id: "bc1", label: "BC", x: 0, y: 0, width: 180, height: 120 },
+  { id: "bc2", label: "BC2", x: 300, y: 0, width: 160, height: 100 },
+];
+
+const contextRelations: ContextRelation[] = [
+  { id: "cr1", sourceContextId: "bc1", targetContextId: "bc2", type: "sharedKernel" },
 ];
 
 describe("board-clipboard", () => {
@@ -28,6 +50,40 @@ describe("board-clipboard", () => {
     expect(payload!.relations).toHaveLength(1);
     expect(payload!.relations[0]!.id).toBe("r1");
     expect(payload!.elements.every((e) => e.swimlaneId === undefined)).toBe(true);
+    expect(payload!.elements.find((e) => e.id === "a")!.boundedContextId).toBeUndefined();
+    expect(payload!.swimlanes).toEqual([]);
+    expect(payload!.boundedContexts).toEqual([]);
+  });
+
+  it("keeps region refs when the region is also copied", () => {
+    const payload = extractClipboardPayload(
+      elements,
+      relations,
+      { elementIds: ["a"], boundedContextIds: ["bc1"] },
+      swimlanes,
+      boundedContexts,
+      contextRelations,
+    );
+    expect(payload).not.toBeNull();
+    expect(payload!.boundedContexts.map((b) => b.id)).toEqual(["bc1"]);
+    expect(payload!.elements[0]!.boundedContextId).toBe("bc1");
+    expect(payload!.contextRelations).toHaveLength(0);
+  });
+
+  it("copies swimlanes and context relations with both BCs", () => {
+    const payload = extractClipboardPayload(
+      elements,
+      relations,
+      { swimlaneIds: ["l1"], boundedContextIds: ["bc1", "bc2"] },
+      swimlanes,
+      boundedContexts,
+      contextRelations,
+    );
+    expect(payload).not.toBeNull();
+    expect(payload!.swimlanes.map((l) => l.id)).toEqual(["l1"]);
+    expect(payload!.boundedContexts.map((b) => b.id).sort()).toEqual(["bc1", "bc2"]);
+    expect(payload!.contextRelations).toHaveLength(1);
+    expect(payload!.elements).toHaveLength(0);
   });
 
   it("remaps ids and offsets to paste target", () => {
@@ -43,6 +99,21 @@ describe("board-clipboard", () => {
     const c = selectionCentroid(remapped.elements);
     expect(c.x).toBeCloseTo(1000, 5);
     expect(c.y).toBeCloseTo(500, 5);
+  });
+
+  it("remaps region ids and preserves element containment refs", () => {
+    const payload = extractClipboardPayload(
+      elements,
+      relations,
+      { elementIds: ["a"], boundedContextIds: ["bc1"] },
+      swimlanes,
+      boundedContexts,
+    )!;
+    const remapped = remapClipboardForPaste(payload, payload.originX + 50, payload.originY + 20);
+    expect(remapped.boundedContexts).toHaveLength(1);
+    expect(remapped.newBoundedContextIds[0]).not.toBe("bc1");
+    expect(remapped.elements[0]!.boundedContextId).toBe(remapped.newBoundedContextIds[0]);
+    expect(remapped.boundedContexts[0]!.x).toBe(boundedContexts[0]!.x + 50);
   });
 
   it("takes individual ids out of the clipboard payload", () => {

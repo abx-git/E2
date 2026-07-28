@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 
 import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
+import { clipboardItemCount, isClipboardEmpty } from "@/lib/board-clipboard";
 import {
   effectiveElementRotation,
   normalizeRotationDegrees,
@@ -36,6 +37,15 @@ import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { NoteColorId } from "@/types/storm-element";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
+
+function clipboardSelectionFromStore() {
+  const s = useStormBoardStore.getState();
+  return {
+    elementIds: s.selectedElementIds,
+    swimlaneIds: s.selectedSwimlaneIds,
+    boundedContextIds: s.selectedBoundedContextIds,
+  };
+}
 
 const RELATION_TYPES = Object.keys(RELATION_TYPE_LABELS) as RelationType[];
 const CONTEXT_PATTERNS = CONTEXT_MAP_PATTERNS;
@@ -371,12 +381,12 @@ export function CanvasContextMenu({
         <Item
           icon={ClipboardCopy}
           label="In Zwischenablage kopieren"
-          onClick={() => run(() => copyToClipboard([el.id]))}
+          onClick={() => run(() => copyToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
           icon={ClipboardList}
           label="In Zwischenablage verschieben"
-          onClick={() => run(() => moveToClipboard([el.id]))}
+          onClick={() => run(() => moveToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
           icon={Trash2}
@@ -528,12 +538,12 @@ export function CanvasContextMenu({
         <Item
           icon={ClipboardCopy}
           label="In Zwischenablage kopieren"
-          onClick={() => run(() => copyToClipboard(target.ids))}
+          onClick={() => run(() => copyToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
           icon={ClipboardList}
           label="In Zwischenablage verschieben"
-          onClick={() => run(() => moveToClipboard(target.ids))}
+          onClick={() => run(() => moveToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
           icon={Trash2}
@@ -652,6 +662,16 @@ export function CanvasContextMenu({
         />
         <Separator />
         <Item
+          icon={ClipboardCopy}
+          label="In Zwischenablage kopieren"
+          onClick={() => run(() => copyToClipboard(clipboardSelectionFromStore()))}
+        />
+        <Item
+          icon={ClipboardList}
+          label="In Zwischenablage verschieben"
+          onClick={() => run(() => moveToClipboard(clipboardSelectionFromStore()))}
+        />
+        <Item
           icon={Trash2}
           label="Löschen"
           danger
@@ -701,6 +721,16 @@ export function CanvasContextMenu({
           onClick={() => run(() => sendRegionsToBack([bc.id]))}
         />
         <Separator />
+        <Item
+          icon={ClipboardCopy}
+          label="In Zwischenablage kopieren"
+          onClick={() => run(() => copyToClipboard(clipboardSelectionFromStore()))}
+        />
+        <Item
+          icon={ClipboardList}
+          label="In Zwischenablage verschieben"
+          onClick={() => run(() => moveToClipboard(clipboardSelectionFromStore()))}
+        />
         <Item
           icon={Trash2}
           label="Löschen"
@@ -752,10 +782,10 @@ export function CanvasContextMenu({
             run(() => addElement(paletteType, target.worldX, target.worldY))
           }
         />
-        {clipboard && clipboard.elements.length > 0 && (
+        {clipboard && !isClipboardEmpty(clipboard) && (
           <Item
             icon={ClipboardPaste}
-            label={`Zwischenablage einfügen (${clipboard.elements.length})`}
+            label={`Zwischenablage einfügen (${clipboardItemCount(clipboard)})`}
             onClick={() => run(() => pasteClipboardAt(target.worldX, target.worldY))}
           />
         )}

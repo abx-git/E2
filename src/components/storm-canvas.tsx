@@ -12,7 +12,7 @@ import { SwimlaneLayer } from "@/components/swimlane-layer";
 import { TimelineGuide } from "@/components/timeline-guide";
 import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint } from "@/lib/canvas-viewport";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
-import { elementsInMarquee, topRegionInMarquee, type WorldRect } from "@/lib/selection-geometry";
+import { elementsInMarquee, swimlanesInMarquee, boundedContextsInMarquee, type WorldRect } from "@/lib/selection-geometry";
 import { sortElementsByZOrder } from "@/lib/element-z-order";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -90,7 +90,7 @@ export function StormCanvas() {
   const moveElement = useStormBoardStore((s) => s.moveElement);
   const moveElements = useStormBoardStore((s) => s.moveElements);
   const selectElement = useStormBoardStore((s) => s.selectElement);
-  const setSelectedElementIds = useStormBoardStore((s) => s.setSelectedElementIds);
+  const setCanvasSelection = useStormBoardStore((s) => s.setCanvasSelection);
   const selectRelation = useStormBoardStore((s) => s.selectRelation);
   const selectContextRelation = useStormBoardStore((s) => s.selectContextRelation);
   const clearSelection = useStormBoardStore((s) => s.clearSelection);
@@ -392,21 +392,16 @@ export function StormCanvas() {
       return;
     }
 
-    const ids = elementsInMarquee(store.elements, draft);
-    if (ids.length > 0) {
-      setSelectedElementIds(ids, start.additive);
-      return;
-    }
-
-    const region = topRegionInMarquee(store.swimlanes, store.boundedContexts, draft);
-    if (region) {
-      if (region.kind === "swimlane") store.selectSwimlane(region.id);
-      else store.selectBoundedContext(region.id);
+    const elementIds = elementsInMarquee(store.elements, draft);
+    const swimlaneIds = swimlanesInMarquee(store.swimlanes, draft);
+    const boundedContextIds = boundedContextsInMarquee(store.boundedContexts, draft);
+    if (elementIds.length > 0 || swimlaneIds.length > 0 || boundedContextIds.length > 0) {
+      setCanvasSelection({ elementIds, swimlaneIds, boundedContextIds }, start.additive);
       return;
     }
 
     if (!start.additive) clearSelection();
-  }, [clearSelection, setSelectedElementIds]);
+  }, [clearSelection, setCanvasSelection]);
 
   const startMarquee = useCallback(
     (clientX: number, clientY: number, additive: boolean) => {

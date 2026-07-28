@@ -46,8 +46,8 @@ export function ElementDetailSidebar({
   const relations = useStormBoardStore((s) => s.relations);
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const selectedRelationId = useStormBoardStore((s) => s.selectedRelationId);
-  const selectedBoundedContextId = useStormBoardStore((s) => s.selectedBoundedContextId);
-  const selectedSwimlaneId = useStormBoardStore((s) => s.selectedSwimlaneId);
+  const selectedBoundedContextId = useStormBoardStore((s) => s.selectedBoundedContextIds[0] ?? null);
+  const selectedSwimlaneId = useStormBoardStore((s) => s.selectedSwimlaneIds[0] ?? null);
   const updateElement = useStormBoardStore((s) => s.updateElement);
   const updateRelation = useStormBoardStore((s) => s.updateRelation);
   const updateBoundedContext = useStormBoardStore((s) => s.updateBoundedContext);

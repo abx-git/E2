@@ -432,14 +432,10 @@ function applyPayloadToStore(payload: BoardImportPayload): void {
         contextRelationIds.has(current.selectedContextRelationId)
           ? current.selectedContextRelationId
           : null,
-      selectedSwimlaneId:
-        current.selectedSwimlaneId && swimlaneIds.has(current.selectedSwimlaneId)
-          ? current.selectedSwimlaneId
-          : null,
-      selectedBoundedContextId:
-        current.selectedBoundedContextId && bcIds.has(current.selectedBoundedContextId)
-          ? current.selectedBoundedContextId
-          : null,
+      selectedSwimlaneIds: current.selectedSwimlaneIds.filter((id) => swimlaneIds.has(id)),
+      selectedBoundedContextIds: current.selectedBoundedContextIds.filter((id) =>
+        bcIds.has(id),
+      ),
       past: [],
       future: [],
       gestureActive: false,

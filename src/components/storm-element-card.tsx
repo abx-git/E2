@@ -390,7 +390,11 @@ export function StormElementCard({
                 y: pos.y,
               })),
             );
-            useStormBoardStore.getState().moveToClipboard(moveIds);
+            useStormBoardStore.getState().moveToClipboard({
+              elementIds: moveIds,
+              swimlaneIds: useStormBoardStore.getState().selectedSwimlaneIds,
+              boundedContextIds: useStormBoardStore.getState().selectedBoundedContextIds,
+            });
             return;
           }
 

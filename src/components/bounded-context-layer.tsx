@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
 import { elementIdsInBoundedContext } from "@/lib/region-containment";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_SIZE = 80;
+const DEFAULT_LABEL = "Bounded Context";
 
 type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
@@ -21,7 +24,7 @@ const HANDLE_POSITIONS: Record<ResizeHandle, string> = {
 
 export function BoundedContextLayer() {
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
-  const selectedBoundedContextId = useStormBoardStore((s) => s.selectedBoundedContextId);
+  const selectedBoundedContextIds = useStormBoardStore((s) => s.selectedBoundedContextIds);
   const selectBoundedContext = useStormBoardStore((s) => s.selectBoundedContext);
   const updateBoundedContext = useStormBoardStore((s) => s.updateBoundedContext);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
@@ -29,8 +32,61 @@ export function BoundedContextLayer() {
   const contextMapDraftSourceId = useStormBoardStore((s) => s.contextMapDraftSourceId);
   const ordered = sortByZOrder(boundedContexts);
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const draftRef = useRef("");
+  const editingRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const setDraftValue = (value: string) => {
+    draftRef.current = value;
+    setDraft(value);
+  };
+
+  const beginEdit = (bcId: string, label: string) => {
+    selectBoundedContext(bcId);
+    setDraftValue(label);
+    editingRef.current = true;
+    setEditingId(bcId);
+  };
+
+  const commitLabel = (bcId: string, value: string) => {
+    if (!editingRef.current || editingId !== bcId) return;
+    editingRef.current = false;
+    setEditingId(null);
+    const next = value.trim() || DEFAULT_LABEL;
+    const bc = useStormBoardStore.getState().boundedContexts.find((b) => b.id === bcId);
+    if (bc && next !== bc.label) {
+      updateBoundedContext(bcId, { label: next });
+    }
+  };
+
+  const cancelEdit = () => {
+    if (!editingRef.current) return;
+    editingRef.current = false;
+    setEditingId(null);
+  };
+
+  useEffect(() => {
+    if (!editingId) return;
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    el.select();
+  }, [editingId]);
+
+  useEffect(() => {
+    if (editingId && !selectedBoundedContextIds.includes(editingId) && editingRef.current) {
+      commitLabel(editingId, draftRef.current);
+    }
+  }, [selectedBoundedContextIds, editingId]);
+
   const startMove = (bcId: string, e: React.PointerEvent) => {
     if (e.button !== 0) return;
+    if (editingId === bcId) {
+      e.stopPropagation();
+      return;
+    }
     e.stopPropagation();
     e.preventDefault();
 
@@ -125,16 +181,19 @@ export function BoundedContextLayer() {
   return (
     <>
       {ordered.map((bc) => {
-        const selected = selectedBoundedContextId === bc.id;
+        const selected = selectedBoundedContextIds.includes(bc.id);
         const draftSource = contextMapDraftSourceId === bc.id;
+        const editing = editingId === bc.id;
         return (
           <div
             key={bc.id}
             className={[
               "absolute rounded-lg border-2",
-              selected || draftSource ? "border-blue-600 ring-2 ring-blue-300" : "border-blue-400/70",
+              selected || draftSource || editing
+                ? "border-blue-600 ring-2 ring-blue-300"
+                : "border-blue-400/70",
               draftSource ? "ring-[#e9c46a]" : "",
-              contextMapMode ? "cursor-crosshair" : "cursor-move",
+              contextMapMode ? "cursor-crosshair" : editing ? "cursor-default" : "cursor-move",
             ].join(" ")}
             style={{
               left: bc.x,
@@ -142,30 +201,65 @@ export function BoundedContextLayer() {
               width: bc.width,
               height: bc.height,
               backgroundColor: bc.color ? `${bc.color}66` : "rgba(219,234,254,0.35)",
-              zIndex: cssRegionStackingZIndex(bc, { elevated: selected || draftSource }),
+              zIndex: cssRegionStackingZIndex(bc, {
+                elevated: selected || draftSource || editing,
+              }),
             }}
             onPointerDown={(e) => startMove(bc.id, e)}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (contextMapMode) return;
+              beginEdit(bc.id, bc.label);
+            }}
             onContextMenu={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              if (editing) commitLabel(bc.id, draftRef.current);
               const store = useStormBoardStore.getState();
-              store.selectBoundedContext(bc.id);
+              if (!store.selectedBoundedContextIds.includes(bc.id)) {
+                store.selectBoundedContext(bc.id);
+              }
               store.openContextMenu(e.clientX, e.clientY, {
                 kind: "boundedContext",
                 id: bc.id,
               });
             }}
           >
-            <div className="pointer-events-none absolute -top-3 left-3 rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-900">
-              {bc.label}
-            </div>
-            {bc.purpose && (
+            {editing ? (
+              <input
+                ref={inputRef}
+                type="text"
+                className="absolute -top-3 left-3 z-50 min-w-[8rem] max-w-[min(20rem,calc(100%-1.5rem))] rounded border border-blue-500 bg-white px-2 py-0.5 text-xs font-semibold text-blue-900 outline-none"
+                value={draft}
+                aria-label="Bounded Context umbenennen"
+                onPointerDown={(e) => e.stopPropagation()}
+                onChange={(e) => setDraftValue(e.target.value)}
+                onBlur={() => commitLabel(bc.id, draftRef.current)}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    cancelEdit();
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    commitLabel(bc.id, draftRef.current);
+                  }
+                }}
+              />
+            ) : (
+              <div className="pointer-events-none absolute -top-3 left-3 rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-900">
+                {bc.label}
+              </div>
+            )}
+            {bc.purpose && !editing && (
               <p className="pointer-events-none absolute bottom-2 left-3 right-3 truncate text-[10px] text-blue-800/80">
                 {bc.purpose}
               </p>
             )}
 
             {selected &&
+              !editing &&
               (Object.keys(HANDLE_POSITIONS) as ResizeHandle[]).map((handle) => (
                 <button
                   key={handle}

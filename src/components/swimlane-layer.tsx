@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+
 import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
 import { elementIdsInSwimlane } from "@/lib/region-containment";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_SIZE = 80;
+const DEFAULT_LABEL = "Swimlane";
 
 type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
@@ -21,14 +24,67 @@ const HANDLE_POSITIONS: Record<ResizeHandle, string> = {
 
 export function SwimlaneLayer() {
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
-  const selectedSwimlaneId = useStormBoardStore((s) => s.selectedSwimlaneId);
+  const selectedSwimlaneIds = useStormBoardStore((s) => s.selectedSwimlaneIds);
   const selectSwimlane = useStormBoardStore((s) => s.selectSwimlane);
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const ordered = sortByZOrder(swimlanes);
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const draftRef = useRef("");
+  const editingRef = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const setDraftValue = (value: string) => {
+    draftRef.current = value;
+    setDraft(value);
+  };
+
+  const beginEdit = (laneId: string, label: string) => {
+    selectSwimlane(laneId);
+    setDraftValue(label);
+    editingRef.current = true;
+    setEditingId(laneId);
+  };
+
+  const commitLabel = (laneId: string, value: string) => {
+    if (!editingRef.current || editingId !== laneId) return;
+    editingRef.current = false;
+    setEditingId(null);
+    const next = value.trim() || DEFAULT_LABEL;
+    const lane = useStormBoardStore.getState().swimlanes.find((l) => l.id === laneId);
+    if (lane && next !== lane.label) {
+      updateSwimlane(laneId, { label: next });
+    }
+  };
+
+  const cancelEdit = () => {
+    if (!editingRef.current) return;
+    editingRef.current = false;
+    setEditingId(null);
+  };
+
+  useEffect(() => {
+    if (!editingId) return;
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    el.select();
+  }, [editingId]);
+
+  useEffect(() => {
+    if (editingId && !selectedSwimlaneIds.includes(editingId) && editingRef.current) {
+      commitLabel(editingId, draftRef.current);
+    }
+  }, [selectedSwimlaneIds, editingId]);
+
   const startMove = (laneId: string, e: React.PointerEvent) => {
     if (e.button !== 0) return;
+    if (editingId === laneId) {
+      e.stopPropagation();
+      return;
+    }
     e.stopPropagation();
     e.preventDefault();
     selectSwimlane(laneId);
@@ -115,14 +171,15 @@ export function SwimlaneLayer() {
   return (
     <>
       {ordered.map((lane) => {
-        const selected = selectedSwimlaneId === lane.id;
+        const selected = selectedSwimlaneIds.includes(lane.id);
+        const editing = editingId === lane.id;
         return (
           <div
             key={lane.id}
             className={[
               "absolute border-y-2",
-              selected ? "border-sky-500 ring-2 ring-sky-300" : "border-slate-300/70",
-              "cursor-move",
+              selected || editing ? "border-sky-500 ring-2 ring-sky-300" : "border-slate-300/70",
+              editing ? "cursor-default" : "cursor-move",
             ].join(" ")}
             style={{
               left: lane.x ?? 0,
@@ -130,22 +187,54 @@ export function SwimlaneLayer() {
               width: lane.width ?? 4000,
               height: lane.height,
               backgroundColor: lane.color ?? "rgba(148,163,184,0.12)",
-              zIndex: cssRegionStackingZIndex(lane, { elevated: selected }),
+              zIndex: cssRegionStackingZIndex(lane, { elevated: selected || editing }),
             }}
             onPointerDown={(e) => startMove(lane.id, e)}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              beginEdit(lane.id, lane.label);
+            }}
             onContextMenu={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              if (editing) commitLabel(lane.id, draftRef.current);
               const store = useStormBoardStore.getState();
-              store.selectSwimlane(lane.id);
+              if (!store.selectedSwimlaneIds.includes(lane.id)) {
+                store.selectSwimlane(lane.id);
+              }
               store.openContextMenu(e.clientX, e.clientY, { kind: "swimlane", id: lane.id });
             }}
           >
-            <div className="pointer-events-none absolute left-3 top-2 rounded bg-slate-100/90 px-2 py-0.5 text-xs font-semibold text-slate-600">
-              {lane.label}
-            </div>
+            {editing ? (
+              <input
+                ref={inputRef}
+                type="text"
+                className="absolute left-3 top-2 z-50 min-w-[8rem] max-w-[min(20rem,calc(100%-1.5rem))] rounded border border-sky-500 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 outline-none"
+                value={draft}
+                aria-label="Swimlane umbenennen"
+                onPointerDown={(e) => e.stopPropagation()}
+                onChange={(e) => setDraftValue(e.target.value)}
+                onBlur={() => commitLabel(lane.id, draftRef.current)}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    cancelEdit();
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    commitLabel(lane.id, draftRef.current);
+                  }
+                }}
+              />
+            ) : (
+              <div className="pointer-events-none absolute left-3 top-2 rounded bg-slate-100/90 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                {lane.label}
+              </div>
+            )}
 
             {selected &&
+              !editing &&
               (Object.keys(HANDLE_POSITIONS) as ResizeHandle[]).map((handle) => (
                 <button
                   key={handle}

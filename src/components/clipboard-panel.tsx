@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ClipboardList, ClipboardPaste, Trash2 } from "lucide-react";
 
-import { CLIPBOARD_DROP_ATTR, isPointerOverStormCanvas } from "@/lib/board-clipboard";
+import { CLIPBOARD_DROP_ATTR, clipboardItemCount, isPointerOverStormCanvas } from "@/lib/board-clipboard";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { screenToWorld } from "@/lib/canvas-viewport";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -18,7 +18,7 @@ export function ClipboardPanel() {
   const pasteClipboardAt = useStormBoardStore((s) => s.pasteClipboardAt);
   const clearClipboard = useStormBoardStore((s) => s.clearClipboard);
   const viewport = useStormBoardStore((s) => s.viewport);
-  const count = clipboard?.elements.length ?? 0;
+  const count = clipboardItemCount(clipboard);
 
   const [ghost, setGhost] = useState<{
     el: StormElement;
@@ -135,6 +135,20 @@ export function ClipboardPanel() {
         </p>
       ) : (
         <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto">
+          {(clipboard!.swimlanes ?? []).map((lane) => (
+            <li key={lane.id}>
+              <div className="truncate rounded-md border border-dashed border-slate-300 bg-slate-100/80 px-2 py-1 text-left text-xs text-slate-700">
+                Swimlane · {lane.label}
+              </div>
+            </li>
+          ))}
+          {(clipboard!.boundedContexts ?? []).map((bc) => (
+            <li key={bc.id}>
+              <div className="truncate rounded-md border border-dashed border-blue-300 bg-blue-50/90 px-2 py-1 text-left text-xs text-blue-900">
+                BC · {bc.label}
+              </div>
+            </li>
+          ))}
           {clipboard!.elements.map((el) => (
             <li key={el.id}>
               <button

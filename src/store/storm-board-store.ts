@@ -8,10 +8,13 @@ import {
 } from "@/lib/region-containment";
 import {
   extractClipboardPayload,
+  isClipboardEmpty,
+  mergeClipboardPayloads,
+  normalizeClipboardPayload,
   remapClipboardForPaste,
-  selectionCentroid,
   takeIdsFromClipboard,
   type BoardClipboardPayload,
+  type ClipboardSelection,
 } from "@/lib/board-clipboard";
 import {
   bringElementsForward as computeBringForward,
@@ -97,8 +100,8 @@ export interface StormBoardState {
   selectedElementIds: string[];
   selectedRelationId: string | null;
   selectedContextRelationId: string | null;
-  selectedBoundedContextId: string | null;
-  selectedSwimlaneId: string | null;
+  selectedBoundedContextIds: string[];
+  selectedSwimlaneIds: string[];
   /** Ephemeral UI: element that should enter label edit (e.g. after create). */
   editingElementId: string | null;
   paletteType: ElementType;
@@ -142,9 +145,9 @@ export interface StormBoardState {
   setSearchQuery: (query: string) => void;
   setClipboardDropHighlight: (active: boolean) => void;
   /** Cut selection into the board clipboard (removes from canvas). */
-  moveToClipboard: (ids: string[]) => boolean;
+  moveToClipboard: (selection: ClipboardSelection | string[]) => boolean;
   /** Copy selection into the board clipboard (keeps originals). */
-  copyToClipboard: (ids: string[]) => boolean;
+  copyToClipboard: (selection: ClipboardSelection | string[]) => boolean;
   /** Duplicate selection in place with a slight offset. */
   duplicateElements: (ids: string[]) => string[];
   pasteClipboardAt: (worldX: number, worldY: number) => string[];
@@ -153,10 +156,19 @@ export interface StormBoardState {
   clearClipboard: () => void;
   selectElement: (id: string | null, additive?: boolean) => void;
   setSelectedElementIds: (ids: string[], additive?: boolean) => void;
+  /** Marquee / multi-select including regions. */
+  setCanvasSelection: (
+    selection: {
+      elementIds?: string[];
+      swimlaneIds?: string[];
+      boundedContextIds?: string[];
+    },
+    additive?: boolean,
+  ) => void;
   selectRelation: (id: string | null) => void;
   selectContextRelation: (id: string | null) => void;
-  selectBoundedContext: (id: string | null) => void;
-  selectSwimlane: (id: string | null) => void;
+  selectBoundedContext: (id: string | null, additive?: boolean) => void;
+  selectSwimlane: (id: string | null, additive?: boolean) => void;
   clearSelection: () => void;
   openContextMenu: (x: number, y: number, target: ContextMenuTarget) => void;
   closeContextMenu: () => void;
@@ -399,8 +411,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   selectedElementIds: [],
   selectedRelationId: null,
   selectedContextRelationId: null,
-  selectedBoundedContextId: null,
-  selectedSwimlaneId: null,
+  selectedBoundedContextIds: [],
+  selectedSwimlaneIds: [],
   editingElementId: null,
   paletteType: defaultPaletteTypeForMode(initialViewDoc.modelingMode),
   focusMode: false,
@@ -543,62 +555,71 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setClipboardDropHighlight: (clipboardDropHighlight) => set({ clipboardDropHighlight }),
 
-  moveToClipboard: (ids) => {
-    const unique = Array.from(new Set(ids));
-    if (unique.length === 0) return false;
+  moveToClipboard: (selection) => {
+    const sel = Array.isArray(selection) ? { elementIds: selection } : selection;
+    const elementIds = Array.from(new Set(sel.elementIds ?? []));
+    const swimlaneIds = Array.from(new Set(sel.swimlaneIds ?? []));
+    const boundedContextIds = Array.from(new Set(sel.boundedContextIds ?? []));
+    if (elementIds.length === 0 && swimlaneIds.length === 0 && boundedContextIds.length === 0) {
+      return false;
+    }
     let ok = false;
     commit(set, get, (s) => {
-      const extracted = extractClipboardPayload(s.elements, s.relations, unique);
+      const extracted = extractClipboardPayload(
+        s.elements,
+        s.relations,
+        { elementIds, swimlaneIds, boundedContextIds },
+        s.swimlanes,
+        s.boundedContexts,
+        s.contextRelations,
+      );
       if (!extracted) return {};
       ok = true;
-      const idSet = new Set(unique);
-      const mergedElements = s.clipboard
-        ? [...s.clipboard.elements, ...extracted.elements]
-        : extracted.elements;
-      const mergedRelations = s.clipboard
-        ? [...s.clipboard.relations, ...extracted.relations]
-        : extracted.relations;
-      const centroid = selectionCentroid(mergedElements);
+      const elSet = new Set(elementIds);
+      const laneSet = new Set(swimlaneIds);
+      const bcSet = new Set(boundedContextIds);
       return {
-        clipboard: {
-          elements: mergedElements,
-          relations: mergedRelations,
-          originX: centroid.x,
-          originY: centroid.y,
-        },
+        clipboard: mergeClipboardPayloads(s.clipboard, extracted),
         clipboardDropHighlight: false,
-        elements: s.elements.filter((e) => !idSet.has(e.id)),
+        elements: s.elements
+          .filter((e) => !elSet.has(e.id))
+          .map((e) => ({
+            ...e,
+            swimlaneId: e.swimlaneId && laneSet.has(e.swimlaneId) ? undefined : e.swimlaneId,
+            boundedContextId:
+              e.boundedContextId && bcSet.has(e.boundedContextId) ? undefined : e.boundedContextId,
+          })),
         relations: s.relations.filter(
-          (r) => !idSet.has(r.sourceId) && !idSet.has(r.targetId),
+          (r) => !elSet.has(r.sourceId) && !elSet.has(r.targetId),
+        ),
+        swimlanes: s.swimlanes.filter((l) => !laneSet.has(l.id)),
+        boundedContexts: s.boundedContexts.filter((b) => !bcSet.has(b.id)),
+        contextRelations: s.contextRelations.filter(
+          (r) => !bcSet.has(r.sourceContextId) && !bcSet.has(r.targetContextId),
         ),
         selectedElementIds: [],
         selectedRelationId: null,
+        selectedContextRelationId: null,
+        selectedBoundedContextIds: [],
+        selectedSwimlaneIds: [],
       };
     });
     return ok;
   },
 
-  copyToClipboard: (ids) => {
-    const unique = Array.from(new Set(ids));
-    if (unique.length === 0) return false;
+  copyToClipboard: (selection) => {
+    const sel = Array.isArray(selection) ? { elementIds: selection } : selection;
     const s = get();
-    const extracted = extractClipboardPayload(s.elements, s.relations, unique);
+    const extracted = extractClipboardPayload(
+      s.elements,
+      s.relations,
+      sel,
+      s.swimlanes,
+      s.boundedContexts,
+      s.contextRelations,
+    );
     if (!extracted) return false;
-    const mergedElements = s.clipboard
-      ? [...s.clipboard.elements, ...extracted.elements]
-      : extracted.elements;
-    const mergedRelations = s.clipboard
-      ? [...s.clipboard.relations, ...extracted.relations]
-      : extracted.relations;
-    const centroid = selectionCentroid(mergedElements);
-    set({
-      clipboard: {
-        elements: mergedElements,
-        relations: mergedRelations,
-        originX: centroid.x,
-        originY: centroid.y,
-      },
-    });
+    set({ clipboard: mergeClipboardPayloads(s.clipboard, extracted) });
     return true;
   },
 
@@ -631,40 +652,57 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedElementIds: remapped.newIds,
         selectedRelationId: null,
         selectedContextRelationId: null,
-        selectedBoundedContextId: null,
-        selectedSwimlaneId: null,
+        selectedBoundedContextIds: [],
+        selectedSwimlaneIds: [],
       };
     });
     return newIds;
   },
 
   pasteClipboardAt: (worldX, worldY) => {
-    const payload = get().clipboard;
-    if (!payload || payload.elements.length === 0) return [];
+    const payload = normalizeClipboardPayload(get().clipboard);
+    if (!payload || isClipboardEmpty(payload)) return [];
     let newIds: string[] = [];
     commit(set, get, (s) => {
       const remapped = remapClipboardForPaste(payload, worldX, worldY);
       newIds = remapped.newIds;
+      let regionZ = nextZIndex(regionZOrderItems(s.swimlanes, s.boundedContexts));
+      const swimlanes = [
+        ...s.swimlanes,
+        ...remapped.swimlanes.map((lane) => ({ ...lane, zIndex: regionZ++ })),
+      ];
+      const boundedContexts = [
+        ...s.boundedContexts,
+        ...remapped.boundedContexts.map((bc) => ({ ...bc, zIndex: regionZ++ })),
+      ];
+      let z = nextElementZIndex(s.elements);
+      const pastedElements = remapped.elements.map((el) => ({
+        ...el,
+        zIndex: z++,
+      }));
       const elements = applyContainmentAssignments(
-        [...s.elements, ...remapped.elements],
-        s.swimlanes,
-        s.boundedContexts,
+        [...s.elements, ...pastedElements],
+        swimlanes,
+        boundedContexts,
       );
       return {
         elements,
         relations: [...s.relations, ...remapped.relations],
+        swimlanes,
+        boundedContexts,
+        contextRelations: [...s.contextRelations, ...remapped.contextRelations],
         selectedElementIds: remapped.newIds,
         selectedRelationId: null,
         selectedContextRelationId: null,
-        selectedBoundedContextId: null,
-        selectedSwimlaneId: null,
+        selectedBoundedContextIds: remapped.newBoundedContextIds,
+        selectedSwimlaneIds: remapped.newSwimlaneIds,
       };
     });
     return newIds;
   },
 
   takeClipboardElementsAt: (ids, worldX, worldY) => {
-    const payload = get().clipboard;
+    const payload = normalizeClipboardPayload(get().clipboard);
     if (!payload) return [];
     const { taken, remaining } = takeIdsFromClipboard(payload, ids);
     if (!taken) return [];
@@ -672,8 +710,13 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => {
       const remapped = remapClipboardForPaste(taken, worldX, worldY);
       newIds = remapped.newIds;
+      let z = nextElementZIndex(s.elements);
+      const pastedElements = remapped.elements.map((el) => ({
+        ...el,
+        zIndex: z++,
+      }));
       const elements = applyContainmentAssignments(
-        [...s.elements, ...remapped.elements],
+        [...s.elements, ...pastedElements],
         s.swimlanes,
         s.boundedContexts,
       );
@@ -684,8 +727,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedElementIds: remapped.newIds,
         selectedRelationId: null,
         selectedContextRelationId: null,
-        selectedBoundedContextId: null,
-        selectedSwimlaneId: null,
+        selectedBoundedContextIds: [],
+        selectedSwimlaneIds: [],
       };
     });
     return newIds;
@@ -707,8 +750,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           selectedElementIds,
           selectedRelationId: null,
           selectedContextRelationId: null,
-          selectedBoundedContextId: null,
-          selectedSwimlaneId: null,
+          selectedBoundedContextIds: [],
+          selectedSwimlaneIds: [],
           editingElementId:
             s.editingElementId && selectedElementIds.includes(s.editingElementId)
               ? s.editingElementId
@@ -719,8 +762,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedElementIds: [id],
         selectedRelationId: null,
         selectedContextRelationId: null,
-        selectedBoundedContextId: null,
-        selectedSwimlaneId: null,
+        selectedBoundedContextIds: [],
+        selectedSwimlaneIds: [],
         editingElementId: s.editingElementId === id ? s.editingElementId : null,
       };
     }),
@@ -734,12 +777,39 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedElementIds: next,
         selectedRelationId: null,
         selectedContextRelationId: null,
-        selectedBoundedContextId: null,
-        selectedSwimlaneId: null,
+        selectedBoundedContextIds: [],
+        selectedSwimlaneIds: [],
         editingElementId:
           s.editingElementId && next.includes(s.editingElementId)
             ? s.editingElementId
             : null,
+      };
+    }),
+
+  setCanvasSelection: (selection, additive) =>
+    set((s) => {
+      const elementIds = selection.elementIds ?? [];
+      const swimlaneIds = selection.swimlaneIds ?? [];
+      const boundedContextIds = selection.boundedContextIds ?? [];
+      if (additive) {
+        return {
+          selectedElementIds: Array.from(new Set([...s.selectedElementIds, ...elementIds])),
+          selectedSwimlaneIds: Array.from(new Set([...s.selectedSwimlaneIds, ...swimlaneIds])),
+          selectedBoundedContextIds: Array.from(
+            new Set([...s.selectedBoundedContextIds, ...boundedContextIds]),
+          ),
+          selectedRelationId: null,
+          selectedContextRelationId: null,
+          editingElementId: null,
+        };
+      }
+      return {
+        selectedElementIds: elementIds,
+        selectedSwimlaneIds: swimlaneIds,
+        selectedBoundedContextIds: boundedContextIds,
+        selectedRelationId: null,
+        selectedContextRelationId: null,
+        editingElementId: null,
       };
     }),
 
@@ -748,8 +818,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedRelationId: id,
       selectedContextRelationId: null,
       selectedElementIds: id ? [] : get().selectedElementIds,
-      selectedBoundedContextId: null,
-      selectedSwimlaneId: null,
+      selectedBoundedContextIds: [],
+      selectedSwimlaneIds: [],
     }),
 
   selectContextRelation: (id) =>
@@ -757,26 +827,60 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedContextRelationId: id,
       selectedRelationId: null,
       selectedElementIds: id ? [] : get().selectedElementIds,
-      selectedBoundedContextId: null,
-      selectedSwimlaneId: null,
+      selectedBoundedContextIds: [],
+      selectedSwimlaneIds: [],
     }),
 
-  selectBoundedContext: (id) =>
-    set({
-      selectedBoundedContextId: id,
-      selectedElementIds: id ? [] : get().selectedElementIds,
-      selectedRelationId: null,
-      selectedContextRelationId: null,
-      selectedSwimlaneId: null,
+  selectBoundedContext: (id, additive) =>
+    set((s) => {
+      if (!id) {
+        return { selectedBoundedContextIds: [] };
+      }
+      if (additive) {
+        const exists = s.selectedBoundedContextIds.includes(id);
+        return {
+          selectedBoundedContextIds: exists
+            ? s.selectedBoundedContextIds.filter((x) => x !== id)
+            : [...s.selectedBoundedContextIds, id],
+          selectedElementIds: [],
+          selectedRelationId: null,
+          selectedContextRelationId: null,
+          selectedSwimlaneIds: [],
+        };
+      }
+      return {
+        selectedBoundedContextIds: [id],
+        selectedElementIds: [],
+        selectedRelationId: null,
+        selectedContextRelationId: null,
+        selectedSwimlaneIds: [],
+      };
     }),
 
-  selectSwimlane: (id) =>
-    set({
-      selectedSwimlaneId: id,
-      selectedElementIds: id ? [] : get().selectedElementIds,
-      selectedRelationId: null,
-      selectedContextRelationId: null,
-      selectedBoundedContextId: null,
+  selectSwimlane: (id, additive) =>
+    set((s) => {
+      if (!id) {
+        return { selectedSwimlaneIds: [] };
+      }
+      if (additive) {
+        const exists = s.selectedSwimlaneIds.includes(id);
+        return {
+          selectedSwimlaneIds: exists
+            ? s.selectedSwimlaneIds.filter((x) => x !== id)
+            : [...s.selectedSwimlaneIds, id],
+          selectedElementIds: [],
+          selectedRelationId: null,
+          selectedContextRelationId: null,
+          selectedBoundedContextIds: [],
+        };
+      }
+      return {
+        selectedSwimlaneIds: [id],
+        selectedElementIds: [],
+        selectedRelationId: null,
+        selectedContextRelationId: null,
+        selectedBoundedContextIds: [],
+      };
     }),
 
   clearSelection: () =>
@@ -784,8 +888,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedElementIds: [],
       selectedRelationId: null,
       selectedContextRelationId: null,
-      selectedBoundedContextId: null,
-      selectedSwimlaneId: null,
+      selectedBoundedContextIds: [],
+      selectedSwimlaneIds: [],
       editingElementId: null,
     }),
 
@@ -830,8 +934,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedElementIds: [],
       selectedRelationId: null,
       selectedContextRelationId: null,
-      selectedBoundedContextId: null,
-      selectedSwimlaneId: null,
+      selectedBoundedContextIds: [],
+      selectedSwimlaneIds: [],
       editingElementId: null,
     });
   },
@@ -849,8 +953,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedElementIds: [],
       selectedRelationId: null,
       selectedContextRelationId: null,
-      selectedBoundedContextId: null,
-      selectedSwimlaneId: null,
+      selectedBoundedContextIds: [],
+      selectedSwimlaneIds: [],
       editingElementId: null,
     });
   },
@@ -1083,7 +1187,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       const swimlanes = [...s.swimlanes, lane];
       return {
         swimlanes,
-        selectedSwimlaneId: id,
+        selectedSwimlaneIds: [id],
         elements: applyContainmentAssignments(s.elements, swimlanes, s.boundedContexts),
       };
     });
@@ -1126,7 +1230,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       elements: s.elements.map((e) =>
         e.swimlaneId === id ? { ...e, swimlaneId: undefined } : e,
       ),
-      selectedSwimlaneId: s.selectedSwimlaneId === id ? null : s.selectedSwimlaneId,
+      selectedSwimlaneIds: s.selectedSwimlaneIds.filter((x) => x !== id),
     })),
 
   addBoundedContext: (x, y, width, height, label) => {
@@ -1145,6 +1249,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       const boundedContexts = [...s.boundedContexts, bc];
       return {
         boundedContexts,
+        selectedBoundedContextIds: [id],
         elements: applyContainmentAssignments(s.elements, s.swimlanes, boundedContexts),
       };
     });
@@ -1195,8 +1300,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         elements: s.elements.map((e) =>
           e.boundedContextId === id ? { ...e, boundedContextId: undefined } : e,
         ),
-        selectedBoundedContextId:
-          s.selectedBoundedContextId === id ? null : s.selectedBoundedContextId,
+        selectedBoundedContextIds: s.selectedBoundedContextIds.filter((x) => x !== id),
         selectedContextRelationId:
           s.selectedContextRelationId &&
           !nextContextRelations.some((r) => r.id === s.selectedContextRelationId)
