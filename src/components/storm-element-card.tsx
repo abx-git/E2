@@ -91,6 +91,7 @@ export function StormElementCard({
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
+  const editingElementId = useStormBoardStore((s) => s.editingElementId);
   const views = useStormBoardStore((s) => s.views);
   const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
   const searchActive = Boolean(normalizeSearchQuery(searchQuery));
@@ -153,6 +154,12 @@ export function StormElementCard({
     el.focus();
     el.select();
   }, [editing]);
+
+  useEffect(() => {
+    if (editingElementId !== element.id) return;
+    beginEdit();
+    useStormBoardStore.getState().clearEditingElementId();
+  }, [editingElementId, element.id]);
 
   useEffect(() => {
     if (!selected && editingRef.current) {

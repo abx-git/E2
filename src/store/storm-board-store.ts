@@ -99,6 +99,8 @@ export interface StormBoardState {
   selectedContextRelationId: string | null;
   selectedBoundedContextId: string | null;
   selectedSwimlaneId: string | null;
+  /** Ephemeral UI: element that should enter label edit (e.g. after create). */
+  editingElementId: string | null;
   paletteType: ElementType;
   focusMode: boolean;
   /** Ephemeral canvas text search (not persisted / not undo). */
@@ -158,6 +160,8 @@ export interface StormBoardState {
   clearSelection: () => void;
   openContextMenu: (x: number, y: number, target: ContextMenuTarget) => void;
   closeContextMenu: () => void;
+  /** Clear the pending auto-edit request (card consumes it). */
+  clearEditingElementId: () => void;
 
   beginGesture: () => void;
   endGesture: () => void;
@@ -397,6 +401,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   selectedContextRelationId: null,
   selectedBoundedContextId: null,
   selectedSwimlaneId: null,
+  editingElementId: null,
   paletteType: defaultPaletteTypeForMode(initialViewDoc.modelingMode),
   focusMode: false,
   searchQuery: "",
@@ -690,17 +695,24 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
 
   selectElement: (id, additive) =>
     set((s) => {
-      if (!id) return { selectedElementIds: [], selectedRelationId: null };
+      if (!id) {
+        return { selectedElementIds: [], selectedRelationId: null, editingElementId: null };
+      }
       if (additive) {
         const exists = s.selectedElementIds.includes(id);
+        const selectedElementIds = exists
+          ? s.selectedElementIds.filter((x) => x !== id)
+          : [...s.selectedElementIds, id];
         return {
-          selectedElementIds: exists
-            ? s.selectedElementIds.filter((x) => x !== id)
-            : [...s.selectedElementIds, id],
+          selectedElementIds,
           selectedRelationId: null,
           selectedContextRelationId: null,
           selectedBoundedContextId: null,
           selectedSwimlaneId: null,
+          editingElementId:
+            s.editingElementId && selectedElementIds.includes(s.editingElementId)
+              ? s.editingElementId
+              : null,
         };
       }
       return {
@@ -709,6 +721,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedContextRelationId: null,
         selectedBoundedContextId: null,
         selectedSwimlaneId: null,
+        editingElementId: s.editingElementId === id ? s.editingElementId : null,
       };
     }),
 
@@ -723,6 +736,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedContextRelationId: null,
         selectedBoundedContextId: null,
         selectedSwimlaneId: null,
+        editingElementId:
+          s.editingElementId && next.includes(s.editingElementId)
+            ? s.editingElementId
+            : null,
       };
     }),
 
@@ -769,10 +786,12 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedContextRelationId: null,
       selectedBoundedContextId: null,
       selectedSwimlaneId: null,
+      editingElementId: null,
     }),
 
   openContextMenu: (x, y, target) => set({ contextMenu: { x, y, target } }),
   closeContextMenu: () => set({ contextMenu: null }),
+  clearEditingElementId: () => set({ editingElementId: null }),
 
   beginGesture: () => set({ gestureActive: true, gestureSnapshotTaken: false }),
   endGesture: () => {
@@ -813,6 +832,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedContextRelationId: null,
       selectedBoundedContextId: null,
       selectedSwimlaneId: null,
+      editingElementId: null,
     });
   },
 
@@ -831,6 +851,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedContextRelationId: null,
       selectedBoundedContextId: null,
       selectedSwimlaneId: null,
+      editingElementId: null,
     });
   },
 
@@ -850,6 +871,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         elements,
         selectedElementIds: [el.id],
+        editingElementId: el.id,
       };
     });
     return createdId;

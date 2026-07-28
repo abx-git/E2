@@ -120,4 +120,6 @@ export const CLEAR_SELECTION_PATCH = {
   contextMapMode: false,
   contextMapDraftSourceId: null as string | null,
   contextMenu: null,
+  /** Ephemeral: request label edit on a newly created element. */
+  editingElementId: null as string | null,
 };

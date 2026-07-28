@@ -53,6 +53,15 @@ export function StormCanvas() {
   const panStart = useRef({ x: 0, y: 0, vx: 0, vy: 0 });
   const spaceDown = useRef(false);
   const panningRef = useRef(false);
+  /** RMB down awaiting move threshold before becoming a pan (keeps element context menus on click). */
+  const rmbPanPending = useRef<{
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    pointerId: number;
+  } | null>(null);
+  const suppressContextMenuRef = useRef(false);
 
   const viewport = useStormBoardStore((s) => s.viewport);
   const setViewport = useStormBoardStore((s) => s.setViewport);
@@ -237,6 +246,20 @@ export function StormCanvas() {
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
+  // After RMB pan-drag, block the following contextmenu (elements + browser).
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onContextMenuCapture = (e: MouseEvent) => {
+      if (!suppressContextMenuRef.current) return;
+      e.preventDefault();
+      e.stopPropagation();
+      suppressContextMenuRef.current = false;
+    };
+    el.addEventListener("contextmenu", onContextMenuCapture, true);
+    return () => el.removeEventListener("contextmenu", onContextMenuCapture, true);
+  }, []);
+
   const beginPan = useCallback(
     (e: React.PointerEvent) => {
       e.preventDefault();
@@ -257,6 +280,7 @@ export function StormCanvas() {
   const endPan = useCallback((e?: React.PointerEvent) => {
     panningRef.current = false;
     setPanning(false);
+    rmbPanPending.current = null;
     if (e && e.currentTarget instanceof HTMLElement && e.currentTarget.hasPointerCapture(e.pointerId)) {
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -264,6 +288,25 @@ export function StormCanvas() {
         /* ignore */
       }
     }
+  }, []);
+
+  const promoteRmbPan = useCallback((clientX: number, clientY: number, currentTarget: EventTarget) => {
+    const pending = rmbPanPending.current;
+    if (!pending) return false;
+    const dx = clientX - pending.x;
+    const dy = clientY - pending.y;
+    if (Math.hypot(dx, dy) < MARQUEE_THRESHOLD_PX) return false;
+    rmbPanPending.current = null;
+    suppressContextMenuRef.current = true;
+    panningRef.current = true;
+    setPanning(true);
+    panStart.current = { x: pending.x, y: pending.y, vx: pending.vx, vy: pending.vy };
+    try {
+      (currentTarget as HTMLElement).setPointerCapture(pending.pointerId);
+    } catch {
+      /* ignore */
+    }
+    return true;
   }, []);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
@@ -413,26 +456,45 @@ export function StormCanvas() {
       onContextMenu={(e) => {
         // Chrome/UI chrome (bottom dock) keeps its own menu behavior.
         if ((e.target as Element | null)?.closest?.("[data-canvas-chrome]")) return;
-        // Stickies / lanes / connectors call stopPropagation — we only handle empty canvas here,
-        // including areas outside the fixed world rect after pan/zoom.
+        // Stickies / lanes / connectors call stopPropagation — empty canvas: no menu (RMB pans).
         e.preventDefault();
-        const world = worldFromClient(e.clientX, e.clientY);
-        if (!world) return;
-        useStormBoardStore.getState().openContextMenu(e.clientX, e.clientY, {
-          kind: "canvas",
-          worldX: world.x,
-          worldY: world.y,
-        });
       }}
       onPointerDownCapture={(e) => {
         // Capture phase: pan works over stickies (children stopPropagation on bubble).
         if (e.button === 1 || (e.button === 0 && spaceDown.current)) {
           beginPan(e);
+          return;
+        }
+        // RMB: defer pan until move threshold so short clicks still open element menus.
+        if (e.button === 2) {
+          if ((e.target as Element | null)?.closest?.("[data-canvas-chrome]")) return;
+          const vp = useStormBoardStore.getState().viewport;
+          rmbPanPending.current = {
+            x: e.clientX,
+            y: e.clientY,
+            vx: vp.x,
+            vy: vp.y,
+            pointerId: e.pointerId,
+          };
+          suppressContextMenuRef.current = false;
+          try {
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          } catch {
+            /* ignore */
+          }
         }
       }}
       onPointerDown={(e) => {
         useStormBoardStore.getState().closeContextMenu();
-        if (panningRef.current || e.button === 1 || (e.button === 0 && spaceDown.current)) return;
+        if (
+          panningRef.current ||
+          rmbPanPending.current ||
+          e.button === 1 ||
+          e.button === 2 ||
+          (e.button === 0 && spaceDown.current)
+        ) {
+          return;
+        }
         if (e.button !== 0) return;
         if (bcMode) {
           const world = worldFromClient(e.clientX, e.clientY);
@@ -447,6 +509,9 @@ export function StormCanvas() {
         startMarquee(e.clientX, e.clientY, e.shiftKey);
       }}
       onPointerMove={(e) => {
+        if (rmbPanPending.current) {
+          promoteRmbPan(e.clientX, e.clientY, e.currentTarget);
+        }
         if (panningRef.current) {
           const dx = e.clientX - panStart.current.x;
           const dy = e.clientY - panStart.current.y;
@@ -470,7 +535,15 @@ export function StormCanvas() {
         }
       }}
       onPointerUp={(e) => {
+        rmbPanPending.current = null;
         if (panningRef.current) endPan(e);
+        else if (e.currentTarget instanceof HTMLElement && e.currentTarget.hasPointerCapture(e.pointerId)) {
+          try {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          } catch {
+            /* ignore */
+          }
+        }
         if (bcMode && bcDraft && bcDraft.w > 40 && bcDraft.h > 40) {
           addBoundedContext(bcDraft.x, bcDraft.y, bcDraft.w, bcDraft.h);
         }
@@ -478,7 +551,15 @@ export function StormCanvas() {
         setBcDraft(null);
       }}
       onPointerCancel={(e) => {
+        rmbPanPending.current = null;
         if (panningRef.current) endPan(e);
+        else if (e.currentTarget instanceof HTMLElement && e.currentTarget.hasPointerCapture(e.pointerId)) {
+          try {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          } catch {
+            /* ignore */
+          }
+        }
         bcStart.current = null;
         setBcDraft(null);
       }}
@@ -613,7 +694,7 @@ export function StormCanvas() {
               ? "Context Map · Esc: Abbrechen"
               : bcMode
                 ? "Rechteck ziehen · Esc: Abbrechen"
-                : "1–9/0 Typ · Leertaste+Ziehen / Trackpad: Pan · Rechtsklick · Rahmen"
+                : "1–9/0 Typ · Rechtsklick / Trackpad / Leertaste: Pan · Rahmen"
         }
       />
     </div>

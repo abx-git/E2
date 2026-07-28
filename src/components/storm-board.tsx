@@ -523,7 +523,7 @@ export function StormBoard() {
                 </>
               )}
         </span>
-        <span>Rechtsklick · Aktionen · E2</span>
+        <span>Rechtsklick · Pan · E2</span>
       </footer>
 
       <CanvasContextMenu
