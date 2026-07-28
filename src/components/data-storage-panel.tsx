@@ -310,8 +310,8 @@ export function DataStoragePanel({
 
           <Section title="Backup">
             <p className="text-xs text-[var(--muted)]">
-              Zeitstempel-Kopie (.storm.json) — unabhängig von der Arbeitsdatei.{" "}
-              {backupLastLabel}.
+              Zeitstempel-Kopie (.storm.json) — unabhängig von der Arbeitsdatei. Automatisch
+              nur bei Änderungen. {backupLastLabel}.
             </p>
             <ActionButton onClick={onBackupNow} disabled={busy}>
               <Save className="h-4 w-4" /> Jetzt sichern

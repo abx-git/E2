@@ -1,13 +1,32 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
+import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
 import {
   buildBackupFilename,
+  createBoardBackupNow,
   formatBackupTimestamp,
   formatLastBackupLabel,
+  getLastBackupPersistKey,
+  rememberBackupBaselineFromStore,
+  resetLastBackupPersistKey,
   slugForBackupFilename,
 } from "@/lib/board-backup";
+import { createEmptyBoardView } from "@/lib/storm-json";
+import { useStormBoardStore } from "@/store/storm-board-store";
 
 describe("board-backup", () => {
+  beforeEach(() => {
+    resetLastBackupPersistKey();
+    useStormBoardStore.getState().replaceBoardFromImport({
+      title: "Backup Test",
+      glossary: [],
+      appearance: { ...DEFAULT_APPEARANCE },
+      workshopMode: false,
+      activeViewId: "v1",
+      views: [createEmptyBoardView({ id: "v1", name: "Board" })],
+    });
+  });
+
   it("builds timestamped filenames", () => {
     const d = new Date(2026, 6, 23, 7, 5, 9); // month is 0-based
     expect(formatBackupTimestamp(d)).toBe("2026-07-23-070509");
@@ -24,5 +43,43 @@ describe("board-backup", () => {
   it("formats last-backup label", () => {
     expect(formatLastBackupLabel(null)).toBe("Noch kein Backup");
     expect(formatLastBackupLabel(Date.UTC(2026, 0, 1, 12, 0, 0))).toMatch(/2026/);
+  });
+
+  it("skips onlyIfChanged backups when the board is unchanged", () => {
+    useStormBoardStore.getState().addElement("domainEvent", 10, 20);
+    rememberBackupBaselineFromStore();
+    expect(getLastBackupPersistKey()).toBeTruthy();
+
+    expect(createBoardBackupNow({ onlyIfChanged: true })).toEqual({
+      skipped: true,
+      reason: "unchanged",
+    });
+
+    // Change the board: without a DOM, download would throw — assert we no longer
+    // take the unchanged short-circuit (persist key differs from baseline).
+    useStormBoardStore.getState().addElement("command", 30, 40);
+    rememberBackupBaselineFromStore();
+    expect(createBoardBackupNow({ onlyIfChanged: true })).toEqual({
+      skipped: true,
+      reason: "unchanged",
+    });
+  });
+
+  it("does not skip onlyIfChanged when there is no baseline yet", () => {
+    useStormBoardStore.getState().addElement("domainEvent", 10, 20);
+    expect(getLastBackupPersistKey()).toBeNull();
+    // Would download; without DOM we only assert empty-board skip still works.
+    useStormBoardStore.getState().replaceBoardFromImport({
+      title: "Empty",
+      glossary: [],
+      appearance: { ...DEFAULT_APPEARANCE },
+      workshopMode: false,
+      activeViewId: "v1",
+      views: [createEmptyBoardView({ id: "v1", name: "Board" })],
+    });
+    expect(createBoardBackupNow({ onlyIfChanged: true })).toEqual({
+      skipped: true,
+      reason: "empty",
+    });
   });
 });

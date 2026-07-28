@@ -2,7 +2,7 @@
  * Timestamped local board backups (download copies, independent of the working file).
  */
 
-import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
+import { boardJsonFromStoreState, boardPersistKeyFromStoreState } from "@/lib/file-board-reconcile";
 import { documentHasContent } from "@/lib/storm-json";
 import { boardImportPayloadFromStore } from "@/store/storm-board-store";
 
@@ -11,6 +11,9 @@ export type BackupIntervalMinutes = (typeof BACKUP_INTERVAL_OPTIONS_MINUTES)[num
 
 const LS_INTERVAL = "e2-backup-interval-minutes";
 const LS_LAST_AT = "e2-backup-last-at";
+
+/** Persist key of the last successful backup (session); used to skip unchanged auto-backups. */
+let lastBackupPersistKey: string | null = null;
 
 export function slugForBackupFilename(title: string): string {
   const slug = title
@@ -49,16 +52,47 @@ export function downloadBoardBackup(json: string, title: string, date: Date = ne
   return filename;
 }
 
+/**
+ * Treat the current editor stand as already backed up (no download).
+ * Used when enabling interval backups so the first tick only fires after a real change.
+ */
+export function rememberBackupBaselineFromStore(): void {
+  lastBackupPersistKey = boardPersistKeyFromStoreState();
+}
+
+/** @internal test helper */
+export function getLastBackupPersistKey(): string | null {
+  return lastBackupPersistKey;
+}
+
+/** @internal test helper */
+export function resetLastBackupPersistKey(): void {
+  lastBackupPersistKey = null;
+}
+
+export type CreateBoardBackupResult =
+  | { filename: string; skipped: false }
+  | { skipped: true; reason: "empty" | "unchanged" };
+
 /** Create a timestamped backup of the current editor board. */
 export function createBoardBackupNow(
-  options?: { allowEmpty?: boolean },
-): { filename: string; skipped: false } | { skipped: true; reason: "empty" } {
+  options?: { allowEmpty?: boolean; onlyIfChanged?: boolean },
+): CreateBoardBackupResult {
   const payload = boardImportPayloadFromStore();
   if (!options?.allowEmpty && !documentHasContent(payload)) {
     return { skipped: true, reason: "empty" };
   }
+  const persistKey = boardPersistKeyFromStoreState();
+  if (
+    options?.onlyIfChanged &&
+    lastBackupPersistKey !== null &&
+    persistKey === lastBackupPersistKey
+  ) {
+    return { skipped: true, reason: "unchanged" };
+  }
   const json = boardJsonFromStoreState();
   const filename = downloadBoardBackup(json, payload.title || "board");
+  lastBackupPersistKey = persistKey;
   return { filename, skipped: false };
 }
 
@@ -74,7 +108,7 @@ const LAST_SWITCH_BACKUP_AT: Partial<Record<SuspiciousSwitchKind | "any", number
 export function backupBeforeSuspiciousSwitch(
   kind: SuspiciousSwitchKind,
   options?: { allowEmpty?: boolean; debounceMs?: number },
-): { filename: string; skipped: false } | { skipped: true; reason: "empty" | "debounced" } {
+): { filename: string; skipped: false } | { skipped: true; reason: "empty" | "debounced" | "unchanged" } {
   const debounceMs =
     options?.debounceMs ?? (kind === "view" ? 4000 : 2000);
   const now = Date.now();
