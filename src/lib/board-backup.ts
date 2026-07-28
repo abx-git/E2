@@ -12,6 +12,25 @@ export type BackupIntervalMinutes = (typeof BACKUP_INTERVAL_OPTIONS_MINUTES)[num
 const LS_INTERVAL = "e2-backup-interval-minutes";
 const LS_LAST_AT = "e2-backup-last-at";
 
+const LOCAL_BACKUP_IDB_NAME = "e2-board-backups";
+const LOCAL_BACKUP_IDB_VERSION = 1;
+const LOCAL_BACKUP_STORE = "backups";
+const LOCAL_BACKUP_LIST_KEY = "recent";
+const LOCAL_BACKUP_LIMIT = 12;
+
+export interface LocalBackupRecord {
+  id: string;
+  filename: string;
+  createdAt: number;
+  json: string;
+}
+
+export interface LocalBackupListItem {
+  id: string;
+  filename: string;
+  createdAt: number;
+}
+
 /** Persist key of the last successful backup (session); used to skip unchanged auto-backups. */
 let lastBackupPersistKey: string | null = null;
 
@@ -39,6 +58,96 @@ export function buildBackupFilename(title: string, date: Date = new Date()): str
   return `${slugForBackupFilename(title)}-backup-${formatBackupTimestamp(date)}.storm.json`;
 }
 
+function openLocalBackupDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("indexedDB unavailable"));
+      return;
+    }
+    const req = indexedDB.open(LOCAL_BACKUP_IDB_NAME, LOCAL_BACKUP_IDB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(LOCAL_BACKUP_STORE)) {
+        db.createObjectStore(LOCAL_BACKUP_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error ?? new Error("indexedDB open failed"));
+  });
+}
+
+async function idbGetLocalBackups(): Promise<LocalBackupRecord[]> {
+  try {
+    const db = await openLocalBackupDb();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(LOCAL_BACKUP_STORE, "readonly");
+      const r = tx.objectStore(LOCAL_BACKUP_STORE).get(LOCAL_BACKUP_LIST_KEY);
+      r.onsuccess = () => {
+        const raw = r.result;
+        resolve(Array.isArray(raw) ? (raw as LocalBackupRecord[]) : []);
+      };
+      r.onerror = () => reject(r.error ?? new Error("indexedDB get failed"));
+    });
+  } catch {
+    return [];
+  }
+}
+
+async function idbPutLocalBackups(entries: LocalBackupRecord[]): Promise<void> {
+  const db = await openLocalBackupDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(LOCAL_BACKUP_STORE, "readwrite");
+    tx.objectStore(LOCAL_BACKUP_STORE).put(entries, LOCAL_BACKUP_LIST_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("indexedDB put failed"));
+  });
+}
+
+/** Persist a backup copy in IndexedDB so it can be reopened without the Downloads folder. */
+export async function rememberLocalBackup(
+  filename: string,
+  json: string,
+  createdAt: number = Date.now(),
+): Promise<LocalBackupRecord> {
+  const record: LocalBackupRecord = {
+    id: `${createdAt}-${Math.random().toString(36).slice(2, 9)}`,
+    filename,
+    createdAt,
+    json,
+  };
+  try {
+    const existing = await idbGetLocalBackups();
+    const next = [record, ...existing.filter((e) => e.filename !== filename)].slice(
+      0,
+      LOCAL_BACKUP_LIMIT,
+    );
+    await idbPutLocalBackups(next);
+  } catch (e) {
+    console.error("Local backup store:", e);
+  }
+  return record;
+}
+
+/** Recent local backups (metadata only), newest first. */
+export async function listLocalBackups(): Promise<LocalBackupListItem[]> {
+  const entries = await idbGetLocalBackups();
+  return entries.map(({ id, filename, createdAt }) => ({ id, filename, createdAt }));
+}
+
+export async function getLocalBackup(id: string): Promise<LocalBackupRecord | null> {
+  const entries = await idbGetLocalBackups();
+  return entries.find((e) => e.id === id) ?? null;
+}
+
+/** @internal test helper */
+export async function clearLocalBackups(): Promise<void> {
+  try {
+    await idbPutLocalBackups([]);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function downloadBoardBackup(json: string, title: string, date: Date = new Date()): string {
   const filename = buildBackupFilename(title, date);
   const blob = new Blob([json], { type: "application/json" });
@@ -49,6 +158,7 @@ export function downloadBoardBackup(json: string, title: string, date: Date = ne
   a.click();
   URL.revokeObjectURL(url);
   rememberLastBackupAt(date.getTime());
+  void rememberLocalBackup(filename, json, date.getTime());
   return filename;
 }
 

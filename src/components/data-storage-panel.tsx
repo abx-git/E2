@@ -6,7 +6,9 @@ import { AppearanceSettings } from "@/components/appearance-settings";
 import { Clock, ClipboardCopy, Download, FolderOpen, Loader2, Save, Upload, Users, X } from "lucide-react";
 import {
   BACKUP_INTERVAL_OPTIONS_MINUTES,
+  listLocalBackups,
   type BackupIntervalMinutes,
+  type LocalBackupListItem,
 } from "@/lib/board-backup";
 import { listRecentWorkingFiles } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -29,6 +31,7 @@ export interface DataStoragePanelProps {
   /** Speichern unter… — pick a new path; becomes the Arbeitsdatei. */
   onSaveWorkingFileAs: () => void;
   onOpenRecentWorkingFile: (handle: FileSystemFileHandle) => void;
+  onOpenLocalBackup: (backupId: string) => void;
   onRestoreBackupFile: () => void;
   onRestoreBackupPaste: () => void;
   /** Import E2 file as new view tab(s); keeps open document appearance/globals. */
@@ -167,6 +170,7 @@ export function DataStoragePanel({
   onOpenWorkingFile,
   onSaveWorkingFileAs,
   onOpenRecentWorkingFile,
+  onOpenLocalBackup,
   onRestoreBackupFile,
   onRestoreBackupPaste,
   onImportAsNewViews,
@@ -192,18 +196,24 @@ export function DataStoragePanel({
   const [recentFiles, setRecentFiles] = useState<
     Array<{ name: string; openedAt: number; handle: FileSystemFileHandle }>
   >([]);
+  const [localBackups, setLocalBackups] = useState<LocalBackupListItem[]>([]);
   const [jsonCopied, setJsonCopied] = useState(false);
 
   useEffect(() => {
-    if (!open || !fsAccessSupported) return;
+    if (!open) return;
     let cancelled = false;
-    void listRecentWorkingFiles().then((entries) => {
-      if (!cancelled) setRecentFiles(entries);
+    if (fsAccessSupported) {
+      void listRecentWorkingFiles().then((entries) => {
+        if (!cancelled) setRecentFiles(entries);
+      });
+    }
+    void listLocalBackups().then((entries) => {
+      if (!cancelled) setLocalBackups(entries);
     });
     return () => {
       cancelled = true;
     };
-  }, [open, fsAccessSupported, workingFileLabel, busy]);
+  }, [open, fsAccessSupported, workingFileLabel, busy, backupLastLabel]);
 
   if (!open) return null;
 
@@ -266,7 +276,9 @@ export function DataStoragePanel({
                 </ActionButton>
                 {recentFiles.length > 0 && (
                   <div className="space-y-1.5 pt-1">
-                    <p className="text-[0.7rem] font-medium text-[var(--muted)]">Zuletzt verwendet</p>
+                    <p className="text-[0.7rem] font-medium text-[var(--muted)]">
+                      Zuletzt verwendet — anklicken zum Öffnen
+                    </p>
                     <ul className="space-y-1">
                       {recentFiles.map((entry) => (
                         <li key={`${entry.name}-${entry.openedAt}`}>
@@ -316,6 +328,37 @@ export function DataStoragePanel({
             <ActionButton onClick={onBackupNow} disabled={busy}>
               <Save className="h-4 w-4" /> Jetzt sichern
             </ActionButton>
+            <ActionButton onClick={onRestoreBackupFile} disabled={busy}>
+              <FolderOpen className="h-4 w-4" /> Backup-Datei öffnen
+            </ActionButton>
+            {localBackups.length > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <p className="text-[0.7rem] font-medium text-[var(--muted)]">
+                  Gesicherte Backups — anklicken zum Öffnen
+                </p>
+                <ul className="space-y-1">
+                  {localBackups.map((entry) => (
+                    <li key={entry.id}>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => onOpenLocalBackup(entry.id)}
+                        className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
+                        title={new Date(entry.createdAt).toLocaleString("de-DE")}
+                      >
+                        <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium">{entry.filename}</span>
+                          <span className="block text-[0.65rem] text-[var(--muted)]">
+                            {new Date(entry.createdAt).toLocaleString("de-DE")}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <label className="flex flex-col gap-1 text-xs text-[var(--text)]">
               <span className="text-[var(--muted)]">Automatisch alle …</span>
               <select

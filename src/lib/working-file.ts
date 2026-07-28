@@ -415,22 +415,37 @@ export async function clearRecentWorkingFiles(): Promise<void> {
  */
 export async function openRecentWorkingFile(
   handle: FileSystemFileHandle,
+  options?: { skipPermission?: boolean },
 ): Promise<{
   handle: FileSystemFileHandle;
   hydrate: HydrateWorkingFileResult;
 } | null> {
   if (!isWorkingFileSupported()) return null;
   try {
-    let granted = (await handle.queryPermission({ mode: "readwrite" })) === "granted";
-    if (!granted) {
-      granted = (await handle.requestPermission({ mode: "readwrite" })) === "granted";
+    if (!options?.skipPermission) {
+      const granted = await ensureReadWritePermission(handle);
+      if (!granted) return null;
     }
-    if (!granted) return null;
     await rememberHandle(handle);
     return { handle, hydrate: await hydrateStoreFromWorkingFile(handle) };
   } catch (e) {
     console.error("Recent file open:", e);
     return null;
+  }
+}
+
+/**
+ * Request readwrite permission for a remembered handle.
+ * Must run from a user gesture *before* any programmatic download (which consumes activation).
+ */
+export async function requestWorkingFilePermission(
+  handle: FileSystemFileHandle,
+): Promise<boolean> {
+  if (!isWorkingFileSupported()) return false;
+  try {
+    return await ensureReadWritePermission(handle);
+  } catch {
+    return false;
   }
 }
 

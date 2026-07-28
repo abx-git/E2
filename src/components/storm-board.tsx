@@ -29,12 +29,13 @@ import { WorkingFileSetupDialog } from "@/components/working-file-setup-dialog";
 import { WorkingFileSync } from "@/components/working-file-sync";
 import { applyAppearanceToElement } from "@/lib/board-appearance";
 import {
+  backupBeforeSuspiciousSwitch,
   formatLastBackupLabel,
+  getLocalBackup,
   readBackupIntervalMinutes,
   readLastBackupAt,
   type BackupIntervalMinutes,
   writeBackupIntervalMinutes,
-  backupBeforeSuspiciousSwitch,
 } from "@/lib/board-backup";
 import { boardHasLocalContent, shouldConfirmCollabEnter } from "@/lib/collab/file-guard";
 import {
@@ -76,9 +77,10 @@ import {
   forceApplyBoardJson,
   attachWorkingFileFromBrowserFile,
   attachWorkingFileFromPastedText,
-  attachWorkingFileFromPicker,
+  attachWorkingFileOpen,
   createAndAttachWorkingFile,
   getWorkingFileLabel,
+  hydrateStoreFromWorkingFile,
   isWorkingFileAttached,
   isWorkingFileDirty,
   isWorkingFileSupported,
@@ -86,6 +88,7 @@ import {
   markWorkingFileSessionHydrated,
   openRecentWorkingFile,
   persistWorkingFileJson,
+  requestWorkingFilePermission,
   resolveWorkingFileImportConflict,
   saveWorkingFileAs,
   suggestedWorkingFileName,
@@ -274,19 +277,22 @@ export function StormBoard() {
     }
     setBusy(true);
     try {
+      // Picker needs user activation — run before any safety-download click.
+      const handle = await attachWorkingFileOpen();
+      if (!handle) return;
       backupBeforeSuspiciousSwitch("file");
-      const result = await attachWorkingFileFromPicker();
-      if (!result) return;
-      if (result.hydrate.status === "conflict") {
+      const hydrate = await hydrateStoreFromWorkingFile(handle);
+      if (hydrate.status === "conflict") {
         setImportConflict({
-          fileText: result.hydrate.fileText,
-          fileLastModified: result.hydrate.fileLastModified,
-          fileName: result.handle.name || "Arbeitsdatei",
+          fileText: hydrate.fileText,
+          fileLastModified: hydrate.fileLastModified,
+          fileName: handle.name || "Arbeitsdatei",
         });
         return;
       }
       setWorkingFileName(getWorkingFileLabel());
       setSetupOpen(false);
+      setStorageOpen(false);
     } finally {
       setBusy(false);
     }
@@ -301,11 +307,19 @@ export function StormBoard() {
     }
     setBusy(true);
     try {
-      backupBeforeSuspiciousSwitch("file");
-      const result = await openRecentWorkingFile(handle);
-      if (!result) {
+      // Permission must run while the click gesture is still valid — before backup download.
+      const permitted = await requestWorkingFilePermission(handle);
+      if (!permitted) {
         window.alert(
           "Datei konnte nicht geöffnet werden. Bitte Berechtigung erteilen oder die Datei erneut über „Datei öffnen“ wählen.",
+        );
+        return;
+      }
+      backupBeforeSuspiciousSwitch("file");
+      const result = await openRecentWorkingFile(handle, { skipPermission: true });
+      if (!result) {
+        window.alert(
+          "Datei konnte nicht geöffnet werden. Bitte die Datei erneut über „Datei öffnen“ wählen.",
         );
         return;
       }
@@ -319,6 +333,32 @@ export function StormBoard() {
       }
       setWorkingFileName(getWorkingFileLabel());
       setSetupOpen(false);
+      setStorageOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleOpenLocalBackup = async (backupId: string) => {
+    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+      window.alert(
+        "Während der Kollaboration kann kein Backup in den Editor geladen werden. Bitte zuerst den Raum verlassen.",
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      const record = await getLocalBackup(backupId);
+      if (!record?.json?.trim()) {
+        window.alert("Backup wurde nicht gefunden oder ist leer.");
+        return;
+      }
+      backupBeforeSuspiciousSwitch("file");
+      if (!forceApplyBoardJson(record.json)) {
+        window.alert("Backup konnte nicht geladen werden.");
+        return;
+      }
+      setWorkingFileName(getWorkingFileLabel());
       setStorageOpen(false);
     } finally {
       setBusy(false);
@@ -550,6 +590,7 @@ export function StormBoard() {
         onOpenWorkingFile={() => void handleOpenWorkingFile()}
         onSaveWorkingFileAs={() => void handleSaveWorkingFileAs()}
         onOpenRecentWorkingFile={(handle) => void handleOpenRecentWorkingFile(handle)}
+        onOpenLocalBackup={(id) => void handleOpenLocalBackup(id)}
         onRestoreBackupFile={() => fileInputRef.current?.click()}
         onRestoreBackupPaste={() => void handlePasteJson()}
         onImportAsNewViews={handleImportAsNewViews}
@@ -667,6 +708,7 @@ export function StormBoard() {
             }
             setWorkingFileName(getWorkingFileLabel());
             setSetupOpen(false);
+            setStorageOpen(false);
           });
         }}
       />
