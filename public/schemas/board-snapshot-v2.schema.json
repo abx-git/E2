@@ -41,6 +41,13 @@
         "$ref": "#/$defs/glossaryEntry"
       }
     },
+    "actionItems": {
+      "type": "array",
+      "description": "Projektweites Action-Item-Register (To-dos, Problemfelder, Risiken).",
+      "items": {
+        "$ref": "#/$defs/actionItem"
+      }
+    },
     "appearance": {
       "$ref": "#/$defs/appearance"
     },
@@ -730,6 +737,63 @@
         },
         "definition": {
           "type": "string"
+        }
+      }
+    },
+    "actionItemStatus": {
+      "type": "string",
+      "enum": [
+        "open",
+        "inProgress",
+        "blocked",
+        "done"
+      ]
+    },
+    "actionItemArea": {
+      "type": "string",
+      "enum": [
+        "followUp",
+        "problem",
+        "risk",
+        "decision",
+        "debt",
+        "question"
+      ]
+    },
+    "actionItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "status",
+        "area"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notes": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/actionItemStatus"
+        },
+        "area": {
+          "$ref": "#/$defs/actionItemArea"
+        },
+        "elementId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boundedContextId": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },

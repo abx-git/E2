@@ -39,6 +39,7 @@ import { generateStormId } from "@/lib/storm-id";
 const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
 import { backupBeforeSuspiciousSwitch } from "@/lib/board-backup";
+import { normalizeActionItem } from "@/lib/action-items";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
 import { createEmptyBoardView, normalizeBoardDocument } from "@/lib/storm-json";
 import {
@@ -80,6 +81,7 @@ import type {
   StormRelation,
 } from "@/types/storm-relation";
 import type { ContextMenuState, ContextMenuTarget } from "@/types/context-menu";
+import type { ActionItem } from "@/types/action-item";
 
 export interface StormBoardState {
   title: string;
@@ -100,6 +102,7 @@ export interface StormBoardState {
   timeline: Timeline;
   viewport: Viewport;
   glossary: GlossaryEntry[];
+  actionItems: ActionItem[];
   appearance: BoardAppearance;
   snapToTimeline: boolean;
   snapToGrid: boolean;
@@ -257,6 +260,12 @@ export interface StormBoardState {
   updateGlossaryEntry: (term: string, definition: string) => void;
   deleteGlossaryEntry: (term: string) => void;
 
+  addActionItem: (
+    item: Omit<ActionItem, "id"> & { id?: string },
+  ) => string | null;
+  updateActionItem: (id: string, patch: Partial<Omit<ActionItem, "id">>) => void;
+  deleteActionItem: (id: string) => void;
+
   replaceBoardFromImport: (payload: BoardImportPayload) => void;
   /**
    * Append views from an imported E2 document as new tabs.
@@ -317,6 +326,7 @@ function captureDomain(s: StormBoardState): BoardDomainSnapshot {
   return {
     title: s.title,
     glossary: s.glossary,
+    actionItems: s.actionItems,
     appearance: s.appearance,
     workshopMode: s.workshopMode,
     activeViewId: s.activeViewId,
@@ -332,6 +342,7 @@ function domainPatch(snap: BoardDomainSnapshot): Partial<StormBoardState> {
   return {
     title: snap.title,
     glossary: snap.glossary,
+    actionItems: snap.actionItems,
     appearance: snap.appearance,
     workshopMode: snap.workshopMode,
     activeViewId: active.id,
@@ -419,6 +430,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   timeline: initialViewDoc.timeline,
   viewport: initialViewDoc.viewport,
   glossary: [],
+  actionItems: [],
   appearance: { ...DEFAULT_APPEARANCE },
   snapToTimeline: initialViewDoc.snapToTimeline,
   snapToGrid: initialViewDoc.snapToGrid,
@@ -1482,6 +1494,28 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   deleteGlossaryEntry: (term) =>
     commit(set, get, (s) => ({ glossary: s.glossary.filter((g) => g.term !== term) })),
 
+  addActionItem: (item) => {
+    const normalized = normalizeActionItem(item);
+    if (!normalized) return null;
+    commit(set, get, (s) => ({
+      actionItems: [...s.actionItems, normalized],
+    }));
+    return normalized.id;
+  },
+
+  updateActionItem: (id, patch) =>
+    commit(set, get, (s) => ({
+      actionItems: s.actionItems.map((item) => {
+        if (item.id !== id) return item;
+        return normalizeActionItem({ ...item, ...patch, id: item.id }) ?? item;
+      }),
+    })),
+
+  deleteActionItem: (id) =>
+    commit(set, get, (s) => ({
+      actionItems: s.actionItems.filter((item) => item.id !== id),
+    })),
+
   replaceBoardFromImport: (payload) => {
     const s = get();
     const past = pushHistory(s.past, captureDomain(s));
@@ -1490,6 +1524,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     set({
       title: doc.title,
       glossary: doc.glossary,
+      actionItems: doc.actionItems ?? [],
       appearance: doc.appearance,
       workshopMode: doc.workshopMode,
       activeViewId: active.id,
@@ -1534,6 +1569,7 @@ export function boardImportPayloadFromStore(): BoardImportPayload {
   return {
     title: s.title,
     glossary: s.glossary,
+    actionItems: s.actionItems,
     appearance: s.appearance,
     workshopMode: s.workshopMode,
     activeViewId: s.activeViewId,
@@ -1547,6 +1583,7 @@ export function boardActiveSliceFromStore() {
   return {
     title: s.title,
     glossary: s.glossary,
+    actionItems: s.actionItems,
     appearance: s.appearance,
     modelingMode: s.modelingMode,
     workshopFormat: s.workshopFormat,
