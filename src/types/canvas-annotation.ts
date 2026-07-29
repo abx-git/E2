@@ -25,5 +25,6 @@ export const LINE_ARROW_HEAD_LABELS: Record<LineArrowHead, string> = {
 export interface ViewBookmark {
   id: string;
   name: string;
+  viewId: string;
   viewport: Viewport;
 }

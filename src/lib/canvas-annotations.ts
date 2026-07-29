@@ -43,10 +43,13 @@ export function normalizeCanvasLines(raw: unknown): CanvasLine[] {
 }
 
 export function normalizeViewBookmark(
-  raw: Partial<ViewBookmark> & { name?: string; viewport?: Partial<Viewport> },
+  raw: Partial<ViewBookmark> & { name?: string; viewport?: Partial<Viewport>; viewId?: string },
+  fallbackViewId?: string,
 ): ViewBookmark | null {
   const name = raw.name?.trim();
   if (!name) return null;
+  const viewId = raw.viewId?.trim() || fallbackViewId?.trim();
+  if (!viewId) return null;
   const viewport = raw.viewport;
   if (
     !viewport ||
@@ -59,16 +62,17 @@ export function normalizeViewBookmark(
   return {
     id: raw.id?.trim() || generateStormId(),
     name,
+    viewId,
     viewport: { x: viewport.x, y: viewport.y, zoom: viewport.zoom },
   };
 }
 
-export function normalizeViewBookmarks(raw: unknown): ViewBookmark[] {
+export function normalizeViewBookmarks(raw: unknown, fallbackViewId?: string): ViewBookmark[] {
   if (!Array.isArray(raw)) return [];
   const bookmarks: ViewBookmark[] = [];
   for (const entry of raw) {
     if (!entry || typeof entry !== "object") continue;
-    const normalized = normalizeViewBookmark(entry as Partial<ViewBookmark>);
+    const normalized = normalizeViewBookmark(entry as Partial<ViewBookmark>, fallbackViewId);
     if (normalized) bookmarks.push(normalized);
   }
   return bookmarks;
