@@ -12,6 +12,7 @@ import {
   runManualBoardBackup,
 } from "@/components/board-backup-sync";
 import { BoardSideRail } from "@/components/board-side-rail";
+import { MobileBoardBar } from "@/components/mobile-board-bar";
 import { CollabEnterConfirmDialog } from "@/components/collab-enter-confirm-dialog";
 import { CollabLeaveDialog, type CollabLeaveChoice } from "@/components/collab-leave-dialog";
 import { CollabPresenceBanner } from "@/components/collab-presence-banner";
@@ -612,6 +613,11 @@ export function StormBoard() {
         <div className="dock-surface relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-dock">
           <StormCanvas />
           <BoundedContextMobileActions onOpenDetails={() => setBcMobileSheetOpen(true)} />
+          <MobileBoardBar
+            onRequestHelpElementType={openElementHelp}
+            onRequestHelpRelationType={openRelationHelp}
+            onRequestHelpPhase={openPhaseHelp}
+          />
         </div>
         <BoardSideRail
           onRequestHelpElementType={openElementHelp}
@@ -650,7 +656,7 @@ export function StormBoard() {
               )}
         </span>
         <span className="hidden sm:inline">Rechtsklick · Pan · E2</span>
-        <span className="sm:hidden">Tippen · Pan · E2</span>
+        <span className="sm:hidden">Wischen · Panel · E2</span>
       </footer>
 
       <BoundedContextMobileSheet

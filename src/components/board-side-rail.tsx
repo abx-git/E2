@@ -48,6 +48,11 @@ export interface BoardSideRailProps {
   onRequestHelpPhase?: (phase: FacilitatorPhase, format: WorkshopFormat) => void;
 }
 
+export interface BoardSideRailContentProps extends BoardSideRailProps {
+  /** Larger tab buttons for mobile bottom sheets. */
+  touchFriendly?: boolean;
+}
+
 function readStoredTab(): RailTabId | null {
   if (typeof window === "undefined") return null;
   try {
@@ -76,11 +81,13 @@ function writeStoredTab(id: RailTabId) {
   }
 }
 
-export function BoardSideRail({
+/** Inspector + tool tabs — shared between desktop rail and mobile sheet. */
+export function BoardSideRailContent({
   onRequestHelpElementType,
   onRequestHelpRelationType,
   onRequestHelpPhase,
-}: BoardSideRailProps) {
+  touchFriendly = false,
+}: BoardSideRailContentProps) {
   const clipboard = useStormBoardStore((s) => s.clipboard);
   const actionItems = useStormBoardStore((s) => s.actionItems);
   const elements = useStormBoardStore((s) => s.elements);
@@ -175,11 +182,18 @@ export function BoardSideRail({
   };
 
   const activeLabel = tabs.find((t) => t.id === activeTab)?.label ?? "";
+  const tabBtnClass = touchFriendly ? "h-11 min-w-[2.75rem]" : "h-8 flex-1";
+  const tabIconClass = touchFriendly ? "size-4" : "size-3.5";
 
   return (
-    <div className="dock-surface hidden w-72 shrink-0 flex-col overflow-hidden rounded-dock lg:flex">
+    <>
       {hasInspectorSelection && (
-        <div className="flex min-h-0 max-h-[55%] flex-col overflow-hidden border-b border-[var(--border)]">
+        <div
+          className={[
+            "flex min-h-0 flex-col overflow-hidden border-b border-[var(--border)]",
+            touchFriendly ? "max-h-[45%]" : "max-h-[55%]",
+          ].join(" ")}
+        >
           <div className="min-h-0 flex-1 overflow-y-auto">
             <ElementDetailSidebar
               onRequestHelpElementType={onRequestHelpElementType}
@@ -210,13 +224,15 @@ export function BoardSideRail({
                 }
                 onClick={() => selectTab(tab.id)}
                 className={[
-                  "relative flex h-8 flex-1 items-center justify-center rounded-md transition",
+                  "relative flex items-center justify-center rounded-md transition",
+                  tabBtnClass,
                   selected
                     ? "bg-[var(--control)] text-[var(--text)]"
                     : "text-[var(--muted)] hover:bg-[var(--control-hover)] hover:text-[var(--text)]",
+                  !touchFriendly && "flex-1",
                 ].join(" ")}
               >
-                <Icon className="size-3.5" aria-hidden />
+                <Icon className={tabIconClass} aria-hidden />
                 {tab.badge != null && (
                   <span className="absolute right-0.5 top-0.5 min-w-[0.9rem] rounded bg-[var(--accent)] px-0.5 text-center text-[9px] font-semibold leading-4 text-white">
                     {tab.badge > 99 ? "99+" : tab.badge}
@@ -243,6 +259,38 @@ export function BoardSideRail({
           </div>
         </div>
       </div>
+    </>
+  );
+}
+
+export function BoardSideRail(props: BoardSideRailProps) {
+  return (
+    <div className="dock-surface hidden w-72 shrink-0 flex-col overflow-hidden rounded-dock lg:flex">
+      <BoardSideRailContent {...props} />
     </div>
+  );
+}
+
+/** Badge count for mobile panel button (open todos + clipboard items). */
+export function useSideRailActivityBadge(): number {
+  const clipboard = useStormBoardStore((s) => s.clipboard);
+  const actionItems = useStormBoardStore((s) => s.actionItems);
+  return clipboardItemCount(clipboard) + actionItems.filter((i) => i.status !== "done").length;
+}
+
+/** Whether the inspector section would be visible (selection exists). */
+export function useHasInspectorSelection(): boolean {
+  const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
+  const selectedRelationId = useStormBoardStore((s) => s.selectedRelationId);
+  const selectedCanvasLineId = useStormBoardStore((s) => s.selectedCanvasLineId);
+  const selectedBoundedContextIds = useStormBoardStore((s) => s.selectedBoundedContextIds);
+  const selectedSwimlaneIds = useStormBoardStore((s) => s.selectedSwimlaneIds);
+
+  return (
+    selectedElementIds.length > 0 ||
+    Boolean(selectedRelationId) ||
+    Boolean(selectedCanvasLineId) ||
+    selectedBoundedContextIds.length > 0 ||
+    selectedSwimlaneIds.length > 0
   );
 }

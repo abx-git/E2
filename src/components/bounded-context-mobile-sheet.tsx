@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-panel";
+import { MobileSheetOverlay } from "@/components/mobile-sheet";
 import { useIsMobileLayout } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -86,7 +87,7 @@ export function BoundedContextMobileActions({
     : undefined;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-16 z-40 flex justify-center px-3 lg:hidden">
+    <div className="pointer-events-none absolute inset-x-0 bottom-[4.5rem] z-40 flex justify-center px-3 lg:hidden">
       <div className="pointer-events-auto flex max-w-md flex-wrap items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--panel)]/95 p-2 shadow-dock backdrop-blur-sm">
         <button
           type="button"
@@ -107,27 +108,3 @@ export function BoundedContextMobileActions({
   );
 }
 
-function MobileSheetOverlay({
-  children,
-  onClose,
-}: {
-  children: ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-[1250] flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm"
-      role="presentation"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="dock-surface max-h-[min(85vh,720px)] w-full max-w-lg overflow-y-auto rounded-t-xl p-5 shadow-dock"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
