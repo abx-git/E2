@@ -117,7 +117,8 @@
         "userStoryMapping",
         "eventModeling",
         "processFlow",
-        "dataModel"
+        "dataModel",
+        "architectureDocumentation"
       ]
     },
     "workshopFormat": {
@@ -133,6 +134,9 @@
         "eventModelingWorkshop",
         "processWorkshop",
         "dataModelWorkshop",
+        "arc42Workshop",
+        "c4Modeling",
+        "ermDocumentation",
         "free"
       ]
     },
@@ -170,6 +174,11 @@
         "processGateway",
         "dataEntity",
         "dataAssociation",
+        "c4Person",
+        "c4SoftwareSystem",
+        "c4Container",
+        "c4Component",
+        "arc42Section",
         "link"
       ]
     },
@@ -408,6 +417,16 @@
         "linkViewId": {
           "type": "string",
           "description": "Link (view): ID einer Board-Sicht."
+        },
+        "c4Technology": {
+          "type": "string",
+          "description": "C4 Container/Component: Technologie-Stack."
+        },
+        "arc42SectionNumber": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12,
+          "description": "arc42: Abschnittsnummer 1–12."
         },
         "showDescriptionOnCard": {
           "type": "boolean",

@@ -647,6 +647,110 @@ export function exportDataModelMarkdown(): void {
   downloadText(`${slugTitle(title)}-data-model.md`, lines.join("\n"));
 }
 
+/** Architecture documentation: arc42 sections, C4 elements, ERM entities. */
+export function exportArchitectureDocumentationMarkdown(): void {
+  const { elements, title, relations, boundedContexts } = boardActiveSliceFromStore();
+  const lines = [
+    `# Architektur Dokumentation — ${title}`,
+    "",
+    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
+    "",
+  ];
+
+  const arc42 = elements
+    .filter((e) => e.type === "arc42Section")
+    .sort(
+      (a, b) =>
+        (a.metadata?.arc42SectionNumber ?? 99) - (b.metadata?.arc42SectionNumber ?? 99),
+    );
+  lines.push("## arc42 Abschnitte", "");
+  if (arc42.length === 0) {
+    lines.push("_Keine arc42-Abschnitte._", "");
+  } else {
+    for (const section of arc42) {
+      const num = section.metadata?.arc42SectionNumber;
+      const heading = num ? `${num}. ${section.label}` : section.label;
+      lines.push(`### ${heading}`);
+      lines.push(...mdMetaBlock(section), "");
+    }
+  }
+
+  const c4Types = ["c4Person", "c4SoftwareSystem", "c4Container", "c4Component"] as const;
+  lines.push("## C4 Modell", "");
+  let hasC4 = false;
+  for (const type of c4Types) {
+    const items = elements.filter((e) => e.type === type);
+    if (items.length === 0) continue;
+    hasC4 = true;
+    lines.push(`### ${ELEMENT_STYLES[type].label}`, "");
+    for (const el of items) {
+      lines.push(`- **${el.label}**`);
+      if (el.metadata?.c4Technology) lines.push(`  - Technologie: ${el.metadata.c4Technology}`);
+      if (el.description?.trim()) lines.push(`  - ${el.description.trim()}`);
+    }
+    lines.push("");
+  }
+  if (!hasC4) lines.push("_Keine C4-Elemente._", "");
+
+  const entities = elements.filter((e) => e.type === "dataEntity");
+  const associations = elements.filter((e) => e.type === "dataAssociation");
+  lines.push("## ERM (Entitäten)", "");
+  if (entities.length === 0) {
+    lines.push("_Keine Entitäten._", "");
+  } else {
+    for (const ent of entities) {
+      lines.push(`### ${ent.label}`);
+      if (ent.metadata?.identityFields?.length) {
+        lines.push("- Identität:", ...mdBulletList(ent.metadata.identityFields));
+      }
+      if (ent.metadata?.attributes?.length) {
+        lines.push("- Attribute:", ...mdBulletList(ent.metadata.attributes));
+      }
+      lines.push(...mdMetaBlock(ent), "");
+    }
+  }
+
+  if (associations.length) {
+    lines.push("## ERM (Beziehungen)", "");
+    for (const a of associations) {
+      const card = a.metadata?.dataCardinality ?? "1:n";
+      lines.push(`- **${a.label}** (${card}): ${a.metadata?.dataLeftEntity ?? "?"} — ${a.metadata?.dataRightEntity ?? "?"}`);
+    }
+    lines.push("");
+  }
+
+  if (boundedContexts.length) {
+    lines.push("## Bounded Contexts", "");
+    for (const bc of boundedContexts) {
+      const inside = elements.filter((e) => e.boundedContextId === bc.id);
+      lines.push(`### ${bc.label}`);
+      if (bc.purpose?.trim()) lines.push(`- Zweck: ${bc.purpose.trim()}`);
+      if (bc.detailViewId) lines.push("- Detail-Sicht verknüpft");
+      if (inside.length) {
+        lines.push("- Inhalte:");
+        for (const el of inside) lines.push(`  - ${ELEMENT_STYLES[el.type].shortLabel}: ${el.label}`);
+      }
+      lines.push("");
+    }
+  }
+
+  const archIds = new Set(elements.map((e) => e.id));
+  const archRels = relations.filter((r) => archIds.has(r.sourceId) && archIds.has(r.targetId));
+  if (archRels.length) {
+    lines.push("## Relationen", "");
+    for (const r of archRels) {
+      const src = elements.find((e) => e.id === r.sourceId);
+      const tgt = elements.find((e) => e.id === r.targetId);
+      lines.push(
+        `- ${src?.label ?? r.sourceId} → ${tgt?.label ?? r.targetId}${r.label ? ` (${r.label})` : ""}`,
+      );
+    }
+    lines.push("");
+  }
+
+  downloadText(`${slugTitle(title)}-architecture.md`, lines.join("\n"));
+}
+
 function elementRect(el: StormElement): { x: number; y: number; w: number; h: number } {
   return geomElementRect(el);
 }

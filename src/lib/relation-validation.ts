@@ -217,6 +217,19 @@ export function defaultRelationType(source: StormElement, target: StormElement):
   if (source.type === "dataEntity" || target.type === "dataEntity" || source.type === "dataAssociation") {
     return "contains";
   }
+  if (
+    source.type === "c4Person" ||
+    source.type === "c4SoftwareSystem" ||
+    source.type === "c4Container" ||
+    source.type === "c4Component" ||
+    target.type === "c4Person" ||
+    target.type === "c4SoftwareSystem" ||
+    target.type === "c4Container" ||
+    target.type === "c4Component"
+  ) {
+    return "contains";
+  }
+  if (source.type === "arc42Section") return "annotates";
   if (source.type === "externalSystem") return "invokes";
   if (source.type === "domainEvent" && target.type === "domainEvent") return "causal";
   return "triggers";

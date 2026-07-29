@@ -12,6 +12,7 @@ import { validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
 import type { RelationType } from "@/types/storm-relation";
 import type {
+  Arc42SectionNumber,
   DataCardinality,
   ElementType,
   GatewayKind,
@@ -21,6 +22,7 @@ import type {
   StoryPriority,
   SubdomainKind,
 } from "@/types/storm-element";
+import { ARC42_SECTION_LABELS, ARC42_SECTION_NUMBERS } from "@/types/storm-element";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_ELEMENT_SIZE = 40;
@@ -1041,6 +1043,44 @@ export function ElementDetailSidebar({
             />
           </Field>
         </>
+      )}
+
+      {selectedElement.type === "arc42Section" && (
+        <Field label="arc42 Abschnitt">
+          <select
+            className="dock-field"
+            value={selectedElement.metadata?.arc42SectionNumber ?? 1}
+            onChange={(e) =>
+              updateElement(selectedElement.id, {
+                metadata: {
+                  ...selectedElement.metadata,
+                  arc42SectionNumber: Number(e.target.value) as Arc42SectionNumber,
+                },
+              })
+            }
+          >
+            {ARC42_SECTION_NUMBERS.map((n) => (
+              <option key={n} value={n}>
+                {n}. {ARC42_SECTION_LABELS[n]}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+
+      {(selectedElement.type === "c4Container" || selectedElement.type === "c4Component") && (
+        <Field label="Technologie">
+          <input
+            className="dock-field"
+            placeholder="z. B. Spring Boot, PostgreSQL"
+            value={selectedElement.metadata?.c4Technology ?? ""}
+            onChange={(e) =>
+              updateElement(selectedElement.id, {
+                metadata: { ...selectedElement.metadata, c4Technology: e.target.value },
+              })
+            }
+          />
+        </Field>
       )}
 
       {selectedElement.type === "link" && (
