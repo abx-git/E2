@@ -9,6 +9,7 @@ import {
 import {
   buildBoardViewFromBoundedContextPayload,
   extractBoundedContextViewPayload,
+  resolveBoundedContextViewNavigation,
 } from "@/lib/bounded-context-view";
 import {
   extractClipboardPayload,
@@ -37,6 +38,7 @@ import { generateStormId } from "@/lib/storm-id";
 
 const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
+import { backupBeforeSuspiciousSwitch } from "@/lib/board-backup";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
 import { createEmptyBoardView, normalizeBoardDocument } from "@/lib/storm-json";
 import {
@@ -239,6 +241,10 @@ export interface StormBoardState {
   deleteBoundedContext: (id: string) => void;
   /** Open linked detail view or create one from BC contents (with direct external refs). */
   openBoundedContextView: (bcId: string) => string | null;
+  /** Navigate to the parent overview when this BC is a copy inside a detail view. */
+  openBoundedContextParentView: (bcId: string) => string | null;
+  /** Navigate down to detail view or up to parent overview when a link exists. */
+  navigateBoundedContextViewLink: (bcId: string) => string | null;
 
   /** Shared z-order among swimlanes and bounded contexts. */
   bringRegionsToFront: (ids: string[]) => void;
@@ -1384,6 +1390,53 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       };
     });
     return resultId;
+  },
+
+  openBoundedContextParentView: (bcId) => {
+    let resultId: string | null = null;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const bc = s.boundedContexts.find((b) => b.id === bcId);
+      if (!bc) return {};
+
+      const nav = resolveBoundedContextViewNavigation(bc, s.activeViewId, views);
+      if (!nav || nav.direction !== "up" || !nav.parentBoundedContextId) return {};
+
+      const next = resolveActiveView(views, nav.targetViewId);
+      resultId = next.id;
+      return {
+        views,
+        activeViewId: next.id,
+        ...applyViewToFlatPatch(next),
+        selectedBoundedContextIds: [nav.parentBoundedContextId],
+        selectedElementIds: [],
+        selectedRelationId: null,
+        selectedContextRelationId: null,
+        selectedSwimlaneIds: [],
+        past: [],
+        future: [],
+        gestureActive: false,
+        gestureSnapshotTaken: false,
+      };
+    });
+    return resultId;
+  },
+
+  navigateBoundedContextViewLink: (bcId) => {
+    const s = get();
+    const bc = s.boundedContexts.find((b) => b.id === bcId);
+    if (!bc) return null;
+
+    const views = flushActiveViewIntoViews(s);
+    const nav = resolveBoundedContextViewNavigation(bc, s.activeViewId, views);
+    if (!nav) return null;
+
+    if (nav.direction === "down") {
+      return get().openBoundedContextView(bcId);
+    }
+
+    backupBeforeSuspiciousSwitch("view");
+    return get().openBoundedContextParentView(bcId);
   },
 
   bringRegionsToFront: (ids) => {

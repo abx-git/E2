@@ -4,6 +4,7 @@ import {
   buildBoardViewFromBoundedContextPayload,
   extractBoundedContextViewPayload,
   resolveBoundedContextDetailView,
+  resolveBoundedContextViewNavigation,
 } from "@/lib/bounded-context-view";
 import { createEmptyBoardView } from "@/lib/storm-json";
 import type { BoundedContext, StormElement } from "@/types/storm-element";
@@ -84,5 +85,70 @@ describe("bounded-context-view", () => {
     const linked = resolveBoundedContextDetailView(boundedContexts[1]!, views);
     expect(linked?.name).toBe("Billing Detail");
     expect(resolveBoundedContextDetailView(boundedContexts[0]!, views)).toBeNull();
+  });
+
+  it("resolves drill-down navigation from overview BCs", () => {
+    const views = [
+      createEmptyBoardView({ id: "v-overview", name: "Overview" }),
+      createEmptyBoardView({ id: "v-existing", name: "Billing Detail" }),
+    ];
+    const nav = resolveBoundedContextViewNavigation(
+      boundedContexts[1]!,
+      "v-overview",
+      views,
+    );
+    expect(nav).toEqual({
+      direction: "down",
+      targetViewId: "v-existing",
+      targetViewName: "Billing Detail",
+    });
+  });
+
+  it("resolves drill-up navigation from detail BC copies", () => {
+    const views = [
+      createEmptyBoardView({
+        id: "v-overview",
+        name: "Overview",
+        boundedContexts: [
+          {
+            id: "bc-parent",
+            label: "Orders",
+            x: 0,
+            y: 0,
+            width: 200,
+            height: 120,
+            detailViewId: "v-detail",
+          },
+        ],
+      }),
+      createEmptyBoardView({
+        id: "v-detail",
+        name: "Orders",
+        boundedContexts: [
+          { id: "bc-copy", label: "Orders", x: 0, y: 0, width: 200, height: 120 },
+          { id: "bc-neighbor", label: "Billing", x: 300, y: 0, width: 200, height: 120 },
+        ],
+      }),
+    ];
+
+    const up = resolveBoundedContextViewNavigation(
+      views[1]!.boundedContexts[0]!,
+      "v-detail",
+      views,
+    );
+    expect(up).toEqual({
+      direction: "up",
+      targetViewId: "v-overview",
+      targetViewName: "Overview",
+      parentBoundedContextId: "bc-parent",
+    });
+
+    expect(
+      resolveBoundedContextViewNavigation(
+        views[1]!.boundedContexts[1]!,
+        "v-detail",
+        views,
+      ),
+    ).toBeNull();
   });
 });
