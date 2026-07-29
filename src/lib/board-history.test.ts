@@ -17,6 +17,7 @@ function emptyDomain(overrides: Partial<BoardDomainSnapshot> = {}): BoardDomainS
   return {
     title: "Board",
     glossary: [],
+    actionItems: [],
     appearance: { ...DEFAULT_APPEARANCE },
     workshopMode: false,
     activeViewId: view.id,

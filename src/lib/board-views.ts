@@ -12,6 +12,7 @@ import type {
   WorkshopFormat,
   GlossaryEntry,
 } from "@/types/storm-element";
+import type { ActionItem } from "@/types/action-item";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 import type { BoardAppearance } from "@/lib/board-appearance";
 
@@ -35,6 +36,7 @@ export interface ActiveViewFlatState {
 export interface ViewDocumentState extends ActiveViewFlatState {
   title: string;
   glossary: GlossaryEntry[];
+  actionItems: ActionItem[];
   appearance: BoardAppearance;
   workshopMode: boolean;
   activeViewId: string;

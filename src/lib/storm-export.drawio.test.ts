@@ -64,6 +64,7 @@ const sample: BoardActiveSlice = {
   timeline: { ...DEFAULT_TIMELINE, y: 160, visible: true },
   viewport: { ...DEFAULT_VIEWPORT },
   glossary: [],
+  actionItems: [],
   appearance: { ...DEFAULT_APPEARANCE },
   snapToTimeline: false,
   snapToGrid: false,

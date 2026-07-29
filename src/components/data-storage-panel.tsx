@@ -43,6 +43,7 @@ export interface DataStoragePanelProps {
   onExportSvg: () => void;
   onExportPng: () => void;
   onExportHotspots: () => void;
+  onExportActionItems: () => void;
   onExportGlossary: () => void;
   onExportContextMap: () => void;
   onExportEventCatalog: () => void;
@@ -181,6 +182,7 @@ export function DataStoragePanel({
   onExportSvg,
   onExportPng,
   onExportHotspots,
+  onExportActionItems,
   onExportGlossary,
   onExportContextMap,
   onExportEventCatalog,
@@ -445,6 +447,12 @@ export function DataStoragePanel({
                 disabled={busy}
                 label="Hotspots"
                 detail="Report"
+              />
+              <ExportTile
+                onClick={onExportActionItems}
+                disabled={busy}
+                label="To-dos"
+                detail="Action Items"
               />
               <ExportTile
                 onClick={onExportGlossary}

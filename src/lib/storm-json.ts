@@ -8,6 +8,8 @@ import type {
   Viewport,
   WorkshopFormat,
 } from "@/types/storm-element";
+import type { ActionItem } from "@/types/action-item";
+import { normalizeActionItems } from "@/lib/action-items";
 import {
   DEFAULT_MODELING_MODE,
   DEFAULT_TIMELINE,
@@ -59,6 +61,7 @@ export interface BoardView {
 export interface BoardImportPayload {
   title: string;
   glossary: GlossaryEntry[];
+  actionItems?: ActionItem[];
   appearance: BoardAppearance;
   /** When true in collab, activeViewId is shared; when false, each client keeps local tab. */
   workshopMode: boolean;
@@ -70,6 +73,7 @@ export interface BoardImportPayload {
 export interface BoardActiveSlice {
   title: string;
   glossary: GlossaryEntry[];
+  actionItems: ActionItem[];
   appearance: BoardAppearance;
   modelingMode: ModelingMode;
   workshopFormat: WorkshopFormat;
@@ -93,6 +97,7 @@ export interface BoardSnapshotV2 {
   exportedAt: string;
   title: string;
   glossary: GlossaryEntry[];
+  actionItems?: ActionItem[];
   appearance: BoardAppearance;
   workshopMode: boolean;
   activeViewId: string;
@@ -159,6 +164,7 @@ export function createDefaultBoardDocument(
   return {
     title: overrides.title ?? "Neues Event Storming Board",
     glossary: overrides.glossary ?? [],
+    actionItems: overrides.actionItems ?? [],
     appearance: overrides.appearance
       ? normalizeAppearance(overrides.appearance)
       : { ...DEFAULT_APPEARANCE },
@@ -211,6 +217,7 @@ export function migrateV1ToDocument(snap: BoardSnapshotV1): BoardImportPayload {
   return {
     title: snap.title,
     glossary: snap.glossary ?? [],
+    actionItems: [],
     appearance: normalizeAppearance(snap.appearance),
     workshopMode: false,
     activeViewId: viewId,
@@ -242,6 +249,7 @@ export function normalizeBoardDocument(raw: Partial<BoardImportPayload>): BoardI
     return createDefaultBoardDocument({
       title: raw.title ?? "Board",
       glossary: Array.isArray(raw.glossary) ? raw.glossary : [],
+      actionItems: normalizeActionItems(raw.actionItems),
       appearance: normalizeAppearance(raw.appearance),
       workshopMode: Boolean(raw.workshopMode),
     });
@@ -253,6 +261,7 @@ export function normalizeBoardDocument(raw: Partial<BoardImportPayload>): BoardI
   return {
     title: raw.title ?? "Board",
     glossary: Array.isArray(raw.glossary) ? raw.glossary : [],
+    actionItems: normalizeActionItems(raw.actionItems),
     appearance: normalizeAppearance(raw.appearance),
     workshopMode: Boolean(raw.workshopMode),
     activeViewId,
@@ -269,6 +278,7 @@ export function activeSliceFromDocument(doc: BoardImportPayload): BoardActiveSli
   return {
     title: doc.title,
     glossary: doc.glossary,
+    actionItems: doc.actionItems ?? [],
     appearance: doc.appearance,
     modelingMode: view.modelingMode,
     workshopFormat: view.workshopFormat,
@@ -297,7 +307,11 @@ export function viewHasContent(view: BoardView): boolean {
 }
 
 export function documentHasContent(doc: BoardImportPayload): boolean {
-  return doc.glossary.length > 0 || doc.views.some(viewHasContent);
+  return (
+    doc.glossary.length > 0 ||
+    (doc.actionItems?.length ?? 0) > 0 ||
+    doc.views.some(viewHasContent)
+  );
 }
 
 export function buildBoardSnapshot(state: BoardImportPayload): BoardSnapshotV2 {
@@ -309,6 +323,7 @@ export function buildBoardSnapshot(state: BoardImportPayload): BoardSnapshotV2 {
     exportedAt: new Date().toISOString(),
     title: doc.title,
     glossary: doc.glossary,
+    actionItems: doc.actionItems ?? [],
     appearance: normalizeAppearance(doc.appearance),
     workshopMode: doc.workshopMode,
     activeViewId: doc.activeViewId,
@@ -391,6 +406,7 @@ export function stableBoardStateKey(payload: BoardImportPayload): string {
   return JSON.stringify({
     title: doc.title,
     glossary: [...doc.glossary].sort((a, b) => a.term.localeCompare(b.term)),
+    actionItems: [...(doc.actionItems ?? [])].sort((a, b) => a.id.localeCompare(b.id)),
     appearance: doc.appearance,
     workshopMode: doc.workshopMode,
     activeViewId: doc.activeViewId,

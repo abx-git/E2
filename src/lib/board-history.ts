@@ -1,6 +1,7 @@
 import type { BoardAppearance } from "@/lib/board-appearance";
 import type { BoardView } from "@/lib/storm-json";
 import type { GlossaryEntry } from "@/types/storm-element";
+import type { ActionItem } from "@/types/action-item";
 
 export const HISTORY_LIMIT = 50;
 
@@ -8,6 +9,7 @@ export const HISTORY_LIMIT = 50;
 export interface BoardDomainSnapshot {
   title: string;
   glossary: GlossaryEntry[];
+  actionItems: ActionItem[];
   appearance: BoardAppearance;
   workshopMode: boolean;
   activeViewId: string;

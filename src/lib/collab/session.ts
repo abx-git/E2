@@ -535,6 +535,7 @@ function bindStoreToYjs(
       state.boundedContexts !== prev.boundedContexts ||
       state.timeline !== prev.timeline ||
       state.glossary !== prev.glossary ||
+      state.actionItems !== prev.actionItems ||
       state.appearance !== prev.appearance ||
       state.workshopFormat !== prev.workshopFormat ||
       state.modelingMode !== prev.modelingMode ||

@@ -14,6 +14,10 @@ import { resolveNoteColor } from "@/lib/note-colors";
 import { boardActiveSliceFromStore } from "@/store/storm-board-store";
 import type { BoardActiveSlice } from "@/lib/storm-json";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
+import {
+  ACTION_ITEM_AREA_LABELS,
+  ACTION_ITEM_STATUS_LABELS,
+} from "@/types/action-item";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
 
 function elementExportRotation(el: StormElement): number {
@@ -70,6 +74,42 @@ export function exportHotspotReportMarkdown(): void {
   }
 
   downloadText(`${title.replace(/\s+/g, "-").toLowerCase()}-hotspots.md`, lines.join("\n"));
+}
+
+/** Action-item register: status, notes, problem areas. */
+export function exportActionItemsMarkdown(): void {
+  const { actionItems, title } = boardActiveSliceFromStore();
+  const lines = [
+    `# To-dos & Problemfelder — ${title}`,
+    "",
+    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
+    "",
+  ];
+
+  if (actionItems.length === 0) {
+    lines.push("_Keine Einträge._");
+    downloadText(`${slugTitle(title)}-action-items.md`, lines.join("\n"));
+    return;
+  }
+
+  const byArea = new Map<string, typeof actionItems>();
+  for (const item of actionItems) {
+    const list = byArea.get(item.area) ?? [];
+    list.push(item);
+    byArea.set(item.area, list);
+  }
+
+  for (const [area, items] of byArea) {
+    const areaLabel = ACTION_ITEM_AREA_LABELS[area as keyof typeof ACTION_ITEM_AREA_LABELS] ?? area;
+    lines.push(`## ${areaLabel}`, "");
+    for (const item of items) {
+      lines.push(`- **${item.title}** — ${ACTION_ITEM_STATUS_LABELS[item.status]}`);
+      if (item.notes?.trim()) lines.push(`  - ${item.notes.trim()}`);
+    }
+    lines.push("");
+  }
+
+  downloadText(`${slugTitle(title)}-action-items.md`, lines.join("\n"));
 }
 
 export function exportGlossaryMarkdown(): void {

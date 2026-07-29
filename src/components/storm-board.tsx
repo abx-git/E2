@@ -26,6 +26,7 @@ import {
   FileConflictDialog,
   type FileConflictChoice,
 } from "@/components/file-conflict-dialog";
+import { ActionItemsPanel } from "@/components/action-items-panel";
 import { GlossaryPanel } from "@/components/glossary-panel";
 import { HotspotList } from "@/components/hotspot-list";
 import { StormCanvas } from "@/components/storm-canvas";
@@ -59,6 +60,7 @@ import {
   exportExampleMappingMarkdown,
   exportGlossaryMarkdown,
   exportHotspotReportMarkdown,
+  exportActionItemsMarkdown,
   exportProcessMarkdown,
   exportDataModelMarkdown,
   exportArchitectureDocumentationMarkdown,
@@ -535,6 +537,7 @@ export function StormBoard() {
           <div className="min-h-0 flex-1 overflow-y-auto">
             <ClipboardPanel />
             <HotspotList />
+            <ActionItemsPanel />
             <GlossaryPanel />
             <FacilitatorPanel onRequestHelpPhase={(phase, format) => openPhaseHelp(phase, format)} />
           </div>
@@ -613,6 +616,7 @@ export function StormBoard() {
         onExportSvg={exportBoardSvg}
         onExportPng={() => void exportBoardPng()}
         onExportHotspots={exportHotspotReportMarkdown}
+        onExportActionItems={exportActionItemsMarkdown}
         onExportGlossary={exportGlossaryMarkdown}
         onExportContextMap={exportContextMapMarkdown}
         onExportEventCatalog={exportEventCatalogMarkdown}
