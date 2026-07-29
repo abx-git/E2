@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { LayoutDashboard } from "lucide-react";
 
+import { resolveBoundedContextViewNavigation } from "@/lib/bounded-context-view";
 import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
 import { elementIdsInBoundedContext } from "@/lib/region-containment";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -29,6 +31,9 @@ export function BoundedContextLayer() {
   const selectedBoundedContextIds = useStormBoardStore((s) => s.selectedBoundedContextIds);
   const selectBoundedContext = useStormBoardStore((s) => s.selectBoundedContext);
   const updateBoundedContext = useStormBoardStore((s) => s.updateBoundedContext);
+  const navigateBoundedContextViewLink = useStormBoardStore((s) => s.navigateBoundedContextViewLink);
+  const views = useStormBoardStore((s) => s.views);
+  const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
   const contextMapDraftSourceId = useStormBoardStore((s) => s.contextMapDraftSourceId);
@@ -236,6 +241,7 @@ export function BoundedContextLayer() {
         const selected = selectedBoundedContextIds.includes(bc.id);
         const draftSource = contextMapDraftSourceId === bc.id;
         const editing = editingId === bc.id;
+        const viewNav = resolveBoundedContextViewNavigation(bc, activeViewId, views);
         return (
           <div
             key={bc.id}
@@ -303,6 +309,30 @@ export function BoundedContextLayer() {
               <div className="pointer-events-none absolute -top-3 left-3 rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-900">
                 {bc.label}
               </div>
+            )}
+            {viewNav && !editing && (
+              <button
+                type="button"
+                title={
+                  viewNav.direction === "down"
+                    ? `Detail-Sicht öffnen (${viewNav.targetViewName})`
+                    : `Übersicht öffnen (${viewNav.targetViewName})`
+                }
+                aria-label={
+                  viewNav.direction === "down"
+                    ? `Detail-Sicht öffnen (${viewNav.targetViewName})`
+                    : `Übersicht öffnen (${viewNav.targetViewName})`
+                }
+                className="absolute right-2 top-2 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-blue-600 bg-white text-blue-800 shadow-sm hover:bg-blue-50"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  navigateBoundedContextViewLink(bc.id);
+                }}
+              >
+                <LayoutDashboard className="h-3.5 w-3.5" aria-hidden />
+              </button>
             )}
             {bc.purpose && !editing && (
               <p className="pointer-events-none absolute bottom-2 left-3 right-3 truncate text-[10px] text-blue-800/80">

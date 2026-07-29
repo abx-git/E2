@@ -19,6 +19,50 @@ export function resolveBoundedContextDetailView(
   return views.find((v) => v.id === viewId) ?? null;
 }
 
+export interface BoundedContextViewNavigation {
+  direction: "down" | "up";
+  targetViewId: string;
+  targetViewName: string;
+  /** Parent BC id when navigating up to the overview. */
+  parentBoundedContextId?: string;
+}
+
+/** Resolve drill-down (detail view) or drill-up (parent overview) navigation for a BC. */
+export function resolveBoundedContextViewNavigation(
+  bc: BoundedContext,
+  activeViewId: string,
+  views: BoardView[],
+): BoundedContextViewNavigation | null {
+  const detailView = resolveBoundedContextDetailView(bc, views);
+  if (detailView) {
+    return {
+      direction: "down",
+      targetViewId: detailView.id,
+      targetViewName: detailView.name,
+    };
+  }
+
+  const label = bc.label.trim();
+  if (!label) return null;
+
+  for (const view of views) {
+    if (view.id === activeViewId) continue;
+    for (const parentBc of view.boundedContexts) {
+      if (parentBc.detailViewId?.trim() !== activeViewId) continue;
+      if (parentBc.label.trim() === label) {
+        return {
+          direction: "up",
+          targetViewId: view.id,
+          targetViewName: view.name,
+          parentBoundedContextId: parentBc.id,
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
 /**
  * Collect BC contents plus direct element/context-map references outside the BC.
  */
