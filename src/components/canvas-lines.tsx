@@ -1,5 +1,7 @@
 "use client";
 
+import type { PointerEvent as ReactPointerEvent } from "react";
+
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
 
@@ -9,6 +11,8 @@ export interface CanvasLinesProps {
   draftLine?: { x1: number; y1: number; x2: number; y2: number } | null;
 }
 
+type LineEndpoint = "start" | "end";
+
 function markerEndId(selected: boolean): string {
   return selected ? "canvas-line-arrow-end-selected" : "canvas-line-arrow-end";
 }
@@ -17,8 +21,98 @@ function markerStartId(selected: boolean): string {
   return selected ? "canvas-line-arrow-start-selected" : "canvas-line-arrow-start";
 }
 
+function handleRadius(selected: boolean): number {
+  return selected ? 6 : 0;
+}
+
 export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasLinesProps) {
   const canvasLines = useStormBoardStore((s) => s.canvasLines);
+  const zoom = useStormBoardStore((s) => s.viewport.zoom);
+  const updateCanvasLine = useStormBoardStore((s) => s.updateCanvasLine);
+  const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
+
+  const startEndpointDrag = (
+    lineId: string,
+    endpoint: LineEndpoint,
+    e: ReactPointerEvent,
+  ) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    onSelectLine(lineId);
+
+    const store = useStormBoardStore.getState();
+    const line = store.canvasLines.find((l) => l.id === lineId);
+    if (!line) return;
+
+    store.beginGesture();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const orig = { x1: line.x1, y1: line.y1, x2: line.x2, y2: line.y2 };
+
+    const onMove = (ev: PointerEvent) => {
+      const dx = (ev.clientX - startX) / zoom;
+      const dy = (ev.clientY - startY) / zoom;
+      if (endpoint === "start") {
+        updateCanvasLine(lineId, { x1: orig.x1 + dx, y1: orig.y1 + dy });
+      } else {
+        updateCanvasLine(lineId, { x2: orig.x2 + dx, y2: orig.y2 + dy });
+      }
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      useStormBoardStore.getState().endGesture();
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
+  const startMoveLine = (lineId: string, e: ReactPointerEvent) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    onSelectLine(lineId);
+
+    // In draw mode a plain click selects; only drag after a small threshold.
+    const store = useStormBoardStore.getState();
+    const line = store.canvasLines.find((l) => l.id === lineId);
+    if (!line) return;
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const orig = { x1: line.x1, y1: line.y1, x2: line.x2, y2: line.y2 };
+    let gestureStarted = false;
+    const MOVE_THRESHOLD_PX = 3;
+
+    const onMove = (ev: PointerEvent) => {
+      const dist = Math.hypot(ev.clientX - startX, ev.clientY - startY);
+      if (!gestureStarted) {
+        if (dist < MOVE_THRESHOLD_PX) return;
+        gestureStarted = true;
+        useStormBoardStore.getState().beginGesture();
+      }
+      const dx = (ev.clientX - startX) / zoom;
+      const dy = (ev.clientY - startY) / zoom;
+      updateCanvasLine(lineId, {
+        x1: orig.x1 + dx,
+        y1: orig.y1 + dy,
+        x2: orig.x2 + dx,
+        y2: orig.y2 + dy,
+      });
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      if (gestureStarted) useStormBoardStore.getState().endGesture();
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
 
   return (
     <svg className="pointer-events-none absolute inset-0 overflow-visible" style={{ zIndex: 9 }}>
@@ -55,6 +149,7 @@ export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasL
         const selected = line.id === selectedLineId;
         const stroke = line.color ?? (selected ? "#2a9d8f" : "#64748b");
         const arrow = line.arrowHead ?? "none";
+        const r = handleRadius(selected);
         return (
           <g key={line.id}>
             <line
@@ -64,7 +159,11 @@ export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasL
               y2={line.y2}
               stroke="transparent"
               strokeWidth={14}
-              className="pointer-events-auto cursor-pointer"
+              className={[
+                "pointer-events-auto",
+                lineDrawMode ? "cursor-pointer" : "cursor-move",
+              ].join(" ")}
+              onPointerDown={(e) => startMoveLine(line.id, e)}
               onClick={(e) => {
                 e.stopPropagation();
                 onSelectLine(line.id);
@@ -98,6 +197,30 @@ export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasL
               >
                 {line.label}
               </text>
+            )}
+            {selected && (
+              <>
+                <circle
+                  cx={line.x1}
+                  cy={line.y1}
+                  r={r}
+                  fill="#fff"
+                  stroke="#2a9d8f"
+                  strokeWidth={2}
+                  className="pointer-events-auto cursor-grab"
+                  onPointerDown={(e) => startEndpointDrag(line.id, "start", e)}
+                />
+                <circle
+                  cx={line.x2}
+                  cy={line.y2}
+                  r={r}
+                  fill="#fff"
+                  stroke="#2a9d8f"
+                  strokeWidth={2}
+                  className="pointer-events-auto cursor-grab"
+                  onPointerDown={(e) => startEndpointDrag(line.id, "end", e)}
+                />
+              </>
             )}
           </g>
         );

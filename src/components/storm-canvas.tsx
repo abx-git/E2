@@ -106,6 +106,7 @@ export function StormCanvas() {
   const addBoundedContext = useStormBoardStore((s) => s.addBoundedContext);
   const addCanvasLine = useStormBoardStore((s) => s.addCanvasLine);
   const selectCanvasLine = useStormBoardStore((s) => s.selectCanvasLine);
+  const deleteCanvasLine = useStormBoardStore((s) => s.deleteCanvasLine);
   const setLineDrawMode = useStormBoardStore((s) => s.setLineDrawMode);
 
   const [bcDraft, setBcDraft] = useState<WorldRect | null>(null);
@@ -166,6 +167,15 @@ export function StormCanvas() {
         return;
       }
 
+      if (e.key === "Delete" || e.key === "Backspace") {
+        const lineId = useStormBoardStore.getState().selectedCanvasLineId;
+        if (lineId) {
+          e.preventDefault();
+          deleteCanvasLine(lineId);
+        }
+        return;
+      }
+
       if (e.metaKey || e.ctrlKey || e.altKey) return;
 
       const digitMatch = e.key.match(/^([0-9])$/);
@@ -210,6 +220,7 @@ export function StormCanvas() {
     contextMapMode,
     lineDrawMode,
     setLineDrawMode,
+    deleteCanvasLine,
   ]);
 
   // Space for pan: window-level so it works without canvas focus and over stickies.
@@ -660,7 +671,7 @@ export function StormCanvas() {
           data-canvas-chrome
           className="dock-surface absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)]"
         >
-          <span>Linie ziehen · Pfeiltyp unten links wählen · Esc: beenden</span>
+          <span>Linie ziehen · vorhandene Linie anklicken zum Verschieben · Esc: beenden</span>
           <button
             type="button"
             onClick={() => setLineDrawMode(false)}

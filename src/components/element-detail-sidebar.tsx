@@ -118,6 +118,9 @@ export function ElementDetailSidebar({
             onChange={(e) => updateCanvasLine(selectedCanvasLine.id, { color: e.target.value })}
           />
         </Field>
+        <p className="text-[0.72rem] text-[var(--muted)]">
+          Endpunkte ziehen zum Anpassen, Linie verschieben per Drag. Entf löscht.
+        </p>
         <button
           type="button"
           className="w-full rounded-md border border-[var(--border)] bg-[var(--control)] px-2 py-1.5 text-xs font-medium text-[#f0a8a0] hover:border-[#f0a8a0]"
