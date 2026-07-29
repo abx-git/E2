@@ -109,6 +109,55 @@ describe("storm-json multi-view", () => {
     expect(restored.workshopMode).toBe(true);
     expect(restored.activeViewId).toBe("b");
   });
+
+  it("stores bookmarks at document level and lifts legacy per-view bookmarks", () => {
+    const view = createEmptyBoardView({ id: "view-a", name: "Sicht A" });
+    const doc = boardSnapshotToReplacePayload(
+      buildBoardSnapshot({
+        ...emptyDoc({ views: [view] }),
+        bookmarks: [
+          {
+            id: "b1",
+            name: "Global",
+            viewId: "view-a",
+            viewport: { x: 1, y: 2, zoom: 1.1 },
+          },
+        ],
+      }),
+    );
+    expect(doc.bookmarks).toHaveLength(1);
+    expect(doc.bookmarks?.[0]).toMatchObject({
+      id: "b1",
+      name: "Global",
+      viewId: "view-a",
+    });
+    expect(doc.views[0]).not.toHaveProperty("bookmarks");
+
+    const lifted = boardSnapshotToReplacePayload(
+      buildBoardSnapshot({
+        ...emptyDoc({
+          views: [
+            {
+              ...view,
+              bookmarks: [
+                {
+                  id: "legacy",
+                  name: "Alt",
+                  viewport: { x: 0, y: 0, zoom: 1 },
+                },
+              ],
+            } as never,
+          ],
+        }),
+      }),
+    );
+    expect(lifted.bookmarks).toHaveLength(1);
+    expect(lifted.bookmarks?.[0]).toMatchObject({
+      id: "legacy",
+      name: "Alt",
+      viewId: "view-a",
+    });
+  });
 });
 
 describe("relation-validation", () => {

@@ -536,6 +536,7 @@ function bindStoreToYjs(
       state.timeline !== prev.timeline ||
       state.glossary !== prev.glossary ||
       state.actionItems !== prev.actionItems ||
+      state.bookmarks !== prev.bookmarks ||
       state.appearance !== prev.appearance ||
       state.workshopFormat !== prev.workshopFormat ||
       state.modelingMode !== prev.modelingMode ||

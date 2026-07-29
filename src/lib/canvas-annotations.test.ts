@@ -51,30 +51,44 @@ describe("canvas-annotations", () => {
     expect(lines[0]!.id).toBe("l1");
   });
 
-  it("normalizes bookmarks with viewport", () => {
+  it("normalizes bookmarks with viewport and view", () => {
     const bookmark = normalizeViewBookmark({
       name: " Start ",
+      viewId: "view-1",
       viewport: { x: 10, y: 20, zoom: 1.25 },
     });
     expect(bookmark).toMatchObject({
       name: "Start",
+      viewId: "view-1",
       viewport: { x: 10, y: 20, zoom: 1.25 },
     });
     expect(bookmark?.id).toBeTruthy();
   });
 
-  it("rejects bookmarks without name or viewport", () => {
-    expect(normalizeViewBookmark({ name: "  " })).toBeNull();
-    expect(normalizeViewBookmark({ name: "X", viewport: { x: 0, y: 0 } as never })).toBeNull();
+  it("rejects bookmarks without name, view, or viewport", () => {
+    expect(normalizeViewBookmark({ name: "  ", viewId: "v1" })).toBeNull();
+    expect(
+      normalizeViewBookmark({
+        name: "X",
+        viewport: { x: 0, y: 0, zoom: 1 },
+      }),
+    ).toBeNull();
+    expect(
+      normalizeViewBookmark({
+        name: "X",
+        viewport: { x: 0, y: 0 } as never,
+      }),
+    ).toBeNull();
   });
 
-  it("normalizes bookmark arrays", () => {
-    const bookmarks = normalizeViewBookmarks([
-      { id: "b1", name: "One", viewport: { x: 0, y: 0, zoom: 1 } },
-      { name: "" },
-    ]);
+  it("normalizes bookmark arrays with fallback view id", () => {
+    const bookmarks = normalizeViewBookmarks(
+      [{ id: "b1", name: "One", viewport: { x: 0, y: 0, zoom: 1 } }],
+      "fallback-view",
+    );
     expect(bookmarks).toHaveLength(1);
     expect(bookmarks[0]!.id).toBe("b1");
+    expect(bookmarks[0]!.viewId).toBe("fallback-view");
   });
 
   it("computes line length", () => {

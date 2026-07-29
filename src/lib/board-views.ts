@@ -29,7 +29,6 @@ export interface ActiveViewFlatState {
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
   canvasLines: CanvasLine[];
-  bookmarks: ViewBookmark[];
   timeline: Timeline;
   viewport: Viewport;
   snapToTimeline: boolean;
@@ -40,6 +39,7 @@ export interface ViewDocumentState extends ActiveViewFlatState {
   title: string;
   glossary: GlossaryEntry[];
   actionItems: ActionItem[];
+  bookmarks: ViewBookmark[];
   appearance: BoardAppearance;
   workshopMode: boolean;
   activeViewId: string;
@@ -58,7 +58,6 @@ export function flatFieldsFromView(view: BoardView): ActiveViewFlatState {
     swimlanes: view.swimlanes,
     boundedContexts: view.boundedContexts,
     canvasLines: view.canvasLines,
-    bookmarks: view.bookmarks,
     timeline: view.timeline,
     viewport: view.viewport,
     snapToTimeline: view.snapToTimeline,

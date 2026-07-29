@@ -54,7 +54,6 @@ export interface BoardView {
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
   canvasLines: CanvasLine[];
-  bookmarks: ViewBookmark[];
   timeline: Timeline;
   viewport: Viewport;
   snapToTimeline: boolean;
@@ -66,6 +65,7 @@ export interface BoardImportPayload {
   title: string;
   glossary: GlossaryEntry[];
   actionItems?: ActionItem[];
+  bookmarks?: ViewBookmark[];
   appearance: BoardAppearance;
   /** When true in collab, activeViewId is shared; when false, each client keeps local tab. */
   workshopMode: boolean;
@@ -89,7 +89,6 @@ export interface BoardActiveSlice {
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
   canvasLines: CanvasLine[];
-  bookmarks: ViewBookmark[];
   timeline: Timeline;
   viewport: Viewport;
   snapToTimeline: boolean;
@@ -104,6 +103,7 @@ export interface BoardSnapshotV2 {
   title: string;
   glossary: GlossaryEntry[];
   actionItems?: ActionItem[];
+  bookmarks?: ViewBookmark[];
   appearance: BoardAppearance;
   workshopMode: boolean;
   activeViewId: string;
@@ -129,6 +129,7 @@ export interface BoardSnapshotV1 {
   timeline: Timeline;
   viewport: Viewport;
   glossary: GlossaryEntry[];
+  bookmarks?: ViewBookmark[];
   appearance?: BoardAppearance;
   snapToTimeline?: boolean;
   snapToGrid?: boolean;
@@ -150,7 +151,6 @@ export function createEmptyBoardView(
     swimlanes: [],
     boundedContexts: [],
     canvasLines: [],
-    bookmarks: [],
     timeline: { ...DEFAULT_TIMELINE },
     viewport: { ...DEFAULT_VIEWPORT },
     snapToTimeline: true,
@@ -173,6 +173,7 @@ export function createDefaultBoardDocument(
     title: overrides.title ?? "Neues Event Storming Board",
     glossary: overrides.glossary ?? [],
     actionItems: overrides.actionItems ?? [],
+    bookmarks: overrides.bookmarks ?? [],
     appearance: overrides.appearance
       ? normalizeAppearance(overrides.appearance)
       : { ...DEFAULT_APPEARANCE },
@@ -214,7 +215,6 @@ export function normalizeBoardView(raw: Partial<BoardView> & { id?: string; name
     swimlanes: Array.isArray(raw.swimlanes) ? raw.swimlanes.map(normalizeSwimlane) : [],
     boundedContexts: Array.isArray(raw.boundedContexts) ? raw.boundedContexts : [],
     canvasLines: normalizeCanvasLines(raw.canvasLines),
-    bookmarks: normalizeViewBookmarks(raw.bookmarks),
     timeline: raw.timeline ? normalizeTimeline({ ...DEFAULT_TIMELINE, ...raw.timeline }) : { ...DEFAULT_TIMELINE },
     viewport: raw.viewport ? { ...DEFAULT_VIEWPORT, ...raw.viewport } : { ...DEFAULT_VIEWPORT },
     snapToTimeline: raw.snapToTimeline ?? true,
@@ -228,6 +228,7 @@ export function migrateV1ToDocument(snap: BoardSnapshotV1): BoardImportPayload {
     title: snap.title,
     glossary: snap.glossary ?? [],
     actionItems: [],
+    bookmarks: normalizeViewBookmarks(snap.bookmarks, viewId),
     appearance: normalizeAppearance(snap.appearance),
     workshopMode: false,
     activeViewId: viewId,
@@ -254,12 +255,22 @@ export function migrateV1ToDocument(snap: BoardSnapshotV1): BoardImportPayload {
 }
 
 export function normalizeBoardDocument(raw: Partial<BoardImportPayload>): BoardImportPayload {
-  const views = (Array.isArray(raw.views) ? raw.views : []).map((v) => normalizeBoardView(v));
+  const rawViews = Array.isArray(raw.views) ? raw.views : [];
+  const liftedBookmarks: ViewBookmark[] = [];
+  const views = rawViews.map((entry) => {
+    const legacyBookmarks = (entry as { bookmarks?: unknown }).bookmarks;
+    const view = normalizeBoardView(entry);
+    if (Array.isArray(legacyBookmarks)) {
+      liftedBookmarks.push(...normalizeViewBookmarks(legacyBookmarks, view.id));
+    }
+    return view;
+  });
   if (views.length === 0) {
     return createDefaultBoardDocument({
       title: raw.title ?? "Board",
       glossary: Array.isArray(raw.glossary) ? raw.glossary : [],
       actionItems: normalizeActionItems(raw.actionItems),
+      bookmarks: normalizeViewBookmarks(raw.bookmarks),
       appearance: normalizeAppearance(raw.appearance),
       workshopMode: Boolean(raw.workshopMode),
     });
@@ -268,10 +279,18 @@ export function normalizeBoardDocument(raw: Partial<BoardImportPayload>): BoardI
     raw.activeViewId && views.some((v) => v.id === raw.activeViewId)
       ? raw.activeViewId
       : views[0]!.id;
+  const bookmarksById = new Map<string, ViewBookmark>();
+  for (const bookmark of [
+    ...normalizeViewBookmarks(raw.bookmarks, activeViewId),
+    ...liftedBookmarks,
+  ]) {
+    bookmarksById.set(bookmark.id, bookmark);
+  }
   return {
     title: raw.title ?? "Board",
     glossary: Array.isArray(raw.glossary) ? raw.glossary : [],
     actionItems: normalizeActionItems(raw.actionItems),
+    bookmarks: [...bookmarksById.values()],
     appearance: normalizeAppearance(raw.appearance),
     workshopMode: Boolean(raw.workshopMode),
     activeViewId,
@@ -300,7 +319,6 @@ export function activeSliceFromDocument(doc: BoardImportPayload): BoardActiveSli
     swimlanes: view.swimlanes,
     boundedContexts: view.boundedContexts,
     canvasLines: view.canvasLines,
-    bookmarks: view.bookmarks,
     timeline: view.timeline,
     viewport: view.viewport,
     snapToTimeline: view.snapToTimeline,
@@ -322,6 +340,7 @@ export function documentHasContent(doc: BoardImportPayload): boolean {
   return (
     doc.glossary.length > 0 ||
     (doc.actionItems?.length ?? 0) > 0 ||
+    (doc.bookmarks?.length ?? 0) > 0 ||
     doc.views.some(viewHasContent)
   );
 }
@@ -336,6 +355,7 @@ export function buildBoardSnapshot(state: BoardImportPayload): BoardSnapshotV2 {
     title: doc.title,
     glossary: doc.glossary,
     actionItems: doc.actionItems ?? [],
+    bookmarks: doc.bookmarks ?? [],
     appearance: normalizeAppearance(doc.appearance),
     workshopMode: doc.workshopMode,
     activeViewId: doc.activeViewId,
@@ -408,7 +428,6 @@ function stableViewKey(view: BoardView): unknown {
     swimlanes: [...view.swimlanes].sort((a, b) => a.id.localeCompare(b.id)),
     boundedContexts: [...view.boundedContexts].sort((a, b) => a.id.localeCompare(b.id)),
     canvasLines: [...view.canvasLines].sort((a, b) => a.id.localeCompare(b.id)),
-    bookmarks: [...view.bookmarks].sort((a, b) => a.id.localeCompare(b.id)),
     timeline: view.timeline,
     snapToTimeline: view.snapToTimeline,
     snapToGrid: view.snapToGrid,
@@ -421,6 +440,7 @@ export function stableBoardStateKey(payload: BoardImportPayload): string {
     title: doc.title,
     glossary: [...doc.glossary].sort((a, b) => a.term.localeCompare(b.term)),
     actionItems: [...(doc.actionItems ?? [])].sort((a, b) => a.id.localeCompare(b.id)),
+    bookmarks: [...(doc.bookmarks ?? [])].sort((a, b) => a.id.localeCompare(b.id)),
     appearance: doc.appearance,
     workshopMode: doc.workshopMode,
     activeViewId: doc.activeViewId,

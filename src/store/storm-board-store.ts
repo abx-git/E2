@@ -345,6 +345,7 @@ function captureDomain(s: StormBoardState): BoardDomainSnapshot {
     title: s.title,
     glossary: s.glossary,
     actionItems: s.actionItems,
+    bookmarks: s.bookmarks,
     appearance: s.appearance,
     workshopMode: s.workshopMode,
     activeViewId: s.activeViewId,
@@ -361,6 +362,7 @@ function domainPatch(snap: BoardDomainSnapshot): Partial<StormBoardState> {
     title: snap.title,
     glossary: snap.glossary,
     actionItems: snap.actionItems,
+    bookmarks: snap.bookmarks,
     appearance: snap.appearance,
     workshopMode: snap.workshopMode,
     activeViewId: active.id,
@@ -446,7 +448,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   swimlanes: initialViewDoc.swimlanes,
   boundedContexts: initialViewDoc.boundedContexts,
   canvasLines: initialViewDoc.canvasLines,
-  bookmarks: initialViewDoc.bookmarks,
+  bookmarks: [],
   timeline: initialViewDoc.timeline,
   viewport: initialViewDoc.viewport,
   glossary: [],
@@ -565,6 +567,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         views,
         activeViewId: nextActive.id,
+        bookmarks: state.bookmarks.filter((bookmark) => bookmark.viewId !== id),
         ...applyViewToFlatPatch(nextActive),
         ...CLEAR_SELECTION_PATCH,
       };
@@ -1293,6 +1296,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     const bookmark: ViewBookmark = {
       id: generateStormId(),
       name: trimmed,
+      viewId: get().activeViewId,
       viewport: { ...get().viewport },
     };
     commit(set, get, (s) => ({ bookmarks: [...s.bookmarks, bookmark] }));
@@ -1314,6 +1318,20 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   jumpToBookmark: (id) => {
     const bookmark = get().bookmarks.find((b) => b.id === id);
     if (!bookmark) return false;
+    const s = get();
+    if (!s.views.some((view) => view.id === bookmark.viewId)) return false;
+    if (s.activeViewId !== bookmark.viewId) {
+      const views = flushActiveViewIntoViews(s);
+      const next = resolveActiveView(views, bookmark.viewId);
+      set({
+        views,
+        activeViewId: next.id,
+        ...applyViewToFlatPatch(next),
+        viewport: { ...bookmark.viewport },
+        ...CLEAR_SELECTION_PATCH,
+      });
+      return true;
+    }
     set({ viewport: { ...bookmark.viewport } });
     return true;
   },
@@ -1654,6 +1672,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       title: doc.title,
       glossary: doc.glossary,
       actionItems: doc.actionItems ?? [],
+      bookmarks: doc.bookmarks ?? [],
       appearance: doc.appearance,
       workshopMode: doc.workshopMode,
       activeViewId: active.id,
@@ -1699,6 +1718,7 @@ export function boardImportPayloadFromStore(): BoardImportPayload {
     title: s.title,
     glossary: s.glossary,
     actionItems: s.actionItems,
+    bookmarks: s.bookmarks,
     appearance: s.appearance,
     workshopMode: s.workshopMode,
     activeViewId: s.activeViewId,
@@ -1724,7 +1744,6 @@ export function boardActiveSliceFromStore() {
     swimlanes: s.swimlanes,
     boundedContexts: s.boundedContexts,
     canvasLines: s.canvasLines,
-    bookmarks: s.bookmarks,
     timeline: s.timeline,
     viewport: s.viewport,
     snapToTimeline: s.snapToTimeline,

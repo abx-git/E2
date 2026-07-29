@@ -671,10 +671,11 @@
     "viewBookmark": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "viewport"],
+      "required": ["id", "name", "viewId", "viewport"],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "name": { "type": "string", "minLength": 1 },
+        "viewId": { "type": "string", "minLength": 1 },
         "viewport": { "$ref": "#/$defs/viewport" }
       }
     }

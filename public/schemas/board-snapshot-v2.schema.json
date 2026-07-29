@@ -48,6 +48,13 @@
         "$ref": "#/$defs/actionItem"
       }
     },
+    "bookmarks": {
+      "type": "array",
+      "description": "Projektweite Lesezeichen (Sicht + Viewport).",
+      "items": {
+        "$ref": "#/$defs/viewBookmark"
+      }
+    },
     "appearance": {
       "$ref": "#/$defs/appearance"
     },
@@ -904,12 +911,6 @@
           "items": {
             "$ref": "#/$defs/canvasLine"
           }
-        },
-        "bookmarks": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/viewBookmark"
-          }
         }
       }
     },
@@ -940,7 +941,7 @@
     "viewBookmark": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "name", "viewport"],
+      "required": ["id", "name", "viewId", "viewport"],
       "properties": {
         "id": {
           "type": "string",
@@ -949,6 +950,11 @@
         "name": {
           "type": "string",
           "minLength": 1
+        },
+        "viewId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Ziel-Sicht (views[].id)."
         },
         "viewport": {
           "$ref": "#/$defs/viewport"
