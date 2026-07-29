@@ -7,6 +7,10 @@ import {
   translateMatchingElements,
 } from "@/lib/region-containment";
 import {
+  buildBoardViewFromBoundedContextPayload,
+  extractBoundedContextViewPayload,
+} from "@/lib/bounded-context-view";
+import {
   extractClipboardPayload,
   isClipboardEmpty,
   mergeClipboardPayloads,
@@ -233,6 +237,8 @@ export interface StormBoardState {
     options?: { moveElementIds?: string[] },
   ) => void;
   deleteBoundedContext: (id: string) => void;
+  /** Open linked detail view or create one from BC contents (with direct external refs). */
+  openBoundedContextView: (bcId: string) => string | null;
 
   /** Shared z-order among swimlanes and bounded contexts. */
   bringRegionsToFront: (ids: string[]) => void;
@@ -1308,6 +1314,77 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
             : s.selectedContextRelationId,
       };
     }),
+
+  openBoundedContextView: (bcId) => {
+    let resultId: string | null = null;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const activeView = resolveActiveView(views, s.activeViewId);
+      const bc = activeView.boundedContexts.find((b) => b.id === bcId);
+      if (!bc) return {};
+
+      const linkedViewId = bc.detailViewId?.trim();
+      if (linkedViewId) {
+        const linked = views.find((v) => v.id === linkedViewId);
+        if (linked) {
+          resultId = linked.id;
+          return {
+            views,
+            activeViewId: linked.id,
+            ...applyViewToFlatPatch(linked),
+            ...CLEAR_SELECTION_PATCH,
+            past: [],
+            future: [],
+            gestureActive: false,
+            gestureSnapshotTaken: false,
+          };
+        }
+      }
+
+      const payload = extractBoundedContextViewPayload(
+        bcId,
+        activeView.elements,
+        activeView.relations,
+        activeView.boundedContexts,
+        activeView.contextRelations,
+        activeView.swimlanes,
+      );
+      if (!payload) return {};
+
+      const newViewId = generateStormId();
+      const viewName = bc.label.trim() || `Sicht ${views.length + 1}`;
+      const newView = buildBoardViewFromBoundedContextPayload(payload, {
+        id: newViewId,
+        name: viewName,
+        modelingMode: activeView.modelingMode,
+        workshopFormat: activeView.workshopFormat,
+      });
+
+      const updatedViews = views.map((v) =>
+        v.id === activeView.id
+          ? {
+              ...v,
+              boundedContexts: v.boundedContexts.map((b) =>
+                b.id === bcId ? { ...b, detailViewId: newViewId } : b,
+              ),
+            }
+          : v,
+      );
+
+      resultId = newViewId;
+      return {
+        views: [...updatedViews, newView],
+        activeViewId: newViewId,
+        ...applyViewToFlatPatch(newView),
+        ...CLEAR_SELECTION_PATCH,
+        past: [],
+        future: [],
+        gestureActive: false,
+        gestureSnapshotTaken: false,
+      };
+    });
+    return resultId;
+  },
 
   bringRegionsToFront: (ids) => {
     const s = get();

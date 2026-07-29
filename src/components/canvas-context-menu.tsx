@@ -17,6 +17,7 @@ import {
   ClipboardPaste,
   Copy,
   HelpCircle,
+  LayoutDashboard,
   Link2,
   RotateCcw,
   RotateCw,
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 
 import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
+import { resolveBoundedContextDetailView } from "@/lib/bounded-context-view";
 import { clipboardItemCount, isClipboardEmpty } from "@/lib/board-clipboard";
 import {
   effectiveElementRotation,
@@ -77,6 +79,7 @@ export function CanvasContextMenu({
   const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
+  const views = useStormBoardStore((s) => s.views);
   const updateElement = useStormBoardStore((s) => s.updateElement);
   const deleteElement = useStormBoardStore((s) => s.deleteElement);
   const patchElements = useStormBoardStore((s) => s.patchElements);
@@ -94,6 +97,7 @@ export function CanvasContextMenu({
   const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
   const deleteSwimlane = useStormBoardStore((s) => s.deleteSwimlane);
   const deleteBoundedContext = useStormBoardStore((s) => s.deleteBoundedContext);
+  const openBoundedContextView = useStormBoardStore((s) => s.openBoundedContextView);
   const bringRegionsToFront = useStormBoardStore((s) => s.bringRegionsToFront);
   const sendRegionsToBack = useStormBoardStore((s) => s.sendRegionsToBack);
   const bringRegionsForward = useStormBoardStore((s) => s.bringRegionsForward);
@@ -687,9 +691,16 @@ export function CanvasContextMenu({
   } else if (target.kind === "boundedContext") {
     const bc = boundedContexts.find((b) => b.id === target.id);
     if (!bc) return null;
+    const detailView = resolveBoundedContextDetailView(bc, views);
     body = (
       <>
         <Header title={bc.label} subtitle="Bounded Context" />
+        <Item
+          icon={LayoutDashboard}
+          label={detailView ? `Detail-Sicht öffnen (${detailView.name})` : "Detail-Sicht erstellen"}
+          onClick={() => run(() => openBoundedContextView(bc.id))}
+        />
+        <Separator />
         <Item
           icon={Link2}
           label="Context Map verbinden"
