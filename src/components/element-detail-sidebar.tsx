@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { AlertCircle, ExternalLink, HelpCircle, LayoutDashboard } from "lucide-react";
+import { AlertCircle, ExternalLink, HelpCircle } from "lucide-react";
 
 import { activateBoardLink } from "@/lib/board-link";
-import { resolveBoundedContextDetailView } from "@/lib/bounded-context-view";
+import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-panel";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
@@ -51,8 +51,6 @@ export function ElementDetailSidebar({
   const selectedSwimlaneId = useStormBoardStore((s) => s.selectedSwimlaneIds[0] ?? null);
   const updateElement = useStormBoardStore((s) => s.updateElement);
   const updateRelation = useStormBoardStore((s) => s.updateRelation);
-  const updateBoundedContext = useStormBoardStore((s) => s.updateBoundedContext);
-  const openBoundedContextView = useStormBoardStore((s) => s.openBoundedContextView);
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
@@ -151,95 +149,9 @@ export function ElementDetailSidebar({
     }
 
     if (selectedBoundedContext) {
-      const detailView = resolveBoundedContextDetailView(selectedBoundedContext, views);
       return (
         <DockPanel title="Bounded Context">
-          <div className="mb-3">
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--control)] px-2 py-1.5 text-xs font-medium text-[var(--text)] hover:border-[var(--accent)]"
-              onClick={() => openBoundedContextView(selectedBoundedContext.id)}
-            >
-              <LayoutDashboard className="size-4 shrink-0" aria-hidden />
-              {detailView
-                ? `Detail-Sicht öffnen (${detailView.name})`
-                : "Detail-Sicht erstellen"}
-            </button>
-            {detailView ? (
-              <p className="mt-1.5 text-[0.72rem] text-[var(--muted)]">
-                Inhalte werden beim Erstellen kopiert; Änderungen in der Detail-Sicht sind
-                unabhängig.
-              </p>
-            ) : (
-              <p className="mt-1.5 text-[0.72rem] text-[var(--muted)]">
-                Erstellt eine neue Sicht mit Inhalten dieses Bounded Contexts und direkten
-                Referenzen außerhalb.
-              </p>
-            )}
-          </div>
-          <Field label="Label">
-            <input
-              className="dock-field"
-              value={selectedBoundedContext.label}
-              onChange={(e) =>
-                updateBoundedContext(selectedBoundedContext.id, { label: e.target.value })
-              }
-            />
-          </Field>
-          <Field label="Zweck">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={2}
-              value={selectedBoundedContext.purpose ?? ""}
-              onChange={(e) =>
-                updateBoundedContext(selectedBoundedContext.id, { purpose: e.target.value })
-              }
-            />
-          </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <NumberField
-              label="X"
-              value={selectedBoundedContext.x}
-              onChange={(v) => updateBoundedContext(selectedBoundedContext.id, { x: v })}
-            />
-            <NumberField
-              label="Y"
-              value={selectedBoundedContext.y}
-              onChange={(v) => updateBoundedContext(selectedBoundedContext.id, { y: v })}
-            />
-            <NumberField
-              label="Breite"
-              value={selectedBoundedContext.width}
-              min={80}
-              onChange={(v) =>
-                updateBoundedContext(selectedBoundedContext.id, { width: Math.max(80, v) })
-              }
-            />
-            <NumberField
-              label="Höhe"
-              value={selectedBoundedContext.height}
-              min={80}
-              onChange={(v) =>
-                updateBoundedContext(selectedBoundedContext.id, { height: Math.max(80, v) })
-              }
-            />
-            <NumberField
-              label="Ebene (z)"
-              value={selectedBoundedContext.zIndex ?? 0}
-              onChange={(v) => updateBoundedContext(selectedBoundedContext.id, { zIndex: v })}
-            />
-          </div>
-          <Field label="Farbe">
-            <input
-              type="color"
-              className="dock-field h-9 cursor-pointer p-1"
-              value={selectedBoundedContext.color ?? "#2a9d8f"}
-              onChange={(e) =>
-                updateBoundedContext(selectedBoundedContext.id, { color: e.target.value })
-              }
-            />
-          </Field>
-          <p className="text-[0.72rem] text-[var(--muted)]">Löschen: Rechtsklick.</p>
+          <BoundedContextDetailPanel boundedContext={selectedBoundedContext} />
         </DockPanel>
       );
     }

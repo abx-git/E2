@@ -4,6 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BoardAppBar } from "@/components/board-app-bar";
 import {
+  BoundedContextMobileActions,
+  BoundedContextMobileSheet,
+} from "@/components/bounded-context-mobile-sheet";
+import {
   BoardBackupSync,
   runManualBoardBackup,
 } from "@/components/board-backup-sync";
@@ -123,6 +127,7 @@ export function StormBoard() {
   const [urlJoinConfirm, setUrlJoinConfirm] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [leaveBusy, setLeaveBusy] = useState(false);
+  const [bcMobileSheetOpen, setBcMobileSheetOpen] = useState(false);
   const [importConflict, setImportConflict] = useState<{
     fileText: string;
     fileLastModified: number;
@@ -513,14 +518,15 @@ export function StormBoard() {
         }}
       />
 
-      <div className="mx-3 mb-3 mt-2 flex min-h-0 flex-1 gap-2">
-        <div className="dock-surface flex overflow-hidden rounded-dock">
+      <div className="mx-2 mb-2 mt-2 flex min-h-0 flex-1 gap-2 lg:mx-3 lg:mb-3">
+        <div className="dock-surface hidden overflow-hidden rounded-dock lg:flex">
           <ElementPalette onSelectType={() => {}} onRequestHelp={openElementHelp} />
         </div>
         <div className="dock-surface relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-dock">
           <StormCanvas />
+          <BoundedContextMobileActions onOpenDetails={() => setBcMobileSheetOpen(true)} />
         </div>
-        <div className="dock-surface flex w-72 shrink-0 flex-col overflow-hidden rounded-dock">
+        <div className="dock-surface hidden w-72 shrink-0 flex-col overflow-hidden rounded-dock lg:flex">
           <ElementDetailSidebar
             onRequestHelpElementType={openElementHelp}
             onRequestHelpRelationType={openRelationHelp}
@@ -563,8 +569,14 @@ export function StormBoard() {
                 </>
               )}
         </span>
-        <span>Rechtsklick · Pan · E2</span>
+        <span className="hidden sm:inline">Rechtsklick · Pan · E2</span>
+        <span className="sm:hidden">Tippen · Pan · E2</span>
       </footer>
+
+      <BoundedContextMobileSheet
+        open={bcMobileSheetOpen}
+        onClose={() => setBcMobileSheetOpen(false)}
+      />
 
       <CanvasContextMenu
         onRequestHelpElementType={(type) => openElementHelp(type as ElementType)}
