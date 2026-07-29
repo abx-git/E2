@@ -30,6 +30,7 @@ import {
 import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
 import { resolveBoundedContextDetailView } from "@/lib/bounded-context-view";
 import { clipboardItemCount, isClipboardEmpty } from "@/lib/board-clipboard";
+import { useIsMobileLayout } from "@/lib/use-media-query";
 import {
   effectiveElementRotation,
   normalizeRotationDegrees,
@@ -112,6 +113,7 @@ export function CanvasContextMenu({
   const duplicateElements = useStormBoardStore((s) => s.duplicateElements);
   const pasteClipboardAt = useStormBoardStore((s) => s.pasteClipboardAt);
   const clipboard = useStormBoardStore((s) => s.clipboard);
+  const isMobile = useIsMobileLayout();
 
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: 0, top: 0 });
@@ -811,7 +813,23 @@ export function CanvasContextMenu({
     );
   }
 
-  const layer = (
+  const layer = isMobile && target.kind === "boundedContext" ? (
+    <div
+      className="fixed inset-0 z-[1200] flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm"
+      role="presentation"
+      onClick={() => closeContextMenu()}
+    >
+      <div
+        ref={ref}
+        role="menu"
+        className="dock-surface max-h-[min(80vh,640px)] w-full max-w-lg overflow-y-auto rounded-t-xl py-2 text-sm text-[var(--text)] shadow-dock"
+        onClick={(e) => e.stopPropagation()}
+        onContextMenu={(e) => e.preventDefault()}
+      >
+        {body}
+      </div>
+    </div>
+  ) : (
     <div
       ref={ref}
       role="menu"

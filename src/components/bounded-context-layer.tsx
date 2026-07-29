@@ -8,6 +8,8 @@ import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_SIZE = 80;
 const DEFAULT_LABEL = "Bounded Context";
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_CANCEL_PX = 10;
 
 type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
@@ -103,30 +105,80 @@ export function BoundedContextLayer() {
     }
 
     selectBoundedContext(bcId);
-    store.beginGesture();
 
-    const bc = store.boundedContexts.find((b) => b.id === bcId);
-    if (!bc) return;
-
+    const isTouch = e.pointerType === "touch";
     const startX = e.clientX;
     const startY = e.clientY;
-    const orig = { x: bc.x, y: bc.y };
-    const moveElementIds = elementIdsInBoundedContext(store.elements, bc);
+    let longPressTriggered = false;
+    let moveActive = false;
+    let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const beginDragMove = () => {
+      if (moveActive || longPressTriggered) return;
+      moveActive = true;
+      store.beginGesture();
+
+      const bc = useStormBoardStore.getState().boundedContexts.find((b) => b.id === bcId);
+      if (!bc) return;
+
+      const orig = { x: bc.x, y: bc.y };
+      const moveElementIds = elementIdsInBoundedContext(store.elements, bc);
+
+      const onDragMove = (ev: PointerEvent) => {
+        const dx = (ev.clientX - startX) / zoom;
+        const dy = (ev.clientY - startY) / zoom;
+        updateBoundedContext(bcId, { x: orig.x + dx, y: orig.y + dy }, { moveElementIds });
+      };
+
+      const onDragUp = () => {
+        window.removeEventListener("pointermove", onDragMove);
+        window.removeEventListener("pointerup", onDragUp);
+        useStormBoardStore.getState().endGesture();
+      };
+
+      window.addEventListener("pointermove", onDragMove);
+      window.addEventListener("pointerup", onDragUp);
+    };
+
+    const clearLongPress = () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    };
+
+    if (isTouch) {
+      longPressTimer = setTimeout(() => {
+        longPressTriggered = true;
+        const current = useStormBoardStore.getState();
+        if (!current.selectedBoundedContextIds.includes(bcId)) {
+          current.selectBoundedContext(bcId);
+        }
+        current.openContextMenu(startX, startY, { kind: "boundedContext", id: bcId });
+      }, LONG_PRESS_MS);
+    } else {
+      beginDragMove();
+    }
 
     const onMove = (ev: PointerEvent) => {
-      const dx = (ev.clientX - startX) / zoom;
-      const dy = (ev.clientY - startY) / zoom;
-      updateBoundedContext(bcId, { x: orig.x + dx, y: orig.y + dy }, { moveElementIds });
+      if (longPressTriggered) return;
+      const dist = Math.hypot(ev.clientX - startX, ev.clientY - startY);
+      if (longPressTimer && dist > LONG_PRESS_MOVE_CANCEL_PX) {
+        clearLongPress();
+        beginDragMove();
+      }
     };
 
     const onUp = () => {
+      clearLongPress();
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
-      useStormBoardStore.getState().endGesture();
     };
 
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    if (isTouch) {
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    }
   };
 
   const startResize = (bcId: string, handle: ResizeHandle, e: React.PointerEvent) => {
@@ -188,7 +240,7 @@ export function BoundedContextLayer() {
           <div
             key={bc.id}
             className={[
-              "absolute rounded-lg border-2",
+              "absolute rounded-lg border-2 touch-manipulation",
               selected || draftSource || editing
                 ? "border-blue-600 ring-2 ring-blue-300"
                 : "border-blue-400/70",
@@ -266,7 +318,7 @@ export function BoundedContextLayer() {
                   type="button"
                   aria-label={`Größe ändern (${handle})`}
                   className={[
-                    "absolute z-40 h-2.5 w-2.5 rounded-sm border border-blue-700 bg-white shadow-sm",
+                    "absolute z-40 rounded-sm border border-blue-700 bg-white shadow-sm h-2.5 w-2.5 max-lg:h-4 max-lg:w-4",
                     HANDLE_POSITIONS[handle],
                   ].join(" ")}
                   onPointerDown={(e) => startResize(bc.id, handle, e)}
