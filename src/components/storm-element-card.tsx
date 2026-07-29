@@ -634,7 +634,7 @@ export function StormElementCard({
                   ? `Detail-Sicht öffnen (${archNav.targetViewName})`
                   : "Detail-Sicht erstellen"
             }
-            className="absolute right-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-current/25 bg-white/80 text-current opacity-80 hover:opacity-100"
+            className="absolute left-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-current/25 bg-white/80 text-current opacity-80 hover:opacity-100"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
