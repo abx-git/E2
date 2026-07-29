@@ -41,7 +41,7 @@ function ToolIconButton({
       aria-label={title}
       aria-pressed={active}
       className={[
-        "flex h-8 w-8 items-center justify-center rounded-lg transition",
+        "flex h-8 w-8 max-lg:h-10 max-lg:w-10 items-center justify-center rounded-lg transition touch-manipulation",
         active
           ? "dock-control-active"
           : "text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)]",
@@ -300,7 +300,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
       )}
 
       <div
-        className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5"
+        className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5 max-lg:bottom-14"
         data-canvas-chrome
       >
         <div
@@ -385,12 +385,12 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
       </div>
 
       <div
-        className="dock-surface absolute bottom-3 right-3 z-30 flex items-center gap-0.5 rounded-xl p-0.5 shadow-dock"
+        className="dock-surface absolute bottom-3 right-3 z-30 flex items-center gap-0.5 rounded-xl p-0.5 shadow-dock max-lg:bottom-14"
         data-canvas-chrome
       >
         <button
           type="button"
-          className="rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)]"
+          className="rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)] max-lg:p-2.5 touch-manipulation"
           title="Verkleinern"
           onClick={() => setViewport({ ...viewport, zoom: clampZoom(viewport.zoom - 0.1) })}
         >
@@ -401,7 +401,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
         </span>
         <button
           type="button"
-          className="rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)]"
+          className="rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)] max-lg:p-2.5 touch-manipulation"
           title="Vergrößern"
           onClick={() => setViewport({ ...viewport, zoom: clampZoom(viewport.zoom + 0.1) })}
         >

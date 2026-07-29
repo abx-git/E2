@@ -15,6 +15,7 @@ import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { elementsInMarquee, swimlanesInMarquee, boundedContextsInMarquee, type WorldRect } from "@/lib/selection-geometry";
 import { lineLength } from "@/lib/canvas-annotations";
 import { sortElementsByZOrder } from "@/lib/element-z-order";
+import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MARQUEE_THRESHOLD_PX = 4;
@@ -63,7 +64,16 @@ export function StormCanvas() {
     vy: number;
     pointerId: number;
   } | null>(null);
+  /** Touch on empty canvas: defer pan until move threshold; tap clears selection. */
+  const touchPanPending = useRef<{
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    pointerId: number;
+  } | null>(null);
   const suppressContextMenuRef = useRef(false);
+  const isCoarsePointer = useIsCoarsePointer();
 
   const viewport = useStormBoardStore((s) => s.viewport);
   const setViewport = useStormBoardStore((s) => s.setViewport);
@@ -341,6 +351,24 @@ export function StormCanvas() {
     return true;
   }, []);
 
+  const promoteTouchPan = useCallback((clientX: number, clientY: number, currentTarget: EventTarget) => {
+    const pending = touchPanPending.current;
+    if (!pending) return false;
+    const dx = clientX - pending.x;
+    const dy = clientY - pending.y;
+    if (Math.hypot(dx, dy) < MARQUEE_THRESHOLD_PX) return false;
+    touchPanPending.current = null;
+    panningRef.current = true;
+    setPanning(true);
+    panStart.current = { x: pending.x, y: pending.y, vx: pending.vx, vy: pending.vy };
+    try {
+      (currentTarget as HTMLElement).setPointerCapture(pending.pointerId);
+    } catch {
+      /* ignore */
+    }
+    return true;
+  }, []);
+
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (!containerRef.current || bcMode || relationMode || contextMapMode || lineDrawMode) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -479,7 +507,7 @@ export function StormCanvas() {
       ref={containerRef}
       data-storm-canvas
       className={[
-        "absolute inset-0 overflow-hidden bg-canvas outline-none",
+        "absolute inset-0 overflow-hidden bg-canvas outline-none touch-none",
         spaceHeld || panning ? (panning ? "cursor-grabbing" : "cursor-grab") : "",
       ].join(" ")}
       onContextMenu={(e) => {
@@ -518,6 +546,7 @@ export function StormCanvas() {
         if (
           panningRef.current ||
           rmbPanPending.current ||
+          touchPanPending.current ||
           e.button === 1 ||
           e.button === 2 ||
           (e.button === 0 && spaceDown.current)
@@ -539,12 +568,31 @@ export function StormCanvas() {
           setBcDraft({ x: world.x, y: world.y, w: 0, h: 0 });
           return;
         }
-        // Empty surface (interactive children stopPropagation): start marquee select.
+        // Empty surface (interactive children stopPropagation): marquee or touch-pan.
         if (relationMode) setRelationDraftSource(null);
         if (contextMapMode) setContextMapDraftSource(null);
+        if (e.pointerType === "touch" || isCoarsePointer) {
+          const vp = useStormBoardStore.getState().viewport;
+          touchPanPending.current = {
+            x: e.clientX,
+            y: e.clientY,
+            vx: vp.x,
+            vy: vp.y,
+            pointerId: e.pointerId,
+          };
+          try {
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          } catch {
+            /* ignore */
+          }
+          return;
+        }
         startMarquee(e.clientX, e.clientY, e.shiftKey);
       }}
       onPointerMove={(e) => {
+        if (touchPanPending.current) {
+          promoteTouchPan(e.clientX, e.clientY, e.currentTarget);
+        }
         if (rmbPanPending.current) {
           promoteRmbPan(e.clientX, e.clientY, e.currentTarget);
         }
@@ -578,6 +626,10 @@ export function StormCanvas() {
         }
       }}
       onPointerUp={(e) => {
+        if (touchPanPending.current) {
+          touchPanPending.current = null;
+          if (!panningRef.current) clearSelection();
+        }
         rmbPanPending.current = null;
         if (panningRef.current) endPan(e);
         else if (e.currentTarget instanceof HTMLElement && e.currentTarget.hasPointerCapture(e.pointerId)) {
@@ -605,6 +657,7 @@ export function StormCanvas() {
         setLineDraft(null);
       }}
       onPointerCancel={(e) => {
+        touchPanPending.current = null;
         rmbPanPending.current = null;
         if (panningRef.current) endPan(e);
         else if (e.currentTarget instanceof HTMLElement && e.currentTarget.hasPointerCapture(e.pointerId)) {

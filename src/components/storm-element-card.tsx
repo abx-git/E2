@@ -20,12 +20,15 @@ import {
 import { cssStackingZIndex } from "@/lib/element-z-order";
 import { HighlightedText } from "@/components/highlighted-text";
 import { resolveNoteColor } from "@/lib/note-colors";
+import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { elementTypesForMode, type StormElement } from "@/types/storm-element";
 
 const DRAG_THRESHOLD_PX = 6;
 const MIN_SIZE = 40;
 const ROTATION_SNAP_STEP = 15;
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_CANCEL_PX = 10;
 
 type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
@@ -109,6 +112,7 @@ export function StormElementCard({
   const methodLines = element.metadata?.showMethodsOnCard ? cardMethodLines(element) : [];
   const showDescription =
     Boolean(element.metadata?.showDescriptionOnCard) && Boolean(element.description?.trim());
+  const isCoarsePointer = useIsCoarsePointer();
 
   const shapeClass =
     style.shape === "pill"
@@ -298,7 +302,7 @@ export function StormElementCard({
 
   return (
     <div
-      className="group absolute select-none"
+      className="group absolute select-none touch-manipulation"
       style={{
         left: element.x,
         top: element.y,
@@ -328,6 +332,24 @@ export function StormElementCard({
 
         const startX = e.clientX;
         const startY = e.clientY;
+        const isTouch = e.pointerType === "touch";
+        let longPressTriggered = false;
+        let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const cancelLongPress = () => {
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            longPressTimer = null;
+          }
+        };
+
+        if (isTouch) {
+          longPressTimer = setTimeout(() => {
+            longPressTriggered = true;
+            cancelLongPress();
+            openElementContextMenu(startX, startY);
+          }, LONG_PRESS_MS);
+        }
 
         const moveIds =
           selected && selectedIds.includes(element.id) && selectedIds.length > 1
@@ -343,6 +365,14 @@ export function StormElementCard({
         const onMoveEv = (ev: PointerEvent) => {
           const dx = ev.clientX - startX;
           const dy = ev.clientY - startY;
+          if (
+            isTouch &&
+            longPressTimer &&
+            Math.hypot(dx, dy) >= LONG_PRESS_MOVE_CANCEL_PX
+          ) {
+            cancelLongPress();
+          }
+          if (longPressTriggered) return;
           if (Math.hypot(dx, dy) >= DRAG_THRESHOLD_PX) {
             draggedRef.current = true;
           }
@@ -378,6 +408,11 @@ export function StormElementCard({
         const onUp = (ev: PointerEvent) => {
           window.removeEventListener("pointermove", onMoveEv);
           window.removeEventListener("pointerup", onUp);
+          cancelLongPress();
+          if (longPressTriggered) {
+            useStormBoardStore.getState().endGesture();
+            return;
+          }
           useStormBoardStore.getState().endGesture();
           useStormBoardStore.getState().setClipboardDropHighlight(false);
 
@@ -585,7 +620,8 @@ export function StormElementCard({
             type="button"
             aria-label={`Größe ändern (${handle})`}
             className={[
-              "absolute z-20 h-2.5 w-2.5 rounded-sm border border-sky-600 bg-white shadow-sm",
+              "absolute z-20 rounded-sm border border-sky-600 bg-white shadow-sm",
+              isCoarsePointer ? "h-4 w-4" : "h-2.5 w-2.5",
               HANDLE_POSITIONS[handle],
             ].join(" ")}
             onPointerDown={(e) => startResize(handle, e)}
@@ -608,7 +644,8 @@ export function StormElementCard({
         <button
           type="button"
           className={[
-            "absolute right-1.5 top-1.5 z-30 flex h-5 w-5 items-center justify-center rounded-full border shadow-sm transition-[opacity,colors]",
+            "absolute right-1.5 top-1.5 z-30 flex items-center justify-center rounded-full border shadow-sm transition-[opacity,colors]",
+            isCoarsePointer ? "h-7 w-7" : "h-5 w-5",
             selected || connecting || relationMode || isRelationTargetHint
               ? "opacity-100"
               : "opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
@@ -633,7 +670,10 @@ export function StormElementCard({
       {selected && !editing && (
         <button
           type="button"
-          className="absolute bottom-1.5 right-1.5 z-30 flex h-5 w-5 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel-solid)] text-[var(--muted)] shadow-sm transition-[opacity,colors] hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          className={[
+            "absolute bottom-1.5 right-1.5 z-30 flex items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel-solid)] text-[var(--muted)] shadow-sm transition-[opacity,colors] hover:border-[var(--accent)] hover:text-[var(--accent)]",
+            isCoarsePointer ? "h-7 w-7" : "h-5 w-5",
+          ].join(" ")}
           title="Aktionen"
           aria-label="Kontextmenü öffnen"
           onPointerDown={(e) => e.stopPropagation()}
