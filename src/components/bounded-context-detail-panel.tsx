@@ -1,6 +1,7 @@
 "use client";
 
-import { LayoutDashboard } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, LayoutDashboard } from "lucide-react";
 
 import { resolveBoundedContextDetailView } from "@/lib/bounded-context-view";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -65,7 +66,7 @@ export function BoundedContextDetailPanel({
       </Field>
 
       {!compact && (
-        <>
+        <CollapsibleSection title="Position & Größe" defaultOpen={false}>
           <div className="grid grid-cols-2 gap-2">
             <NumberField
               label="X"
@@ -107,9 +108,37 @@ export function BoundedContextDetailPanel({
               onChange={(e) => updateBoundedContext(boundedContext.id, { color: e.target.value })}
             />
           </Field>
-          <p className="text-[0.72rem] text-[var(--muted)]">Löschen: Rechtsklick bzw. langes Drücken.</p>
-        </>
+        </CollapsibleSection>
       )}
+    </div>
+  );
+}
+
+function CollapsibleSection({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-md border border-[var(--border)]/70 bg-[var(--control)]/20">
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[0.72rem] font-medium text-[var(--muted)] hover:text-[var(--text)]"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <ChevronDown
+          className={["size-3.5 shrink-0 transition-transform", open ? "rotate-0" : "-rotate-90"].join(" ")}
+          aria-hidden
+        />
+        <span className="flex-1">{title}</span>
+      </button>
+      {open && <div className="space-y-2 border-t border-[var(--border)]/60 px-2.5 py-2">{children}</div>}
     </div>
   );
 }

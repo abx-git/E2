@@ -11,7 +11,7 @@ import {
   BoardBackupSync,
   runManualBoardBackup,
 } from "@/components/board-backup-sync";
-import { ClipboardPanel } from "@/components/clipboard-panel";
+import { BoardSideRail } from "@/components/board-side-rail";
 import { CollabEnterConfirmDialog } from "@/components/collab-enter-confirm-dialog";
 import { CollabLeaveDialog, type CollabLeaveChoice } from "@/components/collab-leave-dialog";
 import { CollabPresenceBanner } from "@/components/collab-presence-banner";
@@ -19,17 +19,11 @@ import { CollabRoomDialog } from "@/components/collab-room-dialog";
 import { CollabSyncConflictDialog } from "@/components/collab-sync-conflict-dialog";
 import { DataStoragePanel } from "@/components/data-storage-panel";
 import { CanvasContextMenu } from "@/components/canvas-context-menu";
-import { ElementDetailSidebar } from "@/components/element-detail-sidebar";
 import { ElementPalette } from "@/components/element-palette";
-import { FacilitatorPanel } from "@/components/facilitator-panel";
 import {
   FileConflictDialog,
   type FileConflictChoice,
 } from "@/components/file-conflict-dialog";
-import { ActionItemsPanel } from "@/components/action-items-panel";
-import { BookmarksPanel } from "@/components/bookmarks-panel";
-import { GlossaryPanel } from "@/components/glossary-panel";
-import { HotspotList } from "@/components/hotspot-list";
 import { StormCanvas } from "@/components/storm-canvas";
 import { WorkingFileSetupDialog } from "@/components/working-file-setup-dialog";
 import { WorkingFileSync } from "@/components/working-file-sync";
@@ -530,20 +524,11 @@ export function StormBoard() {
           <StormCanvas />
           <BoundedContextMobileActions onOpenDetails={() => setBcMobileSheetOpen(true)} />
         </div>
-        <div className="dock-surface hidden w-72 shrink-0 flex-col overflow-hidden rounded-dock lg:flex">
-          <ElementDetailSidebar
-            onRequestHelpElementType={openElementHelp}
-            onRequestHelpRelationType={openRelationHelp}
-          />
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <ClipboardPanel />
-            <HotspotList />
-            <ActionItemsPanel />
-            <GlossaryPanel />
-            <BookmarksPanel />
-            <FacilitatorPanel onRequestHelpPhase={(phase, format) => openPhaseHelp(phase, format)} />
-          </div>
-        </div>
+        <BoardSideRail
+          onRequestHelpElementType={openElementHelp}
+          onRequestHelpRelationType={openRelationHelp}
+          onRequestHelpPhase={openPhaseHelp}
+        />
       </div>
 
       <footer className="flex shrink-0 items-center justify-between px-4 pb-2 text-[0.72rem] text-[var(--muted)]">

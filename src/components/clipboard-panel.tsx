@@ -12,7 +12,7 @@ import type { StormElement } from "@/types/storm-element";
 
 const DRAG_THRESHOLD_PX = 5;
 
-export function ClipboardPanel() {
+export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
   const clipboard = useStormBoardStore((s) => s.clipboard);
   const highlight = useStormBoardStore((s) => s.clipboardDropHighlight);
   const pasteClipboardAt = useStormBoardStore((s) => s.pasteClipboardAt);
@@ -100,41 +100,39 @@ export function ClipboardPanel() {
 
   const style = ghost ? ELEMENT_STYLES[ghost.el.type] : null;
 
-  return (
-    <section
-      className={[
-        "border-t border-[var(--border)] p-3 transition-colors",
-        highlight ? "bg-[var(--accent)]/15 ring-1 ring-inset ring-[var(--accent)]" : "",
-      ].join(" ")}
-      {...{ [CLIPBOARD_DROP_ATTR]: "" }}
-      aria-label="Zwischenablage"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="group-label flex items-center gap-1.5">
-          <ClipboardList className="h-3.5 w-3.5" />
-          Zwischenablage
-          {count > 0 && (
-            <span className="rounded bg-[var(--control)] px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-[var(--muted)]">
-              {count}
-            </span>
-          )}
-        </h3>
-      </div>
-      <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
-        Rein: Rechtsklick oder Drag. Raus: Eintrag auf den Canvas ziehen.
-      </p>
+  const body = (
+    <>
+      {!embedded && (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="group-label flex items-center gap-1.5">
+              <ClipboardList className="h-3.5 w-3.5" />
+              Zwischenablage
+              {count > 0 && (
+                <span className="rounded bg-[var(--control)] px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-[var(--muted)]">
+                  {count}
+                </span>
+              )}
+            </h3>
+          </div>
+          <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
+            Rein: Rechtsklick oder Drag. Raus: Eintrag auf den Canvas ziehen.
+          </p>
+        </>
+      )}
 
       {count === 0 ? (
         <p
           className={[
-            "mt-2 rounded-md border border-dashed px-2 py-4 text-center text-[0.7rem] text-[var(--muted)]",
+            "rounded-md border border-dashed px-2 py-4 text-center text-[0.7rem] text-[var(--muted)]",
+            embedded ? "" : "mt-2",
             highlight ? "border-[var(--accent)]" : "border-[var(--border)]",
           ].join(" ")}
         >
           Leer — Elemente hierher ziehen
         </p>
       ) : (
-        <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto">
+        <ul className={["space-y-1 overflow-y-auto", embedded ? "min-h-0 flex-1" : "mt-2 max-h-40"].join(" ")}>
           {(clipboard!.swimlanes ?? []).map((lane) => (
             <li key={lane.id}>
               <div className="truncate rounded-md border border-dashed border-slate-300 bg-slate-100/80 px-2 py-1 text-left text-xs text-slate-700">
@@ -209,6 +207,34 @@ export function ClipboardPanel() {
           </div>,
           document.body,
         )}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div
+        className={[
+          "flex h-full min-h-0 flex-col transition-colors",
+          highlight ? "rounded-md bg-[var(--accent)]/15 ring-1 ring-inset ring-[var(--accent)]" : "",
+        ].join(" ")}
+        {...{ [CLIPBOARD_DROP_ATTR]: "" }}
+        aria-label="Zwischenablage"
+      >
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <section
+      className={[
+        "border-t border-[var(--border)] p-3 transition-colors",
+        highlight ? "bg-[var(--accent)]/15 ring-1 ring-inset ring-[var(--accent)]" : "",
+      ].join(" ")}
+      {...{ [CLIPBOARD_DROP_ATTR]: "" }}
+      aria-label="Zwischenablage"
+    >
+      {body}
     </section>
   );
 }

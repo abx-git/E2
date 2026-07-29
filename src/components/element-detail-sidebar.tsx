@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
-import { AlertCircle, ExternalLink, HelpCircle } from "lucide-react";
+import { useMemo, useState, type ReactNode } from "react";
+import { AlertCircle, ChevronDown, ExternalLink, HelpCircle, Trash2 } from "lucide-react";
 
 import { activateBoardLink } from "@/lib/board-link";
 import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-panel";
@@ -64,6 +64,7 @@ export function ElementDetailSidebar({
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const views = useStormBoardStore((s) => s.views);
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
+  const actionItems = useStormBoardStore((s) => s.actionItems);
 
   const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const selectedElement = elements.find((e) => e.id === selectedElementIds[0]);
@@ -72,6 +73,7 @@ export function ElementDetailSidebar({
   const selectedBoundedContext = boundedContexts.find((bc) => bc.id === selectedBoundedContextId);
   const selectedSwimlane = swimlanes.find((lane) => lane.id === selectedSwimlaneId);
   const multiCount = selectedElementIds.length;
+  const openTodoCount = actionItems.filter((i) => i.status !== "done").length;
 
   const issues = useMemo(
     () =>
@@ -94,39 +96,42 @@ export function ElementDetailSidebar({
           />
         </Field>
         <Field label="Pfeil">
-          <select
-            className="dock-field"
-            value={arrowHead}
-            onChange={(e) =>
-              updateCanvasLine(selectedCanvasLine.id, {
-                arrowHead: e.target.value as (typeof LINE_ARROW_HEADS)[number],
-              })
-            }
-          >
+          <div className="flex gap-1" role="group" aria-label="Pfeilrichtung">
             {LINE_ARROW_HEADS.map((head) => (
-              <option key={head} value={head}>
-                {lineArrowHeadShortLabel(head)} {LINE_ARROW_HEAD_LABELS[head]}
-              </option>
+              <button
+                key={head}
+                type="button"
+                title={LINE_ARROW_HEAD_LABELS[head]}
+                aria-label={LINE_ARROW_HEAD_LABELS[head]}
+                aria-pressed={arrowHead === head}
+                className={[
+                  "flex h-8 flex-1 items-center justify-center rounded-md text-sm font-medium transition",
+                  arrowHead === head
+                    ? "dock-control-active"
+                    : "dock-control hover:bg-[var(--control-hover)]",
+                ].join(" ")}
+                onClick={() => updateCanvasLine(selectedCanvasLine.id, { arrowHead: head })}
+              >
+                {lineArrowHeadShortLabel(head)}
+              </button>
             ))}
-          </select>
+          </div>
         </Field>
         <Field label="Farbe">
           <input
-            className="dock-field"
+            className="dock-field h-9 cursor-pointer p-1"
             type="color"
             value={selectedCanvasLine.color ?? "#64748b"}
             onChange={(e) => updateCanvasLine(selectedCanvasLine.id, { color: e.target.value })}
           />
         </Field>
-        <p className="text-[0.72rem] text-[var(--muted)]">
-          Endpunkte ziehen zum Anpassen, Linie verschieben per Drag. Entf löscht.
-        </p>
         <button
           type="button"
-          className="w-full rounded-md border border-[var(--border)] bg-[var(--control)] px-2 py-1.5 text-xs font-medium text-[#f0a8a0] hover:border-[#f0a8a0]"
+          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--control)] px-2 py-1.5 text-xs font-medium text-[#f0a8a0] hover:border-[#f0a8a0]"
           onClick={() => deleteCanvasLine(selectedCanvasLine.id)}
         >
-          Linie löschen
+          <Trash2 className="size-3.5" aria-hidden />
+          Löschen
         </button>
       </DockPanel>
     );
@@ -146,9 +151,7 @@ export function ElementDetailSidebar({
             placeholder="Optional"
           />
         </Field>
-        <p className="text-[0.72rem] text-[var(--muted)]">
-          Typ und Löschen: Rechtsklick auf die Verbindung.
-        </p>
+        <p className="text-[0.7rem] text-[var(--muted)]">Typ und Löschen: Rechtsklick</p>
       </DockPanel>
     );
   }
@@ -157,7 +160,7 @@ export function ElementDetailSidebar({
     return (
       <DockPanel title={`${multiCount} Elemente`}>
         <p className="text-[0.82rem] text-[var(--muted)]">
-          Ausrichten, Verteilen und Löschen über Rechtsklick auf die Auswahl.
+          Ausrichten, Verteilen und Löschen über Rechtsklick.
         </p>
       </DockPanel>
     );
@@ -174,36 +177,37 @@ export function ElementDetailSidebar({
               onChange={(e) => updateSwimlane(selectedSwimlane.id, { label: e.target.value })}
             />
           </Field>
-          <div className="grid grid-cols-2 gap-2">
-            <NumberField
-              label="X"
-              value={selectedSwimlane.x ?? 0}
-              onChange={(v) => updateSwimlane(selectedSwimlane.id, { x: v })}
-            />
-            <NumberField
-              label="Y"
-              value={selectedSwimlane.y}
-              onChange={(v) => updateSwimlane(selectedSwimlane.id, { y: v })}
-            />
-            <NumberField
-              label="Breite"
-              value={selectedSwimlane.width ?? 4000}
-              min={80}
-              onChange={(v) => updateSwimlane(selectedSwimlane.id, { width: Math.max(80, v) })}
-            />
-            <NumberField
-              label="Höhe"
-              value={selectedSwimlane.height}
-              min={80}
-              onChange={(v) => updateSwimlane(selectedSwimlane.id, { height: Math.max(80, v) })}
-            />
-            <NumberField
-              label="Ebene (z)"
-              value={selectedSwimlane.zIndex ?? 0}
-              onChange={(v) => updateSwimlane(selectedSwimlane.id, { zIndex: v })}
-            />
-          </div>
-          <p className="text-[0.72rem] text-[var(--muted)]">Löschen: Rechtsklick.</p>
+          <CollapsibleSection title="Position & Größe" defaultOpen={false}>
+            <div className="grid grid-cols-2 gap-2">
+              <NumberField
+                label="X"
+                value={selectedSwimlane.x ?? 0}
+                onChange={(v) => updateSwimlane(selectedSwimlane.id, { x: v })}
+              />
+              <NumberField
+                label="Y"
+                value={selectedSwimlane.y}
+                onChange={(v) => updateSwimlane(selectedSwimlane.id, { y: v })}
+              />
+              <NumberField
+                label="Breite"
+                value={selectedSwimlane.width ?? 4000}
+                min={80}
+                onChange={(v) => updateSwimlane(selectedSwimlane.id, { width: Math.max(80, v) })}
+              />
+              <NumberField
+                label="Höhe"
+                value={selectedSwimlane.height}
+                min={80}
+                onChange={(v) => updateSwimlane(selectedSwimlane.id, { height: Math.max(80, v) })}
+              />
+              <NumberField
+                label="Ebene (z)"
+                value={selectedSwimlane.zIndex ?? 0}
+                onChange={(v) => updateSwimlane(selectedSwimlane.id, { zIndex: v })}
+              />
+            </div>
+          </CollapsibleSection>
         </DockPanel>
       );
     }
@@ -218,9 +222,20 @@ export function ElementDetailSidebar({
 
     return (
       <DockPanel title="Details">
-        <p className="text-[0.82rem] text-[var(--muted)]">
-          Element wählen — Rechtsklick für Aktionen, Doppelklick für Fokus hier.
+        <p className="text-[0.82rem] leading-relaxed text-[var(--muted)]">
+          Nichts ausgewählt — Karte anklicken oder Doppelklick zum Anlegen.
         </p>
+        <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded-md bg-[var(--control)]/50 px-2.5 py-2">
+            <dt className="text-[0.65rem] text-[var(--muted)]">Elemente</dt>
+            <dd className="mt-0.5 font-semibold tabular-nums text-[var(--text)]">{elements.length}</dd>
+          </div>
+          <div className="rounded-md bg-[var(--control)]/50 px-2.5 py-2">
+            <dt className="text-[0.65rem] text-[var(--muted)]">Offene To-dos</dt>
+            <dd className="mt-0.5 font-semibold tabular-nums text-[var(--text)]">{openTodoCount}</dd>
+          </div>
+        </dl>
+        <p className="mt-3 text-[0.7rem] text-[var(--muted)]">Rechtsklick für Aktionen</p>
       </DockPanel>
     );
   }
@@ -228,6 +243,11 @@ export function ElementDetailSidebar({
   const style = ELEMENT_STYLES[selectedElement.type];
   const width = selectedElement.width ?? style.defaultWidth;
   const height = selectedElement.height ?? style.defaultHeight;
+  const cardFlagsActive = Boolean(
+    selectedElement.metadata?.showDescriptionOnCard ||
+      selectedElement.metadata?.showAttributesOnCard ||
+      selectedElement.metadata?.showMethodsOnCard,
+  );
 
   return (
     <DockPanel
@@ -250,7 +270,11 @@ export function ElementDetailSidebar({
         />
       </Field>
 
-      <Field label="Auf der Karte anzeigen">
+      <CollapsibleSection
+        title="Auf der Karte"
+        defaultOpen={cardFlagsActive || selectedElement.type === "note"}
+        hint={cardFlagsActive ? "aktiv" : undefined}
+      >
         <div className="flex flex-col gap-1.5 text-xs text-[var(--text)]">
           {(
             [
@@ -276,86 +300,84 @@ export function ElementDetailSidebar({
             </label>
           ))}
         </div>
-        <p className="mt-1 text-[0.65rem] text-[var(--muted)]">
-          Für Übersicht: Karte ggf. größer ziehen.
-        </p>
-      </Field>
-
-      {selectedElement.type === "note" && (
-        <Field label="Hintergrund">
-          <div className="flex flex-wrap gap-1.5">
-            {NOTE_COLOR_IDS.map((id) => {
-              const c = NOTE_COLORS[id];
-              const active =
-                (selectedElement.metadata?.noteColor ?? "cream") === id;
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  title={c.label}
-                  aria-label={c.label}
-                  aria-pressed={active}
-                  className={[
-                    "h-7 w-7 rounded-md border-2 shadow-sm transition-transform",
-                    active ? "scale-110 border-[var(--accent)]" : "border-transparent hover:scale-105",
-                  ].join(" ")}
-                  style={{ backgroundColor: c.fill, boxShadow: `inset 0 0 0 1px ${c.stroke}` }}
-                  onClick={() =>
-                    updateElement(selectedElement.id, {
-                      metadata: {
-                        ...selectedElement.metadata,
-                        noteColor: id as NoteColorId,
-                      },
-                    })
-                  }
-                />
-              );
-            })}
+        {selectedElement.type === "note" && (
+          <div className="mt-2">
+            <p className="mb-1.5 text-[0.65rem] font-medium text-[var(--muted)]">Hintergrund</p>
+            <div className="flex flex-wrap gap-1.5">
+              {NOTE_COLOR_IDS.map((id) => {
+                const c = NOTE_COLORS[id];
+                const active = (selectedElement.metadata?.noteColor ?? "cream") === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    title={c.label}
+                    aria-label={c.label}
+                    aria-pressed={active}
+                    className={[
+                      "h-7 w-7 rounded-md border-2 shadow-sm transition-transform",
+                      active ? "scale-110 border-[var(--accent)]" : "border-transparent hover:scale-105",
+                    ].join(" ")}
+                    style={{ backgroundColor: c.fill, boxShadow: `inset 0 0 0 1px ${c.stroke}` }}
+                    onClick={() =>
+                      updateElement(selectedElement.id, {
+                        metadata: {
+                          ...selectedElement.metadata,
+                          noteColor: id as NoteColorId,
+                        },
+                      })
+                    }
+                  />
+                );
+              })}
+            </div>
           </div>
-        </Field>
-      )}
+        )}
+      </CollapsibleSection>
 
-      <div className="grid grid-cols-2 gap-2">
-        <NumberField
-          label="X"
-          value={selectedElement.x}
-          onChange={(v) => updateElement(selectedElement.id, { x: v })}
-        />
-        <NumberField
-          label="Y"
-          value={selectedElement.y}
-          onChange={(v) => updateElement(selectedElement.id, { y: v })}
-        />
-        <NumberField
-          label="Breite"
-          value={width}
-          min={MIN_ELEMENT_SIZE}
-          onChange={(v) =>
-            updateElement(selectedElement.id, {
-              width: Math.max(MIN_ELEMENT_SIZE, v),
-            })
-          }
-        />
-        <NumberField
-          label="Höhe"
-          value={height}
-          min={MIN_ELEMENT_SIZE}
-          onChange={(v) =>
-            updateElement(selectedElement.id, {
-              height: Math.max(MIN_ELEMENT_SIZE, v),
-            })
-          }
-        />
-        <NumberField
-          label="Drehung (°)"
-          value={selectedElement.rotation ?? style.rotation ?? 0}
-          onChange={(v) =>
-            updateElement(selectedElement.id, {
-              rotation: normalizeRotationDegrees(v),
-            })
-          }
-        />
-      </div>
+      <CollapsibleSection title="Position & Größe" defaultOpen={false}>
+        <div className="grid grid-cols-2 gap-2">
+          <NumberField
+            label="X"
+            value={selectedElement.x}
+            onChange={(v) => updateElement(selectedElement.id, { x: v })}
+          />
+          <NumberField
+            label="Y"
+            value={selectedElement.y}
+            onChange={(v) => updateElement(selectedElement.id, { y: v })}
+          />
+          <NumberField
+            label="Breite"
+            value={width}
+            min={MIN_ELEMENT_SIZE}
+            onChange={(v) =>
+              updateElement(selectedElement.id, {
+                width: Math.max(MIN_ELEMENT_SIZE, v),
+              })
+            }
+          />
+          <NumberField
+            label="Höhe"
+            value={height}
+            min={MIN_ELEMENT_SIZE}
+            onChange={(v) =>
+              updateElement(selectedElement.id, {
+                height: Math.max(MIN_ELEMENT_SIZE, v),
+              })
+            }
+          />
+          <NumberField
+            label="Drehung (°)"
+            value={selectedElement.rotation ?? style.rotation ?? 0}
+            onChange={(v) =>
+              updateElement(selectedElement.id, {
+                rotation: normalizeRotationDegrees(v),
+              })
+            }
+          />
+        </div>
+      </CollapsibleSection>
 
       {(selectedElement.type === "domainEvent" || selectedElement.type === "aggregate") && (
         <Field label="Event Schema">
@@ -1224,10 +1246,45 @@ export function ElementDetailSidebar({
         </div>
       ))}
 
-      <p className="text-[0.72rem] text-[var(--muted)]">
-        Relation, Zuordnung, Status und Löschen: Rechtsklick.
-      </p>
+      <p className="text-[0.7rem] text-[var(--muted)]">Mehr: Rechtsklick</p>
     </DockPanel>
+  );
+}
+
+function CollapsibleSection({
+  title,
+  defaultOpen = false,
+  hint,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  hint?: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-md border border-[var(--border)]/70 bg-[var(--control)]/20">
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[0.72rem] font-medium text-[var(--muted)] hover:text-[var(--text)]"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <ChevronDown
+          className={[
+            "size-3.5 shrink-0 transition-transform",
+            open ? "rotate-0" : "-rotate-90",
+          ].join(" ")}
+          aria-hidden
+        />
+        <span className="flex-1">{title}</span>
+        {hint && !open && (
+          <span className="text-[0.65rem] font-normal text-[var(--accent)]">{hint}</span>
+        )}
+      </button>
+      {open && <div className="space-y-2 border-t border-[var(--border)]/60 px-2.5 py-2">{children}</div>}
+    </div>
   );
 }
 
@@ -1241,7 +1298,7 @@ function DockPanel({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 flex-col border-b border-[var(--border)]">
+    <div className="flex min-h-0 flex-col">
       <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
         <h2 className="text-sm font-semibold tracking-tight text-[var(--text)]">{title}</h2>
         {onHelp && (
@@ -1255,7 +1312,7 @@ function DockPanel({
           </button>
         )}
       </div>
-      <div className="space-y-3 overflow-y-auto p-4">{children}</div>
+      <div className="space-y-3 p-4">{children}</div>
     </div>
   );
 }

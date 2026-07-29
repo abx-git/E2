@@ -5,7 +5,7 @@ import { Bookmark, Plus, Trash2 } from "lucide-react";
 
 import { useStormBoardStore } from "@/store/storm-board-store";
 
-export function BookmarksPanel() {
+export function BookmarksPanel({ embedded = false }: { embedded?: boolean }) {
   const bookmarks = useStormBoardStore((s) => s.bookmarks);
   const views = useStormBoardStore((s) => s.views);
   const addBookmark = useStormBoardStore((s) => s.addBookmark);
@@ -22,14 +22,20 @@ export function BookmarksPanel() {
     setDraftName("");
   };
 
-  return (
-    <section className="border-t border-[var(--border)] p-3">
-      <h3 className="group-label">Lesezeichen</h3>
-      <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
-        Sichtübergreifend: Sicht, Ansicht und Zoom speichern und später direkt anspringen.
-      </p>
+  const body = (
+    <>
+      {!embedded && (
+        <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
+          Sichtübergreifend: Sicht, Ansicht und Zoom speichern und später direkt anspringen.
+        </p>
+      )}
 
-      <ul className="mt-2 max-h-36 space-y-1 overflow-y-auto">
+      <ul
+        className={[
+          "space-y-1 overflow-y-auto",
+          embedded ? "min-h-0 flex-1" : "mt-2 max-h-36",
+        ].join(" ")}
+      >
         {bookmarks.length === 0 ? (
           <li className="text-xs text-[var(--muted)]">Noch keine Lesezeichen gesetzt.</li>
         ) : (
@@ -91,6 +97,17 @@ export function BookmarksPanel() {
           Aktuelle Ansicht speichern
         </button>
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="flex h-full min-h-0 flex-col">{body}</div>;
+  }
+
+  return (
+    <section className="border-t border-[var(--border)] p-3">
+      <h3 className="group-label">Lesezeichen</h3>
+      {body}
     </section>
   );
 }

@@ -18,6 +18,7 @@ import type { WorkshopFormat } from "@/types/storm-element";
 const DEFAULT_DURATION_MINUTES = 15;
 
 export interface FacilitatorPanelProps {
+  embedded?: boolean;
   onRequestHelpPhase?: (phase: FacilitatorPhase, format: WorkshopFormat) => void;
 }
 
@@ -28,7 +29,7 @@ function formatMmSs(totalSeconds: number): string {
   return `${String(m).padStart(2, "0")}:${String(r).padStart(2, "0")}`;
 }
 
-export function FacilitatorPanel({ onRequestHelpPhase }: FacilitatorPanelProps) {
+export function FacilitatorPanel({ embedded = false, onRequestHelpPhase }: FacilitatorPanelProps) {
   const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
   const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
   const facilitatorPhase = useStormBoardStore((s) => s.facilitatorPhase);
@@ -77,10 +78,14 @@ export function FacilitatorPanel({ onRequestHelpPhase }: FacilitatorPanelProps) 
 
   const expired = remainingSeconds === 0;
 
-  return (
-    <section className="border-t border-[var(--border)] p-3">
+  const body = (
+    <>
       <div className="flex items-start justify-between gap-3">
-        <h3 className="group-label">Facilitator — {formatDef.label}</h3>
+        {!embedded ? (
+          <h3 className="group-label">Facilitator — {formatDef.label}</h3>
+        ) : (
+          <p className="text-xs font-medium text-[var(--muted)]">{formatDef.label}</p>
+        )}
         <button
           type="button"
           onClick={() => onRequestHelpPhase?.(phase, workshopFormat)}
@@ -111,7 +116,9 @@ export function FacilitatorPanel({ onRequestHelpPhase }: FacilitatorPanelProps) 
           onChange={(e) => setFacilitatorPhase(Number(e.target.value))}
         >
           {formatDef.phases.map((p, i) => (
-            <option key={p.id} value={i}>{i + 1}. {p.title}</option>
+            <option key={p.id} value={i}>
+              {i + 1}. {p.title}
+            </option>
           ))}
         </select>
         <button
@@ -180,6 +187,10 @@ export function FacilitatorPanel({ onRequestHelpPhase }: FacilitatorPanelProps) 
           </li>
         ))}
       </ul>
-    </section>
+    </>
   );
+
+  if (embedded) return <div className="flex flex-col">{body}</div>;
+
+  return <section className="border-t border-[var(--border)] p-3">{body}</section>;
 }

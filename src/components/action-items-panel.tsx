@@ -16,7 +16,7 @@ import {
 
 type StatusFilter = "all" | ActionItemStatus;
 
-export function ActionItemsPanel() {
+export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
   const actionItems = useStormBoardStore((s) => s.actionItems);
   const elements = useStormBoardStore((s) => s.elements);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
@@ -69,21 +69,25 @@ export function ActionItemsPanel() {
     }
   };
 
-  return (
-    <section className="border-t border-[var(--border)] p-3">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="group-label">To-dos & Problemfelder</h3>
-        {openCount > 0 && (
-          <span className="rounded-full bg-[var(--control)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted)]">
-            {openCount} offen
-          </span>
-        )}
-      </div>
-      <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
-        Action-Item-Register: Status, Notizen und Problemfelder (Workshop & Architektur).
-      </p>
+  const body = (
+    <>
+      {!embedded && (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="group-label">To-dos & Problemfelder</h3>
+            {openCount > 0 && (
+              <span className="rounded-full bg-[var(--control)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted)]">
+                {openCount} offen
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
+            Action-Item-Register: Status, Notizen und Problemfelder (Workshop & Architektur).
+          </p>
+        </>
+      )}
 
-      <div className="mt-2 flex flex-wrap gap-1">
+      <div className={[embedded ? "" : "mt-2", "flex flex-wrap gap-1"].join(" ")}>
         {(["all", ...ACTION_ITEM_STATUSES] as StatusFilter[]).map((key) => (
           <button
             key={key}
@@ -91,7 +95,7 @@ export function ActionItemsPanel() {
             className={[
               "rounded-md px-2 py-0.5 text-[10px] font-medium",
               statusFilter === key
-                ? "bg-[var(--control-active)] text-[var(--text)]"
+                ? "dock-control-active"
                 : "text-[var(--muted)] hover:bg-[var(--control-hover)]",
             ].join(" ")}
             onClick={() => setStatusFilter(key)}
@@ -101,7 +105,12 @@ export function ActionItemsPanel() {
         ))}
       </div>
 
-      <ul className="mt-2 max-h-44 space-y-1 overflow-y-auto">
+      <ul
+        className={[
+          "mt-2 space-y-1 overflow-y-auto",
+          embedded ? "min-h-0 flex-1" : "max-h-44",
+        ].join(" ")}
+      >
         {filtered.length === 0 ? (
           <li className="text-xs text-[var(--muted)]">Noch keine Einträge.</li>
         ) : (
@@ -132,7 +141,9 @@ export function ActionItemsPanel() {
                     <span
                       className={[
                         "block text-xs font-medium",
-                        item.status === "done" ? "text-[var(--muted)] line-through" : "text-[var(--text)]",
+                        item.status === "done"
+                          ? "text-[var(--muted)] line-through"
+                          : "text-[var(--text)]",
                       ].join(" ")}
                     >
                       {item.title}
@@ -264,9 +275,7 @@ export function ActionItemsPanel() {
           </select>
         </div>
         {(selectedElementIds[0] || selectedBoundedContextIds[0]) && (
-          <p className="text-[10px] text-[var(--muted)]">
-            Verknüpft mit aktueller Auswahl auf dem Board.
-          </p>
+          <p className="text-[10px] text-[var(--muted)]">Verknüpft mit aktueller Auswahl.</p>
         )}
         <button
           type="button"
@@ -277,6 +286,12 @@ export function ActionItemsPanel() {
           <Plus className="size-3.5" /> Hinzufügen
         </button>
       </div>
-    </section>
+    </>
   );
+
+  if (embedded) {
+    return <div className="flex h-full min-h-0 flex-col">{body}</div>;
+  }
+
+  return <section className="border-t border-[var(--border)] p-3">{body}</section>;
 }
