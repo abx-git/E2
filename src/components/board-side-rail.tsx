@@ -88,6 +88,18 @@ export function BoardSideRail({
   const bookmarks = useStormBoardStore((s) => s.bookmarks);
   const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
   const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
+  const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
+  const selectedRelationId = useStormBoardStore((s) => s.selectedRelationId);
+  const selectedCanvasLineId = useStormBoardStore((s) => s.selectedCanvasLineId);
+  const selectedBoundedContextIds = useStormBoardStore((s) => s.selectedBoundedContextIds);
+  const selectedSwimlaneIds = useStormBoardStore((s) => s.selectedSwimlaneIds);
+
+  const hasInspectorSelection =
+    selectedElementIds.length > 0 ||
+    Boolean(selectedRelationId) ||
+    Boolean(selectedCanvasLineId) ||
+    selectedBoundedContextIds.length > 0 ||
+    selectedSwimlaneIds.length > 0;
 
   const clipboardCount = clipboardItemCount(clipboard);
   const openTodoCount = actionItems.filter((i) => i.status !== "done").length;
@@ -166,14 +178,16 @@ export function BoardSideRail({
 
   return (
     <div className="dock-surface hidden w-72 shrink-0 flex-col overflow-hidden rounded-dock lg:flex">
-      <div className="flex min-h-0 max-h-[55%] flex-col overflow-hidden border-b border-[var(--border)]">
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <ElementDetailSidebar
-            onRequestHelpElementType={onRequestHelpElementType}
-            onRequestHelpRelationType={onRequestHelpRelationType}
-          />
+      {hasInspectorSelection && (
+        <div className="flex min-h-0 max-h-[55%] flex-col overflow-hidden border-b border-[var(--border)]">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <ElementDetailSidebar
+              onRequestHelpElementType={onRequestHelpElementType}
+              onRequestHelpRelationType={onRequestHelpRelationType}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div

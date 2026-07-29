@@ -64,7 +64,6 @@ export function ElementDetailSidebar({
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const views = useStormBoardStore((s) => s.views);
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
-  const actionItems = useStormBoardStore((s) => s.actionItems);
 
   const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const selectedElement = elements.find((e) => e.id === selectedElementIds[0]);
@@ -73,7 +72,6 @@ export function ElementDetailSidebar({
   const selectedBoundedContext = boundedContexts.find((bc) => bc.id === selectedBoundedContextId);
   const selectedSwimlane = swimlanes.find((lane) => lane.id === selectedSwimlaneId);
   const multiCount = selectedElementIds.length;
-  const openTodoCount = actionItems.filter((i) => i.status !== "done").length;
 
   const issues = useMemo(
     () =>
@@ -220,24 +218,7 @@ export function ElementDetailSidebar({
       );
     }
 
-    return (
-      <DockPanel title="Details">
-        <p className="text-[0.82rem] leading-relaxed text-[var(--muted)]">
-          Nichts ausgewählt — Karte anklicken oder Doppelklick zum Anlegen.
-        </p>
-        <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-md bg-[var(--control)]/50 px-2.5 py-2">
-            <dt className="text-[0.65rem] text-[var(--muted)]">Elemente</dt>
-            <dd className="mt-0.5 font-semibold tabular-nums text-[var(--text)]">{elements.length}</dd>
-          </div>
-          <div className="rounded-md bg-[var(--control)]/50 px-2.5 py-2">
-            <dt className="text-[0.65rem] text-[var(--muted)]">Offene To-dos</dt>
-            <dd className="mt-0.5 font-semibold tabular-nums text-[var(--text)]">{openTodoCount}</dd>
-          </div>
-        </dl>
-        <p className="mt-3 text-[0.7rem] text-[var(--muted)]">Rechtsklick für Aktionen</p>
-      </DockPanel>
-    );
+    return null;
   }
 
   const style = ELEMENT_STYLES[selectedElement.type];
