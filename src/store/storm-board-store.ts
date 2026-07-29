@@ -12,6 +12,12 @@ import {
   resolveBoundedContextViewNavigation,
 } from "@/lib/bounded-context-view";
 import {
+  buildBoardViewFromBuildingBlock,
+  extractBuildingBlockViewPayload,
+  resolveBuildingBlockViewNavigation,
+} from "@/lib/building-block-view";
+import { supportsArchDrilldown } from "@/types/storm-element";
+import {
   extractClipboardPayload,
   isClipboardEmpty,
   mergeClipboardPayloads,
@@ -268,6 +274,11 @@ export interface StormBoardState {
   /** Navigate down to detail view or up to parent overview when a link exists. */
   navigateBoundedContextViewLink: (bcId: string) => string | null;
 
+  /** Open or create architecture building-block detail view (Blackbox/Whitebox drill-down). */
+  openBuildingBlockView: (elementId: string) => string | null;
+  openBuildingBlockParentView: (elementId: string) => string | null;
+  navigateBuildingBlockViewLink: (elementId: string) => string | null;
+
   /** Shared z-order among swimlanes and bounded contexts. */
   bringRegionsToFront: (ids: string[]) => void;
   sendRegionsToBack: (ids: string[]) => void;
@@ -333,9 +344,7 @@ function createElement(
                     ? { gatewayKind: "xor" }
                     : type === "dataAssociation"
                       ? { dataCardinality: "1:n" }
-                      : type === "arc42Section"
-                        ? { arc42SectionNumber: 1 }
-                        : type === "link"
+                      : type === "link"
                           ? { linkKind: "external" }
                           : undefined,
   };
@@ -1607,6 +1616,121 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
 
     backupBeforeSuspiciousSwitch("view");
     return get().openBoundedContextParentView(bcId);
+  },
+
+  openBuildingBlockView: (elementId) => {
+    let resultId: string | null = null;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const activeView = resolveActiveView(views, s.activeViewId);
+      const el = activeView.elements.find((e) => e.id === elementId);
+      if (!el || !supportsArchDrilldown(el.type)) return {};
+
+      const linkedViewId = el.detailViewId?.trim();
+      if (linkedViewId) {
+        const linked = views.find((v) => v.id === linkedViewId);
+        if (linked) {
+          resultId = linked.id;
+          return {
+            views,
+            activeViewId: linked.id,
+            ...applyViewToFlatPatch(linked),
+            ...CLEAR_SELECTION_PATCH,
+            past: [],
+            future: [],
+            gestureActive: false,
+            gestureSnapshotTaken: false,
+          };
+        }
+      }
+
+      const payload = extractBuildingBlockViewPayload(
+        elementId,
+        activeView.elements,
+        activeView.relations,
+      );
+      if (!payload) return {};
+
+      const newViewId = generateStormId();
+      const viewName = el.label.trim() || `Sicht ${views.length + 1}`;
+      const newView = buildBoardViewFromBuildingBlock(el, payload, {
+        id: newViewId,
+        name: viewName,
+        modelingMode: activeView.modelingMode,
+        workshopFormat: activeView.workshopFormat,
+      });
+
+      const updatedViews = views.map((v) =>
+        v.id === activeView.id
+          ? {
+              ...v,
+              elements: v.elements.map((e) =>
+                e.id === elementId ? { ...e, detailViewId: newViewId } : e,
+              ),
+            }
+          : v,
+      );
+
+      resultId = newViewId;
+      return {
+        views: [...updatedViews, newView],
+        activeViewId: newViewId,
+        ...applyViewToFlatPatch(newView),
+        ...CLEAR_SELECTION_PATCH,
+        past: [],
+        future: [],
+        gestureActive: false,
+        gestureSnapshotTaken: false,
+      };
+    });
+    return resultId;
+  },
+
+  openBuildingBlockParentView: (elementId) => {
+    let resultId: string | null = null;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const el = s.elements.find((e) => e.id === elementId);
+      if (!el) return {};
+
+      const nav = resolveBuildingBlockViewNavigation(el, s.activeViewId, views);
+      if (!nav || nav.direction !== "up" || !nav.parentElementId) return {};
+
+      const next = resolveActiveView(views, nav.targetViewId);
+      resultId = next.id;
+      return {
+        views,
+        activeViewId: next.id,
+        ...applyViewToFlatPatch(next),
+        selectedElementIds: [nav.parentElementId],
+        selectedRelationId: null,
+        selectedContextRelationId: null,
+        selectedSwimlaneIds: [],
+        selectedBoundedContextIds: [],
+        past: [],
+        future: [],
+        gestureActive: false,
+        gestureSnapshotTaken: false,
+      };
+    });
+    return resultId;
+  },
+
+  navigateBuildingBlockViewLink: (elementId) => {
+    const s = get();
+    const el = s.elements.find((e) => e.id === elementId);
+    if (!el) return null;
+
+    const views = flushActiveViewIntoViews(s);
+    const nav = resolveBuildingBlockViewNavigation(el, s.activeViewId, views);
+    if (!nav) return null;
+
+    if (nav.direction === "down") {
+      return get().openBuildingBlockView(elementId);
+    }
+
+    backupBeforeSuspiciousSwitch("view");
+    return get().openBuildingBlockParentView(elementId);
   },
 
   bringRegionsToFront: (ids) => {

@@ -218,6 +218,16 @@ export function defaultRelationType(source: StormElement, target: StormElement):
     return "contains";
   }
   if (
+    source.type === "archBlackbox" ||
+    source.type === "archWhitebox" ||
+    source.type === "archComponent" ||
+    target.type === "archBlackbox" ||
+    target.type === "archWhitebox" ||
+    target.type === "archComponent"
+  ) {
+    return "contains";
+  }
+  if (
     source.type === "c4Person" ||
     source.type === "c4SoftwareSystem" ||
     source.type === "c4Container" ||
@@ -229,7 +239,6 @@ export function defaultRelationType(source: StormElement, target: StormElement):
   ) {
     return "contains";
   }
-  if (source.type === "arc42Section") return "annotates";
   if (source.type === "externalSystem") return "invokes";
   if (source.type === "domainEvent" && target.type === "domainEvent") return "causal";
   return "triggers";

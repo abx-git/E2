@@ -27,6 +27,21 @@ import {
 import { generateStormId } from "@/lib/storm-id";
 import boardSnapshotV2Schema from "../../public/schemas/board-snapshot-v2.schema.json";
 
+/** Migrate legacy arc42 section stickies to Blackbox building blocks. */
+export function normalizeStormElement(raw: StormElement | Record<string, unknown>): StormElement {
+  const el = raw as StormElement;
+  if ((el as { type: string }).type === "arc42Section") {
+    const meta = { ...(el.metadata ?? {}) } as Record<string, unknown>;
+    delete meta.arc42SectionNumber;
+    return {
+      ...el,
+      type: "archBlackbox",
+      metadata: Object.keys(meta).length ? (meta as StormElement["metadata"]) : undefined,
+    };
+  }
+  return el;
+}
+
 export const EXPORT_FORMAT = "event-storming-tool" as const;
 export const EXPORT_VERSION = 2 as const;
 export const EXPORT_VERSION_V1 = 1 as const;
@@ -209,7 +224,7 @@ export function normalizeBoardView(raw: Partial<BoardView> & { id?: string; name
     workshopFormat: raw.workshopFormat ?? "free",
     facilitatorEnabled: Boolean(raw.facilitatorEnabled),
     facilitatorPhase: Number(raw.facilitatorPhase) || 0,
-    elements: Array.isArray(raw.elements) ? raw.elements : [],
+    elements: Array.isArray(raw.elements) ? raw.elements.map(normalizeStormElement) : [],
     relations: Array.isArray(raw.relations) ? raw.relations : [],
     contextRelations: Array.isArray(raw.contextRelations) ? raw.contextRelations : [],
     swimlanes: Array.isArray(raw.swimlanes) ? raw.swimlanes.map(normalizeSwimlane) : [],

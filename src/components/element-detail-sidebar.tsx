@@ -14,7 +14,6 @@ import { validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
 import type { RelationType } from "@/types/storm-relation";
 import type {
-  Arc42SectionNumber,
   DataCardinality,
   ElementType,
   GatewayKind,
@@ -24,7 +23,7 @@ import type {
   StoryPriority,
   SubdomainKind,
 } from "@/types/storm-element";
-import { ARC42_SECTION_LABELS, ARC42_SECTION_NUMBERS } from "@/types/storm-element";
+import { supportsArchDrilldown } from "@/types/storm-element";
 import { LINE_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -61,6 +60,8 @@ export function ElementDetailSidebar({
   const updateCanvasLine = useStormBoardStore((s) => s.updateCanvasLine);
   const deleteCanvasLine = useStormBoardStore((s) => s.deleteCanvasLine);
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
+  const openBuildingBlockView = useStormBoardStore((s) => s.openBuildingBlockView);
+  const navigateBuildingBlockViewLink = useStormBoardStore((s) => s.navigateBuildingBlockViewLink);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const views = useStormBoardStore((s) => s.views);
@@ -1121,27 +1122,31 @@ export function ElementDetailSidebar({
         </>
       )}
 
-      {selectedElement.type === "arc42Section" && (
-        <Field label="arc42 Abschnitt">
-          <select
-            className="dock-field"
-            value={selectedElement.metadata?.arc42SectionNumber ?? 1}
-            onChange={(e) =>
-              updateElement(selectedElement.id, {
-                metadata: {
-                  ...selectedElement.metadata,
-                  arc42SectionNumber: Number(e.target.value) as Arc42SectionNumber,
-                },
-              })
-            }
+      {supportsArchDrilldown(selectedElement.type) && (
+        <div className="space-y-1.5">
+          <button
+            type="button"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--control)] px-3 py-2 text-sm font-medium text-[var(--text)] hover:border-[var(--accent)]"
+            onClick={() => {
+              const linked = selectedElement.detailViewId?.trim();
+              if (linked && views.some((v) => v.id === linked)) {
+                navigateBuildingBlockViewLink(selectedElement.id);
+              } else {
+                openBuildingBlockView(selectedElement.id);
+              }
+            }}
           >
-            {ARC42_SECTION_NUMBERS.map((n) => (
-              <option key={n} value={n}>
-                {n}. {ARC42_SECTION_LABELS[n]}
-              </option>
-            ))}
-          </select>
-        </Field>
+            {selectedElement.detailViewId &&
+            views.some((v) => v.id === selectedElement.detailViewId)
+              ? "Detail-Sicht öffnen"
+              : "Detail-Sicht erstellen"}
+          </button>
+          <p className="text-[0.72rem] text-[var(--muted)]">
+            {selectedElement.type === "archBlackbox"
+              ? "Öffnet die Whitebox dieses Bausteins mit inneren Komponenten (Kopie)."
+              : "Zoom in die nächste Verfeinerungsebene — analog Bounded Context."}
+          </p>
+        </div>
       )}
 
       {(selectedElement.type === "c4Container" || selectedElement.type === "c4Component") && (

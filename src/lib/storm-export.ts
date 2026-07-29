@@ -688,7 +688,7 @@ export function exportDataModelMarkdown(): void {
   downloadText(`${slugTitle(title)}-data-model.md`, lines.join("\n"));
 }
 
-/** Architecture documentation: arc42 sections, C4 elements, ERM entities. */
+/** Architecture documentation: Bausteinsicht, C4, ERM. */
 export function exportArchitectureDocumentationMarkdown(): void {
   const { elements, title, relations, boundedContexts } = boardActiveSliceFromStore();
   const lines = [
@@ -698,21 +698,46 @@ export function exportArchitectureDocumentationMarkdown(): void {
     "",
   ];
 
-  const arc42 = elements
-    .filter((e) => e.type === "arc42Section")
-    .sort(
-      (a, b) =>
-        (a.metadata?.arc42SectionNumber ?? 99) - (b.metadata?.arc42SectionNumber ?? 99),
-    );
-  lines.push("## arc42 Abschnitte", "");
-  if (arc42.length === 0) {
-    lines.push("_Keine arc42-Abschnitte._", "");
+  const blackboxes = elements.filter((e) => e.type === "archBlackbox");
+  const whiteboxes = elements.filter((e) => e.type === "archWhitebox");
+  const components = elements.filter((e) => e.type === "archComponent");
+  lines.push("## Bausteinsicht (Blackbox / Whitebox)", "");
+  if (blackboxes.length + whiteboxes.length + components.length === 0) {
+    lines.push("_Keine Architektur-Bausteine._", "");
   } else {
-    for (const section of arc42) {
-      const num = section.metadata?.arc42SectionNumber;
-      const heading = num ? `${num}. ${section.label}` : section.label;
-      lines.push(`### ${heading}`);
-      lines.push(...mdMetaBlock(section), "");
+    if (blackboxes.length) {
+      lines.push("### Blackboxes", "");
+      for (const el of blackboxes) {
+        lines.push(`- **${el.label}**${el.detailViewId ? " _(Detail-Sicht)_" : ""}`);
+        if (el.description?.trim()) lines.push(`  - ${el.description.trim()}`);
+      }
+      lines.push("");
+    }
+    if (whiteboxes.length) {
+      lines.push("### Whiteboxes", "");
+      for (const el of whiteboxes) {
+        lines.push(`- **${el.label}**${el.detailViewId ? " _(Detail-Sicht)_" : ""}`);
+        lines.push(...mdMetaBlock(el), "");
+      }
+    }
+    if (components.length) {
+      lines.push("### Komponenten", "");
+      for (const el of components) {
+        lines.push(`- **${el.label}**`);
+        lines.push(...mdMetaBlock(el));
+      }
+      lines.push("");
+    }
+    const contains = relations.filter((r) => r.type === "contains");
+    if (contains.length) {
+      lines.push("### contains-Relationen", "");
+      for (const r of contains) {
+        const src = elements.find((e) => e.id === r.sourceId);
+        const tgt = elements.find((e) => e.id === r.targetId);
+        if (!src || !tgt) continue;
+        lines.push(`- ${src.label} → ${tgt.label}`);
+      }
+      lines.push("");
     }
   }
 

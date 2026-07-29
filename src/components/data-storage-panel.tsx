@@ -360,9 +360,9 @@ export function DataStoragePanel({
       {
         id: "architecture",
         label: "Architektur",
-        detail: "arc42 / C4 / ERM",
-        modes: ["architectureDocumentation"],
-        onClick: onExportArchitectureDocumentation,
+    detail: "Blackbox / C4 / ERM",
+    modes: ["architectureDocumentation"],
+    onClick: onExportArchitectureDocumentation,
       },
     ],
     [

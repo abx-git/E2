@@ -31,6 +31,7 @@ import {
 
 import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
 import { resolveBoundedContextDetailView } from "@/lib/bounded-context-view";
+import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
 import { clipboardItemCount, isClipboardEmpty } from "@/lib/board-clipboard";
 import { useIsMobileLayout } from "@/lib/use-media-query";
 import {
@@ -40,7 +41,7 @@ import {
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import type { NoteColorId } from "@/types/storm-element";
+import { supportsArchDrilldown, type NoteColorId } from "@/types/storm-element";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
 
 function clipboardSelectionFromStore() {
@@ -83,7 +84,10 @@ export function CanvasContextMenu({
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const views = useStormBoardStore((s) => s.views);
+  const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const updateElement = useStormBoardStore((s) => s.updateElement);
+  const openBuildingBlockView = useStormBoardStore((s) => s.openBuildingBlockView);
+  const navigateBuildingBlockViewLink = useStormBoardStore((s) => s.navigateBuildingBlockViewLink);
   const deleteElement = useStormBoardStore((s) => s.deleteElement);
   const patchElements = useStormBoardStore((s) => s.patchElements);
   const bringElementsToFront = useStormBoardStore((s) => s.bringElementsToFront);
@@ -165,6 +169,28 @@ export function CanvasContextMenu({
     body = (
       <>
         <Header title={el.label || style.label} subtitle={style.label} />
+        {supportsArchDrilldown(el.type) && (
+          <>
+            <Item
+              icon={LayoutDashboard}
+              label={
+                el.detailViewId && views.some((v) => v.id === el.detailViewId)
+                  ? "Detail-Sicht öffnen"
+                  : resolveBuildingBlockViewNavigation(el, activeViewId, views)?.direction === "up"
+                    ? "Übersicht öffnen"
+                    : "Detail-Sicht erstellen"
+              }
+              onClick={() =>
+                run(() => {
+                  const nav = resolveBuildingBlockViewNavigation(el, activeViewId, views);
+                  if (nav) navigateBuildingBlockViewLink(el.id);
+                  else openBuildingBlockView(el.id);
+                })
+              }
+            />
+            <Separator />
+          </>
+        )}
         <Item
           icon={Link2}
           label="Relation starten"

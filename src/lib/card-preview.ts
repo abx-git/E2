@@ -47,9 +47,6 @@ export function cardAttributeLines(
   }
 
   if (m.c4Technology?.trim()) lines.push(`Tech: ${m.c4Technology.trim()}`);
-  if (m.arc42SectionNumber) {
-    lines.push(`arc42 §${m.arc42SectionNumber}`);
-  }
 
   const linkKind = m.linkKind ?? "external";
   if (linkKind === "view") {

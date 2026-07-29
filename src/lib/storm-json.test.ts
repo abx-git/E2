@@ -234,7 +234,9 @@ describe("facilitator-phases", () => {
 
   it("uses Architecture Documentation catalog and workshops", () => {
     const catalog = getAllowedTypesForPhase("architectureDocumentation", "free", 0, false);
-    expect(catalog).toContain("arc42Section");
+    expect(catalog).toContain("archBlackbox");
+    expect(catalog).toContain("archWhitebox");
+    expect(catalog).toContain("archComponent");
     expect(catalog).toContain("c4SoftwareSystem");
     expect(catalog).toContain("dataEntity");
     expect(getAllowedTypesForPhase("architectureDocumentation", "c4Modeling", 0, true)).toEqual([
@@ -244,8 +246,11 @@ describe("facilitator-phases", () => {
       "link",
     ]);
     expect(getAllowedTypesForPhase("architectureDocumentation", "arc42Workshop", 0, true)).toEqual([
-      "arc42Section",
+      "archBlackbox",
+      "c4SoftwareSystem",
+      "c4Person",
       "note",
+      "hotspot",
       "link",
     ]);
   });

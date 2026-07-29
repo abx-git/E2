@@ -50,8 +50,10 @@ export type ElementType =
   | "c4SoftwareSystem"
   | "c4Container"
   | "c4Component"
-  /** Architecture documentation: arc42 section */
-  | "arc42Section"
+  /** Architecture documentation: arc42 Bausteinsicht (Blackbox / Whitebox / Komponente) */
+  | "archBlackbox"
+  | "archWhitebox"
+  | "archComponent"
   /** Shared: external URL or board view */
   | "link";
 
@@ -64,23 +66,15 @@ export type GatewayKind = "xor" | "and" | "or";
 export type DataCardinality = "1:1" | "1:n" | "n:1" | "n:m";
 export type LinkKind = "external" | "view";
 
-export const ARC42_SECTION_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
-export type Arc42SectionNumber = (typeof ARC42_SECTION_NUMBERS)[number];
+/** Element types that support drill-down into a detail view (arc42 Bausteinsicht). */
+export const ARCH_DRILLDOWN_ELEMENT_TYPES: ElementType[] = [
+  "archBlackbox",
+  "archWhitebox",
+];
 
-export const ARC42_SECTION_LABELS: Record<Arc42SectionNumber, string> = {
-  1: "Einleitung und Ziele",
-  2: "Randbedingungen",
-  3: "Kontext und Abgrenzung",
-  4: "Lösungsstrategie",
-  5: "Bausteinsicht",
-  6: "Laufzeitsicht",
-  7: "Verteilungssicht",
-  8: "Querschnittliche Konzepte",
-  9: "Architekturentscheidungen",
-  10: "Qualitätsanforderungen",
-  11: "Risiken und technische Schulden",
-  12: "Glossar",
-};
+export function supportsArchDrilldown(type: ElementType): boolean {
+  return type === "archBlackbox" || type === "archWhitebox";
+}
 
 export type NoteColorId =
   | "cream"
@@ -177,8 +171,8 @@ export interface ElementMetadata {
 
   /** C4 Container / Component: Technologie-Stack (z. B. Spring Boot, PostgreSQL). */
   c4Technology?: string;
-  /** arc42: Abschnittsnummer 1–12. */
-  arc42SectionNumber?: Arc42SectionNumber;
+  /** @deprecated Migrated from old arc42Section stickies; ignored by UI. */
+  arc42SectionNumber?: number;
 
   /** Sticky: Beschreibung auf der Karte anzeigen. */
   showDescriptionOnCard?: boolean;
@@ -202,6 +196,11 @@ export interface StormElement {
   zIndex?: number;
   swimlaneId?: string;
   boundedContextId?: string;
+  /**
+   * Linked detail view for architecture building-block drill-down
+   * (Blackbox/Whitebox → innere Komponenten).
+   */
+  detailViewId?: string;
   metadata?: ElementMetadata;
 }
 
@@ -406,9 +405,11 @@ export const DATA_ELEMENT_TYPES: ElementType[] = [
   "link",
 ];
 
-/** Architecture documentation: Arc42, C4, ERM. */
+/** Architecture documentation: Bausteinsicht, C4, ERM. */
 export const ARCH_DOC_ELEMENT_TYPES: ElementType[] = [
-  "arc42Section",
+  "archBlackbox",
+  "archWhitebox",
+  "archComponent",
   "c4Person",
   "c4SoftwareSystem",
   "c4Container",
@@ -447,7 +448,9 @@ export const ALL_ELEMENT_TYPES: ElementType[] = [
   "c4SoftwareSystem",
   "c4Container",
   "c4Component",
-  "arc42Section",
+  "archBlackbox",
+  "archWhitebox",
+  "archComponent",
 ];
 
 export const ES_WORKSHOP_FORMATS: WorkshopFormat[] = [
@@ -532,7 +535,7 @@ const DEFAULT_PALETTE_BY_MODE: Record<ModelingMode, ElementType> = {
   eventModeling: "domainEvent",
   processFlow: "processActivity",
   dataModel: "dataEntity",
-  architectureDocumentation: "arc42Section",
+  architectureDocumentation: "archBlackbox",
 };
 
 export function elementTypesForMode(mode: ModelingMode): ElementType[] {

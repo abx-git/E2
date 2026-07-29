@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Clock, ExternalLink, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
+import { ArrowRight, Clock, ExternalLink, LayoutDashboard, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
 
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkHasTarget } from "@/lib/board-link";
+import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import {
   cardAttributeLines,
@@ -22,7 +23,7 @@ import { HighlightedText } from "@/components/highlighted-text";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { elementTypesForMode, type StormElement } from "@/types/storm-element";
+import { elementTypesForMode, supportsArchDrilldown, type StormElement } from "@/types/storm-element";
 
 const DRAG_THRESHOLD_PX = 6;
 const MIN_SIZE = 40;
@@ -96,7 +97,13 @@ export function StormElementCard({
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
   const editingElementId = useStormBoardStore((s) => s.editingElementId);
   const views = useStormBoardStore((s) => s.views);
+  const activeViewId = useStormBoardStore((s) => s.activeViewId);
+  const openBuildingBlockView = useStormBoardStore((s) => s.openBuildingBlockView);
+  const navigateBuildingBlockViewLink = useStormBoardStore((s) => s.navigateBuildingBlockViewLink);
   const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
+  const archNav = supportsArchDrilldown(element.type)
+    ? resolveBuildingBlockViewNavigation(element, activeViewId, views)
+    : null;
   const searchActive = Boolean(normalizeSearchQuery(searchQuery));
   const searchHit = searchActive
     ? matchElementSearch(element, searchQuery, { viewNameById })
@@ -608,6 +615,38 @@ export function StormElementCard({
             }}
           >
             <ExternalLink className="h-3 w-3" aria-hidden />
+          </button>
+        )}
+        {supportsArchDrilldown(element.type) && !editing && (
+          <button
+            type="button"
+            title={
+              archNav?.direction === "up"
+                ? `Übersicht öffnen (${archNav.targetViewName})`
+                : archNav?.direction === "down"
+                  ? `Detail-Sicht öffnen (${archNav.targetViewName})`
+                  : "Detail-Sicht erstellen"
+            }
+            aria-label={
+              archNav?.direction === "up"
+                ? `Übersicht öffnen (${archNav.targetViewName})`
+                : archNav?.direction === "down"
+                  ? `Detail-Sicht öffnen (${archNav.targetViewName})`
+                  : "Detail-Sicht erstellen"
+            }
+            className="absolute right-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-current/25 bg-white/80 text-current opacity-80 hover:opacity-100"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (archNav) {
+                navigateBuildingBlockViewLink(element.id);
+              } else {
+                openBuildingBlockView(element.id);
+              }
+            }}
+          >
+            <LayoutDashboard className="h-3 w-3" aria-hidden />
           </button>
         )}
       </div>

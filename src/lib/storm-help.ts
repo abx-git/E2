@@ -383,14 +383,40 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
       "Optional Technologie angeben",
     ],
   },
-  arc42Section: {
-    title: "arc42 Abschnitt",
-    subtitle: "Indigo — Dokumentationsabschnitt 1–12",
-    paragraphs: ["Strukturiert die Architekturdokumentation nach arc42."],
+  archBlackbox: {
+    title: "Blackbox",
+    subtitle: "arc42 Bausteinsicht — außen",
+    paragraphs: [
+      "Baustein von außen: Verantwortung und Schnittstellen, Innenleben verborgen.",
+      "Über „Detail-Sicht“ zoomst du in die Whitebox mit inneren Komponenten.",
+    ],
     bullets: [
-      "Abschnittsnummer 1–12 wählen",
-      "Bounded Context pro Abschnitt für Detail-Inhalte",
-      "Mit C4- und ERM-Elementen kombinieren",
+      "Mit contains-Relationen innere Bausteine zuordnen",
+      "Detail-Sicht öffnen für Whitebox-Drill-down",
+      "C4-Typen parallel für Kontextdiagramme nutzen",
+    ],
+  },
+  archWhitebox: {
+    title: "Whitebox",
+    subtitle: "arc42 Bausteinsicht — geöffnet",
+    paragraphs: [
+      "Geöffneter Baustein: zeigt innere Komponenten und deren Beziehungen.",
+      "Entsteht typischerweise als Inhalt einer Blackbox-Detail-Sicht.",
+    ],
+    bullets: [
+      "Komponenten und verschachtelte Blackboxes innen platzieren",
+      "Selbst wieder drillbar, wenn tieferer Zoom nötig ist",
+      "Überblick über „Zurück“ / Detail-Navigation erreichen",
+    ],
+  },
+  archComponent: {
+    title: "Komponente",
+    subtitle: "arc42 Baustein — Blatt",
+    paragraphs: ["Feiner Baustein innerhalb einer Whitebox (Modul, Service, Adapter, …)."],
+    bullets: [
+      "Technologie optional in der Beschreibung festhalten",
+      "Relationen zu Schnittstellen und anderen Komponenten",
+      "Bei Bedarf als Blackbox weiter verfeinern",
     ],
   },
 };
