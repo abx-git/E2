@@ -1,9 +1,22 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AppearanceSettings } from "@/components/appearance-settings";
-import { Clock, ClipboardCopy, Download, FilePlus, FolderOpen, Loader2, Save, Upload, Users, X } from "lucide-react";
+import {
+  Clock,
+  ClipboardCopy,
+  Download,
+  FilePlus,
+  FolderOpen,
+  Loader2,
+  Palette,
+  Save,
+  Share2,
+  Upload,
+  Users,
+  X,
+} from "lucide-react";
 import {
   BACKUP_INTERVAL_OPTIONS_MINUTES,
   listLocalBackups,
@@ -14,6 +27,10 @@ import { listRecentWorkingFiles } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ModelingMode } from "@/types/storm-element";
 import { MODELING_MODE_LABELS } from "@/types/storm-element";
+
+const STORAGE_TAB_KEY = "e2.storage-panel.tab";
+
+type StorageTabId = "file" | "export" | "appearance";
 
 export interface DataStoragePanelProps {
   open: boolean;
@@ -62,13 +79,23 @@ export interface DataStoragePanelProps {
   busy?: boolean;
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section>
-      <h3 className="group-label">{title}</h3>
-      <div className="mt-3 space-y-2">{children}</div>
-    </section>
-  );
+function readStoredTab(): StorageTabId | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(STORAGE_TAB_KEY);
+    if (raw === "file" || raw === "export" || raw === "appearance") return raw;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function writeStoredTab(id: StorageTabId) {
+  try {
+    sessionStorage.setItem(STORAGE_TAB_KEY, id);
+  } catch {
+    /* ignore */
+  }
 }
 
 function ActionButton({
@@ -94,6 +121,38 @@ function ActionButton({
     >
       {children}
     </button>
+  );
+}
+
+function Disclosure({
+  title,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(Boolean(defaultOpen));
+  return (
+    <details
+      className="group rounded-lg border border-[var(--border)] bg-[var(--control)]/25 open:bg-[var(--control)]/35"
+      open={open}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
+      <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-[var(--text)] marker:content-none [&::-webkit-details-marker]:hidden">
+        <span className="flex items-center justify-between gap-2">
+          {title}
+          <span
+            className="text-[0.65rem] text-[var(--muted)] transition group-open:rotate-180"
+            aria-hidden
+          >
+            ▾
+          </span>
+        </span>
+      </summary>
+      <div className="space-y-2 border-t border-[var(--border)] px-3 py-2.5">{children}</div>
+    </details>
   );
 }
 
@@ -161,6 +220,14 @@ function modeMatches(mode: ModelingMode, ...modes: ModelingMode[]): boolean {
   return modes.includes(mode);
 }
 
+interface MethodExportDef {
+  id: string;
+  label: string;
+  detail: string;
+  modes: ModelingMode[];
+  onClick: () => void;
+}
+
 export function DataStoragePanel({
   open,
   onClose,
@@ -209,9 +276,13 @@ export function DataStoragePanel({
   >([]);
   const [localBackups, setLocalBackups] = useState<LocalBackupListItem[]>([]);
   const [jsonCopied, setJsonCopied] = useState(false);
+  const [preferredTab, setPreferredTab] = useState<StorageTabId>(() => readStoredTab() ?? "file");
 
   useEffect(() => {
     if (!open) return;
+    if (mustSaveBeforeOpen || workingFileDirty) {
+      setPreferredTab("file");
+    }
     let cancelled = false;
     if (fsAccessSupported) {
       void listRecentWorkingFiles().then((entries) => {
@@ -224,9 +295,106 @@ export function DataStoragePanel({
     return () => {
       cancelled = true;
     };
+    // Prefer Datei only when the sheet opens while unsaved — not on every dirty flip.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open gate
   }, [open, fsAccessSupported, workingFileLabel, busy, backupLastLabel]);
 
+  const selectTab = (id: StorageTabId) => {
+    setPreferredTab(id);
+    writeStoredTab(id);
+  };
+
+  const activeTab = preferredTab;
+
+  const methodExports = useMemo<MethodExportDef[]>(
+    () => [
+      {
+        id: "event-catalog",
+        label: "Event Catalog",
+        detail: "Event Storming",
+        modes: ["eventStorming", "eventModeling"],
+        onClick: onExportEventCatalog,
+      },
+      {
+        id: "domain-model",
+        label: "Domain Model",
+        detail: "DDD",
+        modes: ["domainDrivenDesign"],
+        onClick: onExportDomainModel,
+      },
+      {
+        id: "example-mapping",
+        label: "Example Mapping",
+        detail: "BDD",
+        modes: ["bdd"],
+        onClick: onExportExampleMapping,
+      },
+      {
+        id: "story-map",
+        label: "Story Map",
+        detail: "USM",
+        modes: ["userStoryMapping"],
+        onClick: onExportStoryMap,
+      },
+      {
+        id: "event-model",
+        label: "Event Model",
+        detail: "Slices",
+        modes: ["eventModeling"],
+        onClick: onExportEventModel,
+      },
+      {
+        id: "process",
+        label: "Prozess",
+        detail: "Ablauf",
+        modes: ["processFlow"],
+        onClick: onExportProcess,
+      },
+      {
+        id: "data-model",
+        label: "Datenmodell",
+        detail: "Entitäten",
+        modes: ["dataModel"],
+        onClick: onExportDataModel,
+      },
+      {
+        id: "architecture",
+        label: "Architektur",
+        detail: "arc42 / C4 / ERM",
+        modes: ["architectureDocumentation"],
+        onClick: onExportArchitectureDocumentation,
+      },
+    ],
+    [
+      onExportEventCatalog,
+      onExportDomainModel,
+      onExportExampleMapping,
+      onExportStoryMap,
+      onExportEventModel,
+      onExportProcess,
+      onExportDataModel,
+      onExportArchitectureDocumentation,
+    ],
+  );
+
+  const matchedMethods = methodExports.filter((m) => modeMatches(modelingMode, ...m.modes));
+  const otherMethods = methodExports.filter((m) => !modeMatches(modelingMode, ...m.modes));
+
+  const syncStatus = workingFileAttached
+    ? workingFileDirty
+      ? "ungespeichert"
+      : workingFileSaving
+        ? "speichert …"
+        : "gespeichert"
+    : null;
+
   if (!open) return null;
+
+  const tabs: Array<{ id: StorageTabId; label: string; icon: typeof FolderOpen }> = [
+    { id: "file", label: "Datei", icon: FolderOpen },
+    { id: "export", label: "Export", icon: Share2 },
+    { id: "appearance", label: "Darstellung", icon: Palette },
+  ];
 
   const layer = (
     <div
@@ -240,80 +408,135 @@ export function DataStoragePanel({
         className="dock-surface flex h-full w-full max-w-md flex-col rounded-none border-y-0 border-r-0 text-[var(--text)]"
         role="dialog"
         aria-modal="true"
+        aria-labelledby="storage-panel-title"
         onPointerDown={(e) => e.stopPropagation()}
       >
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <div>
-            <h2 className="text-base font-semibold tracking-tight">Daten &amp; Darstellung</h2>
+            <h2 id="storage-panel-title" className="text-base font-semibold tracking-tight">
+              Daten &amp; Darstellung
+            </h2>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Arbeitsdatei, Farben und Export (.storm.json). Aktiv:{" "}
-              {MODELING_MODE_LABELS[modelingMode]}
+              Arbeitsdatei, Export und Farben
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="dock-control rounded-lg p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
+            aria-label="Schließen"
           >
             <X className="h-4 w-4" />
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-5 py-4">
-          <Section title="Darstellung">
-            <AppearanceSettings />
-          </Section>
-
-          <Section title="Arbeitsdatei">
-            {workingFileAttached ? (
-              <p className="text-xs text-[var(--muted)]">
-                Sync-Ziel: {workingFileLabel ?? "Arbeitsdatei"}
-                {workingFileDirty
-                  ? " · ungespeichert"
-                  : workingFileSaving
-                    ? " · speichert …"
-                    : " · gespeichert"}
-              </p>
-            ) : (
-              <p className="text-xs text-[var(--muted)]">
-                Kein Sync-Ziel — „Speichern unter…“ verknüpft eine Arbeitsdatei.
-              </p>
-            )}
-            {mustSaveBeforeOpen && (
-              <p className="rounded-lg border border-[var(--accent-2)]/40 bg-[rgba(233,196,106,0.12)] px-2.5 py-2 text-xs text-[var(--accent-2)]">
-                Ungespeicherter Stand — bitte zuerst speichern, bevor du eine andere Datei oder ein
-                Backup öffnest.
-              </p>
-            )}
-            {workingFileAttached ? (
-              <ActionButton
-                onClick={onSaveWorkingFile}
-                disabled={busy || !workingFileDirty}
-                emphasize={workingFileDirty || mustSaveBeforeOpen}
+        <div
+          className="flex shrink-0 gap-1 border-b border-[var(--border)] px-3 py-2"
+          role="tablist"
+          aria-label="Daten & Darstellung"
+        >
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const selected = tab.id === activeTab;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => selectTab(tab.id)}
+                className={[
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-2 text-xs font-medium transition",
+                  selected
+                    ? "bg-[var(--control)] text-[var(--text)]"
+                    : "text-[var(--muted)] hover:bg-[var(--control-hover)] hover:text-[var(--text)]",
+                ].join(" ")}
               >
-                <Save className="h-4 w-4" /> Speichern
-              </ActionButton>
-            ) : null}
-            <ActionButton
-              onClick={onSaveWorkingFileAs}
-              disabled={busy}
-              emphasize={!workingFileAttached && mustSaveBeforeOpen}
-            >
-              <Save className="h-4 w-4" /> Speichern unter…
-            </ActionButton>
-            <ActionButton onClick={onNewWorkingFile} disabled={busy}>
-              <FilePlus className="h-4 w-4" /> Neue Datei
-            </ActionButton>
-            {fsAccessSupported ? (
-              <>
-                <ActionButton onClick={onOpenWorkingFile} disabled={busy || mustSaveBeforeOpen}>
-                  <FolderOpen className="h-4 w-4" /> Datei öffnen
+                <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4" role="tabpanel">
+          {activeTab === "file" && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                {workingFileAttached ? (
+                  <p className="text-xs text-[var(--muted)]">
+                    <span className="font-medium text-[var(--text)]">
+                      {workingFileLabel ?? "Arbeitsdatei"}
+                    </span>
+                    {syncStatus ? ` · ${syncStatus}` : null}
+                  </p>
+                ) : (
+                  <p className="text-xs text-[var(--muted)]">
+                    Kein Sync-Ziel — „Speichern unter…“ verknüpft eine Arbeitsdatei.
+                  </p>
+                )}
+                {mustSaveBeforeOpen && (
+                  <p className="rounded-lg border border-[var(--accent-2)]/40 bg-[rgba(233,196,106,0.12)] px-2.5 py-2 text-xs text-[var(--accent-2)]">
+                    Ungespeichert — zuerst speichern, bevor du eine andere Datei öffnest.
+                  </p>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  {workingFileAttached ? (
+                    <ActionButton
+                      onClick={onSaveWorkingFile}
+                      disabled={busy || !workingFileDirty}
+                      emphasize={workingFileDirty || mustSaveBeforeOpen}
+                    >
+                      <Save className="h-4 w-4" /> Speichern
+                    </ActionButton>
+                  ) : null}
+                  <ActionButton
+                    onClick={onSaveWorkingFileAs}
+                    disabled={busy}
+                    emphasize={!workingFileAttached && mustSaveBeforeOpen}
+                  >
+                    <Save className="h-4 w-4" /> Speichern unter…
+                  </ActionButton>
+                  {fsAccessSupported ? (
+                    <ActionButton
+                      onClick={onOpenWorkingFile}
+                      disabled={busy || mustSaveBeforeOpen}
+                    >
+                      <FolderOpen className="h-4 w-4" /> Datei öffnen
+                    </ActionButton>
+                  ) : (
+                    <ActionButton
+                      onClick={onRestoreBackupFile}
+                      disabled={busy || mustSaveBeforeOpen}
+                    >
+                      <FolderOpen className="h-4 w-4" /> Datei wählen
+                    </ActionButton>
+                  )}
+                </div>
+                {busy && (
+                  <p className="flex items-center gap-2 text-xs text-[var(--muted)]">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Bitte warten …
+                  </p>
+                )}
+              </div>
+
+              <Disclosure title="Weitere Datei-Aktionen">
+                <ActionButton onClick={onNewWorkingFile} disabled={busy}>
+                  <FilePlus className="h-4 w-4" /> Neue Datei
                 </ActionButton>
-                {recentFiles.length > 0 && (
-                  <div className="space-y-1.5 pt-1">
+                {!fsAccessSupported && (
+                  <ActionButton
+                    onClick={onRestoreBackupPaste}
+                    disabled={busy || mustSaveBeforeOpen}
+                  >
+                    JSON einfügen
+                  </ActionButton>
+                )}
+                {fsAccessSupported && recentFiles.length > 0 && (
+                  <div className="space-y-1.5">
                     <p className="text-[0.7rem] font-medium text-[var(--muted)]">
                       Zuletzt verwendet
-                      {mustSaveBeforeOpen ? " — erst speichern" : " — anklicken zum Öffnen"}
+                      {mustSaveBeforeOpen ? " — erst speichern" : ""}
                     </p>
                     <ul className="space-y-1">
                       {recentFiles.map((entry) => (
@@ -338,229 +561,200 @@ export function DataStoragePanel({
                     </ul>
                   </div>
                 )}
-              </>
-            ) : (
-              <>
-                <ActionButton onClick={onRestoreBackupFile} disabled={busy || mustSaveBeforeOpen}>
-                  <FolderOpen className="h-4 w-4" /> Datei wählen
-                </ActionButton>
-                <ActionButton onClick={onRestoreBackupPaste} disabled={busy || mustSaveBeforeOpen}>
-                  JSON einfügen
-                </ActionButton>
-              </>
-            )}
-            {busy && (
-              <p className="flex items-center gap-2 text-xs text-[var(--muted)]">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Bitte warten …
-              </p>
-            )}
-          </Section>
+              </Disclosure>
 
-          <Section title="Backup">
-            <p className="text-xs text-[var(--muted)]">
-              Zeitstempel-Kopie (.storm.json) — unabhängig von der Arbeitsdatei. Automatisch
-              nur bei Änderungen. {backupLastLabel}.
-            </p>
-            <ActionButton onClick={onBackupNow} disabled={busy}>
-              <Save className="h-4 w-4" /> Jetzt sichern
-            </ActionButton>
-            <ActionButton onClick={onRestoreBackupFile} disabled={busy || mustSaveBeforeOpen}>
-              <FolderOpen className="h-4 w-4" /> Backup-Datei öffnen
-            </ActionButton>
-            {localBackups.length > 0 && (
-              <div className="space-y-1.5 pt-1">
-                <p className="text-[0.7rem] font-medium text-[var(--muted)]">
-                  Gesicherte Backups
-                  {mustSaveBeforeOpen ? " — erst speichern" : " — anklicken zum Öffnen"}
-                </p>
-                <ul className="space-y-1">
-                  {localBackups.map((entry) => (
-                    <li key={entry.id}>
-                      <button
-                        type="button"
-                        disabled={busy || mustSaveBeforeOpen}
-                        onClick={() => onOpenLocalBackup(entry.id)}
-                        className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
-                        title={new Date(entry.createdAt).toLocaleString("de-DE")}
-                      >
-                        <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium">{entry.filename}</span>
-                          <span className="block text-[0.65rem] text-[var(--muted)]">
-                            {new Date(entry.createdAt).toLocaleString("de-DE")}
-                          </span>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <label className="flex flex-col gap-1 text-xs text-[var(--text)]">
-              <span className="text-[var(--muted)]">Automatisch alle …</span>
-              <select
-                className="dock-field"
-                value={backupIntervalMinutes}
-                onChange={(e) =>
-                  onBackupIntervalChange(Number(e.target.value) as BackupIntervalMinutes)
-                }
+              <Disclosure
+                key={localBackups.length > 0 ? "backup-has" : "backup-empty"}
+                title="Backup"
+                defaultOpen={localBackups.length > 0}
               >
-                {BACKUP_INTERVAL_OPTIONS_MINUTES.map((m) => (
-                  <option key={m} value={m}>
-                    {m === 0 ? "Aus" : `${m} Minuten`}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </Section>
+                <p className="text-xs text-[var(--muted)]">
+                  Zeitstempel-Kopie (.storm.json), unabhängig von der Arbeitsdatei.{" "}
+                  {backupLastLabel}.
+                </p>
+                <ActionButton onClick={onBackupNow} disabled={busy}>
+                  <Save className="h-4 w-4" /> Jetzt sichern
+                </ActionButton>
+                <ActionButton
+                  onClick={onRestoreBackupFile}
+                  disabled={busy || mustSaveBeforeOpen}
+                >
+                  <FolderOpen className="h-4 w-4" /> Backup-Datei öffnen
+                </ActionButton>
+                {localBackups.length > 0 && (
+                  <div className="space-y-1.5">
+                    <p className="text-[0.7rem] font-medium text-[var(--muted)]">
+                      Gesicherte Backups
+                      {mustSaveBeforeOpen ? " — erst speichern" : ""}
+                    </p>
+                    <ul className="space-y-1">
+                      {localBackups.map((entry) => (
+                        <li key={entry.id}>
+                          <button
+                            type="button"
+                            disabled={busy || mustSaveBeforeOpen}
+                            onClick={() => onOpenLocalBackup(entry.id)}
+                            className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
+                            title={new Date(entry.createdAt).toLocaleString("de-DE")}
+                          >
+                            <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate font-medium">{entry.filename}</span>
+                              <span className="block text-[0.65rem] text-[var(--muted)]">
+                                {new Date(entry.createdAt).toLocaleString("de-DE")}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <label className="flex flex-col gap-1 text-xs text-[var(--text)]">
+                  <span className="text-[var(--muted)]">Automatisch alle …</span>
+                  <select
+                    className="dock-field"
+                    value={backupIntervalMinutes}
+                    onChange={(e) =>
+                      onBackupIntervalChange(Number(e.target.value) as BackupIntervalMinutes)
+                    }
+                  >
+                    {BACKUP_INTERVAL_OPTIONS_MINUTES.map((m) => (
+                      <option key={m} value={m}>
+                        {m === 0 ? "Aus" : `${m} Minuten`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </Disclosure>
 
-          {onOpenCollab && (
-            <Section title="Kollaboration">
-              <ActionButton onClick={onOpenCollab}>
-                <Users className="h-4 w-4" /> Raum erstellen / beitreten
-              </ActionButton>
-            </Section>
+              <div className="space-y-2 border-t border-[var(--border)] pt-4">
+                <p className="text-xs text-[var(--muted)]">
+                  E2-Datei als neue Sicht(en) — Farben bleiben aus der geöffneten Datei.
+                </p>
+                <ActionButton onClick={onImportAsNewViews} disabled={busy}>
+                  <Upload className="h-4 w-4" /> Als neue Seite importieren
+                </ActionButton>
+                {onOpenCollab && (
+                  <ActionButton onClick={onOpenCollab}>
+                    <Users className="h-4 w-4" /> Raum erstellen / beitreten
+                  </ActionButton>
+                )}
+              </div>
+            </div>
           )}
 
-          <Section title="Import">
-            <p className="text-xs text-[var(--muted)]">
-              E2-Datei (.storm.json) als neue Sicht(en) hinzufügen. Farben und andere
-              Projekt-Angaben bleiben aus der geöffneten Datei.
-            </p>
-            <ActionButton onClick={onImportAsNewViews} disabled={busy}>
-              <Upload className="h-4 w-4" /> Als neue Seite importieren
-            </ActionButton>
-          </Section>
+          {activeTab === "export" && (
+            <div className="space-y-3">
+              <p className="text-xs text-[var(--muted)]">
+                {MODELING_MODE_LABELS[modelingMode]} — passende Formate sind hervorgehoben.
+              </p>
 
-          <Section title="Export">
-            <p className="text-xs text-[var(--muted)]">
-              Aktive Methode: {MODELING_MODE_LABELS[modelingMode]} — passende Formate sind
-              hervorgehoben.
-            </p>
+              <ExportGroup title="Board" hint="Datei & Bild">
+                <ExportTile
+                  onClick={onExportJson}
+                  disabled={busy}
+                  label="JSON"
+                  detail=".storm.json herunterladen"
+                />
+                <ExportTile
+                  onClick={() => {
+                    void Promise.resolve(onCopyJsonToClipboard()).then((ok) => {
+                      if (!ok) return;
+                      setJsonCopied(true);
+                      window.setTimeout(() => setJsonCopied(false), 2000);
+                    });
+                  }}
+                  disabled={busy}
+                  label={jsonCopied ? "Kopiert" : "JSON kopieren"}
+                  detail="System-Zwischenablage"
+                  icon={ClipboardCopy}
+                  emphasize={jsonCopied}
+                />
+                <ExportTile
+                  onClick={onExportJsonSchema}
+                  disabled={busy}
+                  label="Schema"
+                  detail="JSON Schema"
+                />
+                <ExportTile
+                  onClick={onExportSvg}
+                  disabled={busy}
+                  label="SVG"
+                  detail="Draw.io"
+                />
+                <ExportTile onClick={onExportPng} disabled={busy} label="PNG" detail="Rasterbild" />
+              </ExportGroup>
 
-            <ExportGroup title="Board" hint="Datei & Bild">
-              <ExportTile
-                onClick={onExportJson}
-                disabled={busy}
-                label="JSON"
-                detail=".storm.json herunterladen"
-              />
-              <ExportTile
-                onClick={() => {
-                  void Promise.resolve(onCopyJsonToClipboard()).then((ok) => {
-                    if (!ok) return;
-                    setJsonCopied(true);
-                    window.setTimeout(() => setJsonCopied(false), 2000);
-                  });
-                }}
-                disabled={busy}
-                label={jsonCopied ? "Kopiert" : "JSON kopieren"}
-                detail="System-Zwischenablage"
-                icon={ClipboardCopy}
-                emphasize={jsonCopied}
-              />
-              <ExportTile
-                onClick={onExportJsonSchema}
-                disabled={busy}
-                label="Schema"
-                detail="JSON Schema"
-              />
-              <ExportTile
-                onClick={onExportSvg}
-                disabled={busy}
-                label="SVG"
-                detail="Draw.io"
-              />
-              <ExportTile onClick={onExportPng} disabled={busy} label="PNG" detail="Rasterbild" />
-            </ExportGroup>
+              <ExportGroup title="Berichte" hint="Markdown">
+                <ExportTile
+                  onClick={onExportHotspots}
+                  disabled={busy}
+                  label="Hotspots"
+                  detail="Report"
+                />
+                <ExportTile
+                  onClick={onExportActionItems}
+                  disabled={busy}
+                  label="To-dos"
+                  detail="Action Items"
+                />
+                <ExportTile
+                  onClick={onExportGlossary}
+                  disabled={busy}
+                  label="Glossary"
+                  detail="Begriffe"
+                />
+                <ExportTile
+                  onClick={onExportContextMap}
+                  disabled={busy}
+                  label="Context Map"
+                  detail="BC-Schnittstellen"
+                  emphasize={modeMatches(modelingMode, "eventStorming", "domainDrivenDesign")}
+                />
+              </ExportGroup>
 
-            <ExportGroup title="Berichte" hint="Markdown">
-              <ExportTile
-                onClick={onExportHotspots}
-                disabled={busy}
-                label="Hotspots"
-                detail="Report"
-              />
-              <ExportTile
-                onClick={onExportActionItems}
-                disabled={busy}
-                label="To-dos"
-                detail="Action Items"
-              />
-              <ExportTile
-                onClick={onExportGlossary}
-                disabled={busy}
-                label="Glossary"
-                detail="Begriffe"
-              />
-              <ExportTile
-                onClick={onExportContextMap}
-                disabled={busy}
-                label="Context Map"
-                detail="BC-Schnittstellen"
-                emphasize={modeMatches(modelingMode, "eventStorming", "domainDrivenDesign")}
-              />
-            </ExportGroup>
+              {matchedMethods.length > 0 && (
+                <ExportGroup title="Methoden" hint="Markdown">
+                  {matchedMethods.map((m) => (
+                    <ExportTile
+                      key={m.id}
+                      onClick={m.onClick}
+                      disabled={busy}
+                      label={m.label}
+                      detail={m.detail}
+                      emphasize
+                    />
+                  ))}
+                </ExportGroup>
+              )}
 
-            <ExportGroup title="Methoden" hint="Markdown">
-              <ExportTile
-                onClick={onExportEventCatalog}
-                disabled={busy}
-                label="Event Catalog"
-                detail="Event Storming"
-                emphasize={modeMatches(modelingMode, "eventStorming", "eventModeling")}
-              />
-              <ExportTile
-                onClick={onExportDomainModel}
-                disabled={busy}
-                label="Domain Model"
-                detail="DDD"
-                emphasize={modeMatches(modelingMode, "domainDrivenDesign")}
-              />
-              <ExportTile
-                onClick={onExportExampleMapping}
-                disabled={busy}
-                label="Example Mapping"
-                detail="BDD"
-                emphasize={modeMatches(modelingMode, "bdd")}
-              />
-              <ExportTile
-                onClick={onExportStoryMap}
-                disabled={busy}
-                label="Story Map"
-                detail="USM"
-                emphasize={modeMatches(modelingMode, "userStoryMapping")}
-              />
-              <ExportTile
-                onClick={onExportEventModel}
-                disabled={busy}
-                label="Event Model"
-                detail="Slices"
-                emphasize={modeMatches(modelingMode, "eventModeling")}
-              />
-              <ExportTile
-                onClick={onExportProcess}
-                disabled={busy}
-                label="Prozess"
-                detail="Ablauf"
-                emphasize={modeMatches(modelingMode, "processFlow")}
-              />
-              <ExportTile
-                onClick={onExportDataModel}
-                disabled={busy}
-                label="Datenmodell"
-                detail="Entitäten"
-                emphasize={modeMatches(modelingMode, "dataModel")}
-              />
-              <ExportTile
-                onClick={onExportArchitectureDocumentation}
-                disabled={busy}
-                label="Architektur"
-                detail="arc42 / C4 / ERM"
-                emphasize={modeMatches(modelingMode, "architectureDocumentation")}
-              />
-            </ExportGroup>
-          </Section>
+              {otherMethods.length > 0 && (
+                <Disclosure
+                  title={matchedMethods.length > 0 ? "Weitere Methoden" : "Methoden"}
+                  defaultOpen={matchedMethods.length === 0}
+                >
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {otherMethods.map((m) => (
+                      <ExportTile
+                        key={m.id}
+                        onClick={m.onClick}
+                        disabled={busy}
+                        label={m.label}
+                        detail={m.detail}
+                      />
+                    ))}
+                  </div>
+                </Disclosure>
+              )}
+            </div>
+          )}
+
+          {activeTab === "appearance" && (
+            <div>
+              <AppearanceSettings />
+            </div>
+          )}
         </div>
       </aside>
     </div>
