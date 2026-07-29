@@ -61,6 +61,8 @@ const sample: BoardActiveSlice = {
       color: "#dbeafe",
     },
   ],
+  canvasLines: [],
+  bookmarks: [],
   timeline: { ...DEFAULT_TIMELINE, y: 160, visible: true },
   viewport: { ...DEFAULT_VIEWPORT },
   glossary: [],

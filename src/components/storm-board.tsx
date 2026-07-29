@@ -27,6 +27,7 @@ import {
   type FileConflictChoice,
 } from "@/components/file-conflict-dialog";
 import { ActionItemsPanel } from "@/components/action-items-panel";
+import { BookmarksPanel } from "@/components/bookmarks-panel";
 import { GlossaryPanel } from "@/components/glossary-panel";
 import { HotspotList } from "@/components/hotspot-list";
 import { StormCanvas } from "@/components/storm-canvas";
@@ -539,6 +540,7 @@ export function StormBoard() {
             <HotspotList />
             <ActionItemsPanel />
             <GlossaryPanel />
+            <BookmarksPanel />
             <FacilitatorPanel onRequestHelpPhase={(phase, format) => openPhaseHelp(phase, format)} />
           </div>
         </div>

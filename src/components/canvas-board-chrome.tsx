@@ -5,6 +5,7 @@ import {
   Layers,
   Link2,
   Map,
+  Minus,
   MoreHorizontal,
   Search,
   X,
@@ -12,8 +13,10 @@ import {
   ZoomOut,
 } from "lucide-react";
 
+import { lineArrowHeadShortLabel } from "@/components/canvas-lines";
 import { clampZoom } from "@/lib/canvas-viewport";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
+import { LINE_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 function ToolButton({
@@ -140,6 +143,10 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, hint }: CanvasBoardC
   const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
   const setContextMapMode = useStormBoardStore((s) => s.setContextMapMode);
   const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
+  const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
+  const setLineDrawMode = useStormBoardStore((s) => s.setLineDrawMode);
+  const lineArrowHead = useStormBoardStore((s) => s.lineArrowHead);
+  const setLineArrowHead = useStormBoardStore((s) => s.setLineArrowHead);
   const addSwimlane = useStormBoardStore((s) => s.addSwimlane);
   const viewport = useStormBoardStore((s) => s.viewport);
   const setViewport = useStormBoardStore((s) => s.setViewport);
@@ -276,6 +283,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, hint }: CanvasBoardC
               setRelationDraftSource(null);
               setContextMapMode(false);
               setContextMapDraftSource(null);
+              setLineDrawMode(false);
             }
             onToggleBcMode();
           }}
@@ -285,6 +293,37 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, hint }: CanvasBoardC
             {bcMode ? "BC zeichnen…" : "Bounded Context"}
           </span>
         </ToolButton>
+        <ToolButton
+          active={lineDrawMode}
+          title="Freie Linie zeichnen"
+          onClick={() => {
+            const next = !lineDrawMode;
+            setLineDrawMode(next);
+            if (next) {
+              setRelationMode(false);
+              setRelationDraftSource(null);
+              setContextMapMode(false);
+              setContextMapDraftSource(null);
+              if (bcMode) onToggleBcMode();
+            }
+          }}
+        >
+          <Minus className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">{lineDrawMode ? "Linie…" : "Linie"}</span>
+        </ToolButton>
+        <button
+          type="button"
+          title={LINE_ARROW_HEAD_LABELS[lineArrowHead]}
+          aria-label={LINE_ARROW_HEAD_LABELS[lineArrowHead]}
+          onClick={() => {
+            const index = LINE_ARROW_HEADS.indexOf(lineArrowHead);
+            const next = LINE_ARROW_HEADS[(index + 1) % LINE_ARROW_HEADS.length]!;
+            setLineArrowHead(next);
+          }}
+          className="dock-surface flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium shadow-dock hover:bg-[var(--control)]"
+        >
+          {lineArrowHeadShortLabel(lineArrowHead)}
+        </button>
 
         <div className="relative">
           <button

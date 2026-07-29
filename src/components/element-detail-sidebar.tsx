@@ -5,6 +5,7 @@ import { AlertCircle, ExternalLink, HelpCircle } from "lucide-react";
 
 import { activateBoardLink } from "@/lib/board-link";
 import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-panel";
+import { lineArrowHeadShortLabel } from "@/components/canvas-lines";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
@@ -23,6 +24,7 @@ import type {
   SubdomainKind,
 } from "@/types/storm-element";
 import { ARC42_SECTION_LABELS, ARC42_SECTION_NUMBERS } from "@/types/storm-element";
+import { LINE_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_ELEMENT_SIZE = 40;
@@ -47,12 +49,16 @@ export function ElementDetailSidebar({
 }: ElementDetailSidebarProps) {
   const elements = useStormBoardStore((s) => s.elements);
   const relations = useStormBoardStore((s) => s.relations);
+  const canvasLines = useStormBoardStore((s) => s.canvasLines);
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const selectedRelationId = useStormBoardStore((s) => s.selectedRelationId);
+  const selectedCanvasLineId = useStormBoardStore((s) => s.selectedCanvasLineId);
   const selectedBoundedContextId = useStormBoardStore((s) => s.selectedBoundedContextIds[0] ?? null);
   const selectedSwimlaneId = useStormBoardStore((s) => s.selectedSwimlaneIds[0] ?? null);
   const updateElement = useStormBoardStore((s) => s.updateElement);
   const updateRelation = useStormBoardStore((s) => s.updateRelation);
+  const updateCanvasLine = useStormBoardStore((s) => s.updateCanvasLine);
+  const deleteCanvasLine = useStormBoardStore((s) => s.deleteCanvasLine);
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
@@ -62,6 +68,7 @@ export function ElementDetailSidebar({
   const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const selectedElement = elements.find((e) => e.id === selectedElementIds[0]);
   const selectedRelation = relations.find((r) => r.id === selectedRelationId);
+  const selectedCanvasLine = canvasLines.find((line) => line.id === selectedCanvasLineId);
   const selectedBoundedContext = boundedContexts.find((bc) => bc.id === selectedBoundedContextId);
   const selectedSwimlane = swimlanes.find((lane) => lane.id === selectedSwimlaneId);
   const multiCount = selectedElementIds.length;
@@ -73,6 +80,54 @@ export function ElementDetailSidebar({
       ),
     [elements, relations, contextRelations, selectedElement?.id],
   );
+
+  if (selectedCanvasLine) {
+    const arrowHead = selectedCanvasLine.arrowHead ?? "none";
+    return (
+      <DockPanel title="Freie Linie">
+        <Field label="Label">
+          <input
+            className="dock-field"
+            value={selectedCanvasLine.label ?? ""}
+            onChange={(e) => updateCanvasLine(selectedCanvasLine.id, { label: e.target.value })}
+            placeholder="Optional"
+          />
+        </Field>
+        <Field label="Pfeil">
+          <select
+            className="dock-field"
+            value={arrowHead}
+            onChange={(e) =>
+              updateCanvasLine(selectedCanvasLine.id, {
+                arrowHead: e.target.value as (typeof LINE_ARROW_HEADS)[number],
+              })
+            }
+          >
+            {LINE_ARROW_HEADS.map((head) => (
+              <option key={head} value={head}>
+                {lineArrowHeadShortLabel(head)} {LINE_ARROW_HEAD_LABELS[head]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Farbe">
+          <input
+            className="dock-field"
+            type="color"
+            value={selectedCanvasLine.color ?? "#64748b"}
+            onChange={(e) => updateCanvasLine(selectedCanvasLine.id, { color: e.target.value })}
+          />
+        </Field>
+        <button
+          type="button"
+          className="w-full rounded-md border border-[var(--border)] bg-[var(--control)] px-2 py-1.5 text-xs font-medium text-[#f0a8a0] hover:border-[#f0a8a0]"
+          onClick={() => deleteCanvasLine(selectedCanvasLine.id)}
+        >
+          Linie löschen
+        </button>
+      </DockPanel>
+    );
+  }
 
   if (selectedRelation) {
     return (

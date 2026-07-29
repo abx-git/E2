@@ -82,6 +82,8 @@ import type {
 } from "@/types/storm-relation";
 import type { ContextMenuState, ContextMenuTarget } from "@/types/context-menu";
 import type { ActionItem } from "@/types/action-item";
+import type { CanvasLine, LineArrowHead, ViewBookmark } from "@/types/canvas-annotation";
+import { normalizeCanvasLine } from "@/lib/canvas-annotations";
 
 export interface StormBoardState {
   title: string;
@@ -99,6 +101,8 @@ export interface StormBoardState {
   contextRelations: ContextRelation[];
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
+  canvasLines: CanvasLine[];
+  bookmarks: ViewBookmark[];
   timeline: Timeline;
   viewport: Viewport;
   glossary: GlossaryEntry[];
@@ -121,6 +125,9 @@ export interface StormBoardState {
   relationDraftSourceId: string | null;
   contextMapMode: boolean;
   contextMapDraftSourceId: string | null;
+  lineDrawMode: boolean;
+  lineArrowHead: LineArrowHead;
+  selectedCanvasLineId: string | null;
   contextMenu: ContextMenuState | null;
   /** Ephemeral cut buffer (not persisted / not in undo domain snapshot as separate field — cut is undoable via board state). */
   clipboard: BoardClipboardPayload | null;
@@ -230,6 +237,17 @@ export interface StormBoardState {
   setContextMapMode: (enabled: boolean) => void;
   setContextMapDraftSource: (id: string | null) => void;
   connectBoundedContexts: (sourceContextId: string, targetContextId: string) => string | null;
+
+  setLineDrawMode: (enabled: boolean) => void;
+  setLineArrowHead: (head: LineArrowHead) => void;
+  addCanvasLine: (line: Omit<CanvasLine, "id"> & { id?: string }) => string | null;
+  updateCanvasLine: (id: string, patch: Partial<Omit<CanvasLine, "id">>) => void;
+  deleteCanvasLine: (id: string) => void;
+  selectCanvasLine: (id: string | null) => void;
+  addBookmark: (name: string) => string | null;
+  updateBookmark: (id: string, patch: Partial<Pick<ViewBookmark, "name" | "viewport">>) => void;
+  deleteBookmark: (id: string) => void;
+  jumpToBookmark: (id: string) => boolean;
 
   addSwimlane: (label?: string) => string;
   updateSwimlane: (id: string, patch: Partial<Swimlane>, options?: { moveElementIds?: string[] }) => void;
@@ -427,6 +445,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   contextRelations: initialViewDoc.contextRelations,
   swimlanes: initialViewDoc.swimlanes,
   boundedContexts: initialViewDoc.boundedContexts,
+  canvasLines: initialViewDoc.canvasLines,
+  bookmarks: initialViewDoc.bookmarks,
   timeline: initialViewDoc.timeline,
   viewport: initialViewDoc.viewport,
   glossary: [],
@@ -447,6 +467,9 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   relationDraftSourceId: null,
   contextMapMode: false,
   contextMapDraftSourceId: null,
+  lineDrawMode: false,
+  lineArrowHead: "end",
+  selectedCanvasLineId: null,
   contextMenu: null,
   clipboard: null,
   clipboardDropHighlight: false,
@@ -765,7 +788,12 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   selectElement: (id, additive) =>
     set((s) => {
       if (!id) {
-        return { selectedElementIds: [], selectedRelationId: null, editingElementId: null };
+        return {
+          selectedElementIds: [],
+          selectedRelationId: null,
+          selectedCanvasLineId: null,
+          editingElementId: null,
+        };
       }
       if (additive) {
         const exists = s.selectedElementIds.includes(id);
@@ -778,6 +806,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           selectedContextRelationId: null,
           selectedBoundedContextIds: [],
           selectedSwimlaneIds: [],
+          selectedCanvasLineId: null,
           editingElementId:
             s.editingElementId && selectedElementIds.includes(s.editingElementId)
               ? s.editingElementId
@@ -790,6 +819,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedContextRelationId: null,
         selectedBoundedContextIds: [],
         selectedSwimlaneIds: [],
+        selectedCanvasLineId: null,
         editingElementId: s.editingElementId === id ? s.editingElementId : null,
       };
     }),
@@ -805,6 +835,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedContextRelationId: null,
         selectedBoundedContextIds: [],
         selectedSwimlaneIds: [],
+        selectedCanvasLineId: null,
         editingElementId:
           s.editingElementId && next.includes(s.editingElementId)
             ? s.editingElementId
@@ -826,6 +857,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           ),
           selectedRelationId: null,
           selectedContextRelationId: null,
+          selectedCanvasLineId: null,
           editingElementId: null,
         };
       }
@@ -835,6 +867,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedBoundedContextIds: boundedContextIds,
         selectedRelationId: null,
         selectedContextRelationId: null,
+        selectedCanvasLineId: null,
         editingElementId: null,
       };
     }),
@@ -843,6 +876,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     set({
       selectedRelationId: id,
       selectedContextRelationId: null,
+      selectedCanvasLineId: null,
       selectedElementIds: id ? [] : get().selectedElementIds,
       selectedBoundedContextIds: [],
       selectedSwimlaneIds: [],
@@ -852,6 +886,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     set({
       selectedContextRelationId: id,
       selectedRelationId: null,
+      selectedCanvasLineId: null,
       selectedElementIds: id ? [] : get().selectedElementIds,
       selectedBoundedContextIds: [],
       selectedSwimlaneIds: [],
@@ -872,6 +907,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           selectedRelationId: null,
           selectedContextRelationId: null,
           selectedSwimlaneIds: [],
+          selectedCanvasLineId: null,
         };
       }
       return {
@@ -880,6 +916,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedRelationId: null,
         selectedContextRelationId: null,
         selectedSwimlaneIds: [],
+        selectedCanvasLineId: null,
       };
     }),
 
@@ -898,6 +935,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           selectedRelationId: null,
           selectedContextRelationId: null,
           selectedBoundedContextIds: [],
+          selectedCanvasLineId: null,
         };
       }
       return {
@@ -906,6 +944,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedRelationId: null,
         selectedContextRelationId: null,
         selectedBoundedContextIds: [],
+        selectedCanvasLineId: null,
       };
     }),
 
@@ -916,6 +955,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedContextRelationId: null,
       selectedBoundedContextIds: [],
       selectedSwimlaneIds: [],
+      selectedCanvasLineId: null,
       editingElementId: null,
     }),
 
@@ -1130,6 +1170,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       relationDraftSourceId: relationMode ? get().relationDraftSourceId : null,
       contextMapMode: relationMode ? false : get().contextMapMode,
       contextMapDraftSourceId: relationMode ? null : get().contextMapDraftSourceId,
+      lineDrawMode: relationMode ? false : get().lineDrawMode,
+      selectedCanvasLineId: relationMode ? null : get().selectedCanvasLineId,
     }),
 
   setRelationDraftSource: (relationDraftSourceId) => set({ relationDraftSourceId }),
@@ -1185,9 +1227,96 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       contextMapDraftSourceId: contextMapMode ? get().contextMapDraftSourceId : null,
       relationMode: contextMapMode ? false : get().relationMode,
       relationDraftSourceId: contextMapMode ? null : get().relationDraftSourceId,
+      lineDrawMode: contextMapMode ? false : get().lineDrawMode,
+      selectedCanvasLineId: contextMapMode ? null : get().selectedCanvasLineId,
     }),
 
   setContextMapDraftSource: (contextMapDraftSourceId) => set({ contextMapDraftSourceId }),
+
+  setLineDrawMode: (lineDrawMode) =>
+    set({
+      lineDrawMode,
+      selectedCanvasLineId: lineDrawMode ? null : get().selectedCanvasLineId,
+      relationMode: lineDrawMode ? false : get().relationMode,
+      relationDraftSourceId: lineDrawMode ? null : get().relationDraftSourceId,
+      contextMapMode: lineDrawMode ? false : get().contextMapMode,
+      contextMapDraftSourceId: lineDrawMode ? null : get().contextMapDraftSourceId,
+    }),
+
+  setLineArrowHead: (lineArrowHead) => set({ lineArrowHead }),
+
+  addCanvasLine: (line) => {
+    const normalized = normalizeCanvasLine({
+      ...line,
+      arrowHead: line.arrowHead ?? get().lineArrowHead,
+    });
+    if (!normalized) return null;
+    commit(set, get, (s) => ({
+      canvasLines: [...s.canvasLines, normalized],
+      selectedCanvasLineId: normalized.id,
+      selectedElementIds: [],
+      selectedRelationId: null,
+      selectedContextRelationId: null,
+      selectedBoundedContextIds: [],
+      selectedSwimlaneIds: [],
+    }));
+    return normalized.id;
+  },
+
+  updateCanvasLine: (id, patch) =>
+    commit(set, get, (s) => ({
+      canvasLines: s.canvasLines.map((line) => {
+        if (line.id !== id) return line;
+        return normalizeCanvasLine({ ...line, ...patch, id: line.id }) ?? line;
+      }),
+    })),
+
+  deleteCanvasLine: (id) =>
+    commit(set, get, (s) => ({
+      canvasLines: s.canvasLines.filter((line) => line.id !== id),
+      selectedCanvasLineId: s.selectedCanvasLineId === id ? null : s.selectedCanvasLineId,
+    })),
+
+  selectCanvasLine: (id) =>
+    set({
+      selectedCanvasLineId: id,
+      selectedElementIds: [],
+      selectedRelationId: null,
+      selectedContextRelationId: null,
+      selectedBoundedContextIds: [],
+      selectedSwimlaneIds: [],
+    }),
+
+  addBookmark: (name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return null;
+    const bookmark: ViewBookmark = {
+      id: generateStormId(),
+      name: trimmed,
+      viewport: { ...get().viewport },
+    };
+    commit(set, get, (s) => ({ bookmarks: [...s.bookmarks, bookmark] }));
+    return bookmark.id;
+  },
+
+  updateBookmark: (id, patch) =>
+    commit(set, get, (s) => ({
+      bookmarks: s.bookmarks.map((bookmark) =>
+        bookmark.id === id ? { ...bookmark, ...patch, id: bookmark.id } : bookmark,
+      ),
+    })),
+
+  deleteBookmark: (id) =>
+    commit(set, get, (s) => ({
+      bookmarks: s.bookmarks.filter((bookmark) => bookmark.id !== id),
+    })),
+
+  jumpToBookmark: (id) => {
+    const bookmark = get().bookmarks.find((b) => b.id === id);
+    if (!bookmark) return false;
+    set({ viewport: { ...bookmark.viewport } });
+    return true;
+  },
 
   connectBoundedContexts: (sourceContextId, targetContextId) => {
     if (sourceContextId === targetContextId) return null;
@@ -1594,6 +1723,8 @@ export function boardActiveSliceFromStore() {
     contextRelations: s.contextRelations,
     swimlanes: s.swimlanes,
     boundedContexts: s.boundedContexts,
+    canvasLines: s.canvasLines,
+    bookmarks: s.bookmarks,
     timeline: s.timeline,
     viewport: s.viewport,
     snapToTimeline: s.snapToTimeline,

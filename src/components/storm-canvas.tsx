@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 import { CanvasBoardChrome } from "@/components/canvas-board-chrome";
+import { CanvasLines } from "@/components/canvas-lines";
 import { BoundedContextLayer } from "@/components/bounded-context-layer";
 import { ContextMapConnectors } from "@/components/context-map-connectors";
 import { StormConnectors } from "@/components/storm-connectors";
@@ -13,10 +14,12 @@ import { TimelineGuide } from "@/components/timeline-guide";
 import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint } from "@/lib/canvas-viewport";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { elementsInMarquee, swimlanesInMarquee, boundedContextsInMarquee, type WorldRect } from "@/lib/selection-geometry";
+import { lineLength } from "@/lib/canvas-annotations";
 import { sortElementsByZOrder } from "@/lib/element-z-order";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MARQUEE_THRESHOLD_PX = 4;
+const MIN_LINE_LENGTH_WORLD = 8;
 
 function isTypingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
@@ -85,6 +88,9 @@ export function StormCanvas() {
   const relationDraftSourceId = useStormBoardStore((s) => s.relationDraftSourceId);
   const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
   const contextMapDraftSourceId = useStormBoardStore((s) => s.contextMapDraftSourceId);
+  const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
+  const lineArrowHead = useStormBoardStore((s) => s.lineArrowHead);
+  const selectedCanvasLineId = useStormBoardStore((s) => s.selectedCanvasLineId);
 
   const addElement = useStormBoardStore((s) => s.addElement);
   const moveElement = useStormBoardStore((s) => s.moveElement);
@@ -98,14 +104,22 @@ export function StormCanvas() {
   const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
   const connectElements = useStormBoardStore((s) => s.connectElements);
   const addBoundedContext = useStormBoardStore((s) => s.addBoundedContext);
+  const addCanvasLine = useStormBoardStore((s) => s.addCanvasLine);
+  const selectCanvasLine = useStormBoardStore((s) => s.selectCanvasLine);
+  const setLineDrawMode = useStormBoardStore((s) => s.setLineDrawMode);
 
   const [bcDraft, setBcDraft] = useState<WorldRect | null>(null);
   const [bcMode, setBcMode] = useState(false);
   const bcStart = useRef<{ x: number; y: number } | null>(null);
 
+  const [lineDraft, setLineDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(
+    null,
+  );
+  const lineStart = useRef<{ x: number; y: number } | null>(null);
+
   useEffect(() => {
-    if (relationMode || contextMapMode) setBcMode(false);
-  }, [relationMode, contextMapMode]);
+    if (relationMode || contextMapMode || lineDrawMode) setBcMode(false);
+  }, [relationMode, contextMapMode, lineDrawMode]);
 
   const [marqueeDraft, setMarqueeDraft] = useState<WorldRect | null>(null);
   const marqueeStart = useRef<{ x: number; y: number; additive: boolean } | null>(null);
@@ -148,6 +162,7 @@ export function StormCanvas() {
       if (e.key === "Escape") {
         if (relationDraftSourceId) setRelationDraftSource(null);
         if (contextMapDraftSourceId) setContextMapDraftSource(null);
+        if (lineDrawMode) setLineDrawMode(false);
         return;
       }
 
@@ -172,7 +187,7 @@ export function StormCanvas() {
       }
 
       if (e.key === "Enter" || e.key === "a" || e.key === "A") {
-        if (bcMode || relationMode || contextMapMode) return;
+        if (bcMode || relationMode || contextMapMode || lineDrawMode) return;
         e.preventDefault();
         addAtViewportCenter();
       }
@@ -193,6 +208,8 @@ export function StormCanvas() {
     bcMode,
     relationMode,
     contextMapMode,
+    lineDrawMode,
+    setLineDrawMode,
   ]);
 
   // Space for pan: window-level so it works without canvas focus and over stickies.
@@ -310,7 +327,7 @@ export function StormCanvas() {
   }, []);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
-    if (!containerRef.current || bcMode || relationMode || contextMapMode) return;
+    if (!containerRef.current || bcMode || relationMode || contextMapMode || lineDrawMode) return;
     const rect = containerRef.current.getBoundingClientRect();
     const world = screenToWorld(viewport, e.clientX, e.clientY, rect);
     const snapped = applySnap(world.x, world.y);
@@ -491,6 +508,13 @@ export function StormCanvas() {
           return;
         }
         if (e.button !== 0) return;
+        if (lineDrawMode) {
+          const world = worldFromClient(e.clientX, e.clientY);
+          if (!world) return;
+          lineStart.current = { x: world.x, y: world.y };
+          setLineDraft({ x1: world.x, y1: world.y, x2: world.x, y2: world.y });
+          return;
+        }
         if (bcMode) {
           const world = worldFromClient(e.clientX, e.clientY);
           if (!world) return;
@@ -528,6 +552,13 @@ export function StormCanvas() {
             h: Math.abs(world.y - sy),
           });
         }
+        if (lineDrawMode && lineStart.current) {
+          const world = worldFromClient(e.clientX, e.clientY);
+          if (!world) return;
+          const sx = lineStart.current.x;
+          const sy = lineStart.current.y;
+          setLineDraft({ x1: sx, y1: sy, x2: world.x, y2: world.y });
+        }
       }}
       onPointerUp={(e) => {
         rmbPanPending.current = null;
@@ -542,8 +573,19 @@ export function StormCanvas() {
         if (bcMode && bcDraft && bcDraft.w > 40 && bcDraft.h > 40) {
           addBoundedContext(bcDraft.x, bcDraft.y, bcDraft.w, bcDraft.h);
         }
+        if (lineDrawMode && lineDraft && lineLength(lineDraft) >= MIN_LINE_LENGTH_WORLD) {
+          addCanvasLine({
+            x1: lineDraft.x1,
+            y1: lineDraft.y1,
+            x2: lineDraft.x2,
+            y2: lineDraft.y2,
+            arrowHead: lineArrowHead,
+          });
+        }
         bcStart.current = null;
         setBcDraft(null);
+        lineStart.current = null;
+        setLineDraft(null);
       }}
       onPointerCancel={(e) => {
         rmbPanPending.current = null;
@@ -557,6 +599,8 @@ export function StormCanvas() {
         }
         bcStart.current = null;
         setBcDraft(null);
+        lineStart.current = null;
+        setLineDraft(null);
       }}
       onDoubleClick={handleDoubleClick}
       tabIndex={0}
@@ -611,6 +655,23 @@ export function StormCanvas() {
         </div>
       )}
 
+      {lineDrawMode && (
+        <div
+          data-canvas-chrome
+          className="dock-surface absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)]"
+        >
+          <span>Linie ziehen · Pfeiltyp unten links wählen · Esc: beenden</span>
+          <button
+            type="button"
+            onClick={() => setLineDrawMode(false)}
+            className="rounded p-0.5 hover:bg-[var(--control-hover)]"
+            title="Zeichenmodus beenden"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       <div
         data-canvas-world
         className="absolute origin-top-left"
@@ -660,6 +721,11 @@ export function StormCanvas() {
           relationDraftSourceId={relationDraftSourceId}
           onSelectRelation={selectRelation}
         />
+        <CanvasLines
+          selectedLineId={selectedCanvasLineId}
+          onSelectLine={selectCanvasLine}
+          draftLine={lineDraft}
+        />
         {sortElementsByZOrder(elements).map((el) => (
           <StormElementCard
             key={el.id}
@@ -687,9 +753,11 @@ export function StormCanvas() {
             ? "Verbinden · Esc: Abbrechen"
             : contextMapMode
               ? "Context Map · Esc: Abbrechen"
-              : bcMode
-                ? "Rechteck ziehen · Esc: Abbrechen"
-                : "1–9/0 Typ · Rechtsklick / Trackpad / Leertaste: Pan · Rahmen"
+              : lineDrawMode
+                ? "Linie ziehen · Esc: beenden"
+                : bcMode
+                  ? "Rechteck ziehen · Esc: Abbrechen"
+                  : "1–9/0 Typ · Rechtsklick / Trackpad / Leertaste: Pan · Rahmen"
         }
       />
     </div>
