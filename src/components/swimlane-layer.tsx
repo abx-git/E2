@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
 import { elementIdsInSwimlane } from "@/lib/region-containment";
+import { resolveRegionPaint } from "@/lib/region-style";
 import { useStormBoardStore } from "@/store/storm-board-store";
+import { Lock } from "lucide-react";
 
 const MIN_SIZE = 80;
 const DEFAULT_LABEL = "Swimlane";
@@ -88,10 +90,10 @@ export function SwimlaneLayer() {
     e.stopPropagation();
     e.preventDefault();
     selectSwimlane(laneId);
-    useStormBoardStore.getState().beginGesture();
-
     const lane = useStormBoardStore.getState().swimlanes.find((l) => l.id === laneId);
-    if (!lane) return;
+    if (!lane || lane.locked) return;
+
+    useStormBoardStore.getState().beginGesture();
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -116,13 +118,12 @@ export function SwimlaneLayer() {
 
   const startResize = (laneId: string, handle: ResizeHandle, e: React.PointerEvent) => {
     if (e.button !== 0) return;
+    const lane = useStormBoardStore.getState().swimlanes.find((l) => l.id === laneId);
+    if (!lane || lane.locked) return;
     e.stopPropagation();
     e.preventDefault();
     selectSwimlane(laneId);
     useStormBoardStore.getState().beginGesture();
-
-    const lane = useStormBoardStore.getState().swimlanes.find((l) => l.id === laneId);
-    if (!lane) return;
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -173,20 +174,22 @@ export function SwimlaneLayer() {
       {ordered.map((lane) => {
         const selected = selectedSwimlaneIds.includes(lane.id);
         const editing = editingId === lane.id;
+        const paint = resolveRegionPaint("swimlane", lane);
         return (
           <div
             key={lane.id}
             className={[
               "absolute border-y-2",
-              selected || editing ? "border-sky-500 ring-2 ring-sky-300" : "border-slate-300/70",
-              editing ? "cursor-default" : "cursor-move",
+              selected || editing ? "ring-2 ring-sky-300" : "",
+              paint.locked ? "cursor-default" : editing ? "cursor-default" : "cursor-move",
             ].join(" ")}
             style={{
               left: lane.x ?? 0,
               top: lane.y,
               width: lane.width ?? 4000,
               height: lane.height,
-              backgroundColor: lane.color ?? "rgba(148,163,184,0.12)",
+              backgroundColor: paint.backgroundColor,
+              borderColor: selected || editing ? "#0ea5e9" : paint.borderColor,
               zIndex: cssRegionStackingZIndex(lane, { elevated: selected || editing }),
             }}
             onPointerDown={(e) => startMove(lane.id, e)}
@@ -206,6 +209,14 @@ export function SwimlaneLayer() {
               store.openContextMenu(e.clientX, e.clientY, { kind: "swimlane", id: lane.id });
             }}
           >
+            {paint.locked && (
+              <div
+                className="pointer-events-none absolute right-2 top-2 rounded bg-slate-100/90 p-1 text-slate-600"
+                title="Gesperrt"
+              >
+                <Lock className="h-3 w-3" aria-hidden />
+              </div>
+            )}
             {editing ? (
               <input
                 ref={inputRef}
@@ -235,6 +246,7 @@ export function SwimlaneLayer() {
 
             {selected &&
               !editing &&
+              !paint.locked &&
               (Object.keys(HANDLE_POSITIONS) as ResizeHandle[]).map((handle) => (
                 <button
                   key={handle}

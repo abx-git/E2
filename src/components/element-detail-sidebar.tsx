@@ -5,6 +5,7 @@ import { AlertCircle, ChevronDown, ExternalLink, HelpCircle, Trash2 } from "luci
 
 import { activateBoardLink } from "@/lib/board-link";
 import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-panel";
+import { RegionAppearanceControls } from "@/components/region-appearance-controls";
 import { lineArrowHeadShortLabel } from "@/components/canvas-lines";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
@@ -175,28 +176,42 @@ export function ElementDetailSidebar({
               onChange={(e) => updateSwimlane(selectedSwimlane.id, { label: e.target.value })}
             />
           </Field>
+          <RegionAppearanceControls
+            kind="swimlane"
+            region={selectedSwimlane}
+            onChange={(patch) => updateSwimlane(selectedSwimlane.id, patch)}
+          />
           <CollapsibleSection title="Position & Größe" defaultOpen={false}>
+            {selectedSwimlane.locked && (
+              <p className="mb-2 text-[0.65rem] text-[var(--muted)]">
+                Gesperrt — Position und Größe sind geschützt.
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <NumberField
                 label="X"
                 value={selectedSwimlane.x ?? 0}
+                disabled={selectedSwimlane.locked}
                 onChange={(v) => updateSwimlane(selectedSwimlane.id, { x: v })}
               />
               <NumberField
                 label="Y"
                 value={selectedSwimlane.y}
+                disabled={selectedSwimlane.locked}
                 onChange={(v) => updateSwimlane(selectedSwimlane.id, { y: v })}
               />
               <NumberField
                 label="Breite"
                 value={selectedSwimlane.width ?? 4000}
                 min={80}
+                disabled={selectedSwimlane.locked}
                 onChange={(v) => updateSwimlane(selectedSwimlane.id, { width: Math.max(80, v) })}
               />
               <NumberField
                 label="Höhe"
                 value={selectedSwimlane.height}
                 min={80}
+                disabled={selectedSwimlane.locked}
                 onChange={(v) => updateSwimlane(selectedSwimlane.id, { height: Math.max(80, v) })}
               />
               <NumberField
@@ -1312,18 +1327,21 @@ function NumberField({
   value,
   onChange,
   min,
+  disabled,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   min?: number;
+  disabled?: boolean;
 }) {
   return (
     <Field label={label}>
       <input
         type="number"
         min={min}
-        className="dock-field"
+        disabled={disabled}
+        className="dock-field disabled:opacity-50"
         value={Math.round(value)}
         onChange={(e) => onChange(Number(e.target.value) || 0)}
       />

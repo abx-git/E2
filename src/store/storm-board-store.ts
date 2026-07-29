@@ -84,6 +84,7 @@ import type { ContextMenuState, ContextMenuTarget } from "@/types/context-menu";
 import type { ActionItem } from "@/types/action-item";
 import type { CanvasLine, LineArrowHead, ViewBookmark } from "@/types/canvas-annotation";
 import { normalizeCanvasLine } from "@/lib/canvas-annotations";
+import { sanitizeRegionGeometryPatch } from "@/lib/region-style";
 
 export interface StormBoardState {
   title: string;
@@ -1371,10 +1372,14 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => {
       const lane = s.swimlanes.find((l) => l.id === id);
       if (!lane) return {};
-      const nextLane = { ...lane, ...patch, id: lane.id };
+      const safePatch = sanitizeRegionGeometryPatch(
+        Boolean(lane.locked),
+        patch as Record<string, unknown>,
+      ) as typeof patch;
+      const nextLane = { ...lane, ...safePatch, id: lane.id };
       const swimlanes = s.swimlanes.map((l) => (l.id === id ? nextLane : l));
 
-      const resizing = patch.width !== undefined || patch.height !== undefined;
+      const resizing = safePatch.width !== undefined || safePatch.height !== undefined;
       const dx = (nextLane.x ?? 0) - (lane.x ?? 0);
       const dy = nextLane.y - lane.y;
       let elements = s.elements;
@@ -1390,7 +1395,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       // During a locked move, do not re-run containment (would "pick up" passers-by).
       // Resize and non-gesture edits still update assignments immediately.
       const lockedMove = Boolean(options?.moveElementIds) && !resizing;
-      if (!lockedMove && (patch.x !== undefined || patch.y !== undefined || resizing)) {
+      if (!lockedMove && (safePatch.x !== undefined || safePatch.y !== undefined || resizing)) {
         elements = applyContainmentAssignments(elements, swimlanes, s.boundedContexts);
       }
 
@@ -1433,10 +1438,14 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => {
       const bc = s.boundedContexts.find((b) => b.id === id);
       if (!bc) return {};
-      const nextBc = { ...bc, ...patch, id: bc.id };
+      const safePatch = sanitizeRegionGeometryPatch(
+        Boolean(bc.locked),
+        patch as Record<string, unknown>,
+      ) as typeof patch;
+      const nextBc = { ...bc, ...safePatch, id: bc.id };
       const boundedContexts = s.boundedContexts.map((b) => (b.id === id ? nextBc : b));
 
-      const resizing = patch.width !== undefined || patch.height !== undefined;
+      const resizing = safePatch.width !== undefined || safePatch.height !== undefined;
       const dx = nextBc.x - bc.x;
       const dy = nextBc.y - bc.y;
       let elements = s.elements;
@@ -1455,7 +1464,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       }
 
       const lockedMove = Boolean(options?.moveElementIds) && !resizing;
-      if (!lockedMove && (patch.x !== undefined || patch.y !== undefined || resizing)) {
+      if (!lockedMove && (safePatch.x !== undefined || safePatch.y !== undefined || resizing)) {
         elements = applyContainmentAssignments(elements, s.swimlanes, boundedContexts);
       }
 

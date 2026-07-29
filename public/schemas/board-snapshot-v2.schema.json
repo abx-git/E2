@@ -629,6 +629,26 @@
         "color": {
           "type": "string"
         },
+        "fillOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Deckkraft der Füllung (0–1)."
+        },
+        "borderColor": {
+          "type": "string",
+          "description": "Randfarbe (#rrggbb)."
+        },
+        "borderOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Deckkraft des Rands (0–1)."
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "Wenn true, Position und Größe sind auf dem Canvas gesperrt."
+        },
         "zIndex": {
           "type": "integer",
           "description": "Stapelreihenfolge unter Swimlanes und Bounded Contexts (höher = weiter vorn)."
@@ -673,6 +693,26 @@
         },
         "color": {
           "type": "string"
+        },
+        "fillOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Deckkraft der Füllung (0–1)."
+        },
+        "borderColor": {
+          "type": "string",
+          "description": "Randfarbe (#rrggbb)."
+        },
+        "borderOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Deckkraft des Rands (0–1)."
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "Wenn true, Position und Größe sind auf dem Canvas gesperrt."
         },
         "zIndex": {
           "type": "integer",

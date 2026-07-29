@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChevronDown, LayoutDashboard } from "lucide-react";
 
 import { resolveBoundedContextDetailView } from "@/lib/bounded-context-view";
+import { RegionAppearanceControls } from "@/components/region-appearance-controls";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { BoundedContext } from "@/types/storm-element";
 
@@ -65,50 +66,57 @@ export function BoundedContextDetailPanel({
         />
       </Field>
 
+      <RegionAppearanceControls
+        kind="boundedContext"
+        region={boundedContext}
+        onChange={(patch) => updateBoundedContext(boundedContext.id, patch)}
+      />
+
       {!compact && (
-        <CollapsibleSection title="Position & Größe" defaultOpen={false}>
-          <div className="grid grid-cols-2 gap-2">
-            <NumberField
-              label="X"
-              value={boundedContext.x}
-              onChange={(v) => updateBoundedContext(boundedContext.id, { x: v })}
-            />
-            <NumberField
-              label="Y"
-              value={boundedContext.y}
-              onChange={(v) => updateBoundedContext(boundedContext.id, { y: v })}
-            />
-            <NumberField
-              label="Breite"
-              value={boundedContext.width}
-              min={80}
-              onChange={(v) =>
-                updateBoundedContext(boundedContext.id, { width: Math.max(80, v) })
-              }
-            />
-            <NumberField
-              label="Höhe"
-              value={boundedContext.height}
-              min={80}
-              onChange={(v) =>
-                updateBoundedContext(boundedContext.id, { height: Math.max(80, v) })
-              }
-            />
-            <NumberField
-              label="Ebene (z)"
-              value={boundedContext.zIndex ?? 0}
-              onChange={(v) => updateBoundedContext(boundedContext.id, { zIndex: v })}
-            />
-          </div>
-          <Field label="Farbe">
-            <input
-              type="color"
-              className="dock-field h-9 cursor-pointer p-1"
-              value={boundedContext.color ?? "#2a9d8f"}
-              onChange={(e) => updateBoundedContext(boundedContext.id, { color: e.target.value })}
-            />
-          </Field>
-        </CollapsibleSection>
+          <CollapsibleSection title="Position & Größe" defaultOpen={false}>
+            {boundedContext.locked && (
+              <p className="mb-2 text-[0.65rem] text-[var(--muted)]">
+                Gesperrt — Position und Größe sind geschützt.
+              </p>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <NumberField
+                label="X"
+                value={boundedContext.x}
+                disabled={boundedContext.locked}
+                onChange={(v) => updateBoundedContext(boundedContext.id, { x: v })}
+              />
+              <NumberField
+                label="Y"
+                value={boundedContext.y}
+                disabled={boundedContext.locked}
+                onChange={(v) => updateBoundedContext(boundedContext.id, { y: v })}
+              />
+              <NumberField
+                label="Breite"
+                value={boundedContext.width}
+                min={80}
+                disabled={boundedContext.locked}
+                onChange={(v) =>
+                  updateBoundedContext(boundedContext.id, { width: Math.max(80, v) })
+                }
+              />
+              <NumberField
+                label="Höhe"
+                value={boundedContext.height}
+                min={80}
+                disabled={boundedContext.locked}
+                onChange={(v) =>
+                  updateBoundedContext(boundedContext.id, { height: Math.max(80, v) })
+                }
+              />
+              <NumberField
+                label="Ebene (z)"
+                value={boundedContext.zIndex ?? 0}
+                onChange={(v) => updateBoundedContext(boundedContext.id, { zIndex: v })}
+              />
+            </div>
+          </CollapsibleSection>
       )}
     </div>
   );
@@ -157,18 +165,21 @@ function NumberField({
   value,
   onChange,
   min,
+  disabled,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   min?: number;
+  disabled?: boolean;
 }) {
   return (
     <Field label={label}>
       <input
         type="number"
         min={min}
-        className="dock-field"
+        disabled={disabled}
+        className="dock-field disabled:opacity-50"
         value={Math.round(value)}
         onChange={(e) => onChange(Number(e.target.value) || 0)}
       />

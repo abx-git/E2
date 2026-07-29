@@ -19,12 +19,14 @@ import {
   HelpCircle,
   LayoutDashboard,
   Link2,
+  Lock,
   RotateCcw,
   RotateCw,
   SendToBack,
   StretchHorizontal,
   StretchVertical,
   Trash2,
+  Unlock,
 } from "lucide-react";
 
 import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
@@ -98,6 +100,8 @@ export function CanvasContextMenu({
   const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
   const deleteSwimlane = useStormBoardStore((s) => s.deleteSwimlane);
   const deleteBoundedContext = useStormBoardStore((s) => s.deleteBoundedContext);
+  const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
+  const updateBoundedContext = useStormBoardStore((s) => s.updateBoundedContext);
   const openBoundedContextView = useStormBoardStore((s) => s.openBoundedContextView);
   const bringRegionsToFront = useStormBoardStore((s) => s.bringRegionsToFront);
   const sendRegionsToBack = useStormBoardStore((s) => s.sendRegionsToBack);
@@ -647,6 +651,12 @@ export function CanvasContextMenu({
     body = (
       <>
         <Header title={lane.label} subtitle="Swimlane" />
+        <Item
+          icon={lane.locked ? Unlock : Lock}
+          label={lane.locked ? "Entsperren" : "Sperren"}
+          onClick={() => run(() => updateSwimlane(lane.id, { locked: !lane.locked }))}
+        />
+        <Separator />
         <Section label="Ebene" />
         <Item
           icon={BringToFront}
@@ -701,6 +711,11 @@ export function CanvasContextMenu({
           icon={LayoutDashboard}
           label={detailView ? `Detail-Sicht öffnen (${detailView.name})` : "Detail-Sicht erstellen"}
           onClick={() => run(() => openBoundedContextView(bc.id))}
+        />
+        <Item
+          icon={bc.locked ? Unlock : Lock}
+          label={bc.locked ? "Entsperren" : "Sperren"}
+          onClick={() => run(() => updateBoundedContext(bc.id, { locked: !bc.locked }))}
         />
         <Separator />
         <Item

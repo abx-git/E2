@@ -11,6 +11,7 @@ import {
 } from "@/lib/element-z-order";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { resolveNoteColor } from "@/lib/note-colors";
+import { resolveRegionPaint } from "@/lib/region-style";
 import { boardActiveSliceFromStore } from "@/store/storm-board-store";
 import type { BoardActiveSlice } from "@/lib/storm-json";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
@@ -946,23 +947,6 @@ function mxLabelValue(text: string): string {
   return escapeXml(text).replace(/\r\n|\n|\r/g, "&#xa;");
 }
 
-function parseCssColor(color: string): { hex: string; opacityPct?: number } {
-  const rgba = color.match(
-    /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/i,
-  );
-  if (rgba) {
-    const hex =
-      "#" +
-      [rgba[1], rgba[2], rgba[3]]
-        .map((n) => Number(n).toString(16).padStart(2, "0"))
-        .join("");
-    const opacityPct =
-      rgba[4] != null ? Math.max(0, Math.min(100, Math.round(Number(rgba[4]) * 100))) : undefined;
-    return { hex, opacityPct };
-  }
-  return { hex: color.startsWith("#") ? color : `#${color}` };
-}
-
 function mxStyle(parts: Record<string, string | number | boolean | undefined>): string {
   return Object.entries(parts)
     .filter(([, v]) => v !== undefined && v !== false)
@@ -990,7 +974,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       const y = lane.y + oy;
       const w = lane.width ?? 4000;
       const h = lane.height;
-      const { hex, opacityPct } = parseCssColor(lane.color ?? "rgba(148,163,184,0.18)");
+      const paint = resolveRegionPaint("swimlane", lane);
       const style = mxStyle({
         rounded: 0,
         whiteSpace: "wrap",
@@ -999,9 +983,10 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
         verticalAlign: "top",
         spacingLeft: 12,
         spacingTop: 4,
-        fillColor: hex,
-        fillOpacity: opacityPct ?? 40,
-        strokeColor: "#94a3b8",
+        fillColor: paint.fillHex,
+        fillOpacity: Math.round(paint.fillOpacity * 100),
+        strokeColor: paint.borderHex,
+        strokeOpacity: Math.round(paint.borderOpacity * 100),
         strokeWidth: 2,
         fontColor: "#475569",
         fontStyle: 1,
@@ -1014,7 +999,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       );
     } else {
       const bc = entry.region;
-      const { hex } = parseCssColor(bc.color ?? "#dbeafe");
+      const paint = resolveRegionPaint("boundedContext", bc);
       const style = mxStyle({
         rounded: 1,
         arcSize: 8,
@@ -1024,9 +1009,10 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       verticalAlign: "top",
       spacingLeft: 8,
       spacingTop: 4,
-      fillColor: hex,
-      fillOpacity: 40,
-      strokeColor: "#3b82f6",
+      fillColor: paint.fillHex,
+      fillOpacity: Math.round(paint.fillOpacity * 100),
+      strokeColor: paint.borderHex,
+      strokeOpacity: Math.round(paint.borderOpacity * 100),
       strokeWidth: 2,
       fontColor: "#1e40af",
       fontStyle: 1,
@@ -1037,7 +1023,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       `<mxGeometry x="${bc.x + ox}" y="${bc.y + oy}" width="${bc.width}" height="${bc.height}" as="geometry"/>`,
       `</mxCell>`,
     );
-    }
+  }
   }
 
   if (state.timeline.visible !== false) {
@@ -1164,16 +1150,16 @@ export function exportBoardSvg(): void {
       const y = lane.y + oy;
       const w = lane.width ?? 4000;
       const h = lane.height;
-      const fill = lane.color ?? "rgba(148,163,184,0.18)";
+      const paint = resolveRegionPaint("swimlane", lane);
       parts.push(
-        `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${escapeXml(fill)}" stroke="#94a3b8" stroke-width="2"/>`,
+        `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${escapeXml(paint.backgroundColor)}" stroke="${escapeXml(paint.borderColor)}" stroke-width="2"/>`,
         `<text class="region" x="${x + 12}" y="${y + 18}" fill="#475569">${escapeXml(lane.label)}</text>`,
       );
     } else {
       const bc = entry.region;
-      const fill = bc.color ?? "#dbeafe";
+      const paint = resolveRegionPaint("boundedContext", bc);
       parts.push(
-        `<rect x="${bc.x + ox}" y="${bc.y + oy}" width="${bc.width}" height="${bc.height}" fill="${escapeXml(fill)}" fill-opacity="0.4" stroke="#3b82f6" stroke-width="2" rx="8"/>`,
+        `<rect x="${bc.x + ox}" y="${bc.y + oy}" width="${bc.width}" height="${bc.height}" fill="${escapeXml(paint.backgroundColor)}" stroke="${escapeXml(paint.borderColor)}" stroke-width="2" rx="8"/>`,
         `<text class="region" x="${bc.x + ox + 8}" y="${bc.y + oy + 18}" fill="#1e40af">${escapeXml(bc.label)}</text>`,
       );
     }
@@ -1301,9 +1287,10 @@ export async function exportBoardPng(): Promise<void> {
       const y = lane.y + oy;
       const w = lane.width ?? 4000;
       const h = lane.height;
-      ctx.fillStyle = lane.color ?? "rgba(148,163,184,0.18)";
+      const paint = resolveRegionPaint("swimlane", lane);
+      ctx.fillStyle = paint.backgroundColor;
       ctx.fillRect(x, y, w, h);
-      ctx.strokeStyle = "#94a3b8";
+      ctx.strokeStyle = paint.borderColor;
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, w, h);
       ctx.fillStyle = "#475569";
@@ -1315,12 +1302,11 @@ export async function exportBoardPng(): Promise<void> {
       const bc = entry.region;
       const x = bc.x + ox;
       const y = bc.y + oy;
-      ctx.globalAlpha = 0.4;
-      ctx.fillStyle = bc.color ?? "#dbeafe";
+      const paint = resolveRegionPaint("boundedContext", bc);
+      ctx.fillStyle = paint.backgroundColor;
       roundRect(ctx, x, y, bc.width, bc.height, 8);
       ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = "#3b82f6";
+      ctx.strokeStyle = paint.borderColor;
       ctx.lineWidth = 2;
       roundRect(ctx, x, y, bc.width, bc.height, 8);
       ctx.stroke();

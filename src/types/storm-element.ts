@@ -229,7 +229,16 @@ export interface Swimlane {
   y: number;
   width: number;
   height: number;
+  /** Fill color (#rrggbb or legacy rgba). */
   color?: string;
+  /** Fill opacity 0–1 (defaults by region type when omitted). */
+  fillOpacity?: number;
+  /** Border color (#rrggbb). */
+  borderColor?: string;
+  /** Border opacity 0–1. */
+  borderOpacity?: number;
+  /** When true, position/size cannot be changed on the canvas. */
+  locked?: boolean;
   /** Stacking order among swimlanes and bounded contexts (higher = in front). */
   zIndex?: number;
 }
@@ -242,7 +251,16 @@ export interface BoundedContext {
   y: number;
   width: number;
   height: number;
+  /** Fill color (#rrggbb or legacy rgba). */
   color?: string;
+  /** Fill opacity 0–1 (defaults by region type when omitted). */
+  fillOpacity?: number;
+  /** Border color (#rrggbb). */
+  borderColor?: string;
+  /** Border opacity 0–1. */
+  borderOpacity?: number;
+  /** When true, position/size cannot be changed on the canvas. */
+  locked?: boolean;
   /** Stacking order among swimlanes and bounded contexts (higher = in front). */
   zIndex?: number;
   /** Linked detail view (Sicht) with a copy of this context's contents. */

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, Lock } from "lucide-react";
 
 import { resolveBoundedContextViewNavigation } from "@/lib/bounded-context-view";
 import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
 import { elementIdsInBoundedContext } from "@/lib/region-containment";
+import { resolveRegionPaint } from "@/lib/region-style";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_SIZE = 80;
@@ -114,6 +115,8 @@ export function BoundedContextLayer() {
     }
 
     selectBoundedContext(bcId);
+    const current = store.boundedContexts.find((b) => b.id === bcId);
+    if (!current || current.locked) return;
 
     const isTouch = e.pointerType === "touch";
     const startX = e.clientX;
@@ -124,14 +127,13 @@ export function BoundedContextLayer() {
 
     const beginDragMove = () => {
       if (moveActive || longPressTriggered) return;
+      const live = useStormBoardStore.getState().boundedContexts.find((b) => b.id === bcId);
+      if (!live || live.locked) return;
       moveActive = true;
       store.beginGesture();
 
-      const bc = useStormBoardStore.getState().boundedContexts.find((b) => b.id === bcId);
-      if (!bc) return;
-
-      const orig = { x: bc.x, y: bc.y };
-      const moveElementIds = elementIdsInBoundedContext(store.elements, bc);
+      const orig = { x: live.x, y: live.y };
+      const moveElementIds = elementIdsInBoundedContext(store.elements, live);
 
       const onDragMove = (ev: PointerEvent) => {
         const dx = (ev.clientX - startX) / zoom;
@@ -192,13 +194,12 @@ export function BoundedContextLayer() {
 
   const startResize = (bcId: string, handle: ResizeHandle, e: React.PointerEvent) => {
     if (e.button !== 0) return;
+    const bc = useStormBoardStore.getState().boundedContexts.find((b) => b.id === bcId);
+    if (!bc || bc.locked) return;
     e.stopPropagation();
     e.preventDefault();
     selectBoundedContext(bcId);
     useStormBoardStore.getState().beginGesture();
-
-    const bc = useStormBoardStore.getState().boundedContexts.find((b) => b.id === bcId);
-    if (!bc) return;
 
     const startX = e.clientX;
     const startY = e.clientY;
@@ -246,23 +247,28 @@ export function BoundedContextLayer() {
         const draftSource = contextMapDraftSourceId === bc.id;
         const editing = editingId === bc.id;
         const viewNav = resolveBoundedContextViewNavigation(bc, activeViewId, views);
+        const paint = resolveRegionPaint("boundedContext", bc);
         return (
           <div
             key={bc.id}
             className={[
               "absolute rounded-lg border-2 touch-manipulation",
-              selected || draftSource || editing
-                ? "border-blue-600 ring-2 ring-blue-300"
-                : "border-blue-400/70",
+              selected || draftSource || editing ? "ring-2 ring-blue-300" : "",
               draftSource ? "ring-[#e9c46a]" : "",
-              connectMode ? "cursor-crosshair" : editing ? "cursor-default" : "cursor-move",
+              connectMode
+                ? "cursor-crosshair"
+                : paint.locked || editing
+                  ? "cursor-default"
+                  : "cursor-move",
             ].join(" ")}
             style={{
               left: bc.x,
               top: bc.y,
               width: bc.width,
               height: bc.height,
-              backgroundColor: bc.color ? `${bc.color}66` : "rgba(219,234,254,0.35)",
+              backgroundColor: paint.backgroundColor,
+              borderColor:
+                selected || draftSource || editing ? "#2563eb" : paint.borderColor,
               zIndex: cssRegionStackingZIndex(bc, {
                 elevated: selected || draftSource || editing,
               }),
@@ -288,6 +294,14 @@ export function BoundedContextLayer() {
               });
             }}
           >
+            {paint.locked && (
+              <div
+                className="pointer-events-none absolute right-2 top-2 z-40 rounded bg-blue-100 p-1 text-blue-800"
+                title="Gesperrt"
+              >
+                <Lock className="h-3 w-3" aria-hidden />
+              </div>
+            )}
             {editing ? (
               <input
                 ref={inputRef}
@@ -327,7 +341,10 @@ export function BoundedContextLayer() {
                     ? `Detail-Sicht öffnen (${viewNav.targetViewName})`
                     : `Übersicht öffnen (${viewNav.targetViewName})`
                 }
-                className="absolute right-2 top-2 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-blue-600 bg-white text-blue-800 shadow-sm hover:bg-blue-50"
+                className={[
+                  "absolute z-50 flex h-6 w-6 items-center justify-center rounded-full border border-blue-600 bg-white text-blue-800 shadow-sm hover:bg-blue-50",
+                  paint.locked ? "right-9 top-2" : "right-2 top-2",
+                ].join(" ")}
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -346,6 +363,7 @@ export function BoundedContextLayer() {
 
             {selected &&
               !editing &&
+              !paint.locked &&
               (Object.keys(HANDLE_POSITIONS) as ResizeHandle[]).map((handle) => (
                 <button
                   key={handle}
