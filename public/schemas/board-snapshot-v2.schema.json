@@ -644,6 +644,11 @@
         "zIndex": {
           "type": "integer",
           "description": "Stapelreihenfolge unter Swimlanes und Bounded Contexts (höher = weiter vorn)."
+        },
+        "detailViewId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Verknüpfte Detail-Sicht mit Kopie des Bounded-Context-Inhalts."
         }
       }
     },

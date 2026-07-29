@@ -211,6 +211,8 @@ export interface BoundedContext {
   color?: string;
   /** Stacking order among swimlanes and bounded contexts (higher = in front). */
   zIndex?: number;
+  /** Linked detail view (Sicht) with a copy of this context's contents. */
+  detailViewId?: string;
 }
 
 export interface Timeline {
