@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AppearanceSettings } from "@/components/appearance-settings";
-import { Clock, ClipboardCopy, Download, FolderOpen, Loader2, Save, Upload, Users, X } from "lucide-react";
+import { Clock, ClipboardCopy, Download, FilePlus, FolderOpen, Loader2, Save, Upload, Users, X } from "lucide-react";
 import {
   BACKUP_INTERVAL_OPTIONS_MINUTES,
   listLocalBackups,
@@ -27,6 +27,7 @@ export interface DataStoragePanelProps {
   backupLastLabel: string;
   onBackupIntervalChange: (minutes: BackupIntervalMinutes) => void;
   onBackupNow: () => void;
+  onNewWorkingFile: () => void;
   onOpenWorkingFile: () => void;
   /** Speichern unter… — pick a new path; becomes the Arbeitsdatei. */
   onSaveWorkingFileAs: () => void;
@@ -169,6 +170,7 @@ export function DataStoragePanel({
   backupLastLabel,
   onBackupIntervalChange,
   onBackupNow,
+  onNewWorkingFile,
   onOpenWorkingFile,
   onSaveWorkingFileAs,
   onOpenRecentWorkingFile,
@@ -270,12 +272,15 @@ export function DataStoragePanel({
             ) : (
               <p className="text-xs text-[var(--muted)]">Keine Arbeitsdatei verknüpft.</p>
             )}
+            <ActionButton onClick={onNewWorkingFile} disabled={busy}>
+              <FilePlus className="h-4 w-4" /> Neue Datei
+            </ActionButton>
             {fsAccessSupported ? (
               <>
                 <ActionButton onClick={onOpenWorkingFile} disabled={busy}>
                   <FolderOpen className="h-4 w-4" /> Datei öffnen
                 </ActionButton>
-                <ActionButton onClick={onSaveWorkingFileAs} disabled={busy}>
+                <ActionButton onClick={onSaveWorkingFileAs} disabled={busy} emphasize>
                   <Save className="h-4 w-4" /> Speichern unter…
                 </ActionButton>
                 {recentFiles.length > 0 && (

@@ -81,6 +81,7 @@ import {
   attachWorkingFileFromPastedText,
   attachWorkingFileOpen,
   createAndAttachWorkingFile,
+  detachWorkingFile,
   getWorkingFileLabel,
   hydrateStoreFromWorkingFile,
   isWorkingFileAttached,
@@ -95,6 +96,7 @@ import {
   saveWorkingFileAs,
   suggestedWorkingFileName,
 } from "@/lib/working-file";
+import { createDefaultBoardDocument } from "@/lib/storm-json";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { flushCollabSnapshotNow, useCollabStore } from "@/lib/collab/session";
 import type { ElementType, WorkshopFormat } from "@/types/storm-element";
@@ -266,6 +268,39 @@ export function StormBoard() {
         setSetupOpen(false);
         setStorageOpen(false);
       }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleNewWorkingFile = async () => {
+    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+      window.alert(
+        "Während der Kollaboration kann keine neue Datei angelegt werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
+      );
+      return;
+    }
+
+    const dirty = isWorkingFileDirty();
+    const hasContent = boardHasLocalContent();
+    if (dirty || hasContent) {
+      const ok = window.confirm(
+        dirty
+          ? "Es gibt ungespeicherte Änderungen. Neue Datei anlegen und den aktuellen Stand verwerfen?\n\nTipp: Zuvor „Speichern unter…“ nutzen."
+          : "Aktuelles Board verwerfen und eine neue leere Datei anlegen?",
+      );
+      if (!ok) return;
+    }
+
+    setBusy(true);
+    try {
+      backupBeforeSuspiciousSwitch("file");
+      await detachWorkingFile();
+      useStormBoardStore.getState().replaceBoardFromImport(createDefaultBoardDocument());
+      setWorkingFileName(null);
+      setWorkingFileDirty(false);
+      setSetupOpen(false);
+      setStorageOpen(false);
     } finally {
       setBusy(false);
     }
@@ -590,6 +625,7 @@ export function StormBoard() {
           setBackupIntervalMinutes(minutes);
         }}
         onBackupNow={() => runManualBoardBackup(setBackupLastLabel)}
+        onNewWorkingFile={() => void handleNewWorkingFile()}
         onOpenWorkingFile={() => void handleOpenWorkingFile()}
         onSaveWorkingFileAs={() => void handleSaveWorkingFileAs()}
         onOpenRecentWorkingFile={(handle) => void handleOpenRecentWorkingFile(handle)}
