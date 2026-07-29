@@ -343,6 +343,56 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
       "Beziehungattribute in der Beschreibung oder als Attribute",
     ],
   },
+  c4Person: {
+    title: "C4 Person",
+    subtitle: "Gelb — Nutzer oder Akteur",
+    paragraphs: ["Repräsentiert Menschen, die mit dem System interagieren."],
+    bullets: [
+      "C4 Kontextdiagramm (Level 1)",
+      "Mit Software-Systemen verbinden",
+      "Rolle in der Beschreibung festhalten",
+    ],
+  },
+  c4SoftwareSystem: {
+    title: "C4 Software-System",
+    subtitle: "Blau — System im Gesamtkontext",
+    paragraphs: ["Höchste Abstraktionsebene der Software-Architektur (Level 1)."],
+    bullets: [
+      "Ein System pro Bounded Context auf Übersichts-Sicht",
+      "Detail-Sicht für Container-Diagramm öffnen",
+      "Externe Systeme abgrenzen",
+    ],
+  },
+  c4Container: {
+    title: "C4 Container",
+    subtitle: "Grau — deploybare Einheit (Level 2)",
+    paragraphs: ["Anwendung, Datenbank, Queue o. Ä. innerhalb eines Systems."],
+    bullets: [
+      "Technologie-Stack im Metadaten-Feld pflegen",
+      "Kommunikation mit Relationen modellieren",
+      "Drill-down für Komponenten-Diagramm",
+    ],
+  },
+  c4Component: {
+    title: "C4 Komponente",
+    subtitle: "Hellgrau — Baustein im Container (Level 3)",
+    paragraphs: ["Modul, Service oder Package innerhalb eines Containers."],
+    bullets: [
+      "Verantwortlichkeit in der Beschreibung",
+      "Schnittstellen mit Relationen",
+      "Optional Technologie angeben",
+    ],
+  },
+  arc42Section: {
+    title: "arc42 Abschnitt",
+    subtitle: "Indigo — Dokumentationsabschnitt 1–12",
+    paragraphs: ["Strukturiert die Architekturdokumentation nach arc42."],
+    bullets: [
+      "Abschnittsnummer 1–12 wählen",
+      "Bounded Context pro Abschnitt für Detail-Inhalte",
+      "Mit C4- und ERM-Elementen kombinieren",
+    ],
+  },
 };
 
 const RELATION_HELP: Record<RelationType, HelpDialogModel> = {

@@ -182,4 +182,22 @@ describe("facilitator-phases", () => {
     expect(getAllowedTypesForPhase("dataModel", "free", 0, false)).toContain("dataAssociation");
     expect(getAllowedTypesForPhase("dataModel", "dataModelWorkshop", 0, true)).toContain("dataEntity");
   });
+
+  it("uses Architecture Documentation catalog and workshops", () => {
+    const catalog = getAllowedTypesForPhase("architectureDocumentation", "free", 0, false);
+    expect(catalog).toContain("arc42Section");
+    expect(catalog).toContain("c4SoftwareSystem");
+    expect(catalog).toContain("dataEntity");
+    expect(getAllowedTypesForPhase("architectureDocumentation", "c4Modeling", 0, true)).toEqual([
+      "c4Person",
+      "c4SoftwareSystem",
+      "note",
+      "link",
+    ]);
+    expect(getAllowedTypesForPhase("architectureDocumentation", "arc42Workshop", 0, true)).toEqual([
+      "arc42Section",
+      "note",
+      "link",
+    ]);
+  });
 });

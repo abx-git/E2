@@ -52,6 +52,7 @@ export interface DataStoragePanelProps {
   onExportEventModel: () => void;
   onExportProcess: () => void;
   onExportDataModel: () => void;
+  onExportArchitectureDocumentation: () => void;
   onOpenCollab?: () => void;
   busy?: boolean;
 }
@@ -189,6 +190,7 @@ export function DataStoragePanel({
   onExportEventModel,
   onExportProcess,
   onExportDataModel,
+  onExportArchitectureDocumentation,
   onOpenCollab,
   busy,
 }: DataStoragePanelProps) {
@@ -508,6 +510,13 @@ export function DataStoragePanel({
                 label="Datenmodell"
                 detail="Entitäten"
                 emphasize={modeMatches(modelingMode, "dataModel")}
+              />
+              <ExportTile
+                onClick={onExportArchitectureDocumentation}
+                disabled={busy}
+                label="Architektur"
+                detail="arc42 / C4 / ERM"
+                emphasize={modeMatches(modelingMode, "architectureDocumentation")}
               />
             </ExportGroup>
           </Section>

@@ -61,6 +61,7 @@ import {
   exportHotspotReportMarkdown,
   exportProcessMarkdown,
   exportDataModelMarkdown,
+  exportArchitectureDocumentationMarkdown,
   exportStoryMapMarkdown,
 } from "@/lib/storm-export";
 import {
@@ -621,6 +622,7 @@ export function StormBoard() {
         onExportEventModel={exportEventModelMarkdown}
         onExportProcess={exportProcessMarkdown}
         onExportDataModel={exportDataModelMarkdown}
+        onExportArchitectureDocumentation={exportArchitectureDocumentationMarkdown}
         onOpenCollab={() => {
           setStorageOpen(false);
           setCollabOpen(true);

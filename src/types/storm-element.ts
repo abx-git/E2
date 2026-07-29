@@ -5,7 +5,8 @@ export type ModelingMode =
   | "userStoryMapping"
   | "eventModeling"
   | "processFlow"
-  | "dataModel";
+  | "dataModel"
+  | "architectureDocumentation";
 
 export type ElementType =
   | "domainEvent"
@@ -44,6 +45,13 @@ export type ElementType =
   /** Data model (ER-lite) */
   | "dataEntity"
   | "dataAssociation"
+  /** Architecture documentation: C4 model */
+  | "c4Person"
+  | "c4SoftwareSystem"
+  | "c4Container"
+  | "c4Component"
+  /** Architecture documentation: arc42 section */
+  | "arc42Section"
   /** Shared: external URL or board view */
   | "link";
 
@@ -55,6 +63,24 @@ export type QuestionStatus = "open" | "resolved";
 export type GatewayKind = "xor" | "and" | "or";
 export type DataCardinality = "1:1" | "1:n" | "n:1" | "n:m";
 export type LinkKind = "external" | "view";
+
+export const ARC42_SECTION_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+export type Arc42SectionNumber = (typeof ARC42_SECTION_NUMBERS)[number];
+
+export const ARC42_SECTION_LABELS: Record<Arc42SectionNumber, string> = {
+  1: "Einleitung und Ziele",
+  2: "Randbedingungen",
+  3: "Kontext und Abgrenzung",
+  4: "Lösungsstrategie",
+  5: "Bausteinsicht",
+  6: "Laufzeitsicht",
+  7: "Verteilungssicht",
+  8: "Querschnittliche Konzepte",
+  9: "Architekturentscheidungen",
+  10: "Qualitätsanforderungen",
+  11: "Risiken und technische Schulden",
+  12: "Glossar",
+};
 
 export type NoteColorId =
   | "cream"
@@ -149,6 +175,11 @@ export interface ElementMetadata {
   /** Link (view): ID einer Board-Sicht. */
   linkViewId?: string;
 
+  /** C4 Container / Component: Technologie-Stack (z. B. Spring Boot, PostgreSQL). */
+  c4Technology?: string;
+  /** arc42: Abschnittsnummer 1–12. */
+  arc42SectionNumber?: Arc42SectionNumber;
+
   /** Sticky: Beschreibung auf der Karte anzeigen. */
   showDescriptionOnCard?: boolean;
   /** Sticky: Attribute / Kriterien auf der Karte anzeigen. */
@@ -186,7 +217,10 @@ export type WorkshopFormat =
   | "storyMapping"
   | "eventModelingWorkshop"
   | "processWorkshop"
-  | "dataModelWorkshop";
+  | "dataModelWorkshop"
+  | "arc42Workshop"
+  | "c4Modeling"
+  | "ermDocumentation";
 
 export interface Swimlane {
   id: string;
@@ -257,6 +291,7 @@ export const MODELING_MODES: ModelingMode[] = [
   "eventModeling",
   "processFlow",
   "dataModel",
+  "architectureDocumentation",
 ];
 
 /** Shared annotation types. */
@@ -353,6 +388,20 @@ export const DATA_ELEMENT_TYPES: ElementType[] = [
   "link",
 ];
 
+/** Architecture documentation: Arc42, C4, ERM. */
+export const ARCH_DOC_ELEMENT_TYPES: ElementType[] = [
+  "arc42Section",
+  "c4Person",
+  "c4SoftwareSystem",
+  "c4Container",
+  "c4Component",
+  "dataEntity",
+  "dataAssociation",
+  "note",
+  "hotspot",
+  "link",
+];
+
 /** All sticky types that can appear on a board. */
 export const ALL_ELEMENT_TYPES: ElementType[] = [
   ...ES_ELEMENT_TYPES,
@@ -376,6 +425,11 @@ export const ALL_ELEMENT_TYPES: ElementType[] = [
   "processGateway",
   "dataEntity",
   "dataAssociation",
+  "c4Person",
+  "c4SoftwareSystem",
+  "c4Container",
+  "c4Component",
+  "arc42Section",
 ];
 
 export const ES_WORKSHOP_FORMATS: WorkshopFormat[] = [
@@ -401,6 +455,13 @@ export const PROCESS_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "processWorks
 
 export const DATA_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "dataModelWorkshop"];
 
+export const ARCH_DOC_WORKSHOP_FORMATS: WorkshopFormat[] = [
+  "free",
+  "arc42Workshop",
+  "c4Modeling",
+  "ermDocumentation",
+];
+
 export const MODELING_MODE_LABELS: Record<ModelingMode, string> = {
   eventStorming: "Event Storming",
   domainDrivenDesign: "Domain-Driven Design",
@@ -409,6 +470,7 @@ export const MODELING_MODE_LABELS: Record<ModelingMode, string> = {
   eventModeling: "Event Modeling",
   processFlow: "Prozess",
   dataModel: "Daten",
+  architectureDocumentation: "Architektur Dokumentation",
 };
 
 export const MODELING_MODE_SHORT_LABELS: Record<ModelingMode, string> = {
@@ -419,6 +481,7 @@ export const MODELING_MODE_SHORT_LABELS: Record<ModelingMode, string> = {
   eventModeling: "EM",
   processFlow: "PROC",
   dataModel: "DATA",
+  architectureDocumentation: "ARCH",
 };
 
 const ELEMENT_TYPES_BY_MODE: Record<ModelingMode, ElementType[]> = {
@@ -429,6 +492,7 @@ const ELEMENT_TYPES_BY_MODE: Record<ModelingMode, ElementType[]> = {
   eventModeling: EM_ELEMENT_TYPES,
   processFlow: PROCESS_ELEMENT_TYPES,
   dataModel: DATA_ELEMENT_TYPES,
+  architectureDocumentation: ARCH_DOC_ELEMENT_TYPES,
 };
 
 const WORKSHOP_FORMATS_BY_MODE: Record<ModelingMode, WorkshopFormat[]> = {
@@ -439,6 +503,7 @@ const WORKSHOP_FORMATS_BY_MODE: Record<ModelingMode, WorkshopFormat[]> = {
   eventModeling: EM_WORKSHOP_FORMATS,
   processFlow: PROCESS_WORKSHOP_FORMATS,
   dataModel: DATA_WORKSHOP_FORMATS,
+  architectureDocumentation: ARCH_DOC_WORKSHOP_FORMATS,
 };
 
 const DEFAULT_PALETTE_BY_MODE: Record<ModelingMode, ElementType> = {
@@ -449,6 +514,7 @@ const DEFAULT_PALETTE_BY_MODE: Record<ModelingMode, ElementType> = {
   eventModeling: "domainEvent",
   processFlow: "processActivity",
   dataModel: "dataEntity",
+  architectureDocumentation: "arc42Section",
 };
 
 export function elementTypesForMode(mode: ModelingMode): ElementType[] {
@@ -474,7 +540,8 @@ export function normalizeModelingMode(value: unknown): ModelingMode {
     value === "userStoryMapping" ||
     value === "eventModeling" ||
     value === "processFlow" ||
-    value === "dataModel"
+    value === "dataModel" ||
+    value === "architectureDocumentation"
   ) {
     return value;
   }

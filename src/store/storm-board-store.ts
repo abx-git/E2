@@ -305,9 +305,11 @@ function createElement(
                     ? { gatewayKind: "xor" }
                     : type === "dataAssociation"
                       ? { dataCardinality: "1:n" }
-                      : type === "link"
-                        ? { linkKind: "external" }
-                        : undefined,
+                      : type === "arc42Section"
+                        ? { arc42SectionNumber: 1 }
+                        : type === "link"
+                          ? { linkKind: "external" }
+                          : undefined,
   };
 }
 

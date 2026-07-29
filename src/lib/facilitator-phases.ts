@@ -1,6 +1,7 @@
 import type { ElementType, ModelingMode, WorkshopFormat } from "@/types/storm-element";
 import {
   ALL_ELEMENT_TYPES,
+  ARCH_DOC_ELEMENT_TYPES,
   BDD_ELEMENT_TYPES,
   DATA_ELEMENT_TYPES,
   DDD_ELEMENT_TYPES,
@@ -654,6 +655,180 @@ export const DATA_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   },
 ];
 
+const ARC42_WORKSHOP_PHASES: FacilitatorPhase[] = [
+  {
+    id: "arc42-intro-goals",
+    title: "Einleitung & Ziele",
+    description: "arc42 Abschnitte 1–2: Kontext, Stakeholder und Ziele festhalten.",
+    allowedTypes: ["arc42Section", "note", "link"],
+    checklist: [
+      "Abschnitt 1: Einleitung und Ziele",
+      "Abschnitt 2: Randbedingungen",
+      "Bounded Contexts für große Themenblöcke nutzen",
+    ],
+    durationMinutes: 30,
+  },
+  {
+    id: "arc42-context-strategy",
+    title: "Kontext & Strategie",
+    description: "arc42 Abschnitte 3–4: Abgrenzung und Lösungsstrategie.",
+    allowedTypes: ["arc42Section", "c4SoftwareSystem", "c4Person", "note", "hotspot"],
+    checklist: [
+      "Abschnitt 3: Kontext und Abgrenzung (C4 Kontextdiagramm)",
+      "Abschnitt 4: Lösungsstrategie",
+      "Externe Systeme und Personen verknüpfen",
+    ],
+    durationMinutes: 40,
+  },
+  {
+    id: "arc42-building-runtime",
+    title: "Bausteine & Laufzeit",
+    description: "arc42 Abschnitte 5–6: Struktur und dynamisches Verhalten.",
+    allowedTypes: ["arc42Section", "c4Container", "c4Component", "note", "hotspot", "link"],
+    checklist: [
+      "Abschnitt 5: Bausteinsicht (C4 Container)",
+      "Abschnitt 6: Laufzeitsicht",
+      "Detail-Sicht per Bounded Context drill-down",
+    ],
+    durationMinutes: 45,
+  },
+  {
+    id: "arc42-deployment-crosscut",
+    title: "Verteilung & Querschnitt",
+    description: "arc42 Abschnitte 7–8: Deployment und übergreifende Konzepte.",
+    allowedTypes: ["arc42Section", "c4Container", "c4SoftwareSystem", "note", "hotspot"],
+    checklist: [
+      "Abschnitt 7: Verteilungssicht",
+      "Abschnitt 8: Querschnittliche Konzepte",
+      "Technologie-Stacks an Containern pflegen",
+    ],
+    durationMinutes: 35,
+  },
+  {
+    id: "arc42-decisions-risks",
+    title: "Entscheidungen & Risiken",
+    description: "arc42 Abschnitte 9–11: ADRs, Qualität und technische Schulden.",
+    allowedTypes: ["arc42Section", "note", "hotspot", "link"],
+    checklist: [
+      "Abschnitt 9: Architekturentscheidungen",
+      "Abschnitt 10: Qualitätsanforderungen",
+      "Abschnitt 11: Risiken und technische Schulden",
+    ],
+    durationMinutes: 35,
+  },
+  {
+    id: "arc42-glossary",
+    title: "Glossar",
+    description: "arc42 Abschnitt 12: Ubiquitous Language und Begriffe.",
+    allowedTypes: ["arc42Section", "note", "link"],
+    checklist: [
+      "Abschnitt 12: Glossar",
+      "Glossar-Panel der App nutzen",
+      "Begriffe mit Entitäten verknüpfen",
+    ],
+    durationMinutes: 20,
+  },
+];
+
+const C4_MODELING_PHASES: FacilitatorPhase[] = [
+  {
+    id: "c4-context",
+    title: "Kontextdiagramm",
+    description: "C4 Level 1: Personen und Software-Systeme im Gesamtkontext.",
+    allowedTypes: ["c4Person", "c4SoftwareSystem", "note", "link"],
+    checklist: [
+      "Zentrales System klar benennen",
+      "Externe Systeme und Nutzer einzeichnen",
+      "Bounded Context pro System für Drill-down",
+    ],
+    durationMinutes: 35,
+  },
+  {
+    id: "c4-container",
+    title: "Container-Diagramm",
+    description: "C4 Level 2: Container innerhalb eines Systems.",
+    allowedTypes: ["c4Container", "c4SoftwareSystem", "c4Person", "note", "hotspot", "link"],
+    checklist: [
+      "Container mit Technologie-Stack beschriften",
+      "Kommunikationswege mit Relationen",
+      "Detail-Sicht aus Bounded Context öffnen",
+    ],
+    durationMinutes: 45,
+  },
+  {
+    id: "c4-component",
+    title: "Komponenten-Diagramm",
+    description: "C4 Level 3: Komponenten innerhalb eines Containers.",
+    allowedTypes: ["c4Component", "c4Container", "note", "hotspot", "link"],
+    checklist: [
+      "Komponenten und Verantwortlichkeiten",
+      "Schnittstellen dokumentieren",
+      "Hotspots für offene Fragen",
+    ],
+    durationMinutes: 40,
+  },
+];
+
+const ERM_DOCUMENTATION_PHASES: FacilitatorPhase[] = [
+  {
+    id: "erm-entities",
+    title: "Entitäten",
+    description: "Zentrale Datenobjekte für das Informationsmodell.",
+    allowedTypes: ["dataEntity", "note"],
+    checklist: [
+      "Begriffe aus Glossar / Domain-Sprache",
+      "Bounded Context pro Schema-Bereich",
+      "Keine technischen Tabellennamen erzwingen",
+    ],
+    durationMinutes: 35,
+  },
+  {
+    id: "erm-attributes",
+    title: "Attribute & Schlüssel",
+    description: "Felder, Identität und Eindeutigkeit modellieren.",
+    allowedTypes: ["dataEntity", "note", "hotspot"],
+    checklist: [
+      "Primärschlüssel / Identitätsfelder",
+      "Attribute als „name: Typ“",
+      "Unklare Felder als Hotspot",
+    ],
+    durationMinutes: 40,
+  },
+  {
+    id: "erm-relationships",
+    title: "Beziehungen",
+    description: "Assoziationen und Kardinalitäten festlegen.",
+    allowedTypes: [...ARCH_DOC_ELEMENT_TYPES.filter((t) => t === "dataEntity" || t === "dataAssociation" || t === "note" || t === "hotspot" || t === "link")],
+    checklist: [
+      "1:1 / 1:n / n:m wählen",
+      "Relationen zwischen Entitäten ziehen",
+      "ERM-Detail per Bounded Context drill-down",
+    ],
+    durationMinutes: 40,
+  },
+];
+
+export const ARCH_DOC_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
+  {
+    format: "arc42Workshop",
+    label: "arc42 Workshop",
+    description: "Strukturierte Architekturdokumentation nach arc42",
+    phases: ARC42_WORKSHOP_PHASES,
+  },
+  {
+    format: "c4Modeling",
+    label: "C4 Modellierung",
+    description: "Kontext-, Container- und Komponenten-Diagramme",
+    phases: C4_MODELING_PHASES,
+  },
+  {
+    format: "ermDocumentation",
+    label: "ERM Dokumentation",
+    description: "Entitäten, Attribute und Beziehungen",
+    phases: ERM_DOCUMENTATION_PHASES,
+  },
+];
+
 const ALL_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   ...FACILITATOR_FORMATS,
   ...DDD_FACILITATOR_FORMATS,
@@ -662,6 +837,7 @@ const ALL_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   ...EM_FACILITATOR_FORMATS,
   ...PROCESS_FACILITATOR_FORMATS,
   ...DATA_FACILITATOR_FORMATS,
+  ...ARCH_DOC_FACILITATOR_FORMATS,
 ];
 
 export function getFacilitatorFormatsForMode(mode: ModelingMode): FacilitatorFormatDefinition[] {
@@ -678,6 +854,8 @@ export function getFacilitatorFormatsForMode(mode: ModelingMode): FacilitatorFor
       return PROCESS_FACILITATOR_FORMATS;
     case "dataModel":
       return DATA_FACILITATOR_FORMATS;
+    case "architectureDocumentation":
+      return ARCH_DOC_FACILITATOR_FORMATS;
     default:
       return FACILITATOR_FORMATS;
   }
