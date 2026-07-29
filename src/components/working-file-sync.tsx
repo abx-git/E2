@@ -30,6 +30,7 @@ import {
   shouldSuppressExternalFilePoll,
   wasWorkingFileSessionHydrated,
   writeWorkingFileJson,
+  WORKING_FILE_ATTACHED_EVENT,
 } from "@/lib/working-file";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -312,6 +313,13 @@ export function WorkingFileSync({
       const onPageHide = () => void flushPersist();
       window.addEventListener("pagehide", onPageHide);
       externalListeners.push({ target: window, type: "pagehide", listener: onPageHide });
+
+      const onWorkingFileAttached = () => {
+        lastPersistKeyRef.current = boardPersistKeyFromStoreState();
+        syncFileLabel();
+        syncDirty();
+      };
+      addExternalListener(window, WORKING_FILE_ATTACHED_EVENT, onWorkingFileAttached);
     })();
 
     return () => {

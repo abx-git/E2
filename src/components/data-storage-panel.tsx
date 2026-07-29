@@ -23,11 +23,14 @@ export interface DataStoragePanelProps {
   workingFileAttached: boolean;
   workingFileDirty: boolean;
   workingFileSaving: boolean;
+  /** When true, opening another file/backup is disabled until the board is saved. */
+  mustSaveBeforeOpen: boolean;
   backupIntervalMinutes: BackupIntervalMinutes;
   backupLastLabel: string;
   onBackupIntervalChange: (minutes: BackupIntervalMinutes) => void;
   onBackupNow: () => void;
   onNewWorkingFile: () => void;
+  onSaveWorkingFile: () => void;
   onOpenWorkingFile: () => void;
   /** Speichern unter… — pick a new path; becomes the Arbeitsdatei. */
   onSaveWorkingFileAs: () => void;
@@ -166,11 +169,13 @@ export function DataStoragePanel({
   workingFileAttached,
   workingFileDirty,
   workingFileSaving,
+  mustSaveBeforeOpen,
   backupIntervalMinutes,
   backupLastLabel,
   onBackupIntervalChange,
   onBackupNow,
   onNewWorkingFile,
+  onSaveWorkingFile,
   onOpenWorkingFile,
   onSaveWorkingFileAs,
   onOpenRecentWorkingFile,
@@ -262,7 +267,7 @@ export function DataStoragePanel({
           <Section title="Arbeitsdatei">
             {workingFileAttached ? (
               <p className="text-xs text-[var(--muted)]">
-                {workingFileLabel ?? "Arbeitsdatei"}
+                Sync-Ziel: {workingFileLabel ?? "Arbeitsdatei"}
                 {workingFileDirty
                   ? " · ungespeichert"
                   : workingFileSaving
@@ -270,30 +275,52 @@ export function DataStoragePanel({
                     : " · gespeichert"}
               </p>
             ) : (
-              <p className="text-xs text-[var(--muted)]">Keine Arbeitsdatei verknüpft.</p>
+              <p className="text-xs text-[var(--muted)]">
+                Kein Sync-Ziel — „Speichern unter…“ verknüpft eine Arbeitsdatei.
+              </p>
             )}
+            {mustSaveBeforeOpen && (
+              <p className="rounded-lg border border-[var(--accent-2)]/40 bg-[rgba(233,196,106,0.12)] px-2.5 py-2 text-xs text-[var(--accent-2)]">
+                Ungespeicherter Stand — bitte zuerst speichern, bevor du eine andere Datei oder ein
+                Backup öffnest.
+              </p>
+            )}
+            {workingFileAttached ? (
+              <ActionButton
+                onClick={onSaveWorkingFile}
+                disabled={busy || !workingFileDirty}
+                emphasize={workingFileDirty || mustSaveBeforeOpen}
+              >
+                <Save className="h-4 w-4" /> Speichern
+              </ActionButton>
+            ) : null}
+            <ActionButton
+              onClick={onSaveWorkingFileAs}
+              disabled={busy}
+              emphasize={!workingFileAttached && mustSaveBeforeOpen}
+            >
+              <Save className="h-4 w-4" /> Speichern unter…
+            </ActionButton>
             <ActionButton onClick={onNewWorkingFile} disabled={busy}>
               <FilePlus className="h-4 w-4" /> Neue Datei
             </ActionButton>
             {fsAccessSupported ? (
               <>
-                <ActionButton onClick={onOpenWorkingFile} disabled={busy}>
+                <ActionButton onClick={onOpenWorkingFile} disabled={busy || mustSaveBeforeOpen}>
                   <FolderOpen className="h-4 w-4" /> Datei öffnen
-                </ActionButton>
-                <ActionButton onClick={onSaveWorkingFileAs} disabled={busy} emphasize>
-                  <Save className="h-4 w-4" /> Speichern unter…
                 </ActionButton>
                 {recentFiles.length > 0 && (
                   <div className="space-y-1.5 pt-1">
                     <p className="text-[0.7rem] font-medium text-[var(--muted)]">
-                      Zuletzt verwendet — anklicken zum Öffnen
+                      Zuletzt verwendet
+                      {mustSaveBeforeOpen ? " — erst speichern" : " — anklicken zum Öffnen"}
                     </p>
                     <ul className="space-y-1">
                       {recentFiles.map((entry) => (
                         <li key={`${entry.name}-${entry.openedAt}`}>
                           <button
                             type="button"
-                            disabled={busy}
+                            disabled={busy || mustSaveBeforeOpen}
                             onClick={() => onOpenRecentWorkingFile(entry.handle)}
                             className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
                             title={new Date(entry.openedAt).toLocaleString("de-DE")}
@@ -314,10 +341,10 @@ export function DataStoragePanel({
               </>
             ) : (
               <>
-                <ActionButton onClick={onRestoreBackupFile} disabled={busy}>
+                <ActionButton onClick={onRestoreBackupFile} disabled={busy || mustSaveBeforeOpen}>
                   <FolderOpen className="h-4 w-4" /> Datei wählen
                 </ActionButton>
-                <ActionButton onClick={onRestoreBackupPaste} disabled={busy}>
+                <ActionButton onClick={onRestoreBackupPaste} disabled={busy || mustSaveBeforeOpen}>
                   JSON einfügen
                 </ActionButton>
               </>
@@ -337,20 +364,21 @@ export function DataStoragePanel({
             <ActionButton onClick={onBackupNow} disabled={busy}>
               <Save className="h-4 w-4" /> Jetzt sichern
             </ActionButton>
-            <ActionButton onClick={onRestoreBackupFile} disabled={busy}>
+            <ActionButton onClick={onRestoreBackupFile} disabled={busy || mustSaveBeforeOpen}>
               <FolderOpen className="h-4 w-4" /> Backup-Datei öffnen
             </ActionButton>
             {localBackups.length > 0 && (
               <div className="space-y-1.5 pt-1">
                 <p className="text-[0.7rem] font-medium text-[var(--muted)]">
-                  Gesicherte Backups — anklicken zum Öffnen
+                  Gesicherte Backups
+                  {mustSaveBeforeOpen ? " — erst speichern" : " — anklicken zum Öffnen"}
                 </p>
                 <ul className="space-y-1">
                   {localBackups.map((entry) => (
                     <li key={entry.id}>
                       <button
                         type="button"
-                        disabled={busy}
+                        disabled={busy || mustSaveBeforeOpen}
                         onClick={() => onOpenLocalBackup(entry.id)}
                         className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
                         title={new Date(entry.createdAt).toLocaleString("de-DE")}

@@ -259,18 +259,63 @@ export function StormBoard() {
   const handleSaveWorkingFileAs = async () => {
     setBusy(true);
     try {
+      if (!isWorkingFileSupported()) {
+        window.alert(
+          "Speichern unter… braucht die File-System-API (Chrome, Edge oder Brave). Alternativ JSON exportieren.",
+        );
+        return;
+      }
       const suggested = suggestedWorkingFileName(
         getWorkingFileLabel() || title || undefined,
       );
       const handle = await saveWorkingFileAs(boardJsonFromStoreState(), suggested);
       if (handle) {
         setWorkingFileName(getWorkingFileLabel());
+        setWorkingFileDirty(false);
         setSetupOpen(false);
         setStorageOpen(false);
       }
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleSaveWorkingFile = async () => {
+    if (!isWorkingFileAttached()) {
+      await handleSaveWorkingFileAs();
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await persistWorkingFileJson(boardJsonFromStoreState());
+      if (!result.ok) {
+        window.alert(
+          result.reason === "conflict"
+            ? "Speichern fehlgeschlagen: Die Datei wurde zwischenzeitlich geändert. Bitte „Speichern unter…“ nutzen oder die Datei neu öffnen."
+            : "Speichern in die Arbeitsdatei fehlgeschlagen.",
+        );
+        return;
+      }
+      setWorkingFileName(getWorkingFileLabel());
+      setWorkingFileDirty(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Block loading another document while the current board is not persisted. */
+  const ensureSavedBeforeOpen = (): boolean => {
+    const attached = isWorkingFileAttached();
+    const dirty = isWorkingFileDirty();
+    const unsavedWithoutFile = !attached && boardHasLocalContent();
+    if (!dirty && !unsavedWithoutFile) return true;
+
+    window.alert(
+      attached
+        ? "Es gibt ungespeicherte Änderungen. Bitte zuerst speichern (Speichern oder Speichern unter…), bevor du eine andere Datei oder ein Backup öffnest."
+        : "Das Board ist noch nicht gespeichert. Bitte zuerst „Speichern unter…“ wählen, bevor du eine andere Datei oder ein Backup öffnest.",
+    );
+    return false;
   };
 
   const handleNewWorkingFile = async () => {
@@ -313,6 +358,7 @@ export function StormBoard() {
       );
       return;
     }
+    if (!ensureSavedBeforeOpen()) return;
     setBusy(true);
     try {
       // Picker needs user activation — run before any safety-download click.
@@ -343,6 +389,7 @@ export function StormBoard() {
       );
       return;
     }
+    if (!ensureSavedBeforeOpen()) return;
     setBusy(true);
     try {
       // Permission must run while the click gesture is still valid — before backup download.
@@ -384,6 +431,7 @@ export function StormBoard() {
       );
       return;
     }
+    if (!ensureSavedBeforeOpen()) return;
     setBusy(true);
     try {
       const record = await getLocalBackup(backupId);
@@ -410,6 +458,7 @@ export function StormBoard() {
       );
       return;
     }
+    if (!ensureSavedBeforeOpen()) return;
     const raw = window.prompt("JSON einfügen:");
     if (!raw?.trim()) return;
     setBusy(true);
@@ -432,6 +481,11 @@ export function StormBoard() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleRestoreBackupFilePick = () => {
+    if (!ensureSavedBeforeOpen()) return;
+    fileInputRef.current?.click();
   };
 
   const handleImportConflict = async (choice: FileConflictChoice) => {
@@ -618,6 +672,9 @@ export function StormBoard() {
         workingFileAttached={isWorkingFileAttached()}
         workingFileDirty={workingFileDirty}
         workingFileSaving={workingFileSaving}
+        mustSaveBeforeOpen={
+          workingFileDirty || (!isWorkingFileAttached() && boardHasLocalContent())
+        }
         backupIntervalMinutes={backupIntervalMinutes}
         backupLastLabel={backupLastLabel}
         onBackupIntervalChange={(minutes) => {
@@ -626,11 +683,12 @@ export function StormBoard() {
         }}
         onBackupNow={() => runManualBoardBackup(setBackupLastLabel)}
         onNewWorkingFile={() => void handleNewWorkingFile()}
+        onSaveWorkingFile={() => void handleSaveWorkingFile()}
         onOpenWorkingFile={() => void handleOpenWorkingFile()}
         onSaveWorkingFileAs={() => void handleSaveWorkingFileAs()}
         onOpenRecentWorkingFile={(handle) => void handleOpenRecentWorkingFile(handle)}
         onOpenLocalBackup={(id) => void handleOpenLocalBackup(id)}
-        onRestoreBackupFile={() => fileInputRef.current?.click()}
+        onRestoreBackupFile={handleRestoreBackupFilePick}
         onRestoreBackupPaste={() => void handlePasteJson()}
         onImportAsNewViews={handleImportAsNewViews}
         onExportJson={downloadJson}
@@ -731,6 +789,7 @@ export function StormBoard() {
             );
             return;
           }
+          if (!ensureSavedBeforeOpen()) return;
           setBusy(true);
           backupBeforeSuspiciousSwitch("file");
           void attachWorkingFileFromBrowserFile(file).then((result) => {

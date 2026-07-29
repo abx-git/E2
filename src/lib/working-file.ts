@@ -583,6 +583,8 @@ async function attachWorkingFileFromText(
 
 async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
   memoryHandle = handle;
+  // File-System-Handle ist die Quelle der Wahrheit — Mobile-Copy-Name nur als Fallback.
+  mobileWorkingFileName = null;
   const fileName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
   rememberLastFileNameInStorage(fileName);
   try {
@@ -591,6 +593,12 @@ async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
     /* ignore */
   }
   await rememberRecentWorkingFile(handle);
+  try {
+    await idbClearMobileCopy();
+  } catch {
+    /* ignore */
+  }
+  notifyWorkingFileAttached();
 }
 
 export async function attachWorkingFileOpen(): Promise<FileSystemFileHandle | null> {
@@ -763,21 +771,35 @@ export async function createAndAttachWorkingFile(
     return null;
   }
   markWorkingFileSessionHydrated();
+  // After write: sync state is clean — refresh listeners (dirty/label).
+  notifyWorkingFileAttached();
   return handle;
 }
 
 /**
- * Speichern unter… — current board JSON to a newly picked path; that file becomes the Arbeitsdatei.
+ * Speichern unter… — current board JSON to a newly picked path; that file becomes the
+ * Arbeitsdatei (auto-sync target for subsequent Speichern / Hintergrund-Sync).
  */
 export async function saveWorkingFileAs(
   json: string,
   suggestedName?: string | null,
 ): Promise<FileSystemFileHandle | null> {
+  if (!isWorkingFileSupported() || typeof window.showSaveFilePicker !== "function") {
+    return null;
+  }
   const name =
     suggestedName?.trim() ||
     getWorkingFileLabel() ||
     STANDARD_WORKING_FILENAME;
   return createAndAttachWorkingFile(json, name);
+}
+
+/** Fired when a file handle becomes the live Arbeitsdatei / sync target. */
+export const WORKING_FILE_ATTACHED_EVENT = "e2-working-file-attached";
+
+export function notifyWorkingFileAttached(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(WORKING_FILE_ATTACHED_EVENT));
 }
 
 export async function restoreWorkingFileFromDisk(): Promise<FileSystemFileHandle | null> {

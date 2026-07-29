@@ -32,6 +32,9 @@ export function CollabEnterConfirmDialog({
 
   const isJoin = mode === "join";
   const showSaveAndProceed = workingFileAttached && workingFileDirty;
+  // Create requires a sync target + clean board; dirty → only via Speichern first.
+  const showProceed =
+    isJoin || (workingFileAttached && !workingFileDirty);
 
   const layer = (
     <div
@@ -93,14 +96,21 @@ export function CollabEnterConfirmDialog({
               {isJoin ? "Speichern & Raum laden" : "Speichern & Raum starten"}
             </button>
           )}
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => onChoose("proceed")}
-            className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
-          >
-            {isJoin ? "Raum laden (Board ersetzen)" : "Raum starten"}
-          </button>
+          {showProceed && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onChoose("proceed")}
+              className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
+            >
+              {isJoin ? "Raum laden (Board ersetzen)" : "Raum starten"}
+            </button>
+          )}
+          {!isJoin && !workingFileAttached && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              Zuerst „Speichern unter…“ wählen — der Raum braucht ein Sync-Ziel.
+            </p>
+          )}
           <button
             type="button"
             disabled={busy}

@@ -12,7 +12,12 @@ import {
   isEnvConfigured,
   saveLocalSupabaseConnection,
 } from "@/lib/collab/config";
-import { boardHasLocalContent, shouldConfirmCollabEnter } from "@/lib/collab/file-guard";
+import {
+  boardHasLocalContent,
+  canCreateCollabRoom,
+  createRoomBlockedHint,
+  shouldConfirmCollabEnter,
+} from "@/lib/collab/file-guard";
 import { capturePreCollabStash } from "@/lib/collab/pre-collab-stash";
 import { getCollabShareUrl, useCollabStore } from "@/lib/collab/session";
 import { resetSupabaseClient } from "@/lib/collab/supabase";
@@ -81,6 +86,10 @@ export function CollabRoomDialog({
       if (initialJoinCode?.trim()) {
         setTab("join");
         setCode(initialJoinCode.trim().toUpperCase());
+      } else if (!canCreateCollabRoom()) {
+        setTab("join");
+      } else {
+        setTab("create");
       }
     }
   }, [open, displayName, refreshConfigured, initialJoinCode]);
@@ -147,12 +156,20 @@ export function CollabRoomDialog({
 
   const requestEnter = (mode: "create" | "join") => {
     setLocalError(null);
+    if (mode === "create" && !canCreateCollabRoom()) {
+      setLocalError(createRoomBlockedHint() || "Bitte zuerst speichern.");
+      setTab("create");
+      return;
+    }
     if (shouldConfirmCollabEnter()) {
       setEnterConfirm(mode);
       return;
     }
     void runEnter(mode);
   };
+
+  const createAllowed = canCreateCollabRoom();
+  const createBlockedHint = createAllowed ? null : createRoomBlockedHint();
 
   return (
     <>
@@ -276,7 +293,7 @@ export function CollabRoomDialog({
                   </p>
                   {isWorkingFileAttached() && (
                     <p className="mt-2 text-[0.68rem] text-[var(--accent-2)]">
-                      Arbeitsdatei-Speichern ist pausiert
+                      Arbeitsdatei wird parallel mitgeschrieben
                     </p>
                   )}
                 </div>
@@ -310,11 +327,22 @@ export function CollabRoomDialog({
                 <div className="mt-4 flex gap-1 rounded-lg bg-[var(--control)] p-1">
                   <button
                     type="button"
+                    disabled={!createAllowed}
+                    title={createBlockedHint ?? undefined}
                     className={[
-                      "flex-1 rounded-md px-2 py-1.5 text-xs font-medium",
-                      tab === "create" ? "bg-[var(--control-hover)] text-[var(--text)]" : "text-[var(--muted)]",
+                      "flex-1 rounded-md px-2 py-1.5 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-45",
+                      tab === "create"
+                        ? "bg-[var(--control-hover)] text-[var(--text)]"
+                        : "text-[var(--muted)]",
                     ].join(" ")}
-                    onClick={() => setTab("create")}
+                    onClick={() => {
+                      if (!createAllowed) {
+                        setLocalError(createBlockedHint || "Bitte zuerst speichern.");
+                        return;
+                      }
+                      setLocalError(null);
+                      setTab("create");
+                    }}
                   >
                     Raum erstellen
                   </button>
@@ -324,11 +352,20 @@ export function CollabRoomDialog({
                       "flex-1 rounded-md px-2 py-1.5 text-xs font-medium",
                       tab === "join" ? "bg-[var(--control-hover)] text-[var(--text)]" : "text-[var(--muted)]",
                     ].join(" ")}
-                    onClick={() => setTab("join")}
+                    onClick={() => {
+                      setLocalError(null);
+                      setTab("join");
+                    }}
                   >
                     Beitreten
                   </button>
                 </div>
+
+                {!createAllowed && (
+                  <p className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--control)] px-3 py-2 text-[0.72rem] text-[var(--muted)]">
+                    {createBlockedHint}
+                  </p>
+                )}
 
                 <label className="mt-3 block text-[0.72rem] text-[var(--muted)]">
                   Anzeigename
@@ -360,7 +397,12 @@ export function CollabRoomDialog({
 
                 <button
                   type="button"
-                  disabled={connecting || !name.trim() || (tab === "join" && code.trim().length < 4)}
+                  disabled={
+                    connecting ||
+                    !name.trim() ||
+                    (tab === "create" && !createAllowed) ||
+                    (tab === "join" && code.trim().length < 4)
+                  }
                   className="dock-control-active mt-4 flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm disabled:opacity-50"
                   onClick={() => requestEnter(tab)}
                 >
