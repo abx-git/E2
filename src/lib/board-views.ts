@@ -13,6 +13,7 @@ import type {
   GlossaryEntry,
 } from "@/types/storm-element";
 import type { ActionItem } from "@/types/action-item";
+import type { CanvasLine, LineArrowHead, ViewBookmark } from "@/types/canvas-annotation";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 import type { BoardAppearance } from "@/lib/board-appearance";
 
@@ -27,6 +28,8 @@ export interface ActiveViewFlatState {
   contextRelations: ContextRelation[];
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
+  canvasLines: CanvasLine[];
+  bookmarks: ViewBookmark[];
   timeline: Timeline;
   viewport: Viewport;
   snapToTimeline: boolean;
@@ -54,6 +57,8 @@ export function flatFieldsFromView(view: BoardView): ActiveViewFlatState {
     contextRelations: view.contextRelations,
     swimlanes: view.swimlanes,
     boundedContexts: view.boundedContexts,
+    canvasLines: view.canvasLines,
+    bookmarks: view.bookmarks,
     timeline: view.timeline,
     viewport: view.viewport,
     snapToTimeline: view.snapToTimeline,
@@ -121,6 +126,9 @@ export const CLEAR_SELECTION_PATCH = {
   relationDraftSourceId: null as string | null,
   contextMapMode: false,
   contextMapDraftSourceId: null as string | null,
+  lineDrawMode: false,
+  lineArrowHead: "end" as LineArrowHead,
+  selectedCanvasLineId: null as string | null,
   contextMenu: null,
   /** Ephemeral: request label edit on a newly created element. */
   editingElementId: null as string | null,

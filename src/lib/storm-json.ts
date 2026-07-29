@@ -10,6 +10,8 @@ import type {
 } from "@/types/storm-element";
 import type { ActionItem } from "@/types/action-item";
 import { normalizeActionItems } from "@/lib/action-items";
+import type { CanvasLine, ViewBookmark } from "@/types/canvas-annotation";
+import { normalizeCanvasLines, normalizeViewBookmarks } from "@/lib/canvas-annotations";
 import {
   DEFAULT_MODELING_MODE,
   DEFAULT_TIMELINE,
@@ -51,6 +53,8 @@ export interface BoardView {
   contextRelations: ContextRelation[];
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
+  canvasLines: CanvasLine[];
+  bookmarks: ViewBookmark[];
   timeline: Timeline;
   viewport: Viewport;
   snapToTimeline: boolean;
@@ -84,6 +88,8 @@ export interface BoardActiveSlice {
   contextRelations: ContextRelation[];
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
+  canvasLines: CanvasLine[];
+  bookmarks: ViewBookmark[];
   timeline: Timeline;
   viewport: Viewport;
   snapToTimeline: boolean;
@@ -143,6 +149,8 @@ export function createEmptyBoardView(
     contextRelations: [],
     swimlanes: [],
     boundedContexts: [],
+    canvasLines: [],
+    bookmarks: [],
     timeline: { ...DEFAULT_TIMELINE },
     viewport: { ...DEFAULT_VIEWPORT },
     snapToTimeline: true,
@@ -205,6 +213,8 @@ export function normalizeBoardView(raw: Partial<BoardView> & { id?: string; name
     contextRelations: Array.isArray(raw.contextRelations) ? raw.contextRelations : [],
     swimlanes: Array.isArray(raw.swimlanes) ? raw.swimlanes.map(normalizeSwimlane) : [],
     boundedContexts: Array.isArray(raw.boundedContexts) ? raw.boundedContexts : [],
+    canvasLines: normalizeCanvasLines(raw.canvasLines),
+    bookmarks: normalizeViewBookmarks(raw.bookmarks),
     timeline: raw.timeline ? normalizeTimeline({ ...DEFAULT_TIMELINE, ...raw.timeline }) : { ...DEFAULT_TIMELINE },
     viewport: raw.viewport ? { ...DEFAULT_VIEWPORT, ...raw.viewport } : { ...DEFAULT_VIEWPORT },
     snapToTimeline: raw.snapToTimeline ?? true,
@@ -289,6 +299,8 @@ export function activeSliceFromDocument(doc: BoardImportPayload): BoardActiveSli
     contextRelations: view.contextRelations,
     swimlanes: view.swimlanes,
     boundedContexts: view.boundedContexts,
+    canvasLines: view.canvasLines,
+    bookmarks: view.bookmarks,
     timeline: view.timeline,
     viewport: view.viewport,
     snapToTimeline: view.snapToTimeline,
@@ -395,6 +407,8 @@ function stableViewKey(view: BoardView): unknown {
     contextRelations: [...view.contextRelations].sort((a, b) => a.id.localeCompare(b.id)),
     swimlanes: [...view.swimlanes].sort((a, b) => a.id.localeCompare(b.id)),
     boundedContexts: [...view.boundedContexts].sort((a, b) => a.id.localeCompare(b.id)),
+    canvasLines: [...view.canvasLines].sort((a, b) => a.id.localeCompare(b.id)),
+    bookmarks: [...view.bookmarks].sort((a, b) => a.id.localeCompare(b.id)),
     timeline: view.timeline,
     snapToTimeline: view.snapToTimeline,
     snapToGrid: view.snapToGrid,
