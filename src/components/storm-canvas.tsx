@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
 
 import { CanvasBoardChrome } from "@/components/canvas-board-chrome";
 import { CanvasLines } from "@/components/canvas-lines";
@@ -164,6 +163,11 @@ export function StormCanvas() {
         if (relationDraftSourceId) setRelationDraftSource(null);
         if (contextMapDraftSourceId) setContextMapDraftSource(null);
         if (lineDrawMode) setLineDrawMode(false);
+        if (relationMode) {
+          useStormBoardStore.getState().setRelationMode(false);
+          useStormBoardStore.getState().setContextMapMode(false);
+        }
+        if (bcMode) setBcMode(false);
         return;
       }
 
@@ -217,7 +221,7 @@ export function StormCanvas() {
     addAtViewportCenter,
     bcMode,
     relationMode,
-    contextMapMode,
+    bcMode,
     lineDrawMode,
     setLineDrawMode,
     deleteCanvasLine,
@@ -350,11 +354,13 @@ export function StormCanvas() {
       setRelationDraftSource(null);
       return;
     }
+    setContextMapDraftSource(null);
     setRelationDraftSource(id);
     selectElement(id);
   };
 
   const handleCompleteConnect = (targetId: string) => {
+    setContextMapDraftSource(null);
     if (!relationDraftSourceId) {
       setRelationDraftSource(targetId);
       selectElement(targetId);
@@ -616,73 +622,6 @@ export function StormCanvas() {
       onDoubleClick={handleDoubleClick}
       tabIndex={0}
     >
-      {relationMode && (
-        <div
-          data-canvas-chrome
-          className="dock-surface absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)]"
-        >
-          {relationDraftSourceId && sourceElement ? (
-            <>
-              <span>
-                Von <strong className="text-[var(--accent-2)]">{sourceElement.label}</strong> — Ziel anklicken
-              </span>
-              <button
-                type="button"
-                onClick={() => setRelationDraftSource(null)}
-                className="rounded p-0.5 hover:bg-[var(--control-hover)]"
-                title="Abbrechen"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </>
-          ) : (
-            <span>Verbinden: Pfeil → Pfeil, oder Element → Element</span>
-          )}
-        </div>
-      )}
-
-      {contextMapMode && (
-        <div
-          data-canvas-chrome
-          className="dock-surface absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)]"
-        >
-          {contextMapDraftSourceId && contextMapSource ? (
-            <>
-              <span>
-                Von <strong className="text-[var(--accent-2)]">{contextMapSource.label}</strong> — Ziel-BC anklicken
-              </span>
-              <button
-                type="button"
-                onClick={() => setContextMapDraftSource(null)}
-                className="rounded p-0.5 hover:bg-[var(--control-hover)]"
-                title="Abbrechen"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </>
-          ) : (
-            <span>Context Map: zwei Bounded Contexts anklicken</span>
-          )}
-        </div>
-      )}
-
-      {lineDrawMode && (
-        <div
-          data-canvas-chrome
-          className="dock-surface absolute left-1/2 top-3 z-40 flex -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)]"
-        >
-          <span>Linie ziehen · vorhandene Linie anklicken zum Verschieben · Esc: beenden</span>
-          <button
-            type="button"
-            onClick={() => setLineDrawMode(false)}
-            className="rounded p-0.5 hover:bg-[var(--control-hover)]"
-            title="Zeichenmodus beenden"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
-
       <div
         data-canvas-world
         className="absolute origin-top-left"
@@ -759,16 +698,49 @@ export function StormCanvas() {
       <CanvasBoardChrome
         bcMode={bcMode}
         onToggleBcMode={() => setBcMode((v) => !v)}
-        hint={
-          relationMode
-            ? "Verbinden · Esc: Abbrechen"
-            : contextMapMode
-              ? "Context Map · Esc: Abbrechen"
-              : lineDrawMode
-                ? "Linie ziehen · Esc: beenden"
-                : bcMode
-                  ? "Rechteck ziehen · Esc: Abbrechen"
-                  : "1–9/0 Typ · Rechtsklick / Trackpad / Leertaste: Pan · Rahmen"
+        status={
+          relationDraftSourceId && sourceElement
+            ? {
+                message: (
+                  <>
+                    Von <strong className="text-[var(--accent-2)]">{sourceElement.label}</strong> — Ziel
+                    anklicken
+                  </>
+                ),
+                onCancel: () => setRelationDraftSource(null),
+              }
+            : contextMapDraftSourceId && contextMapSource
+              ? {
+                  message: (
+                    <>
+                      Von{" "}
+                      <strong className="text-[var(--accent-2)]">{contextMapSource.label}</strong> —
+                      Ziel-BC anklicken
+                    </>
+                  ),
+                  onCancel: () => setContextMapDraftSource(null),
+                }
+              : relationMode
+                ? {
+                    message: "Verbinden: Element oder Bounded Context wählen",
+                    onCancel: () => {
+                      useStormBoardStore.getState().setRelationMode(false);
+                      useStormBoardStore.getState().setContextMapMode(false);
+                      setRelationDraftSource(null);
+                      setContextMapDraftSource(null);
+                    },
+                  }
+                : lineDrawMode
+                  ? {
+                      message: "Linie ziehen · Esc beendet",
+                      onCancel: () => setLineDrawMode(false),
+                    }
+                  : bcMode
+                    ? {
+                        message: "Rechteck ziehen · Esc beendet",
+                        onCancel: () => setBcMode(false),
+                      }
+                    : null
         }
       />
     </div>

@@ -35,8 +35,10 @@ export function BoundedContextLayer() {
   const views = useStormBoardStore((s) => s.views);
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
+  const relationMode = useStormBoardStore((s) => s.relationMode);
   const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
   const contextMapDraftSourceId = useStormBoardStore((s) => s.contextMapDraftSourceId);
+  const connectMode = relationMode || contextMapMode;
   const ordered = sortByZOrder(boundedContexts);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -98,7 +100,9 @@ export function BoundedContextLayer() {
     e.preventDefault();
 
     const store = useStormBoardStore.getState();
-    if (store.contextMapMode) {
+    // One "Verbinden"-tool: elements use relations, BCs use context-map links.
+    if (store.relationMode || store.contextMapMode) {
+      store.setRelationDraftSource(null);
       if (store.contextMapDraftSourceId && store.contextMapDraftSourceId !== bcId) {
         store.connectBoundedContexts(store.contextMapDraftSourceId, bcId);
         store.setContextMapDraftSource(null);
@@ -251,7 +255,7 @@ export function BoundedContextLayer() {
                 ? "border-blue-600 ring-2 ring-blue-300"
                 : "border-blue-400/70",
               draftSource ? "ring-[#e9c46a]" : "",
-              contextMapMode ? "cursor-crosshair" : editing ? "cursor-default" : "cursor-move",
+              connectMode ? "cursor-crosshair" : editing ? "cursor-default" : "cursor-move",
             ].join(" ")}
             style={{
               left: bc.x,
@@ -267,7 +271,7 @@ export function BoundedContextLayer() {
             onDoubleClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
-              if (contextMapMode) return;
+              if (connectMode) return;
               beginEdit(bc.id, bc.label);
             }}
             onContextMenu={(e) => {

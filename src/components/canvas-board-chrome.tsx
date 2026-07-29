@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
+  BoxSelect,
   Layers,
   Link2,
-  Map,
   Minus,
   MoreHorizontal,
   Search,
+  SquareDashed,
   X,
   ZoomIn,
   ZoomOut,
@@ -19,7 +20,9 @@ import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { LINE_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
-function ToolButton({
+type CanvasTool = "select" | "connect" | "bc" | "line";
+
+function ToolIconButton({
   active,
   onClick,
   title,
@@ -38,8 +41,10 @@ function ToolButton({
       aria-label={title}
       aria-pressed={active}
       className={[
-        "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium shadow-dock transition",
-        active ? "dock-control-active" : "dock-surface text-[var(--text)] hover:bg-[var(--control)]",
+        "flex h-8 w-8 items-center justify-center rounded-lg transition",
+        active
+          ? "dock-control-active"
+          : "text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)]",
       ].join(" ")}
     >
       {children}
@@ -132,15 +137,18 @@ function ViewMenu({
 export interface CanvasBoardChromeProps {
   bcMode: boolean;
   onToggleBcMode: () => void;
-  hint: string;
+  /** Contextual status when a tool / draft is active. */
+  status?: {
+    message: ReactNode;
+    onCancel?: () => void;
+  } | null;
 }
 
 /** Floating tool + zoom chrome for the canvas. */
-export function CanvasBoardChrome({ bcMode, onToggleBcMode, hint }: CanvasBoardChromeProps) {
+export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoardChromeProps) {
   const relationMode = useStormBoardStore((s) => s.relationMode);
   const setRelationMode = useStormBoardStore((s) => s.setRelationMode);
   const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
-  const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
   const setContextMapMode = useStormBoardStore((s) => s.setContextMapMode);
   const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
   const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
@@ -160,6 +168,43 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, hint }: CanvasBoardC
   const [viewOpen, setViewOpen] = useState(false);
   const viewBtnRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const activeTool: CanvasTool = lineDrawMode
+    ? "line"
+    : bcMode
+      ? "bc"
+      : relationMode
+        ? "connect"
+        : "select";
+
+  const clearConnect = () => {
+    setRelationMode(false);
+    setRelationDraftSource(null);
+    setContextMapMode(false);
+    setContextMapDraftSource(null);
+  };
+
+  const setTool = (tool: CanvasTool) => {
+    if (tool === activeTool && tool !== "select") {
+      // Toggle off → back to select
+      clearConnect();
+      setLineDrawMode(false);
+      if (bcMode) onToggleBcMode();
+      return;
+    }
+
+    clearConnect();
+    setLineDrawMode(false);
+    if (bcMode && tool !== "bc") onToggleBcMode();
+
+    if (tool === "connect") {
+      setRelationMode(true);
+    } else if (tool === "bc") {
+      if (!bcMode) onToggleBcMode();
+    } else if (tool === "line") {
+      setLineDrawMode(true);
+    }
+  };
 
   const viewHighlighted = viewOpen || snapToGrid || focusMode;
   const searchActive = Boolean(normalizeSearchQuery(searchQuery));
@@ -234,118 +279,109 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, hint }: CanvasBoardC
         </label>
       </div>
 
+      {status && (
+        <div
+          data-canvas-chrome
+          className="dock-surface absolute left-1/2 top-3 z-40 flex max-w-[min(100%-2rem,28rem)] -translate-x-1/2 items-center gap-2 px-3 py-2 text-xs text-[var(--text)] shadow-dock"
+        >
+          <span className="min-w-0 flex-1 truncate">{status.message}</span>
+          {status.onCancel && (
+            <button
+              type="button"
+              onClick={status.onCancel}
+              className="shrink-0 rounded p-0.5 hover:bg-[var(--control-hover)]"
+              title="Beenden (Esc)"
+              aria-label="Werkzeug beenden"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
       <div
-        className="absolute bottom-3 left-3 z-30 flex max-w-[min(100%-6rem,40rem)] flex-wrap items-center gap-1.5"
+        className="absolute bottom-3 left-3 z-30 flex items-center gap-1.5"
         data-canvas-chrome
       >
-        <ToolButton
-          active={relationMode}
-          title="Elemente verbinden"
-          onClick={() => {
-            const next = !relationMode;
-            setRelationMode(next);
-            if (!next) setRelationDraftSource(null);
-            if (next) {
-              setContextMapMode(false);
-              setContextMapDraftSource(null);
-            }
-          }}
+        <div
+          className="dock-surface flex items-center gap-0.5 rounded-xl p-0.5 shadow-dock"
+          role="toolbar"
+          aria-label="Canvas-Werkzeuge"
         >
-          <Link2 className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Verbinden</span>
-        </ToolButton>
-        <ToolButton
-          active={contextMapMode}
-          title="Context Map: Bounded Contexts verbinden"
-          onClick={() => {
-            const next = !contextMapMode;
-            setContextMapMode(next);
-            if (!next) setContextMapDraftSource(null);
-            if (next) {
-              setRelationMode(false);
-              setRelationDraftSource(null);
-            }
-          }}
-        >
-          <Map className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Context Map</span>
-        </ToolButton>
-        <ToolButton title="Swimlane hinzufügen" onClick={() => addSwimlane()}>
-          <Layers className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Swimlane</span>
-        </ToolButton>
-        <ToolButton
-          active={bcMode}
-          title="Bounded Context zeichnen"
-          onClick={() => {
-            if (!bcMode) {
-              setRelationMode(false);
-              setRelationDraftSource(null);
-              setContextMapMode(false);
-              setContextMapDraftSource(null);
-              setLineDrawMode(false);
-            }
-            onToggleBcMode();
-          }}
-        >
-          <span className="sm:hidden">BC</span>
-          <span className="hidden sm:inline">
-            {bcMode ? "BC zeichnen…" : "Bounded Context"}
-          </span>
-        </ToolButton>
-        <ToolButton
-          active={lineDrawMode}
-          title="Freie Linie zeichnen"
-          onClick={() => {
-            const next = !lineDrawMode;
-            setLineDrawMode(next);
-            if (next) {
-              setRelationMode(false);
-              setRelationDraftSource(null);
-              setContextMapMode(false);
-              setContextMapDraftSource(null);
-              if (bcMode) onToggleBcMode();
-            }
-          }}
-        >
-          <Minus className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">{lineDrawMode ? "Linie…" : "Linie"}</span>
-        </ToolButton>
-        <button
-          type="button"
-          title={LINE_ARROW_HEAD_LABELS[lineArrowHead]}
-          aria-label={LINE_ARROW_HEAD_LABELS[lineArrowHead]}
-          onClick={() => {
-            const index = LINE_ARROW_HEADS.indexOf(lineArrowHead);
-            const next = LINE_ARROW_HEADS[(index + 1) % LINE_ARROW_HEADS.length]!;
-            setLineArrowHead(next);
-          }}
-          className="dock-surface flex h-8 w-8 items-center justify-center rounded-lg text-sm font-medium shadow-dock hover:bg-[var(--control)]"
-        >
-          {lineArrowHeadShortLabel(lineArrowHead)}
-        </button>
-
-        <div className="relative">
-          <button
-            ref={viewBtnRef}
-            type="button"
-            onClick={() => setViewOpen((v) => !v)}
-            title="Ansichtsoptionen"
-            aria-expanded={viewOpen}
-            className={[
-              "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium shadow-dock",
-              viewHighlighted ? "dock-control-active" : "dock-surface text-[var(--text)]",
-            ].join(" ")}
+          <ToolIconButton
+            active={activeTool === "select"}
+            title="Auswählen / Verschieben"
+            onClick={() => setTool("select")}
           >
-            <MoreHorizontal className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Ansicht</span>
-          </button>
-          <ViewMenu open={viewOpen} onClose={() => setViewOpen(false)} anchorRef={viewBtnRef} />
-        </div>
+            <BoxSelect className="h-3.5 w-3.5" />
+          </ToolIconButton>
+          <ToolIconButton
+            active={activeTool === "connect"}
+            title="Verbinden (Elemente oder Bounded Contexts)"
+            onClick={() => setTool("connect")}
+          >
+            <Link2 className="h-3.5 w-3.5" />
+          </ToolIconButton>
+          <ToolIconButton
+            active={activeTool === "bc"}
+            title="Bounded Context zeichnen"
+            onClick={() => setTool("bc")}
+          >
+            <SquareDashed className="h-3.5 w-3.5" />
+          </ToolIconButton>
+          <ToolIconButton
+            active={activeTool === "line"}
+            title="Freie Linie zeichnen"
+            onClick={() => setTool("line")}
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </ToolIconButton>
 
-        <span className="dock-surface hidden max-w-[16rem] truncate rounded-lg px-2.5 py-1.5 text-[0.7rem] text-[var(--muted)] shadow-dock lg:inline">
-          {hint}
-        </span>
+          {activeTool === "line" && (
+            <>
+              <span className="mx-0.5 h-4 w-px bg-[var(--border)]" aria-hidden />
+              <button
+                type="button"
+                title={LINE_ARROW_HEAD_LABELS[lineArrowHead]}
+                aria-label={LINE_ARROW_HEAD_LABELS[lineArrowHead]}
+                onClick={() => {
+                  const index = LINE_ARROW_HEADS.indexOf(lineArrowHead);
+                  const next = LINE_ARROW_HEADS[(index + 1) % LINE_ARROW_HEADS.length]!;
+                  setLineArrowHead(next);
+                }}
+                className="flex h-8 min-w-8 items-center justify-center rounded-lg px-1.5 text-sm font-medium text-[var(--text)] hover:bg-[var(--control)]"
+              >
+                {lineArrowHeadShortLabel(lineArrowHead)}
+              </button>
+            </>
+          )}
+
+          <span className="mx-0.5 h-4 w-px bg-[var(--border)]" aria-hidden />
+
+          <ToolIconButton title="Swimlane hinzufügen" onClick={() => addSwimlane()}>
+            <Layers className="h-3.5 w-3.5" />
+          </ToolIconButton>
+
+          <div className="relative">
+            <button
+              ref={viewBtnRef}
+              type="button"
+              onClick={() => setViewOpen((v) => !v)}
+              title="Ansichtsoptionen"
+              aria-label="Ansichtsoptionen"
+              aria-expanded={viewOpen}
+              className={[
+                "flex h-8 w-8 items-center justify-center rounded-lg transition",
+                viewHighlighted
+                  ? "dock-control-active"
+                  : "text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)]",
+              ].join(" ")}
+            >
+              <MoreHorizontal className="h-3.5 w-3.5" />
+            </button>
+            <ViewMenu open={viewOpen} onClose={() => setViewOpen(false)} anchorRef={viewBtnRef} />
+          </div>
+        </div>
       </div>
 
       <div
