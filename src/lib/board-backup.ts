@@ -4,6 +4,7 @@
 
 import { boardJsonFromStoreState, boardPersistKeyFromStoreState } from "@/lib/file-board-reconcile";
 import { documentHasContent } from "@/lib/storm-json";
+import { isWorkingFileAttached, isWorkingFileDirty } from "@/lib/working-file";
 import { boardImportPayloadFromStore } from "@/store/storm-board-store";
 
 export const BACKUP_INTERVAL_OPTIONS_MINUTES = [0, 5, 10, 15, 30] as const;
@@ -182,7 +183,17 @@ export function resetLastBackupPersistKey(): void {
 
 export type CreateBoardBackupResult =
   | { filename: string; skipped: false }
-  | { skipped: true; reason: "empty" | "unchanged" };
+  | { skipped: true; reason: "empty" | "unchanged" | "already_saved" };
+
+/**
+ * True when a safety backup is warranted: board has content and is not synced
+ * to the Arbeitsdatei (dirty or no Sync-Ziel yet).
+ */
+export function boardNeedsSafetyBackup(): boolean {
+  if (!documentHasContent(boardImportPayloadFromStore())) return false;
+  if (isWorkingFileAttached()) return isWorkingFileDirty();
+  return true;
+}
 
 /** Create a timestamped backup of the current editor board. */
 export function createBoardBackupNow(
@@ -211,14 +222,23 @@ export type SuspiciousSwitchKind = "view" | "file" | "room";
 const LAST_SWITCH_BACKUP_AT: Partial<Record<SuspiciousSwitchKind | "any", number>> = {};
 
 /**
- * Download a safety backup before replacing or switching board context
- * (Sicht-Tab, andere Datei, Kollaborations-Raum).
+ * Safety backup before replacing/switching board context (Sicht, Datei, Raum).
+ * Only when the current stand is not yet saved to the Arbeitsdatei.
  * Debounced per kind so confirm-dialogs don't double-download.
  */
 export function backupBeforeSuspiciousSwitch(
   kind: SuspiciousSwitchKind,
-  options?: { allowEmpty?: boolean; debounceMs?: number },
-): { filename: string; skipped: false } | { skipped: true; reason: "empty" | "debounced" | "unchanged" } {
+  options?: { allowEmpty?: boolean; debounceMs?: number; force?: boolean },
+): {
+  filename: string;
+  skipped: false;
+} | {
+  skipped: true;
+  reason: "empty" | "debounced" | "unchanged" | "already_saved";
+} {
+  if (!options?.force && !boardNeedsSafetyBackup()) {
+    return { skipped: true, reason: "already_saved" };
+  }
   const debounceMs =
     options?.debounceMs ?? (kind === "view" ? 4000 : 2000);
   const now = Date.now();

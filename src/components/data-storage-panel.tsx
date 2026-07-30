@@ -569,8 +569,8 @@ export function DataStoragePanel({
                 defaultOpen={localBackups.length > 0}
               >
                 <p className="text-xs text-[var(--muted)]">
-                  Zeitstempel-Kopie (.storm.json), unabhängig von der Arbeitsdatei.{" "}
-                  {backupLastLabel}.
+                  Zeitstempel-Kopie (.storm.json) nur bei ungespeichertem Stand — vor
+                  Datei-/Sichtwechsel und optional zeitgesteuert. {backupLastLabel}.
                 </p>
                 <ActionButton onClick={onBackupNow} disabled={busy}>
                   <Save className="h-4 w-4" /> Jetzt sichern
