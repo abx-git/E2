@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { BetaRibbon } from "@/components/beta-ribbon";
 import { BoardAppBar } from "@/components/board-app-bar";
 import {
   BoundedContextMobileActions,
@@ -576,7 +577,11 @@ export function StormBoard() {
   };
 
   return (
-    <div ref={boardRootRef} className="flex h-screen min-h-0 flex-col bg-[var(--bg)] text-[var(--text)]">
+    <div
+      ref={boardRootRef}
+      className="relative flex h-screen min-h-0 flex-col overflow-hidden bg-[var(--bg)] text-[var(--text)]"
+    >
+      <BetaRibbon />
       <WorkingFileSync
         onWorkingFileNameChange={setWorkingFileName}
         onDirtyChange={setWorkingFileDirty}
@@ -655,8 +660,10 @@ export function StormBoard() {
                 </>
               )}
         </span>
-        <span className="hidden sm:inline">Rechtsklick · Pan · E2</span>
-        <span className="sm:hidden">Wischen · Panel · E2</span>
+        <span className="hidden sm:inline">
+          Rechtsklick · Pan · E2 · © A. Bergmann
+        </span>
+        <span className="sm:hidden">Wischen · Panel · © A. Bergmann</span>
       </footer>
 
       <BoundedContextMobileSheet

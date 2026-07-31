@@ -446,3 +446,10 @@ E2 deckt den **Kern von Event Storming** ab: alle gängigen Sticky-Typen, Relati
 **Bewusst oder noch schwach:** Echtzeit-Kollaboration (optional via Supabase — siehe [`docs/COLLABORATION.md`](docs/COLLABORATION.md)); räumliche Zuordnung zu Lanes/Contexts erfolgt jetzt automatisch bei vollständiger Umschließung.
 
 Wenn du Lücken priorisieren willst, sind die methodisch größten Hebel typischerweise: **Glossary-Bindung** und Auto-Zuordnung.
+
+---
+
+## Lizenz
+
+MIT © Andreas Bergmann — siehe [`LICENSE`](LICENSE).  
+**Beta:** Das `.storm.json`-Dateiformat kann sich noch ändern und inkompatibel werden.
