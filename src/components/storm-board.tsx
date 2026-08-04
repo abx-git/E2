@@ -28,6 +28,10 @@ import {
 } from "@/components/file-conflict-dialog";
 import { StormCanvas } from "@/components/storm-canvas";
 import { WorkingFileSetupDialog } from "@/components/working-file-setup-dialog";
+import {
+  NewWorkingFileDialog,
+  type NewWorkingFileChoice,
+} from "@/components/new-working-file-dialog";
 import { WorkingFileSync } from "@/components/working-file-sync";
 import { applyAppearanceToElement } from "@/lib/board-appearance";
 import {
@@ -109,6 +113,7 @@ import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
 export function StormBoard() {
   const [storageOpen, setStorageOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
+  const [newFileOpen, setNewFileOpen] = useState(false);
   const [workingFileName, setWorkingFileName] = useState<string | null>(null);
   const [workingFileDirty, setWorkingFileDirty] = useState(false);
   const [workingFileSaving, setWorkingFileSaving] = useState(false);
@@ -354,34 +359,58 @@ export function StormBoard() {
     return false;
   };
 
-  const handleNewWorkingFile = async () => {
+  const handleNewWorkingFile = () => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
       window.alert(
         "Während der Kollaboration kann keine neue Datei angelegt werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
       );
       return;
     }
+    setNewFileOpen(true);
+  };
 
-    const dirty = isWorkingFileDirty();
-    const hasContent = boardHasLocalContent();
-    if (dirty || hasContent) {
-      const ok = window.confirm(
-        dirty
-          ? "Es gibt ungespeicherte Änderungen. Neue Datei anlegen und den aktuellen Stand verwerfen?\n\nTipp: Zuvor „Speichern unter…“ nutzen."
-          : "Aktuelles Board verwerfen und eine neue leere Datei anlegen?",
-      );
-      if (!ok) return;
+  const handleNewWorkingFileChoice = async (choice: NewWorkingFileChoice) => {
+    if (choice.action === "cancel") {
+      setNewFileOpen(false);
+      return;
     }
 
     setBusy(true);
     try {
       backupBeforeSuspiciousSwitch("file");
       await detachWorkingFile();
-      useStormBoardStore.getState().replaceBoardFromImport(createDefaultBoardDocument());
-      setWorkingFileName(null);
+      useStormBoardStore.getState().replaceBoardFromImport(
+        createDefaultBoardDocument({ title: choice.title }),
+      );
       setWorkingFileDirty(false);
       setSetupOpen(false);
       setStorageOpen(false);
+
+      if (choice.action === "empty_without_file") {
+        // Tab-Kontext leeren — kein stilles Wiederanbinden der alten Datei.
+        bindTabWorkingFileName(null, null);
+        setWorkingFileName(null);
+        markWorkingFileSessionHydrated();
+        setNewFileOpen(false);
+        return;
+      }
+
+      // create_with_file: neuen Speicherort wählen → neuer wf + filename in der URL.
+      const handle = await createAndAttachWorkingFile(
+        boardJsonFromStoreState(),
+        choice.suggestedFileName,
+      );
+      if (!handle) {
+        // User aborted picker — keep empty board, clear URL context.
+        bindTabWorkingFileName(null, null);
+        setWorkingFileName(null);
+        markWorkingFileSessionHydrated();
+        setNewFileOpen(false);
+        return;
+      }
+      syncWorkingFileUrlContext();
+      setWorkingFileDirty(false);
+      setNewFileOpen(false);
     } finally {
       setBusy(false);
     }
@@ -729,7 +758,7 @@ export function StormBoard() {
           setBackupIntervalMinutes(minutes);
         }}
         onBackupNow={() => runManualBoardBackup(setBackupLastLabel)}
-        onNewWorkingFile={() => void handleNewWorkingFile()}
+        onNewWorkingFile={() => handleNewWorkingFile()}
         onSaveWorkingFile={() => void handleSaveWorkingFile()}
         onOpenWorkingFile={() => void handleOpenWorkingFile()}
         onSaveWorkingFileAs={() => void handleSaveWorkingFileAs()}
@@ -809,6 +838,16 @@ export function StormBoard() {
         keepLocalLabel="Aktuellen E2-Stand behalten"
         loadFileLabel="Importierten Stand laden"
         onChoose={(choice) => void handleImportConflict(choice)}
+      />
+
+      <NewWorkingFileDialog
+        open={newFileOpen}
+        busy={busy}
+        currentFileName={workingFileName}
+        hasUnsavedChanges={workingFileDirty}
+        hasBoardContent={boardHasLocalContent()}
+        fsAccessSupported={isWorkingFileSupported()}
+        onChoose={(choice) => void handleNewWorkingFileChoice(choice)}
       />
 
       <WorkingFileSetupDialog
