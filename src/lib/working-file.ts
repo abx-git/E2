@@ -148,9 +148,7 @@ export type WriteWorkingFileResult =
         | "conflict"
         | "io_error"
         | "not_writer"
-        | "url_context_missing"
-        | "url_context_mismatch"
-        | "needs_confirm";
+        | "url_context_mismatch";
       message?: string;
     };
 
@@ -992,25 +990,26 @@ export async function resolveWorkingFileImportConflict(
 
 export async function persistWorkingFileJson(
   json: string,
-  options?: { userConfirmed?: boolean; skipCas?: boolean },
+  options?: { skipCas?: boolean },
 ): Promise<WriteWorkingFileResult> {
   const gate = evaluateWorkingFileWriteGate({
     attached: isWorkingFileAttached(),
     isWriterLeader: isWorkingFileWriterLeader(),
     activeWf: activeWorkingFileId,
     label: getWorkingFileLabel(),
-    userConfirmed: options?.userConfirmed,
   });
   if (!gate.ok) {
     const reason =
       gate.reason === "not_writer"
         ? "not_writer"
-        : gate.reason === "url_context_missing"
-          ? "url_context_missing"
-          : gate.reason === "url_context_mismatch"
-            ? "url_context_mismatch"
-            : "no_handle";
+        : gate.reason === "url_context_mismatch"
+          ? "url_context_mismatch"
+          : "no_handle";
     return { ok: false, reason, message: gate.message };
+  }
+  if (gate.shouldRebindUrl) {
+    const label = getWorkingFileLabel();
+    syncTabContextAndWriter(label, activeWorkingFileId);
   }
 
   if (memoryHandle) {
@@ -1022,7 +1021,6 @@ export async function persistWorkingFileJson(
   }
   if (!mobileWorkingFileName) return { ok: false, reason: "no_handle" };
   try {
-    // Mobile mirror: CAS against last known revision when available.
     if (!options?.skipCas && lastKnownFileModified > 0) {
       const existing = await idbGetMobileCopy(activeWorkingFileId, mobileWorkingFileName);
       if (

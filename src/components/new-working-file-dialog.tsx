@@ -64,10 +64,7 @@ export function NewWorkingFileDialog({
           Neue Datei
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          Leeres Board in diesem Tab anlegen. Die Browser-Adresse (
-          <code className="rounded bg-slate-100 px-1 text-[0.75rem]">?filename=</code> /{" "}
-          <code className="rounded bg-slate-100 px-1 text-[0.75rem]">?wf=</code>) wird auf die
-          neue Datei umgestellt — andere Tabs bleiben unberührt.
+          Leeres Board in diesem Tab anlegen. Andere Tabs bleiben unverändert.
         </p>
 
         {warnDiscard && (
@@ -130,9 +127,7 @@ export function NewWorkingFileDialog({
             }
             className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
           >
-            {fsAccessSupported
-              ? "Leeres Board ohne Datei (Tab-Kontext leeren)"
-              : "Leeres Board anlegen"}
+            {fsAccessSupported ? "Leeres Board ohne Datei" : "Leeres Board anlegen"}
           </button>
           <button
             type="button"

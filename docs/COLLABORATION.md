@@ -54,12 +54,13 @@ Client-Helfer: [`src/utils/supabase/`](../src/utils/supabase/) (`@supabase/ssr`)
 ## Nutzung
 
 1. **Daten → Kollaboration** oder Toolbar **Raum**.
-2. Bei vorhandenem Board oder angebundener Arbeitsdatei erscheint eine **Bestätigung** (optional JSON-Export als Sicherheitskopie).
-3. Join-Code / Link `?room=CODE` teilen.
-4. Teilnehmende: Name wählen → beitreten (ebenfalls mit Bestätigung, falls lokal Inhalt vorhanden).
+2. Raum erstellen braucht eine **Arbeitsdatei als lokales Backup** (sonst zuerst Speichern unter…).
+3. Kurze Bestätigung beim Eintritt: Editor folgt dem Raum; Datei wird automatisch mitgeschrieben.
+4. Join-Code / Link `?room=CODE` teilen.
 5. Banner zeigt „Live · n online“; bei angebundener Datei **Lokal gesichert** / **Lokal ungespeichert**.
-6. **Verlassen:** Dialog — Raum verlassen (Board behalten) oder optional Stand vor dem Raum wiederherstellen.
-7. Raum-Snapshot bleibt bis `expires_at`.
+6. **Während der Session:** alle arbeiten live am selben Board — **ohne** Konfliktfragen bei normalen Änderungen. Neu/Öffnen ist erst nach Verlassen möglich.
+7. **Verlassen:** Dialog — Raum-Stand behalten (Standard) oder optional Stand vor dem Raum wiederherstellen.
+8. Raum-Snapshot bleibt bis `expires_at`.
 
 ### Mehrere Browser-Tabs (Single-Writer)
 
@@ -69,15 +70,17 @@ Pro Raum und Browser-Profil schreibt **nur der sichtbare Tab** in den Server-Sna
 |-----------|-----------|
 | Aktiver Tab | Banner „Live“ — darf Snapshots pushen |
 | Zweiter Tab / Hintergrund | Banner **„Passiver Tab · schreibt nicht“** — empfängt Updates, pusht nicht |
-| Fokus auf passiven Tab | Tab wird Writer und prüft Server-Stand (bei Divergenz: Dialog) |
+| Fokus auf passiven Tab | Tab wird Writer; Server-Stand ohne Dialog übernehmen, sofern keine eigenen ungespeicherten lokalen Edits |
 
-### Kein stilles Überschreiben (Write-Policy)
+### Sync-Policy (Live)
 
 | Regel | Verhalten |
 |-------|-----------|
-| Speichern | CAS gegen die **zuletzt bekannte** Revision — nie „neueste Revision holen und lokalen Inhalt drüberlegen“ |
-| Server neuer + lokale Änderungen | **Sync-Konflikt-Dialog** — Server übernehmen oder bewusst eigenen Stand pushen |
-| Server neuer + keine lokalen Änderungen | Server-Stand sicher übernehmen |
+| Peer tippt / zeichnet | Sofort sichtbar, **kein Dialog** |
+| Speichern auf Server | CAS gegen bekannte Revision |
+| Server neuer + **keine** lokalen Edits | Server-Stand still übernehmen |
+| Server neuer + **eigene** ungespeicherte Edits | Sync-Konflikt-Dialog (selten) |
+| Arbeitsdatei im Raum | Nur Editor → Datei (lokales Backup); Datei lädt den Editor nicht |
 | Konflikt | **Kein Retry** mit altem Payload; Broadcast überschreibt den Editor nicht bei dirty local |
 
 ### Arbeitsdatei und Collab

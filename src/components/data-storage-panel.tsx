@@ -481,6 +481,24 @@ export function DataStoragePanel({
                   </p>
                 )}
                 <div className="grid grid-cols-2 gap-2">
+                  <ActionButton onClick={onNewWorkingFile} disabled={busy}>
+                    <FilePlus className="h-4 w-4" /> Neu
+                  </ActionButton>
+                  {fsAccessSupported ? (
+                    <ActionButton
+                      onClick={onOpenWorkingFile}
+                      disabled={busy || mustSaveBeforeOpen}
+                    >
+                      <FolderOpen className="h-4 w-4" /> Öffnen
+                    </ActionButton>
+                  ) : (
+                    <ActionButton
+                      onClick={onRestoreBackupFile}
+                      disabled={busy || mustSaveBeforeOpen}
+                    >
+                      <FolderOpen className="h-4 w-4" /> Öffnen
+                    </ActionButton>
+                  )}
                   {workingFileAttached ? (
                     <ActionButton
                       onClick={onSaveWorkingFile}
@@ -497,21 +515,6 @@ export function DataStoragePanel({
                   >
                     <Save className="h-4 w-4" /> Speichern unter…
                   </ActionButton>
-                  {fsAccessSupported ? (
-                    <ActionButton
-                      onClick={onOpenWorkingFile}
-                      disabled={busy || mustSaveBeforeOpen}
-                    >
-                      <FolderOpen className="h-4 w-4" /> Datei öffnen
-                    </ActionButton>
-                  ) : (
-                    <ActionButton
-                      onClick={onRestoreBackupFile}
-                      disabled={busy || mustSaveBeforeOpen}
-                    >
-                      <FolderOpen className="h-4 w-4" /> Datei wählen
-                    </ActionButton>
-                  )}
                 </div>
                 {busy && (
                   <p className="flex items-center gap-2 text-xs text-[var(--muted)]">
@@ -520,10 +523,7 @@ export function DataStoragePanel({
                 )}
               </div>
 
-              <Disclosure title="Weitere Datei-Aktionen">
-                <ActionButton onClick={onNewWorkingFile} disabled={busy}>
-                  <FilePlus className="h-4 w-4" /> Neue Datei
-                </ActionButton>
+              <Disclosure title="Weitere Aktionen">
                 {!fsAccessSupported && (
                   <ActionButton
                     onClick={onRestoreBackupPaste}

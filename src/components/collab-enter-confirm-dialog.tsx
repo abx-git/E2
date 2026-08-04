@@ -54,27 +54,27 @@ export function CollabEnterConfirmDialog({
         <div className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
           {isJoin && boardHasContent && (
             <p>
-              Der aktuelle Board-Stand im Editor wird durch den Raum-Inhalt{" "}
-              <strong className="font-semibold text-slate-800">ersetzt</strong>. Die Undo-History
-              wird danach geleert.
+              Der Editor wird durch den <strong className="font-semibold text-slate-800">Raum-Stand</strong>{" "}
+              ersetzt. Alle Teilnehmer arbeiten danach live am selben Board — ohne weitere Nachfragen.
             </p>
           )}
           {!isJoin && boardHasContent && (
-            <p>
-              Dein aktuelles Board wird als Startinhalt in den neuen Raum übernommen.
-            </p>
+            <p>Dein aktuelles Board wird als Startinhalt in den neuen Raum übernommen.</p>
           )}
-          {workingFileAttached && (
+          {workingFileAttached ? (
             <p>
-              Die Arbeitsdatei bleibt angebunden und wird während der Kollaboration mit dem
-              Editor-Stand{" "}
-              <strong className="font-semibold text-slate-800">mitgeschrieben</strong> (lokales
-              Backup). Beim Verlassen kannst du optional den Stand vor dem Raum wiederherstellen.
+              Deine Datei dient als <strong className="font-semibold text-slate-800">lokales Backup</strong>{" "}
+              und wird automatisch mitgeschrieben. Neu/Öffnen ist im Raum nicht möglich — erst nach dem
+              Verlassen.
             </p>
+          ) : (
+            !isJoin && (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-950">
+                Zuerst „Speichern unter…“ — der Raum braucht eine Datei als lokales Backup.
+              </p>
+            )
           )}
-          <p className="text-slate-500">
-            Empfehlung: vor dem Fortfahren einmal JSON exportieren (zusätzliche Sicherheitskopie).
-          </p>
+          <p className="text-slate-500">Optional: JSON exportieren als zusätzliche Kopie.</p>
         </div>
         <div className="mt-5 flex flex-col gap-2">
           <button
@@ -103,13 +103,8 @@ export function CollabEnterConfirmDialog({
               onClick={() => onChoose("proceed")}
               className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
             >
-              {isJoin ? "Raum laden (Board ersetzen)" : "Raum starten"}
+              {isJoin ? "Raum laden" : "Raum starten"}
             </button>
-          )}
-          {!isJoin && !workingFileAttached && (
-            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
-              Zuerst „Speichern unter…“ wählen — der Raum braucht ein Sync-Ziel.
-            </p>
           )}
           <button
             type="button"

@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
-  confirmMissingUrlContextWrite,
-  evaluateWorkingFileUrlContext,
   evaluateWorkingFileWriteGate,
   mayAutoRestoreWorkingFileFromStorage,
 } from "@/lib/working-file-safety";
@@ -46,7 +44,6 @@ describe("working-file-safety", () => {
             if (url != null) href = new URL(String(url), href).toString();
           },
         },
-        confirm: () => true,
       },
     });
   });
@@ -56,30 +53,34 @@ describe("working-file-safety", () => {
     Reflect.deleteProperty(globalThis, "window");
   });
 
-  it("blocks write when URL has neither filename nor wf", () => {
-    const gate = evaluateWorkingFileUrlContext({
+  it("allows write with missing URL but signals rebind", () => {
+    const gate = evaluateWorkingFileWriteGate({
       attached: true,
-      activeWf: "wf-1",
-      label: "a.storm.json",
-    });
-    expect(gate.ok).toBe(false);
-    expect(gate.reason).toBe("url_context_missing");
-  });
-
-  it("allows write when URL filename matches label", () => {
-    href = "http://localhost/?filename=a.storm.json&wf=wf-1";
-    const gate = evaluateWorkingFileUrlContext({
-      attached: true,
+      isWriterLeader: true,
       activeWf: "wf-1",
       label: "a.storm.json",
     });
     expect(gate.ok).toBe(true);
+    expect(gate.shouldRebindUrl).toBe(true);
+  });
+
+  it("allows write when URL matches", () => {
+    href = "http://localhost/?filename=a.storm.json&wf=wf-1";
+    const gate = evaluateWorkingFileWriteGate({
+      attached: true,
+      isWriterLeader: true,
+      activeWf: "wf-1",
+      label: "a.storm.json",
+    });
+    expect(gate.ok).toBe(true);
+    expect(gate.shouldRebindUrl).toBeFalsy();
   });
 
   it("blocks write on wf mismatch", () => {
     href = "http://localhost/?filename=a.storm.json&wf=other";
-    const gate = evaluateWorkingFileUrlContext({
+    const gate = evaluateWorkingFileWriteGate({
       attached: true,
+      isWriterLeader: true,
       activeWf: "wf-1",
       label: "a.storm.json",
     });
@@ -87,18 +88,7 @@ describe("working-file-safety", () => {
     expect(gate.reason).toBe("url_context_mismatch");
   });
 
-  it("blocks write on filename mismatch", () => {
-    href = "http://localhost/?filename=a.storm.json&wf=wf-1";
-    const gate = evaluateWorkingFileUrlContext({
-      attached: true,
-      activeWf: "wf-1",
-      label: "b.storm.json",
-    });
-    expect(gate.ok).toBe(false);
-    expect(gate.reason).toBe("url_context_mismatch");
-  });
-
-  it("write gate requires leader unless opted out", () => {
+  it("blocks non-writer tabs", () => {
     href = "http://localhost/?filename=a.storm.json&wf=wf-1";
     expect(
       evaluateWorkingFileWriteGate({
@@ -108,44 +98,11 @@ describe("working-file-safety", () => {
         label: "a.storm.json",
       }).reason,
     ).toBe("not_writer");
-
-    expect(
-      evaluateWorkingFileWriteGate({
-        attached: true,
-        isWriterLeader: false,
-        activeWf: "wf-1",
-        label: "a.storm.json",
-        requireWriter: false,
-      }).ok,
-    ).toBe(true);
-  });
-
-  it("allows missing URL only after userConfirmed", () => {
-    const blocked = evaluateWorkingFileWriteGate({
-      attached: true,
-      isWriterLeader: true,
-      activeWf: "wf-1",
-      label: "a.storm.json",
-    });
-    expect(blocked.reason).toBe("url_context_missing");
-
-    const allowed = evaluateWorkingFileWriteGate({
-      attached: true,
-      isWriterLeader: true,
-      activeWf: "wf-1",
-      label: "a.storm.json",
-      userConfirmed: true,
-    });
-    expect(allowed.ok).toBe(true);
   });
 
   it("mayAutoRestore requires URL or session — not bare localStorage", () => {
     expect(mayAutoRestoreWorkingFileFromStorage()).toBe(false);
     href = "http://localhost/?filename=a.storm.json";
     expect(mayAutoRestoreWorkingFileFromStorage()).toBe(true);
-  });
-
-  it("confirmMissingUrlContextWrite uses window.confirm", () => {
-    expect(confirmMissingUrlContextWrite("demo.storm.json")).toBe(true);
   });
 });

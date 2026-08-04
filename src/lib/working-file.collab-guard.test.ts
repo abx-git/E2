@@ -36,7 +36,7 @@ describe("working-file collab guards", () => {
     const result = await persistWorkingFileJson("{}");
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(["not_writer", "url_context_missing", "no_handle"]).toContain(result.reason);
+      expect(["not_writer", "no_handle", "url_context_mismatch"]).toContain(result.reason);
     }
   });
 });

@@ -170,8 +170,9 @@ function raiseSyncConflict(
 }
 
 /**
- * Server is ahead of our last applied clock. Never silently overwrite either side
- * when the payloads actually diverge — always ask. Auto-apply only when equivalent.
+ * Server is ahead of our last applied clock.
+ * Live collab: adopt remote silently when we have no unpushed local edits.
+ * Only ask when this tab actually has divergent local changes (true conflict).
  */
 function handleNewerRemote(
   roomId: string,
@@ -186,8 +187,7 @@ function handleNewerRemote(
   setRevision: (n: number) => void,
 ): "applied" | "conflict" | "skipped" {
   const localPayload = boardImportPayloadFromStore();
-  if (payloadsEquivalent(localPayload, remote.payload)) {
-    // Same content — adopt server clocks without rewriting the board.
+  if (!localDirty || payloadsEquivalent(localPayload, remote.payload)) {
     applyRemoteSnapshot(
       remote.payload,
       remote.revision,
@@ -198,7 +198,6 @@ function handleNewerRemote(
     localDirty = false;
     return "applied";
   }
-  // Divergent content (whether or not we marked localDirty) → explicit user choice.
   raiseSyncConflict(roomId, localSnapshot, localYjsState, remote);
   return "conflict";
 }
@@ -490,10 +489,22 @@ async function pullRemoteIfNewer(
     return;
   }
 
-  // Server advanced — never silently overwrite divergent local content (focus / poll).
   const localPayload = readPayloadFromYDoc(doc) ?? boardImportPayloadFromStore();
   const localSnapshot = buildBoardSnapshot(localPayload);
   const localYjs = encodeYDocState(doc);
+
+  // No unpushed local edits → take server silently (normal peer activity).
+  if (!localDirty && !snapshotTimer) {
+    applyRemoteSnapshot(
+      result.payload,
+      result.revision,
+      result.yjsState,
+      result.updatedAt,
+      setRevision,
+    );
+    return;
+  }
+
   handleNewerRemote(roomId, result, localSnapshot, localYjs, setRevision);
 }
 
@@ -819,10 +830,12 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       syncConflict: null,
     });
 
-    // Mirror room → file only when safe (URL bound + CAS). Never force-overwrite on conflict.
+    // Mirror room → local backup file. Skip CAS conflicts silently (backup is ours).
     if (isWorkingFileAttached()) {
       suppressWorkingFileExternalPoll(10_000);
-      await persistWorkingFileJson(boardJsonFromStoreState(), { userConfirmed: true });
+      await persistWorkingFileJson(boardJsonFromStoreState(), {
+        skipCas: true,
+      });
       suppressWorkingFileExternalPoll(5_000);
     }
 
