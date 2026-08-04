@@ -9,6 +9,7 @@ import {
   type BoardSnapshot,
   type BoardImportPayload,
 } from "@/lib/storm-json";
+import { boardImportPayloadFromAnyExportText } from "@/lib/board-import-text";
 import { boardImportPayloadFromStore } from "@/store/storm-board-store";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -51,7 +52,7 @@ export function applyBoardPayloadToStore(payload: BoardImportPayload): void {
 }
 
 export function applyBoardJsonToStore(json: string): boolean {
-  const payload = boardImportPayloadFromExportText(json);
+  const payload = boardImportPayloadFromAnyExportText(json);
   if (!payload) return false;
   applyBoardPayloadToStore(payload);
   return true;

@@ -6,6 +6,7 @@ import { AppearanceSettings } from "@/components/appearance-settings";
 import {
   Clock,
   ClipboardCopy,
+  ClipboardPaste,
   Download,
   FilePlus,
   FolderOpen,
@@ -66,6 +67,10 @@ export interface DataStoragePanelProps {
   /** Reduced semantic extract for AI conversation context. */
   onExportViewAiContext: (viewId: string) => void;
   onCopyViewAiContextToClipboard: (viewId: string) => boolean | Promise<boolean>;
+  /** JSON Schema for the AI-context format (for prompting an LLM). */
+  onExportAiContextSchema: () => void;
+  /** Paste AI-context JSON as a new view (auto-layout). */
+  onPasteAiContextAsNewView: () => void;
   onExportJsonSchema: () => void;
   onExportSvg: () => void;
   onExportPng: () => void;
@@ -262,6 +267,8 @@ export function DataStoragePanel({
   onCopyViewJsonToClipboard,
   onExportViewAiContext,
   onCopyViewAiContextToClipboard,
+  onExportAiContextSchema,
+  onPasteAiContextAsNewView,
   onExportJsonSchema,
   onExportSvg,
   onExportPng,
@@ -551,14 +558,12 @@ export function DataStoragePanel({
               </div>
 
               <Disclosure title="Weitere Aktionen">
-                {!fsAccessSupported && (
-                  <ActionButton
-                    onClick={onRestoreBackupPaste}
-                    disabled={busy || mustSaveBeforeOpen}
-                  >
-                    JSON einfügen
-                  </ActionButton>
-                )}
+                <ActionButton
+                  onClick={onRestoreBackupPaste}
+                  disabled={busy || mustSaveBeforeOpen}
+                >
+                  JSON einfügen
+                </ActionButton>
                 {fsAccessSupported && recentFiles.length > 0 && (
                   <div className="space-y-1.5">
                     <p className="text-[0.7rem] font-medium text-[var(--muted)]">
@@ -657,7 +662,8 @@ export function DataStoragePanel({
 
               <div className="space-y-2 border-t border-[var(--border)] pt-4">
                 <p className="text-xs text-[var(--muted)]">
-                  E2-Datei als neue Sicht(en) — Farben bleiben aus der geöffneten Datei.
+                  E2-Datei oder KI-Kontext als neue Sicht(en) — Farben bleiben aus der geöffneten
+                  Datei.
                 </p>
                 <ActionButton onClick={onImportAsNewViews} disabled={busy}>
                   <Upload className="h-4 w-4" /> Als neue Seite importieren
@@ -786,6 +792,20 @@ export function DataStoragePanel({
                     detail="für Conversation"
                     icon={ClipboardCopy}
                     emphasize={aiContextCopied}
+                  />
+                  <ExportTile
+                    onClick={onExportAiContextSchema}
+                    disabled={busy}
+                    label="KI-Schema"
+                    detail="für Prompt / LLM"
+                  />
+                  <ExportTile
+                    onClick={onPasteAiContextAsNewView}
+                    disabled={busy}
+                    label="KI einfügen"
+                    detail="als neue Sicht"
+                    icon={ClipboardPaste}
+                    emphasize
                   />
                 </div>
               </div>

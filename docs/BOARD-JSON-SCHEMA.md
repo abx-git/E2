@@ -26,6 +26,31 @@ Exportierte Boards enthalten:
 
 Import akzeptiert `format === "event-storming-tool"` und `version` **1 oder 2**. v1 wird beim Laden in ein v2-Dokument mit einer Sicht `"Board"` migriert. Speichern schreibt immer v2. `$schema` ist optional.
 
+## KI-Kontext (reduziert)
+
+Für Conversation-Context und Roundtrip mit Auto-Layout:
+
+| Quelle | URL / Pfad |
+|--------|------------|
+| Im Repo | [`public/schemas/ai-board-context-v1.schema.json`](../public/schemas/ai-board-context-v1.schema.json) |
+| App | **Daten → Export → KI-Schema** / **KI einfügen** |
+
+```json
+{
+  "$schema": "https://abx-git.github.io/E2/schemas/ai-board-context-v1.schema.json",
+  "format": "event-storming-tool-ai-context",
+  "version": 1,
+  "title": "Beispiel",
+  "view": {
+    "name": "Big Picture",
+    "modelingMode": "eventStorming",
+    "elements": [{ "type": "domainEvent", "label": "Order Placed", "order": 1 }]
+  }
+}
+```
+
+Ohne Koordinaten — beim Import legt die App Positionen (Timeline / Lanes / Bounded Contexts) an. Paste ersetzt das Board oder fügt als neue Sicht ein.
+
 ## Struktur
 
 | Ebene | Felder |

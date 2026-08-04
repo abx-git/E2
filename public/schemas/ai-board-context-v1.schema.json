@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abx-git.github.io/E2/schemas/ai-board-context-v1.schema.json",
+  "title": "E2 AI Board Context",
+  "description": "Reduziertes semantisches Board-Format (format: event-storming-tool-ai-context, version: 1) für KI-Konversation und Roundtrip-Import. Ohne Layout-Koordinaten — die App arrangiert Elemente beim Import.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "title", "view"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optionaler Verweis auf dieses JSON Schema."
+    },
+    "format": {
+      "const": "event-storming-tool-ai-context"
+    },
+    "version": {
+      "const": 1
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "title": {
+      "type": "string",
+      "description": "Projekt-Titel."
+    },
+    "glossary": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["term", "definition"],
+        "properties": {
+          "term": { "type": "string" },
+          "definition": { "type": "string" }
+        }
+      }
+    },
+    "actionItems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "status", "area"],
+        "properties": {
+          "title": { "type": "string", "minLength": 1 },
+          "notes": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["open", "inProgress", "blocked", "done"]
+          },
+          "area": {
+            "type": "string",
+            "enum": ["followUp", "problem", "risk", "decision", "debt", "question"]
+          },
+          "element": {
+            "type": "string",
+            "description": "Label eines Elements in dieser Sicht."
+          },
+          "boundedContext": {
+            "type": "string",
+            "description": "Label eines Bounded Contexts in dieser Sicht."
+          }
+        }
+      }
+    },
+    "view": {
+      "$ref": "#/$defs/aiView"
+    }
+  },
+  "$defs": {
+    "modelingMode": {
+      "type": "string",
+      "enum": [
+        "eventStorming",
+        "domainDrivenDesign",
+        "bdd",
+        "userStoryMapping",
+        "eventModeling",
+        "processFlow",
+        "dataModel",
+        "architectureDocumentation"
+      ]
+    },
+    "workshopFormat": {
+      "type": "string",
+      "enum": [
+        "bigPicture",
+        "processModeling",
+        "softwareDesign",
+        "strategicDesign",
+        "tacticalDesign",
+        "exampleMapping",
+        "storyMapping",
+        "eventModelingWorkshop",
+        "processWorkshop",
+        "dataModelWorkshop",
+        "arc42Workshop",
+        "c4Modeling",
+        "ermDocumentation",
+        "free"
+      ]
+    },
+    "elementType": {
+      "type": "string",
+      "enum": [
+        "domainEvent",
+        "command",
+        "actor",
+        "aggregate",
+        "policy",
+        "readModel",
+        "externalSystem",
+        "ui",
+        "note",
+        "hotspot",
+        "pivotalEvent",
+        "entity",
+        "valueObject",
+        "domainService",
+        "repository",
+        "factory",
+        "subdomain",
+        "rule",
+        "example",
+        "question",
+        "activity",
+        "userTask",
+        "userStory",
+        "release",
+        "slice",
+        "processStart",
+        "processEnd",
+        "processActivity",
+        "processGateway",
+        "dataEntity",
+        "dataAssociation",
+        "c4Person",
+        "c4SoftwareSystem",
+        "c4Container",
+        "c4Component",
+        "archBlackbox",
+        "archWhitebox",
+        "archComponent",
+        "link"
+      ]
+    },
+    "relationType": {
+      "type": "string",
+      "enum": [
+        "triggers",
+        "reactsWith",
+        "informs",
+        "executedBy",
+        "invokes",
+        "causal",
+        "contains",
+        "annotates"
+      ]
+    },
+    "contextMapPattern": {
+      "type": "string",
+      "enum": [
+        "partnership",
+        "sharedKernel",
+        "customerSupplier",
+        "conformist",
+        "antiCorruptionLayer",
+        "openHostService",
+        "publishedLanguage",
+        "separateWays"
+      ]
+    },
+    "aiView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "modelingMode", "elements"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "modelingMode": { "$ref": "#/$defs/modelingMode" },
+        "workshopFormat": { "$ref": "#/$defs/workshopFormat" },
+        "elements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/aiElement" }
+        },
+        "relations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/aiRelation" }
+        },
+        "contextRelations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/aiContextRelation" }
+        },
+        "swimlanes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label"],
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "boundedContexts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label"],
+            "properties": {
+              "id": { "type": "string" },
+              "label": { "type": "string", "minLength": 1 },
+              "purpose": { "type": "string" },
+              "detailView": {
+                "type": "string",
+                "description": "Name einer Detail-Sicht (informativ; Import legt keine leere Sicht an)."
+              }
+            }
+          }
+        },
+        "timeline": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "startLabel": { "type": "string" },
+            "endLabel": { "type": "string" }
+          }
+        }
+      }
+    },
+    "aiElement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "label"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": { "$ref": "#/$defs/elementType" },
+        "label": { "type": "string" },
+        "description": { "type": "string" },
+        "swimlane": {
+          "type": "string",
+          "description": "Label der Swimlane / Lane."
+        },
+        "boundedContext": {
+          "type": "string",
+          "description": "Label des Bounded Context."
+        },
+        "detailView": {
+          "type": "string",
+          "description": "Name einer Detail-Sicht (informativ)."
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Links-nach-rechts-Reihenfolge (1-basiert). Fehlt sie, gilt die Array-Position."
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Semantische Element-Metadaten (Attribute, GWT, C4, …). Keine Layout-/Card-Display-Flags.",
+          "additionalProperties": true
+        }
+      }
+    },
+    "aiRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "$ref": "#/$defs/relationType" },
+        "fromId": { "type": "string" },
+        "toId": { "type": "string" },
+        "from": {
+          "type": "string",
+          "description": "Quell-Label (Fallback, wenn fromId fehlt)."
+        },
+        "to": {
+          "type": "string",
+          "description": "Ziel-Label (Fallback, wenn toId fehlt)."
+        },
+        "label": { "type": "string" }
+      }
+    },
+    "aiContextRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "$ref": "#/$defs/contextMapPattern" },
+        "fromId": { "type": "string" },
+        "toId": { "type": "string" },
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "label": { "type": "string" }
+      }
+    }
+  }
+}

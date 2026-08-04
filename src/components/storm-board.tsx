@@ -69,15 +69,17 @@ import {
 } from "@/lib/storm-export";
 import {
   BOARD_SNAPSHOT_SCHEMA_FILENAME,
-  boardImportPayloadFromExportText,
   stringifyBoardSnapshotSchema,
 } from "@/lib/storm-json";
+import { boardImportPayloadFromAnyExportText } from "@/lib/board-import-text";
 import {
+  AI_BOARD_CONTEXT_SCHEMA_FILENAME,
   aiContextExportFilename,
   singleViewExportFilename,
   stringifyAiBoardContext,
   stringifySingleViewExport,
 } from "@/lib/view-export";
+import { stringifyAiBoardContextSchema } from "@/lib/ai-board-context-import";
 import { type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
 import {
@@ -316,6 +318,17 @@ export function StormBoard() {
     const a = document.createElement("a");
     a.href = url;
     a.download = BOARD_SNAPSHOT_SCHEMA_FILENAME;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const downloadAiContextSchema = useCallback(() => {
+    const json = stringifyAiBoardContextSchema();
+    const blob = new Blob([json], { type: "application/schema+json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = AI_BOARD_CONTEXT_SCHEMA_FILENAME;
     a.click();
     URL.revokeObjectURL(url);
   }, []);
@@ -678,9 +691,11 @@ export function StormBoard() {
   const handleImportAsNewViews = () => importViewsInputRef.current?.click();
 
   const applyImportedFileAsNewViews = (text: string) => {
-    const payload = boardImportPayloadFromExportText(text);
+    const payload = boardImportPayloadFromAnyExportText(text);
     if (!payload) {
-      window.alert("Ungültige E2-Datei (.storm.json).");
+      window.alert(
+        'Ungültiges E2-JSON (.storm.json oder KI-Kontext "event-storming-tool-ai-context").',
+      );
       return;
     }
     const result = useStormBoardStore.getState().importDocumentAsNewViews(payload);
@@ -689,6 +704,18 @@ export function StormBoard() {
       return;
     }
     setStorageOpen(false);
+  };
+
+  const handlePasteAiContextAsNewView = () => {
+    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+      window.alert(
+        "Während der Kollaboration kann kein KI-Kontext eingefügt werden. Bitte zuerst den Raum verlassen.",
+      );
+      return;
+    }
+    const raw = window.prompt("KI-Kontext JSON einfügen:");
+    if (!raw?.trim()) return;
+    applyImportedFileAsNewViews(raw);
   };
 
   return (
@@ -825,6 +852,8 @@ export function StormBoard() {
         onCopyViewJsonToClipboard={copyViewJsonToClipboard}
         onExportViewAiContext={downloadViewAiContext}
         onCopyViewAiContextToClipboard={copyViewAiContextToClipboard}
+        onExportAiContextSchema={downloadAiContextSchema}
+        onPasteAiContextAsNewView={handlePasteAiContextAsNewView}
         onExportJsonSchema={downloadJsonSchema}
         onExportSvg={exportBoardSvg}
         onExportPng={() => void exportBoardPng()}

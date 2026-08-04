@@ -151,6 +151,7 @@ describe("view-export", () => {
     expect(ctx).not.toBeNull();
     expect(ctx!.format).toBe(AI_CONTEXT_FORMAT);
     expect(ctx!.version).toBe(AI_CONTEXT_VERSION);
+    expect(ctx!.$schema).toContain("ai-board-context-v1.schema.json");
     expect(ctx!.title).toBe("Orders");
     expect(ctx!.view.name).toBe("Big Picture");
     expect(ctx!.glossary).toEqual([{ term: "Order", definition: "A customer purchase" }]);

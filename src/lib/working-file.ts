@@ -10,7 +10,7 @@ import {
   boardStatesEquivalent,
   planFileReconcile,
 } from "@/lib/file-board-reconcile";
-import { boardImportPayloadFromExportText } from "@/lib/storm-json";
+import { boardImportPayloadFromAnyExportText } from "@/lib/board-import-text";
 import {
   bindTabWorkingFile,
   createWorkingFileId,
@@ -795,10 +795,11 @@ async function attachWorkingFileFromText(
   memoryHandle = null;
   await idbClearHandle(previousWf, previousName);
 
-  if (text.trim() && !boardImportPayloadFromExportText(text)) {
+  if (text.trim() && !boardImportPayloadFromAnyExportText(text)) {
     return {
       status: "read_error",
-      message: 'Die Datei ist keine gültige E2-Arbeitsdatei (Format "event-storming-tool" erwartet).',
+      message:
+        'Die Datei ist kein gültiges E2-JSON (Format "event-storming-tool" oder "event-storming-tool-ai-context" erwartet).',
     };
   }
 

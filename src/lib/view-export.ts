@@ -20,6 +20,11 @@ import {
 export const AI_CONTEXT_FORMAT = "event-storming-tool-ai-context" as const;
 export const AI_CONTEXT_VERSION = 1 as const;
 
+export const AI_BOARD_CONTEXT_SCHEMA_ID =
+  "https://abx-git.github.io/E2/schemas/ai-board-context-v1.schema.json" as const;
+
+export const AI_BOARD_CONTEXT_SCHEMA_FILENAME = "ai-board-context-v1.schema.json" as const;
+
 /** UI / layout-only metadata keys omitted from AI context. */
 const AI_OMIT_METADATA_KEYS = new Set<keyof ElementMetadata>([
   "noteColor",
@@ -79,6 +84,7 @@ export interface AiContextView {
 }
 
 export interface AiBoardContext {
+  $schema?: string;
   format: typeof AI_CONTEXT_FORMAT;
   version: typeof AI_CONTEXT_VERSION;
   exportedAt: string;
@@ -245,6 +251,7 @@ export function buildAiBoardContext(
   });
 
   return {
+    $schema: AI_BOARD_CONTEXT_SCHEMA_ID,
     format: AI_CONTEXT_FORMAT,
     version: AI_CONTEXT_VERSION,
     exportedAt: new Date().toISOString(),

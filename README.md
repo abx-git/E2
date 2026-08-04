@@ -309,6 +309,7 @@ Im Facilitator-Modus:
 |--------|--------|-------------|
 | **JSON** | Vollständiger Board-Stand inkl. Schema-Verweis | alle |
 | **JSON Schema** | Für andere Tools, die gültige Boards erzeugen | alle |
+| **KI-Kontext** | Reduzierte Sicht (semantisch) + Schema; Import mit Auto-Layout | alle |
 | **SVG / PNG** | Visueller Snapshot; SVG als `.drawio.svg` mit eingebettetem Diagramm — in [diagrams.net](https://app.diagrams.net) / Draw.io bearbeitbar | alle |
 | **Hotspot-Report (MD)** | Offene Punkte | alle |
 | **Glossary (MD)** | Ubiquitous Language | alle |
@@ -321,7 +322,7 @@ Im Facilitator-Modus:
 | **Prozessmodell (MD)** | Start, Aktivitäten (Rolle/System/I/O), Gateways, Ende | Prozess |
 | **Datenmodell (MD)** | Entitäten (PK/Attribute/Keys), Assoziationen, Relationen | Daten |
 
-Schema & Formatdoku: [`docs/BOARD-JSON-SCHEMA.md`](docs/BOARD-JSON-SCHEMA.md), [`public/schemas/board-snapshot-v2.schema.json`](public/schemas/board-snapshot-v2.schema.json).
+Schema & Formatdoku: [`docs/BOARD-JSON-SCHEMA.md`](docs/BOARD-JSON-SCHEMA.md), [`public/schemas/board-snapshot-v2.schema.json`](public/schemas/board-snapshot-v2.schema.json), [`public/schemas/ai-board-context-v1.schema.json`](public/schemas/ai-board-context-v1.schema.json).
 
 ---
 
