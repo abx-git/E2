@@ -140,8 +140,9 @@ export function extractBuildingBlockViewPayload(
 }
 
 /**
- * Build a detail view for a blackbox/whitebox: seed with a Whitebox of the same
- * name and place contained children inside it.
+ * Build a detail view after C4-style zoom-in / Blackbox→Whitebox drill-down.
+ * Seeds a Whitebox scope boundary (dashed frame) with the parent label —
+ * same role as the system/container boundary on https://c4model.com/diagrams.
  */
 export function buildBoardViewFromBuildingBlock(
   parent: StormElement,

@@ -407,9 +407,9 @@ export function DataStoragePanel({
       {
         id: "architecture",
         label: "Architektur",
-    detail: "Blackbox / C4 / ERM",
-    modes: ["architectureDocumentation"],
-    onClick: onExportArchitectureDocumentation,
+        detail: "C4-Zoom · Blackbox/Whitebox · ERM",
+        modes: ["architectureDocumentation"],
+        onClick: onExportArchitectureDocumentation,
       },
     ],
     [

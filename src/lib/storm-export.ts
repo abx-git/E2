@@ -1090,8 +1090,8 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       fontColor: ink,
       fontStyle: 1,
       fontSize: LABEL_FONT_PX,
-      dashed: el.type === "note" ? 1 : undefined,
-      dashPattern: el.type === "note" ? "4 3" : undefined,
+      dashed: el.type === "note" || el.type === "archWhitebox" ? 1 : undefined,
+      dashPattern: el.type === "note" || el.type === "archWhitebox" ? "4 3" : undefined,
       rotation: elementExportRotation(el) || undefined,
     });
     const exportLabel =
@@ -1220,7 +1220,8 @@ export function exportBoardSvg(): void {
     const rot = rotDeg
       ? ` transform="rotate(${rotDeg} ${x + r.w / 2} ${y + r.h / 2})"`
       : "";
-    const dash = el.type === "note" ? ` stroke-dasharray="4 3"` : "";
+    const dash =
+      el.type === "note" || el.type === "archWhitebox" ? ` stroke-dasharray="4 3"` : "";
     parts.push(
       `<rect x="${x}" y="${y}" width="${r.w}" height="${r.h}" fill="${escapeXml(fill)}" stroke="${escapeXml(stroke)}" stroke-width="1.5" rx="${rx}"${dash}${rot}/>`,
     );
@@ -1402,7 +1403,9 @@ export async function exportBoardPng(): Promise<void> {
     ctx.fillStyle = fill;
     ctx.strokeStyle = stroke;
     ctx.lineWidth = 1.5;
-    if (el.type === "note") ctx.setLineDash([4, 3]);
+    if (el.type === "note" || el.type === "archWhitebox") {
+    ctx.setLineDash([4, 3]);
+  }
     roundRect(ctx, x, y, r.w, r.h, rx);
     ctx.fill();
     ctx.stroke();

@@ -25,7 +25,14 @@ import { HighlightedText } from "@/components/highlighted-text";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { elementTypesForMode, isNoteLike, supportsArchDrilldown, type StormElement } from "@/types/storm-element";
+import {
+  elementTypesForMode,
+  isArchBuildingBlockType,
+  isC4ElementType,
+  isNoteLike,
+  supportsArchDrilldown,
+  type StormElement,
+} from "@/types/storm-element";
 
 const DRAG_THRESHOLD_PX = 6;
 const MIN_SIZE = 40;
@@ -103,7 +110,10 @@ export function StormElementCard({
   const isInstruction = element.type === "instruction";
   const isAggregate = element.type === "aggregate";
   const isSubdomain = element.type === "subdomain";
-  const isBoundary = isAggregate || isSubdomain;
+  const isWhitebox = element.type === "archWhitebox";
+  const isBoundary = isAggregate || isSubdomain || isWhitebox;
+  const showArchTypeBadge =
+    isC4ElementType(element.type) || isArchBuildingBlockType(element.type);
   const noteLike = isNoteLike(element.type);
   const noteColors = isNote ? resolveNoteColor(element.metadata?.noteColor) : null;
   const colors = {
@@ -527,7 +537,7 @@ export function StormElementCard({
             : colors.bg,
           borderColor: colors.border,
           color: colors.text,
-          borderStyle: isNote ? "dashed" : undefined,
+          borderStyle: isNote || isWhitebox ? "dashed" : undefined,
           borderLeftWidth: isInstruction ? 4 : undefined,
         }}
         title={
@@ -541,12 +551,16 @@ export function StormElementCard({
                   ? "Aggregate Root — Entity & Value Objects hineinziehen"
                   : isSubdomain
                     ? "Subdomain — Problemraum-Bereich; Elemente hineinziehen"
-                    : isInstruction
-                      ? "Instruction — Anweisung für die Umsetzung"
-                      : undefined
+                    : isWhitebox
+                      ? "Whitebox — geöffneter Scope nach Zoom-in (C4-Grenze)"
+                      : isInstruction
+                        ? "Instruction — Anweisung für die Umsetzung"
+                        : supportsArchDrilldown(element.type)
+                          ? "Detail-Sicht: Zoom in (C4 / Blackbox→Whitebox)"
+                          : undefined
         }
       >
-        {(isInstruction || isBoundary) && (
+        {(isInstruction || isBoundary || showArchTypeBadge) && (
           <span
             className="mb-0.5 w-fit shrink-0 rounded px-1 py-px text-[0.58rem] font-bold uppercase tracking-wide"
             style={{ backgroundColor: colors.border, color: colors.text }}
@@ -555,7 +569,9 @@ export function StormElementCard({
               ? "Aggregate Root"
               : isSubdomain
                 ? `Subdomain · ${SUBDOMAIN_KIND_LABEL[element.metadata?.subdomainKind ?? "core"] ?? "Core"}`
-                : "Instruction"}
+                : isInstruction
+                  ? "Instruction"
+                  : style.shortLabel}
           </span>
         )}
         {editing ? (

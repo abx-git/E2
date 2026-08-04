@@ -1142,14 +1142,20 @@ export function ElementDetailSidebar({
               : "Detail-Sicht erstellen"}
           </button>
           <p className="text-[0.72rem] text-[var(--muted)]">
-            {selectedElement.type === "archBlackbox"
-              ? "Öffnet die Whitebox dieses Bausteins mit inneren Komponenten (Kopie)."
-              : "Zoom in die nächste Verfeinerungsebene — analog Bounded Context."}
+            {selectedElement.type === "c4SoftwareSystem"
+              ? "C4 Zoom: Container-Diagramm — Whitebox-Scope mit Containern."
+              : selectedElement.type === "c4Container"
+                ? "C4 Zoom: Komponenten-Diagramm — Whitebox-Scope mit Komponenten."
+                : selectedElement.type === "archBlackbox"
+                  ? "Öffnet die Whitebox dieses Bausteins (C4-ähnlicher Drill-down)."
+                  : "Zoom in die nächste Verfeinerungsebene."}
           </p>
         </div>
       )}
 
-      {(selectedElement.type === "c4Container" || selectedElement.type === "c4Component") && (
+      {(selectedElement.type === "c4Container" ||
+        selectedElement.type === "c4Component" ||
+        selectedElement.type === "archComponent") && (
         <Field label="Technologie">
           <input
             className="dock-field"

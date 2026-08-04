@@ -658,20 +658,22 @@ export const DATA_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
 const ARC42_WORKSHOP_PHASES: FacilitatorPhase[] = [
   {
     id: "arc42-context",
-    title: "Kontext & Systeme",
-    description: "Äußere Blackboxes und C4-Kontext: Systeme und Personen abgrenzen.",
+    title: "Kontext (Level 1)",
+    description:
+      "Blackbox / Software-System im Umfeld: Personen und externe Systeme — wie C4 System Context.",
     allowedTypes: ["archBlackbox", "c4SoftwareSystem", "c4Person", "note", "hotspot", "link"],
     checklist: [
-      "Top-Level-Blackboxes für große Bausteine",
-      "C4 Person / Software-System für Kontext",
-      "Schnittstellen als Relationen",
+      "Zentrales System als Blackbox oder Software-System",
+      "Personen und externe Systeme darum herum",
+      "Beziehungen beschriften (nicht nur „nutzt“)",
     ],
     durationMinutes: 35,
   },
   {
     id: "arc42-building-blocks",
-    title: "Bausteinsicht",
-    description: "Blackbox → Whitebox-Drill-down: innere Komponenten und Struktur.",
+    title: "Bausteinsicht (Zoom)",
+    description:
+      "Drill-down: Blackbox → Whitebox bzw. System → Container → Komponenten (C4-Zoom).",
     allowedTypes: [
       "archBlackbox",
       "archWhitebox",
@@ -683,16 +685,16 @@ const ARC42_WORKSHOP_PHASES: FacilitatorPhase[] = [
       "link",
     ],
     checklist: [
-      "Detail-Sicht je Blackbox öffnen (Whitebox)",
-      "Komponenten und contains-Relationen",
-      "Optional C4 Container/Component ergänzen",
+      "Detail-Sicht je Blackbox / Software-System öffnen",
+      "Whitebox als Scope; Container oder Komponenten innen",
+      "Optional erneut in Container zoomen",
     ],
     durationMinutes: 45,
   },
   {
     id: "arc42-runtime-deploy",
     title: "Laufzeit & Verteilung",
-    description: "Dynamik und Deployment mit Containern und Notizen.",
+    description: "Dynamik und Deployment mit Containern und Notizen (C4 supporting diagrams).",
     allowedTypes: ["archBlackbox", "archComponent", "c4Container", "c4SoftwareSystem", "note", "hotspot"],
     checklist: [
       "Laufzeitpfade als Relationen/Notizen",
@@ -719,36 +721,39 @@ const C4_MODELING_PHASES: FacilitatorPhase[] = [
   {
     id: "c4-context",
     title: "Kontextdiagramm",
-    description: "C4 Level 1: Personen und Software-Systeme im Gesamtkontext.",
+    description:
+      "C4 Level 1: Personen und Software-Systeme. Systeme sind Blackboxes — Zoom erst in der nächsten Phase.",
     allowedTypes: ["c4Person", "c4SoftwareSystem", "note", "link"],
     checklist: [
       "Zentrales System klar benennen",
       "Externe Systeme und Nutzer einzeichnen",
-      "Bounded Context pro System für Drill-down",
+      "Detail-Sicht am System für Container-Zoom vorbereiten",
     ],
     durationMinutes: 35,
   },
   {
     id: "c4-container",
     title: "Container-Diagramm",
-    description: "C4 Level 2: Container innerhalb eines Systems.",
-    allowedTypes: ["c4Container", "c4SoftwareSystem", "c4Person", "note", "hotspot", "link"],
+    description:
+      "C4 Level 2: Zoom in ein Software-System — Container (Apps, DBs) innerhalb der Whitebox-/Systemgrenze.",
+    allowedTypes: ["c4Container", "c4SoftwareSystem", "c4Person", "archWhitebox", "note", "hotspot", "link"],
     checklist: [
-      "Container mit Technologie-Stack beschriften",
-      "Kommunikationswege mit Relationen",
-      "Detail-Sicht aus Bounded Context öffnen",
+      "Detail-Sicht aus dem Software-System öffnen",
+      "Container mit Technologie beschriften",
+      "Kommunikationswege und Protokolle als Relationen",
     ],
     durationMinutes: 45,
   },
   {
     id: "c4-component",
     title: "Komponenten-Diagramm",
-    description: "C4 Level 3: Komponenten innerhalb eines Containers.",
-    allowedTypes: ["c4Component", "c4Container", "note", "hotspot", "link"],
+    description:
+      "C4 Level 3: Zoom in einen Container — Komponenten und Verantwortlichkeiten (optional).",
+    allowedTypes: ["c4Component", "c4Container", "archWhitebox", "note", "hotspot", "link"],
     checklist: [
+      "Detail-Sicht aus dem Container öffnen",
       "Komponenten und Verantwortlichkeiten",
-      "Schnittstellen dokumentieren",
-      "Hotspots für offene Fragen",
+      "Nur anlegen, wenn der Zoom Mehrwert bringt",
     ],
     durationMinutes: 40,
   },
@@ -797,13 +802,13 @@ export const ARCH_DOC_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   {
     format: "arc42Workshop",
     label: "arc42 Workshop",
-    description: "Bausteinsicht mit Blackbox/Whitebox-Drill-down nach arc42",
+    description: "Bausteinsicht mit C4-ähnlichem Zoom (Blackbox → Whitebox)",
     phases: ARC42_WORKSHOP_PHASES,
   },
   {
     format: "c4Modeling",
     label: "C4 Modellierung",
-    description: "Kontext-, Container- und Komponenten-Diagramme",
+    description: "Kontext → Container → Komponenten (Zoom wie auf c4model.com/diagrams)",
     phases: C4_MODELING_PHASES,
   },
   {

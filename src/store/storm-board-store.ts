@@ -274,7 +274,7 @@ export interface StormBoardState {
   /** Navigate down to detail view or up to parent overview when a link exists. */
   navigateBoundedContextViewLink: (bcId: string) => string | null;
 
-  /** Open or create architecture building-block detail view (Blackbox/Whitebox drill-down). */
+  /** Open or create architecture detail view (C4 zoom / Blackbox→Whitebox). */
   openBuildingBlockView: (elementId: string) => string | null;
   openBuildingBlockParentView: (elementId: string) => string | null;
   navigateBuildingBlockViewLink: (elementId: string) => string | null;

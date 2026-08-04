@@ -68,14 +68,39 @@ export type GatewayKind = "xor" | "and" | "or";
 export type DataCardinality = "1:1" | "1:n" | "n:1" | "n:m";
 export type LinkKind = "external" | "view";
 
-/** Element types that support drill-down into a detail view (arc42 Bausteinsicht). */
+/**
+ * Element types that support C4-style zoom / arc42 Blackbox→Whitebox drill-down.
+ * @see https://c4model.com/diagrams — Context → Container → Component
+ */
 export const ARCH_DRILLDOWN_ELEMENT_TYPES: ElementType[] = [
   "archBlackbox",
   "archWhitebox",
+  "c4SoftwareSystem",
+  "c4Container",
 ];
 
 export function supportsArchDrilldown(type: ElementType): boolean {
-  return type === "archBlackbox" || type === "archWhitebox";
+  return (
+    type === "archBlackbox" ||
+    type === "archWhitebox" ||
+    type === "c4SoftwareSystem" ||
+    type === "c4Container"
+  );
+}
+
+/** C4 static-structure element types (Person, System, Container, Component). */
+export function isC4ElementType(type: ElementType): boolean {
+  return (
+    type === "c4Person" ||
+    type === "c4SoftwareSystem" ||
+    type === "c4Container" ||
+    type === "c4Component"
+  );
+}
+
+/** Architecture Baustein types (Blackbox / Whitebox / Komponente). */
+export function isArchBuildingBlockType(type: ElementType): boolean {
+  return type === "archBlackbox" || type === "archWhitebox" || type === "archComponent";
 }
 
 export type NoteColorId =

@@ -82,4 +82,45 @@ describe("building-block-view", () => {
       parentElementId: "bb",
     });
   });
+
+  it("supports C4 software-system zoom into a whitebox scope", () => {
+    const system = el({ id: "sys", type: "c4SoftwareSystem", label: "Banking" });
+    const payload = extractBuildingBlockViewPayload("sys", [system], [])!;
+    const view = buildBoardViewFromBuildingBlock(system, payload, {
+      id: "v-c4",
+      name: "Banking",
+      modelingMode: "architectureDocumentation",
+      workshopFormat: "c4Modeling",
+    });
+    expect(view.elements.some((e) => e.type === "archWhitebox" && e.label === "Banking")).toBe(
+      true,
+    );
+  });
+
+  it("resolves C4 container drill-down navigation", () => {
+    const container = el({
+      id: "api",
+      type: "c4Container",
+      label: "API Application",
+      detailViewId: "comp-view",
+    });
+    const whitebox = el({ id: "wb", type: "archWhitebox", label: "API Application" });
+    const overview = createEmptyBoardView({
+      id: "containers",
+      name: "Containers",
+      modelingMode: "architectureDocumentation",
+      elements: [container],
+    });
+    const detail = createEmptyBoardView({
+      id: "comp-view",
+      name: "API Application",
+      modelingMode: "architectureDocumentation",
+      elements: [whitebox],
+    });
+    expect(resolveBuildingBlockViewNavigation(container, "containers", [overview, detail])).toEqual({
+      direction: "down",
+      targetViewId: "comp-view",
+      targetViewName: "API Application",
+    });
+  });
 });
