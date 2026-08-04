@@ -60,6 +60,12 @@ export interface DataStoragePanelProps {
   onExportJson: () => void;
   /** Full board JSON into the OS clipboard (not the in-app sticky clipboard). */
   onCopyJsonToClipboard: () => boolean | Promise<boolean>;
+  /** Complete single-view diagram extract (.storm.json). */
+  onExportViewJson: (viewId: string) => void;
+  onCopyViewJsonToClipboard: (viewId: string) => boolean | Promise<boolean>;
+  /** Reduced semantic extract for AI conversation context. */
+  onExportViewAiContext: (viewId: string) => void;
+  onCopyViewAiContextToClipboard: (viewId: string) => boolean | Promise<boolean>;
   onExportJsonSchema: () => void;
   onExportSvg: () => void;
   onExportPng: () => void;
@@ -252,6 +258,10 @@ export function DataStoragePanel({
   onImportAsNewViews,
   onExportJson,
   onCopyJsonToClipboard,
+  onExportViewJson,
+  onCopyViewJsonToClipboard,
+  onExportViewAiContext,
+  onCopyViewAiContextToClipboard,
   onExportJsonSchema,
   onExportSvg,
   onExportPng,
@@ -271,12 +281,29 @@ export function DataStoragePanel({
   busy,
 }: DataStoragePanelProps) {
   const modelingMode = useStormBoardStore((s) => s.modelingMode);
+  const activeViewId = useStormBoardStore((s) => s.activeViewId);
+  const views = useStormBoardStore((s) => s.views);
   const [recentFiles, setRecentFiles] = useState<
     Array<{ name: string; openedAt: number; handle: FileSystemFileHandle }>
   >([]);
   const [localBackups, setLocalBackups] = useState<LocalBackupListItem[]>([]);
   const [jsonCopied, setJsonCopied] = useState(false);
+  const [viewJsonCopied, setViewJsonCopied] = useState(false);
+  const [aiContextCopied, setAiContextCopied] = useState(false);
+  const [exportViewId, setExportViewId] = useState<string | null>(null);
   const [preferredTab, setPreferredTab] = useState<StorageTabId>(() => readStoredTab() ?? "file");
+
+  const selectedExportViewId =
+    exportViewId && views.some((v) => v.id === exportViewId)
+      ? exportViewId
+      : activeViewId && views.some((v) => v.id === activeViewId)
+        ? activeViewId
+        : views[0]?.id ?? "";
+
+  useEffect(() => {
+    if (!open) return;
+    setExportViewId(activeViewId);
+  }, [open, activeViewId]);
 
   useEffect(() => {
     if (!open) return;
@@ -650,7 +677,7 @@ export function DataStoragePanel({
                 {MODELING_MODE_LABELS[modelingMode]} — passende Formate sind hervorgehoben.
               </p>
 
-              <ExportGroup title="Board" hint="Datei & Bild">
+              <ExportGroup title="Board" hint="Alle Sichten">
                 <ExportTile
                   onClick={onExportJson}
                   disabled={busy}
@@ -681,10 +708,87 @@ export function DataStoragePanel({
                   onClick={onExportSvg}
                   disabled={busy}
                   label="SVG"
-                  detail="Draw.io"
+                  detail="Draw.io (aktive Sicht)"
                 />
-                <ExportTile onClick={onExportPng} disabled={busy} label="PNG" detail="Rasterbild" />
+                <ExportTile
+                  onClick={onExportPng}
+                  disabled={busy}
+                  label="PNG"
+                  detail="Rasterbild (aktive Sicht)"
+                />
               </ExportGroup>
+
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--control)]/35 p-2.5">
+                <div className="mb-2 flex items-baseline justify-between gap-2 px-0.5">
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                    Sicht
+                  </p>
+                  <p className="text-[0.65rem] text-[var(--muted)]">einzeln · zwei Formate</p>
+                </div>
+                <label className="mb-2 block px-0.5">
+                  <span className="sr-only">Sicht wählen</span>
+                  <select
+                    className="dock-control w-full rounded-lg px-2.5 py-1.5 text-sm"
+                    value={selectedExportViewId}
+                    disabled={busy || views.length === 0}
+                    onChange={(e) => setExportViewId(e.target.value)}
+                  >
+                    {views.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                        {v.id === activeViewId ? " (aktiv)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <ExportTile
+                    onClick={() => onExportViewJson(selectedExportViewId)}
+                    disabled={busy || !selectedExportViewId}
+                    label="JSON"
+                    detail="kompletter Extract"
+                  />
+                  <ExportTile
+                    onClick={() => {
+                      void Promise.resolve(onCopyViewJsonToClipboard(selectedExportViewId)).then(
+                        (ok) => {
+                          if (!ok) return;
+                          setViewJsonCopied(true);
+                          window.setTimeout(() => setViewJsonCopied(false), 2000);
+                        },
+                      );
+                    }}
+                    disabled={busy || !selectedExportViewId}
+                    label={viewJsonCopied ? "Kopiert" : "JSON kopieren"}
+                    detail="kompletter Extract"
+                    icon={ClipboardCopy}
+                    emphasize={viewJsonCopied}
+                  />
+                  <ExportTile
+                    onClick={() => onExportViewAiContext(selectedExportViewId)}
+                    disabled={busy || !selectedExportViewId}
+                    label="KI-Kontext"
+                    detail="reduziert · semantisch"
+                    emphasize
+                  />
+                  <ExportTile
+                    onClick={() => {
+                      void Promise.resolve(
+                        onCopyViewAiContextToClipboard(selectedExportViewId),
+                      ).then((ok) => {
+                        if (!ok) return;
+                        setAiContextCopied(true);
+                        window.setTimeout(() => setAiContextCopied(false), 2000);
+                      });
+                    }}
+                    disabled={busy || !selectedExportViewId}
+                    label={aiContextCopied ? "Kopiert" : "KI kopieren"}
+                    detail="für Conversation"
+                    icon={ClipboardCopy}
+                    emphasize={aiContextCopied}
+                  />
+                </div>
+              </div>
 
               <ExportGroup title="Berichte" hint="Markdown">
                 <ExportTile

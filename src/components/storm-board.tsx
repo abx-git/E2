@@ -72,6 +72,12 @@ import {
   boardImportPayloadFromExportText,
   stringifyBoardSnapshotSchema,
 } from "@/lib/storm-json";
+import {
+  aiContextExportFilename,
+  singleViewExportFilename,
+  stringifyAiBoardContext,
+  stringifySingleViewExport,
+} from "@/lib/view-export";
 import { type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
 import {
@@ -105,7 +111,7 @@ import {
 } from "@/lib/working-file";
 import { bindTabWorkingFile } from "@/lib/working-file-tab-context";
 import { createDefaultBoardDocument } from "@/lib/storm-json";
-import { useStormBoardStore } from "@/store/storm-board-store";
+import { boardImportPayloadFromStore, useStormBoardStore } from "@/store/storm-board-store";
 import { flushCollabSnapshotNow, useCollabStore } from "@/lib/collab/session";
 import type { ElementType, WorkshopFormat } from "@/types/storm-element";
 import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
@@ -230,6 +236,74 @@ export function StormBoard() {
     } catch {
       window.alert(
         "JSON konnte nicht in die System-Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen oder JSON herunterladen.",
+      );
+      return false;
+    }
+  }, []);
+
+  const downloadViewJson = useCallback((viewId: string) => {
+    const payload = boardImportPayloadFromStore();
+    const json = stringifySingleViewExport(payload, viewId);
+    const view = payload.views.find((v) => v.id === viewId);
+    if (!json || !view) {
+      window.alert("Sicht konnte nicht exportiert werden.");
+      return;
+    }
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = singleViewExportFilename(payload.title, view.name);
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const copyViewJsonToClipboard = useCallback(async (viewId: string): Promise<boolean> => {
+    const json = stringifySingleViewExport(boardImportPayloadFromStore(), viewId);
+    if (!json) {
+      window.alert("Sicht konnte nicht exportiert werden.");
+      return false;
+    }
+    try {
+      await navigator.clipboard.writeText(json);
+      return true;
+    } catch {
+      window.alert(
+        "JSON konnte nicht in die System-Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen oder JSON herunterladen.",
+      );
+      return false;
+    }
+  }, []);
+
+  const downloadViewAiContext = useCallback((viewId: string) => {
+    const payload = boardImportPayloadFromStore();
+    const json = stringifyAiBoardContext(payload, viewId);
+    const view = payload.views.find((v) => v.id === viewId);
+    if (!json || !view) {
+      window.alert("KI-Kontext konnte nicht exportiert werden.");
+      return;
+    }
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = aiContextExportFilename(payload.title, view.name);
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const copyViewAiContextToClipboard = useCallback(async (viewId: string): Promise<boolean> => {
+    const json = stringifyAiBoardContext(boardImportPayloadFromStore(), viewId);
+    if (!json) {
+      window.alert("KI-Kontext konnte nicht exportiert werden.");
+      return false;
+    }
+    try {
+      await navigator.clipboard.writeText(json);
+      return true;
+    } catch {
+      window.alert(
+        "KI-Kontext konnte nicht in die System-Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen oder herunterladen.",
       );
       return false;
     }
@@ -747,6 +821,10 @@ export function StormBoard() {
         onImportAsNewViews={handleImportAsNewViews}
         onExportJson={downloadJson}
         onCopyJsonToClipboard={copyJsonToClipboard}
+        onExportViewJson={downloadViewJson}
+        onCopyViewJsonToClipboard={copyViewJsonToClipboard}
+        onExportViewAiContext={downloadViewAiContext}
+        onCopyViewAiContextToClipboard={copyViewAiContextToClipboard}
         onExportJsonSchema={downloadJsonSchema}
         onExportSvg={exportBoardSvg}
         onExportPng={() => void exportBoardPng()}
