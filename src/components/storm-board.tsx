@@ -84,6 +84,7 @@ import {
   attachWorkingFileOpen,
   createAndAttachWorkingFile,
   detachWorkingFile,
+  getActiveWorkingFileId,
   getWorkingFileLabel,
   hydrateStoreFromWorkingFile,
   isWorkingFileAttached,
@@ -98,6 +99,7 @@ import {
   saveWorkingFileAs,
   suggestedWorkingFileName,
 } from "@/lib/working-file";
+import { bindTabWorkingFileName } from "@/lib/working-file-tab-context";
 import { createDefaultBoardDocument } from "@/lib/storm-json";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { flushCollabSnapshotNow, useCollabStore } from "@/lib/collab/session";
@@ -239,6 +241,12 @@ export function StormBoard() {
     URL.revokeObjectURL(url);
   }, []);
 
+  const syncWorkingFileUrlContext = () => {
+    const label = getWorkingFileLabel();
+    bindTabWorkingFileName(label, getActiveWorkingFileId());
+    setWorkingFileName(label);
+  };
+
   const handleStartWithoutFile = () => {
     markWorkingFileSessionHydrated();
     setSetupOpen(false);
@@ -250,7 +258,7 @@ export function StormBoard() {
       const suggested = suggestedWorkingFileName(title || getWorkingFileLabel());
       const handle = await createAndAttachWorkingFile(boardJsonFromStoreState(), suggested);
       if (handle) {
-        setWorkingFileName(getWorkingFileLabel());
+        syncWorkingFileUrlContext();
         setSetupOpen(false);
       }
     } finally {
@@ -272,7 +280,7 @@ export function StormBoard() {
       );
       const handle = await saveWorkingFileAs(boardJsonFromStoreState(), suggested);
       if (handle) {
-        setWorkingFileName(getWorkingFileLabel());
+        syncWorkingFileUrlContext();
         setWorkingFileDirty(false);
         setSetupOpen(false);
         setStorageOpen(false);
@@ -378,7 +386,7 @@ export function StormBoard() {
         });
         return;
       }
-      setWorkingFileName(getWorkingFileLabel());
+      syncWorkingFileUrlContext();
       setSetupOpen(false);
       setStorageOpen(false);
     } finally {
@@ -420,7 +428,7 @@ export function StormBoard() {
         });
         return;
       }
-      setWorkingFileName(getWorkingFileLabel());
+      syncWorkingFileUrlContext();
       setSetupOpen(false);
       setStorageOpen(false);
     } finally {
@@ -821,7 +829,7 @@ export function StormBoard() {
               });
               return;
             }
-            setWorkingFileName(getWorkingFileLabel());
+            syncWorkingFileUrlContext();
             setSetupOpen(false);
             setStorageOpen(false);
           });

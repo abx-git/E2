@@ -1,9 +1,7 @@
 /**
- * Single-writer lock per working-file name within one browser profile.
+ * Single-writer lock per working-file slot (`wf` id) within one browser profile.
  * Visible tab holds an exclusive Web Lock; hidden tabs must not push to disk.
  */
-
-import { normalizeWorkingFilename } from "@/lib/working-file-tab-context";
 
 export type FileWriterRole = "leader" | "follower";
 
@@ -17,9 +15,9 @@ export interface FileTabWriterController {
   onRoleChange: (listener: RoleListener) => () => void;
 }
 
-export function lockNameForWorkingFile(fileName: string): string {
-  const normalized = normalizeWorkingFilename(fileName) || "unnamed";
-  return `e2-working-file-writer:${normalized}`;
+export function lockNameForWorkingFile(fileKey: string): string {
+  const key = fileKey.trim().toLowerCase() || "unnamed";
+  return `e2-working-file-writer:${key}`;
 }
 
 function supportsWebLocks(): boolean {
@@ -40,9 +38,9 @@ function waitUntilVisible(isStopped: () => boolean): Promise<void> {
   });
 }
 
-/** Create a per-filename writer controller. Call start() after attach, stop() on detach. */
-export function createFileTabWriter(fileName: string): FileTabWriterController {
-  const lockName = lockNameForWorkingFile(fileName);
+/** Create a per-slot writer controller. Call start() after attach, stop() on detach. */
+export function createFileTabWriter(fileKey: string): FileTabWriterController {
+  const lockName = lockNameForWorkingFile(fileKey);
   let role: FileWriterRole = "follower";
   let stopped = true;
   const listeners = new Set<RoleListener>();
@@ -176,7 +174,7 @@ export function createAlwaysLeaderFileWriter(): FileTabWriterController {
 
 /** Module-level writer for the currently attached Arbeitsdatei in this tab. */
 let activeWriter: FileTabWriterController | null = null;
-let activeWriterFileName: string | null = null;
+let activeWriterFileKey: string | null = null;
 const globalRoleListeners = new Set<RoleListener>();
 let unsubscribeActive: (() => void) | null = null;
 
@@ -190,17 +188,13 @@ function emitGlobalRole(role: FileWriterRole): void {
   }
 }
 
-export function ensureWorkingFileWriter(fileName: string): FileTabWriterController {
-  const trimmed = fileName.trim();
-  if (
-    activeWriter &&
-    activeWriterFileName &&
-    normalizeWorkingFilename(activeWriterFileName) === normalizeWorkingFilename(trimmed)
-  ) {
+export function ensureWorkingFileWriter(fileKey: string): FileTabWriterController {
+  const trimmed = fileKey.trim();
+  if (activeWriter && activeWriterFileKey && activeWriterFileKey === trimmed) {
     return activeWriter;
   }
   stopWorkingFileWriter();
-  activeWriterFileName = trimmed;
+  activeWriterFileKey = trimmed;
   activeWriter = createFileTabWriter(trimmed);
   unsubscribeActive = activeWriter.onRoleChange(emitGlobalRole);
   activeWriter.start();
@@ -212,7 +206,7 @@ export function stopWorkingFileWriter(): void {
   unsubscribeActive = null;
   activeWriter?.stop();
   activeWriter = null;
-  activeWriterFileName = null;
+  activeWriterFileKey = null;
   emitGlobalRole("follower");
 }
 
@@ -233,5 +227,5 @@ export function onWorkingFileWriterRoleChange(listener: RoleListener): () => voi
 }
 
 export function getActiveWorkingFileWriterName(): string | null {
-  return activeWriterFileName;
+  return activeWriterFileKey;
 }

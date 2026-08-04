@@ -15,6 +15,7 @@ import {
 import {
   getWorkingFileHandle,
   getWorkingFileLabel,
+  getActiveWorkingFileId,
   getLastSyncedBoardJson,
   isKnownFileRevision,
   isMobileWorkingFileMode,
@@ -34,6 +35,7 @@ import {
 } from "@/lib/working-file";
 import {
   getOrCreateTabSessionId,
+  resolvePreferredWorkingFileId,
   resolvePreferredWorkingFileName,
 } from "@/lib/working-file-tab-context";
 import {
@@ -55,8 +57,11 @@ function mustNotApplyFileToStore(): boolean {
 }
 
 function ensureWriterForAttachedFile(): void {
+  const wf = getActiveWorkingFileId();
   const label = getWorkingFileLabel();
-  if (label && isWorkingFileAttached()) {
+  if (wf && isWorkingFileAttached()) {
+    ensureWorkingFileWriter(wf);
+  } else if (label && isWorkingFileAttached()) {
     ensureWorkingFileWriter(label);
   } else {
     stopWorkingFileWriter();
@@ -328,7 +333,8 @@ export function WorkingFileSync({
     void (async () => {
       getOrCreateTabSessionId();
       const preferred = resolvePreferredWorkingFileName();
-      await restoreWorkingFileFromDisk(preferred);
+      const preferredWf = resolvePreferredWorkingFileId();
+      await restoreWorkingFileFromDisk(preferred, preferredWf);
       if (!mountedRef.current) return;
       ensureWriterForAttachedFile();
       await hydrateFromWorkingFileOnce();

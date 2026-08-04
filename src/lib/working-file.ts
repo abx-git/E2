@@ -1,7 +1,7 @@
 /**
  * Arbeitsdatei (File System Access API): einziges Speichermedium.
- * Handles / mobile mirrors are keyed by filename so tabs with different
- * `?filename=` bookmarks do not overwrite each other's IndexedDB slots.
+ * Handles / mirrors are keyed by unique `wf` slot ids (URL `?wf=`) so tabs can
+ * open different files even when basenames match (e.g. board.storm.json).
  */
 
 import {
@@ -13,7 +13,9 @@ import {
 import { boardImportPayloadFromExportText } from "@/lib/storm-json";
 import {
   bindTabWorkingFileName,
+  createWorkingFileId,
   normalizeWorkingFilename,
+  resolvePreferredWorkingFileId,
   resolvePreferredWorkingFileName,
 } from "@/lib/working-file-tab-context";
 import {
@@ -34,29 +36,60 @@ const IDB_RECENT_KEY = "recent-working-files";
 const LS_LAST_FILE_NAME = "e2-last-working-file-name";
 const RECENT_WORKING_FILES_LIMIT = 8;
 
-export function workingFileHandleIdbKey(fileName: string): string {
-  const normalized = normalizeWorkingFilename(fileName) || normalizeWorkingFilename(STANDARD_WORKING_FILENAME);
+/** Active slot id for this tab's Arbeitsdatei (URL `wf` / session). */
+let activeWorkingFileId: string | null = null;
+
+function looksLikeWorkingFileId(key: string): boolean {
+  const t = key.trim();
+  return t.length >= 32 || t.startsWith("wf-") || /^[0-9a-f-]{36}$/i.test(t);
+}
+
+export function workingFileHandleIdbKey(wfOrFileName: string): string {
+  const key = wfOrFileName.trim() || STANDARD_WORKING_FILENAME;
+  if (looksLikeWorkingFileId(key)) return `handle:${key}`;
+  const normalized =
+    normalizeWorkingFilename(key) || normalizeWorkingFilename(STANDARD_WORKING_FILENAME);
   return `handle:${normalized}`;
 }
 
-export function workingFileMobileIdbKey(fileName: string): string {
-  const normalized = normalizeWorkingFilename(fileName) || normalizeWorkingFilename(STANDARD_WORKING_FILENAME);
+export function workingFileMobileIdbKey(wfOrFileName: string): string {
+  const key = wfOrFileName.trim() || STANDARD_WORKING_FILENAME;
+  if (looksLikeWorkingFileId(key)) return `mobile:${key}`;
+  const normalized =
+    normalizeWorkingFilename(key) || normalizeWorkingFilename(STANDARD_WORKING_FILENAME);
   return `mobile:${normalized}`;
 }
 
-function syncTabContextAndWriter(fileName: string | null): void {
-  bindTabWorkingFileName(fileName);
-  if (fileName?.trim()) {
-    ensureWorkingFileWriter(fileName.trim());
+function nameIndexIdbKey(fileName: string): string {
+  const normalized =
+    normalizeWorkingFilename(fileName) || normalizeWorkingFilename(STANDARD_WORKING_FILENAME);
+  return `name-index:${normalized}`;
+}
+
+function syncTabContextAndWriter(
+  fileName: string | null,
+  wf: string | null = activeWorkingFileId,
+): void {
+  activeWorkingFileId = wf?.trim() || null;
+  bindTabWorkingFileName(fileName, activeWorkingFileId);
+  if (activeWorkingFileId) {
+    ensureWorkingFileWriter(activeWorkingFileId);
+  } else if (fileName?.trim()) {
+    ensureWorkingFileWriter(normalizeWorkingFilename(fileName) || fileName.trim());
   } else {
     stopWorkingFileWriter();
   }
+}
+
+export function getActiveWorkingFileId(): string | null {
+  return activeWorkingFileId;
 }
 
 export interface RecentWorkingFileRecord {
   name: string;
   openedAt: number;
   handle: FileSystemFileHandle;
+  wf?: string;
 }
 
 let memoryHandle: FileSystemFileHandle | null = null;
@@ -66,6 +99,7 @@ interface MobileWorkingCopyRecord {
   fileName: string;
   json: string;
   sourceLastModified: number;
+  wf?: string;
 }
 
 let lastSyncedBoardJson: string | null = null;
@@ -306,18 +340,59 @@ async function idbDelete(key: string): Promise<void> {
   }
 }
 
-async function idbPutHandle(handle: FileSystemFileHandle, fileName?: string): Promise<void> {
-  const name = fileName?.trim() || handle.name?.trim() || STANDARD_WORKING_FILENAME;
-  await idbPut(workingFileHandleIdbKey(name), handle);
+async function idbPutHandle(
+  handle: FileSystemFileHandle,
+  fileName: string,
+  wf: string,
+): Promise<void> {
+  const name = fileName.trim() || handle.name?.trim() || STANDARD_WORKING_FILENAME;
+  const id = wf.trim() || createWorkingFileId();
+  await idbPut(workingFileHandleIdbKey(id), handle);
+  await idbPut(nameIndexIdbKey(name), id);
   // Drop legacy singleton so other tabs are not restored to the wrong file.
   await idbDelete(LEGACY_IDB_HANDLE_KEY);
+  // Drop legacy name-only slot for this basename (avoid colliding with other paths).
+  const legacyNameKey = `handle:${normalizeWorkingFilename(name) || normalizeWorkingFilename(STANDARD_WORKING_FILENAME)}`;
+  if (legacyNameKey !== workingFileHandleIdbKey(id)) {
+    await idbDelete(legacyNameKey);
+  }
 }
 
-async function idbGetHandle(preferredFileName?: string | null): Promise<FileSystemFileHandle | null> {
+async function idbResolveWf(
+  preferredWf?: string | null,
+  preferredFileName?: string | null,
+): Promise<string | null> {
+  const wf = preferredWf?.trim() || null;
+  if (wf) {
+    const handle = await idbGet<FileSystemFileHandle>(workingFileHandleIdbKey(wf));
+    if (handle) return wf;
+    const mobile = await idbGet<MobileWorkingCopyRecord>(workingFileMobileIdbKey(wf));
+    if (mobile) return wf;
+  }
+
   const preferred = preferredFileName?.trim() || null;
   if (preferred) {
-    const keyed = await idbGet<FileSystemFileHandle>(workingFileHandleIdbKey(preferred));
+    const indexed = await idbGet<string>(nameIndexIdbKey(preferred));
+    if (indexed?.trim()) return indexed.trim();
+  }
+
+  return null;
+}
+
+async function idbGetHandle(
+  preferredWf?: string | null,
+  preferredFileName?: string | null,
+): Promise<FileSystemFileHandle | null> {
+  const wf = await idbResolveWf(preferredWf, preferredFileName);
+  if (wf) {
+    const keyed = await idbGet<FileSystemFileHandle>(workingFileHandleIdbKey(wf));
     if (keyed) return keyed;
+  }
+
+  const preferred = preferredFileName?.trim() || null;
+  if (preferred) {
+    const byName = await idbGet<FileSystemFileHandle>(workingFileHandleIdbKey(preferred));
+    if (byName) return byName;
   }
 
   const legacy = await idbGet<FileSystemFileHandle>(LEGACY_IDB_HANDLE_KEY);
@@ -327,18 +402,18 @@ async function idbGetHandle(preferredFileName?: string | null): Promise<FileSyst
       !preferred ||
       normalizeWorkingFilename(legacyName) === normalizeWorkingFilename(preferred)
     ) {
-      try {
-        await idbPutHandle(legacy, legacyName);
-      } catch {
-        /* ignore migrate errors */
-      }
       return legacy;
     }
   }
 
-  if (!preferred) {
+  if (!preferred && !preferredWf) {
     const last = getRememberedWorkingFileName();
     if (last) {
+      const indexed = await idbGet<string>(nameIndexIdbKey(last));
+      if (indexed?.trim()) {
+        const byIndex = await idbGet<FileSystemFileHandle>(workingFileHandleIdbKey(indexed));
+        if (byIndex) return byIndex;
+      }
       const byLast = await idbGet<FileSystemFileHandle>(workingFileHandleIdbKey(last));
       if (byLast) return byLast;
     }
@@ -347,26 +422,47 @@ async function idbGetHandle(preferredFileName?: string | null): Promise<FileSyst
   return null;
 }
 
-async function idbClearHandle(fileName?: string | null): Promise<void> {
+async function idbClearHandle(wf?: string | null, fileName?: string | null): Promise<void> {
+  const id = wf?.trim() || activeWorkingFileId;
   const name =
     fileName?.trim() ||
     memoryHandle?.name?.trim() ||
     mobileWorkingFileName?.trim() ||
     getRememberedWorkingFileName();
-  if (name) await idbDelete(workingFileHandleIdbKey(name));
+  if (id) await idbDelete(workingFileHandleIdbKey(id));
+  if (name) {
+    await idbDelete(workingFileHandleIdbKey(name));
+    await idbDelete(nameIndexIdbKey(name));
+  }
   await idbDelete(LEGACY_IDB_HANDLE_KEY);
 }
 
 async function idbPutMobileCopy(record: MobileWorkingCopyRecord): Promise<void> {
-  await idbPut(workingFileMobileIdbKey(record.fileName), record);
+  const id = record.wf?.trim() || activeWorkingFileId || createWorkingFileId();
+  const withWf = { ...record, wf: id };
+  await idbPut(workingFileMobileIdbKey(id), withWf);
+  await idbPut(nameIndexIdbKey(record.fileName), id);
   await idbDelete(LEGACY_IDB_MOBILE_KEY);
+  const legacyNameKey = `mobile:${normalizeWorkingFilename(record.fileName) || normalizeWorkingFilename(STANDARD_WORKING_FILENAME)}`;
+  if (legacyNameKey !== workingFileMobileIdbKey(id)) {
+    await idbDelete(legacyNameKey);
+  }
 }
 
-async function idbGetMobileCopy(preferredFileName?: string | null): Promise<MobileWorkingCopyRecord | null> {
+async function idbGetMobileCopy(
+  preferredWf?: string | null,
+  preferredFileName?: string | null,
+): Promise<MobileWorkingCopyRecord | null> {
+  const wf = await idbResolveWf(preferredWf, preferredFileName);
+  if (wf) {
+    const keyed = await idbGet<MobileWorkingCopyRecord>(workingFileMobileIdbKey(wf));
+    if (keyed) return keyed;
+  }
+
   const preferred = preferredFileName?.trim() || null;
   if (preferred) {
-    const keyed = await idbGet<MobileWorkingCopyRecord>(workingFileMobileIdbKey(preferred));
-    if (keyed) return keyed;
+    const byName = await idbGet<MobileWorkingCopyRecord>(workingFileMobileIdbKey(preferred));
+    if (byName) return byName;
   }
 
   const legacy = await idbGet<MobileWorkingCopyRecord>(LEGACY_IDB_MOBILE_KEY);
@@ -375,18 +471,18 @@ async function idbGetMobileCopy(preferredFileName?: string | null): Promise<Mobi
       !preferred ||
       normalizeWorkingFilename(legacy.fileName) === normalizeWorkingFilename(preferred)
     ) {
-      try {
-        await idbPutMobileCopy(legacy);
-      } catch {
-        /* ignore */
-      }
       return legacy;
     }
   }
 
-  if (!preferred) {
+  if (!preferred && !preferredWf) {
     const last = getRememberedWorkingFileName();
     if (last) {
+      const indexed = await idbGet<string>(nameIndexIdbKey(last));
+      if (indexed?.trim()) {
+        const byIndex = await idbGet<MobileWorkingCopyRecord>(workingFileMobileIdbKey(indexed));
+        if (byIndex) return byIndex;
+      }
       const byLast = await idbGet<MobileWorkingCopyRecord>(workingFileMobileIdbKey(last));
       if (byLast) return byLast;
     }
@@ -395,12 +491,14 @@ async function idbGetMobileCopy(preferredFileName?: string | null): Promise<Mobi
   return null;
 }
 
-async function idbClearMobileCopy(fileName?: string | null): Promise<void> {
+async function idbClearMobileCopy(wf?: string | null, fileName?: string | null): Promise<void> {
+  const id = wf?.trim() || activeWorkingFileId;
   const name =
     fileName?.trim() ||
     mobileWorkingFileName?.trim() ||
     memoryHandle?.name?.trim() ||
     getRememberedWorkingFileName();
+  if (id) await idbDelete(workingFileMobileIdbKey(id));
   if (name) await idbDelete(workingFileMobileIdbKey(name));
   await idbDelete(LEGACY_IDB_MOBILE_KEY);
 }
@@ -460,12 +558,15 @@ async function handlesAreSame(
   return a.name === b.name;
 }
 
-async function rememberRecentWorkingFile(handle: FileSystemFileHandle): Promise<void> {
+async function rememberRecentWorkingFile(
+  handle: FileSystemFileHandle,
+  wf: string,
+): Promise<void> {
   const name = handle.name?.trim() || STANDARD_WORKING_FILENAME;
   const openedAt = Date.now();
   try {
     const existing = await idbGetRecent();
-    const next: RecentWorkingFileRecord[] = [{ name, openedAt, handle }];
+    const next: RecentWorkingFileRecord[] = [{ name, openedAt, handle, wf }];
     for (const entry of existing) {
       if (await handlesAreSame(entry.handle, handle)) continue;
       next.push(entry);
@@ -475,6 +576,27 @@ async function rememberRecentWorkingFile(handle: FileSystemFileHandle): Promise<
   } catch {
     /* ignore */
   }
+}
+
+/** Reuse wf for the same disk file (isSameEntry); otherwise allocate a new slot. */
+async function resolveWfForHandle(handle: FileSystemFileHandle): Promise<string> {
+  if (memoryHandle && activeWorkingFileId) {
+    try {
+      if (await handlesAreSame(memoryHandle, handle)) return activeWorkingFileId;
+    } catch {
+      /* ignore */
+    }
+  }
+  try {
+    const recent = await idbGetRecent();
+    for (const entry of recent) {
+      if (!entry.wf?.trim()) continue;
+      if (await handlesAreSame(entry.handle, handle)) return entry.wf.trim();
+    }
+  } catch {
+    /* ignore */
+  }
+  return createWorkingFileId();
 }
 
 /** Recent Arbeitsdateien (File System Access handles), newest first. */
@@ -612,11 +734,13 @@ function hydrateFromFileText(fileJson: string, fileLastModified: number): Hydrat
 
 async function rememberMobileCopy(json: string, fileName: string, sourceLastModified: number): Promise<void> {
   const trimmedName = fileName.trim() || STANDARD_WORKING_FILENAME;
+  const wf = activeWorkingFileId || createWorkingFileId();
+  activeWorkingFileId = wf;
   mobileWorkingFileName = trimmedName;
   rememberLastFileNameInStorage(trimmedName);
-  syncTabContextAndWriter(trimmedName);
+  syncTabContextAndWriter(trimmedName, wf);
   try {
-    await idbPutMobileCopy({ fileName: trimmedName, json, sourceLastModified });
+    await idbPutMobileCopy({ fileName: trimmedName, json, sourceLastModified, wf });
   } catch {
     /* ignore */
   }
@@ -649,8 +773,9 @@ async function attachWorkingFileFromText(
 ): Promise<BrowserFileAttachResult> {
   const previousName =
     memoryHandle?.name?.trim() || mobileWorkingFileName?.trim() || null;
+  const previousWf = activeWorkingFileId;
   memoryHandle = null;
-  await idbClearHandle(previousName);
+  await idbClearHandle(previousWf, previousName);
 
   if (text.trim() && !boardImportPayloadFromExportText(text)) {
     return {
@@ -658,6 +783,10 @@ async function attachWorkingFileFromText(
       message: 'Die Datei ist keine gültige E2-Arbeitsdatei (Format "event-storming-tool" erwartet).',
     };
   }
+
+  // New browser-file / paste slot — never reuse another tab's wf.
+  activeWorkingFileId = createWorkingFileId();
+  clearWorkingFileSyncState();
 
   const result = hydrateFromFileText(text, fileLastModified);
   if (result.status === "conflict") return result;
@@ -669,21 +798,32 @@ async function attachWorkingFileFromText(
 }
 
 async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
+  const fileName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
+  const wf = await resolveWfForHandle(handle);
+  const switching =
+    Boolean(memoryHandle) &&
+    !(memoryHandle && (await handlesAreSame(memoryHandle, handle)));
+
   memoryHandle = handle;
   // File-System-Handle ist die Quelle der Wahrheit — Mobile-Copy-Name nur als Fallback.
   mobileWorkingFileName = null;
-  const fileName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
+  activeWorkingFileId = wf;
   rememberLastFileNameInStorage(fileName);
-  syncTabContextAndWriter(fileName);
+  // Always refresh URL/session — even when basename is unchanged (wf still changes).
+  syncTabContextAndWriter(fileName, wf);
+  if (switching) {
+    // Avoid pushing the previous board into the newly attached file before hydrate.
+    clearWorkingFileSyncState();
+  }
   try {
-    await idbPutHandle(handle, fileName);
+    await idbPutHandle(handle, fileName, wf);
   } catch {
     /* ignore */
   }
-  await rememberRecentWorkingFile(handle);
+  await rememberRecentWorkingFile(handle, wf);
   try {
-    // Clear mobile mirror for this file only (handle is authoritative).
-    await idbClearMobileCopy(fileName);
+    // Clear mobile mirror for this slot only (handle is authoritative).
+    await idbClearMobileCopy(wf, fileName);
   } catch {
     /* ignore */
   }
@@ -895,20 +1035,28 @@ export function notifyWorkingFileAttached(): void {
 
 export async function restoreWorkingFileFromDisk(
   preferredFileName?: string | null,
+  preferredWf?: string | null,
 ): Promise<FileSystemFileHandle | null> {
-  const preferred =
+  const preferredName =
     preferredFileName?.trim() || resolvePreferredWorkingFileName();
+  const preferredId =
+    preferredWf?.trim() || resolvePreferredWorkingFileId();
 
-  const persisted = await idbGetMobileCopy(preferred);
+  const persisted = await idbGetMobileCopy(preferredId, preferredName);
   if (persisted?.fileName?.trim()) {
-    // Honor URL/session preference: do not restore a different file's mirror.
+    const persistedWf = persisted.wf?.trim() || preferredId;
     if (
-      !preferred ||
-      normalizeWorkingFilename(persisted.fileName) === normalizeWorkingFilename(preferred)
+      !preferredId ||
+      (persistedWf && persistedWf === preferredId) ||
+      (!preferredId &&
+        (!preferredName ||
+          normalizeWorkingFilename(persisted.fileName) ===
+            normalizeWorkingFilename(preferredName)))
     ) {
       mobileWorkingFileName = persisted.fileName.trim();
+      if (persistedWf) activeWorkingFileId = persistedWf;
       rememberLastFileNameInStorage(mobileWorkingFileName);
-      syncTabContextAndWriter(mobileWorkingFileName);
+      syncTabContextAndWriter(mobileWorkingFileName, activeWorkingFileId);
       if (persisted.json?.trim()) {
         lastSyncedBoardJson = persisted.json;
         lastKnownFileModified = persisted.sourceLastModified;
@@ -917,33 +1065,44 @@ export async function restoreWorkingFileFromDisk(
   }
 
   if (!isWorkingFileSupported()) {
-    if (mobileWorkingFileName) syncTabContextAndWriter(mobileWorkingFileName);
+    if (mobileWorkingFileName) syncTabContextAndWriter(mobileWorkingFileName, activeWorkingFileId);
     return null;
   }
 
-  const handle = await idbGetHandle(preferred);
+  const handle = await idbGetHandle(preferredId, preferredName);
   if (!handle) {
-    if (mobileWorkingFileName) syncTabContextAndWriter(mobileWorkingFileName);
+    if (mobileWorkingFileName) syncTabContextAndWriter(mobileWorkingFileName, activeWorkingFileId);
     return null;
   }
 
   const handleName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
   if (
-    preferred &&
-    normalizeWorkingFilename(handleName) !== normalizeWorkingFilename(preferred)
+    preferredName &&
+    !preferredId &&
+    normalizeWorkingFilename(handleName) !== normalizeWorkingFilename(preferredName)
   ) {
-    // Preferred name has no matching handle; keep mobile mirror if any.
-    if (mobileWorkingFileName) syncTabContextAndWriter(mobileWorkingFileName);
+    if (mobileWorkingFileName) syncTabContextAndWriter(mobileWorkingFileName, activeWorkingFileId);
     return null;
   }
+
+  const wf =
+    preferredId ||
+    activeWorkingFileId ||
+    (await resolveWfForHandle(handle));
 
   try {
     let granted = (await handle.queryPermission({ mode: "readwrite" })) === "granted";
     if (!granted) granted = (await handle.requestPermission({ mode: "readwrite" })) === "granted";
     if (granted) {
       memoryHandle = handle;
+      activeWorkingFileId = wf;
       rememberLastFileNameInStorage(handleName);
-      syncTabContextAndWriter(handleName);
+      syncTabContextAndWriter(handleName, wf);
+      try {
+        await idbPutHandle(handle, handleName, wf);
+      } catch {
+        /* ignore */
+      }
       return handle;
     }
   } catch {
@@ -952,8 +1111,9 @@ export async function restoreWorkingFileFromDisk(
 
   if (handleName) {
     mobileWorkingFileName = handleName;
+    activeWorkingFileId = wf;
     rememberLastFileNameInStorage(handleName);
-    syncTabContextAndWriter(handleName);
+    syncTabContextAndWriter(handleName, wf);
   }
   memoryHandle = null;
   return null;
@@ -964,15 +1124,17 @@ export async function detachWorkingFile(): Promise<void> {
     memoryHandle?.name?.trim() ||
     mobileWorkingFileName?.trim() ||
     getRememberedWorkingFileName();
+  const wf = activeWorkingFileId;
   memoryHandle = null;
   mobileWorkingFileName = null;
+  activeWorkingFileId = null;
   clearWorkingFileSyncState();
   clearWorkingFileSessionHydrated();
   clearRememberedFileNameInStorage();
-  syncTabContextAndWriter(null);
+  syncTabContextAndWriter(null, null);
   try {
-    await idbClearHandle(name);
-    await idbClearMobileCopy(name);
+    await idbClearHandle(wf, name);
+    await idbClearMobileCopy(wf, name);
   } catch {
     /* ignore */
   }

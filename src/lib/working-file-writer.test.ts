@@ -19,7 +19,7 @@ describe("working-file-writer", () => {
     expect(lockNameForWorkingFile("Alpha.storm.json")).toBe(
       "e2-working-file-writer:alpha.storm.json",
     );
-    expect(lockNameForWorkingFile("path/Board.JSON")).toBe("e2-working-file-writer:board.json");
+    expect(lockNameForWorkingFile("WF-UUID-1")).toBe("e2-working-file-writer:wf-uuid-1");
   });
 
   it("always-leader helper reports leader after start", () => {

@@ -9,10 +9,16 @@ import {
 } from "@/lib/working-file";
 
 describe("working-file IDB keying", () => {
-  it("keys handles and mobile mirrors by normalized filename", () => {
+  it("keys handles and mobile mirrors by normalized filename (legacy)", () => {
     expect(workingFileHandleIdbKey("Projekt-A.storm.json")).toBe("handle:projekt-a.storm.json");
     expect(workingFileMobileIdbKey("Projekt-A.storm.json")).toBe("mobile:projekt-a.storm.json");
     expect(workingFileHandleIdbKey("path/to/Board.JSON")).toBe("handle:board.json");
+  });
+
+  it("keys UUID / wf ids without normalizing away uniqueness", () => {
+    const id = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
+    expect(workingFileHandleIdbKey(id)).toBe(`handle:${id}`);
+    expect(workingFileMobileIdbKey("wf-abc123")).toBe("mobile:wf-abc123");
   });
 
   it("uses the standard filename when input is blank", () => {
