@@ -18,6 +18,7 @@ import {
   resolvePreferredWorkingFileId,
   resolvePreferredWorkingFileName,
 } from "@/lib/working-file-tab-context";
+import { evaluateWorkingFileWriteGate, mayAutoRestoreWorkingFileFromStorage } from "@/lib/working-file-safety";
 import {
   ensureWorkingFileWriter,
   isWorkingFileWriterLeader,
@@ -141,7 +142,16 @@ export type WriteWorkingFileResult =
   | { ok: true; lastModified: number }
   | {
       ok: false;
-      reason: "no_handle" | "permission_denied" | "conflict" | "io_error" | "not_writer";
+      reason:
+        | "no_handle"
+        | "permission_denied"
+        | "conflict"
+        | "io_error"
+        | "not_writer"
+        | "url_context_missing"
+        | "url_context_mismatch"
+        | "needs_confirm";
+      message?: string;
     };
 
 export function isWorkingFileSupported(): boolean {
@@ -681,7 +691,7 @@ export async function readWorkingFileSnapshot(
 export async function writeWorkingFileJson(
   json: string,
   handle: FileSystemFileHandle = memoryHandle!,
-  options?: { expectedLastModified?: number },
+  options?: { expectedLastModified?: number; skipCas?: boolean },
 ): Promise<WriteWorkingFileResult> {
   if (!handle) return { ok: false, reason: "no_handle" };
   try {
@@ -689,10 +699,15 @@ export async function writeWorkingFileJson(
       return { ok: false, reason: "permission_denied" };
     }
     const before = await handle.getFile();
-    if (
-      options?.expectedLastModified !== undefined &&
-      before.lastModified !== options.expectedLastModified
-    ) {
+    const expected =
+      options?.skipCas
+        ? undefined
+        : options?.expectedLastModified !== undefined
+          ? options.expectedLastModified
+          : lastKnownFileModified > 0
+            ? lastKnownFileModified
+            : undefined;
+    if (expected !== undefined && before.lastModified !== expected) {
       return { ok: false, reason: "conflict" };
     }
     const writable = await handle.createWritable({ keepExistingData: false });
@@ -975,13 +990,50 @@ export async function resolveWorkingFileImportConflict(
   markWorkingFileSessionHydrated();
 }
 
-export async function persistWorkingFileJson(json: string): Promise<WriteWorkingFileResult> {
-  // Multi-tab: only the visible writer tab may push the shared file / mirror.
-  if (!isWorkingFileWriterLeader()) return { ok: false, reason: "not_writer" };
-  if (memoryHandle) return writeWorkingFileJson(json);
+export async function persistWorkingFileJson(
+  json: string,
+  options?: { userConfirmed?: boolean; skipCas?: boolean },
+): Promise<WriteWorkingFileResult> {
+  const gate = evaluateWorkingFileWriteGate({
+    attached: isWorkingFileAttached(),
+    isWriterLeader: isWorkingFileWriterLeader(),
+    activeWf: activeWorkingFileId,
+    label: getWorkingFileLabel(),
+    userConfirmed: options?.userConfirmed,
+  });
+  if (!gate.ok) {
+    const reason =
+      gate.reason === "not_writer"
+        ? "not_writer"
+        : gate.reason === "url_context_missing"
+          ? "url_context_missing"
+          : gate.reason === "url_context_mismatch"
+            ? "url_context_mismatch"
+            : "no_handle";
+    return { ok: false, reason, message: gate.message };
+  }
+
+  if (memoryHandle) {
+    return writeWorkingFileJson(json, memoryHandle, {
+      skipCas: options?.skipCas,
+      expectedLastModified:
+        options?.skipCas || lastKnownFileModified <= 0 ? undefined : lastKnownFileModified,
+    });
+  }
   if (!mobileWorkingFileName) return { ok: false, reason: "no_handle" };
   try {
-    const sourceLastModified = lastKnownFileModified || Date.now();
+    // Mobile mirror: CAS against last known revision when available.
+    if (!options?.skipCas && lastKnownFileModified > 0) {
+      const existing = await idbGetMobileCopy(activeWorkingFileId, mobileWorkingFileName);
+      if (
+        existing &&
+        existing.sourceLastModified > 0 &&
+        existing.sourceLastModified !== lastKnownFileModified
+      ) {
+        return { ok: false, reason: "conflict" };
+      }
+    }
+    const sourceLastModified = Date.now();
     await rememberMobileCopy(json, mobileWorkingFileName, sourceLastModified);
     noteOwnWriteToWorkingFile(json, sourceLastModified);
     return { ok: true, lastModified: sourceLastModified };
@@ -996,7 +1048,7 @@ export async function createAndAttachWorkingFile(
 ): Promise<FileSystemFileHandle | null> {
   const handle = await attachWorkingFileCreate(suggestedName);
   if (!handle) return null;
-  const result = await writeWorkingFileJson(initialJson, handle);
+  const result = await writeWorkingFileJson(initialJson, handle, { skipCas: true });
   if (!result.ok) {
     await detachWorkingFile();
     return null;
@@ -1037,10 +1089,23 @@ export async function restoreWorkingFileFromDisk(
   preferredFileName?: string | null,
   preferredWf?: string | null,
 ): Promise<FileSystemFileHandle | null> {
+  // Never silently attach another tab's last file from shared localStorage alone.
+  if (
+    !preferredFileName?.trim() &&
+    !preferredWf?.trim() &&
+    !mayAutoRestoreWorkingFileFromStorage()
+  ) {
+    return null;
+  }
+
   const preferredName =
     preferredFileName?.trim() || resolvePreferredWorkingFileName();
   const preferredId =
     preferredWf?.trim() || resolvePreferredWorkingFileId();
+
+  if (!preferredName && !preferredId) {
+    return null;
+  }
 
   const persisted = await idbGetMobileCopy(preferredId, preferredName);
   if (persisted?.fileName?.trim()) {

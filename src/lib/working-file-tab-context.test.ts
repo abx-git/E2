@@ -120,7 +120,7 @@ describe("working-file-tab-context", () => {
     expect(getTabWorkingFileContext().wf).toBe(null);
   });
 
-  it("resolves preferred name: session > URL > localStorage", () => {
+  it("resolves preferred name: session > URL (no localStorage fallback)", () => {
     localStorage.setItem("e2-last-working-file-name", "from-ls.storm.json");
     href = "http://localhost/?filename=from-url.storm.json";
     expect(resolvePreferredWorkingFileName()).toBe("from-url.storm.json");
@@ -131,9 +131,9 @@ describe("working-file-tab-context", () => {
     expect(resolvePreferredWorkingFileId()).toBe("wf-session");
   });
 
-  it("falls back to localStorage when URL and session are empty", () => {
+  it("does not fall back to localStorage when URL and session are empty", () => {
     localStorage.setItem("e2-last-working-file-name", "legacy.storm.json");
-    expect(resolvePreferredWorkingFileName()).toBe("legacy.storm.json");
+    expect(resolvePreferredWorkingFileName()).toBe(null);
   });
 
   it("bindTabWorkingFileName updates session and URL together", () => {

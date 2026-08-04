@@ -297,14 +297,38 @@ export function StormBoard() {
     }
     setBusy(true);
     try {
-      const result = await persistWorkingFileJson(boardJsonFromStoreState());
+      let userConfirmed = false;
+      const { evaluateWorkingFileWriteGate, confirmMissingUrlContextWrite } = await import(
+        "@/lib/working-file-safety"
+      );
+      const gate = evaluateWorkingFileWriteGate({
+        attached: true,
+        isWriterLeader: true,
+        activeWf: getActiveWorkingFileId(),
+        label: getWorkingFileLabel(),
+        requireWriter: false,
+      });
+      if (!gate.ok && gate.reason === "url_context_missing") {
+        if (!confirmMissingUrlContextWrite(getWorkingFileLabel())) return;
+        userConfirmed = true;
+        // Bind URL now so subsequent autosaves are gated correctly.
+        syncWorkingFileUrlContext();
+      } else if (!gate.ok && gate.reason === "url_context_mismatch") {
+        window.alert(gate.message ?? "URL und Arbeitsdatei stimmen nicht überein — Speichern abgebrochen.");
+        return;
+      }
+
+      const result = await persistWorkingFileJson(boardJsonFromStoreState(), {
+        userConfirmed,
+        // Explicit Speichern: still CAS — conflict must surface, not overwrite.
+      });
       if (!result.ok) {
         window.alert(
           result.reason === "conflict"
             ? "Speichern fehlgeschlagen: Die Datei wurde zwischenzeitlich geändert. Bitte „Speichern unter…“ nutzen oder die Datei neu öffnen."
             : result.reason === "not_writer"
               ? "Dieser Tab schreibt die Arbeitsdatei gerade nicht (ein anderer Tab mit derselben Datei ist aktiv). Bitte den sichtbaren Tab nutzen."
-              : "Speichern in die Arbeitsdatei fehlgeschlagen.",
+              : result.message ?? "Speichern in die Arbeitsdatei fehlgeschlagen.",
         );
         return;
       }

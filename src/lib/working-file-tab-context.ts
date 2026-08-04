@@ -9,7 +9,6 @@ export const WORKING_FILE_ID_URL_PARAM = "wf";
 
 const SS_TAB_SESSION_ID = "e2.working-file.tab-session-id";
 const SS_ACTIVE_CONTEXT = "e2.working-file.tab-context";
-const LS_LAST_FILE_NAME = "e2-last-working-file-name";
 
 export interface TabWorkingFileContext {
   filename: string | null;
@@ -155,7 +154,9 @@ export function setTabWorkingFileContext(fileName: string | null, wf: string | n
  * Preferred working-file **display name** for this tab:
  * 1) sessionStorage (authoritative after attach / switch in this tab)
  * 2) URL `?filename=` (bookmark / cold start)
- * 3) localStorage last-used
+ *
+ * Intentionally no localStorage fallback — shared LS would silently reopen another
+ * tab's last file and risk overwriting it.
  */
 export function resolvePreferredWorkingFileName(): string | null {
   const fromSession = getTabWorkingFileContext().filename;
@@ -164,13 +165,7 @@ export function resolvePreferredWorkingFileName(): string | null {
   const fromUrl = readFilenameFromUrl();
   if (fromUrl) return fromUrl;
 
-  if (typeof localStorage === "undefined") return null;
-  try {
-    const last = localStorage.getItem(LS_LAST_FILE_NAME)?.trim();
-    return last || null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 /**

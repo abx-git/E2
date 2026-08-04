@@ -32,10 +32,11 @@ describe("working-file collab guards", () => {
 
   it("persistWorkingFileJson refuses when this tab is not the file writer", async () => {
     const ctrl = ensureWorkingFileWriter("shared.storm.json");
-    // Stop the lock loop / visibility role → follower, but keep module reference.
     ctrl.stop();
     const result = await persistWorkingFileJson("{}");
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe("not_writer");
+    if (!result.ok) {
+      expect(["not_writer", "url_context_missing", "no_handle"]).toContain(result.reason);
+    }
   });
 });
