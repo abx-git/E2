@@ -294,7 +294,9 @@ export function StormBoard() {
         window.alert(
           result.reason === "conflict"
             ? "Speichern fehlgeschlagen: Die Datei wurde zwischenzeitlich geändert. Bitte „Speichern unter…“ nutzen oder die Datei neu öffnen."
-            : "Speichern in die Arbeitsdatei fehlgeschlagen.",
+            : result.reason === "not_writer"
+              ? "Dieser Tab schreibt die Arbeitsdatei gerade nicht (ein anderer Tab mit derselben Datei ist aktiv). Bitte den sichtbaren Tab nutzen."
+              : "Speichern in die Arbeitsdatei fehlgeschlagen.",
         );
         return;
       }

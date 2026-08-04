@@ -1,5 +1,7 @@
 /**
  * Arbeitsdatei (File System Access API): einziges Speichermedium.
+ * Handles / mobile mirrors are keyed by filename so tabs with different
+ * `?filename=` bookmarks do not overwrite each other's IndexedDB slots.
  */
 
 import {
@@ -9,17 +11,47 @@ import {
   planFileReconcile,
 } from "@/lib/file-board-reconcile";
 import { boardImportPayloadFromExportText } from "@/lib/storm-json";
+import {
+  bindTabWorkingFileName,
+  normalizeWorkingFilename,
+  resolvePreferredWorkingFileName,
+} from "@/lib/working-file-tab-context";
+import {
+  ensureWorkingFileWriter,
+  isWorkingFileWriterLeader,
+  stopWorkingFileWriter,
+} from "@/lib/working-file-writer";
 
 export const STANDARD_WORKING_FILENAME = "board.storm.json";
 
 const IDB_NAME = "e2-working-file";
 const IDB_VERSION = 1;
 const IDB_STORE = "handles";
-const IDB_KEY = "board-json";
-const IDB_MOBILE_COPY_KEY = "mobile-working-copy";
+/** Legacy singleton keys (pre multi-tab); migrated on read. */
+export const LEGACY_IDB_HANDLE_KEY = "board-json";
+export const LEGACY_IDB_MOBILE_KEY = "mobile-working-copy";
 const IDB_RECENT_KEY = "recent-working-files";
 const LS_LAST_FILE_NAME = "e2-last-working-file-name";
 const RECENT_WORKING_FILES_LIMIT = 8;
+
+export function workingFileHandleIdbKey(fileName: string): string {
+  const normalized = normalizeWorkingFilename(fileName) || normalizeWorkingFilename(STANDARD_WORKING_FILENAME);
+  return `handle:${normalized}`;
+}
+
+export function workingFileMobileIdbKey(fileName: string): string {
+  const normalized = normalizeWorkingFilename(fileName) || normalizeWorkingFilename(STANDARD_WORKING_FILENAME);
+  return `mobile:${normalized}`;
+}
+
+function syncTabContextAndWriter(fileName: string | null): void {
+  bindTabWorkingFileName(fileName);
+  if (fileName?.trim()) {
+    ensureWorkingFileWriter(fileName.trim());
+  } else {
+    stopWorkingFileWriter();
+  }
+}
 
 export interface RecentWorkingFileRecord {
   name: string;
@@ -73,7 +105,10 @@ export function suppressWorkingFileExternalPoll(ms: number): void {
 
 export type WriteWorkingFileResult =
   | { ok: true; lastModified: number }
-  | { ok: false; reason: "no_handle" | "permission_denied" | "conflict" | "io_error" };
+  | {
+      ok: false;
+      reason: "no_handle" | "permission_denied" | "conflict" | "io_error" | "not_writer";
+    };
 
 export function isWorkingFileSupported(): boolean {
   return (
@@ -221,29 +256,29 @@ function openIdb(): Promise<IDBDatabase> {
   });
 }
 
-async function idbPutHandle(handle: FileSystemFileHandle): Promise<void> {
+async function idbPut<T>(key: string, value: T): Promise<void> {
   const db = await openIdb();
   try {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(IDB_STORE, "readwrite");
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error ?? new Error("tx"));
-      tx.objectStore(IDB_STORE).put(handle, IDB_KEY);
+      tx.objectStore(IDB_STORE).put(value, key);
     });
   } finally {
     db.close();
   }
 }
 
-async function idbGetHandle(): Promise<FileSystemFileHandle | null> {
+async function idbGet<T>(key: string): Promise<T | null> {
   try {
     const db = await openIdb();
     try {
-      return await new Promise<FileSystemFileHandle | null>((resolve, reject) => {
+      return await new Promise<T | null>((resolve, reject) => {
         const tx = db.transaction(IDB_STORE, "readonly");
         tx.onerror = () => reject(tx.error ?? new Error("tx"));
-        const r = tx.objectStore(IDB_STORE).get(IDB_KEY);
-        r.onsuccess = () => resolve((r.result as FileSystemFileHandle | undefined) ?? null);
+        const r = tx.objectStore(IDB_STORE).get(key);
+        r.onsuccess = () => resolve((r.result as T | undefined) ?? null);
       });
     } finally {
       db.close();
@@ -253,7 +288,7 @@ async function idbGetHandle(): Promise<FileSystemFileHandle | null> {
   }
 }
 
-async function idbClearHandle(): Promise<void> {
+async function idbDelete(key: string): Promise<void> {
   try {
     const db = await openIdb();
     try {
@@ -261,7 +296,7 @@ async function idbClearHandle(): Promise<void> {
         const tx = db.transaction(IDB_STORE, "readwrite");
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error ?? new Error("tx"));
-        tx.objectStore(IDB_STORE).delete(IDB_KEY);
+        tx.objectStore(IDB_STORE).delete(key);
       });
     } finally {
       db.close();
@@ -269,56 +304,105 @@ async function idbClearHandle(): Promise<void> {
   } catch {
     /* ignore */
   }
+}
+
+async function idbPutHandle(handle: FileSystemFileHandle, fileName?: string): Promise<void> {
+  const name = fileName?.trim() || handle.name?.trim() || STANDARD_WORKING_FILENAME;
+  await idbPut(workingFileHandleIdbKey(name), handle);
+  // Drop legacy singleton so other tabs are not restored to the wrong file.
+  await idbDelete(LEGACY_IDB_HANDLE_KEY);
+}
+
+async function idbGetHandle(preferredFileName?: string | null): Promise<FileSystemFileHandle | null> {
+  const preferred = preferredFileName?.trim() || null;
+  if (preferred) {
+    const keyed = await idbGet<FileSystemFileHandle>(workingFileHandleIdbKey(preferred));
+    if (keyed) return keyed;
+  }
+
+  const legacy = await idbGet<FileSystemFileHandle>(LEGACY_IDB_HANDLE_KEY);
+  if (legacy) {
+    const legacyName = legacy.name?.trim() || STANDARD_WORKING_FILENAME;
+    if (
+      !preferred ||
+      normalizeWorkingFilename(legacyName) === normalizeWorkingFilename(preferred)
+    ) {
+      try {
+        await idbPutHandle(legacy, legacyName);
+      } catch {
+        /* ignore migrate errors */
+      }
+      return legacy;
+    }
+  }
+
+  if (!preferred) {
+    const last = getRememberedWorkingFileName();
+    if (last) {
+      const byLast = await idbGet<FileSystemFileHandle>(workingFileHandleIdbKey(last));
+      if (byLast) return byLast;
+    }
+  }
+
+  return null;
+}
+
+async function idbClearHandle(fileName?: string | null): Promise<void> {
+  const name =
+    fileName?.trim() ||
+    memoryHandle?.name?.trim() ||
+    mobileWorkingFileName?.trim() ||
+    getRememberedWorkingFileName();
+  if (name) await idbDelete(workingFileHandleIdbKey(name));
+  await idbDelete(LEGACY_IDB_HANDLE_KEY);
 }
 
 async function idbPutMobileCopy(record: MobileWorkingCopyRecord): Promise<void> {
-  const db = await openIdb();
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(IDB_STORE, "readwrite");
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error ?? new Error("tx"));
-      tx.objectStore(IDB_STORE).put(record, IDB_MOBILE_COPY_KEY);
-    });
-  } finally {
-    db.close();
-  }
+  await idbPut(workingFileMobileIdbKey(record.fileName), record);
+  await idbDelete(LEGACY_IDB_MOBILE_KEY);
 }
 
-async function idbGetMobileCopy(): Promise<MobileWorkingCopyRecord | null> {
-  try {
-    const db = await openIdb();
-    try {
-      return await new Promise<MobileWorkingCopyRecord | null>((resolve, reject) => {
-        const tx = db.transaction(IDB_STORE, "readonly");
-        tx.onerror = () => reject(tx.error ?? new Error("tx"));
-        const r = tx.objectStore(IDB_STORE).get(IDB_MOBILE_COPY_KEY);
-        r.onsuccess = () => resolve((r.result as MobileWorkingCopyRecord | undefined) ?? null);
-      });
-    } finally {
-      db.close();
-    }
-  } catch {
-    return null;
+async function idbGetMobileCopy(preferredFileName?: string | null): Promise<MobileWorkingCopyRecord | null> {
+  const preferred = preferredFileName?.trim() || null;
+  if (preferred) {
+    const keyed = await idbGet<MobileWorkingCopyRecord>(workingFileMobileIdbKey(preferred));
+    if (keyed) return keyed;
   }
+
+  const legacy = await idbGet<MobileWorkingCopyRecord>(LEGACY_IDB_MOBILE_KEY);
+  if (legacy?.fileName?.trim()) {
+    if (
+      !preferred ||
+      normalizeWorkingFilename(legacy.fileName) === normalizeWorkingFilename(preferred)
+    ) {
+      try {
+        await idbPutMobileCopy(legacy);
+      } catch {
+        /* ignore */
+      }
+      return legacy;
+    }
+  }
+
+  if (!preferred) {
+    const last = getRememberedWorkingFileName();
+    if (last) {
+      const byLast = await idbGet<MobileWorkingCopyRecord>(workingFileMobileIdbKey(last));
+      if (byLast) return byLast;
+    }
+  }
+
+  return null;
 }
 
-async function idbClearMobileCopy(): Promise<void> {
-  try {
-    const db = await openIdb();
-    try {
-      await new Promise<void>((resolve, reject) => {
-        const tx = db.transaction(IDB_STORE, "readwrite");
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error ?? new Error("tx"));
-        tx.objectStore(IDB_STORE).delete(IDB_MOBILE_COPY_KEY);
-      });
-    } finally {
-      db.close();
-    }
-  } catch {
-    /* ignore */
-  }
+async function idbClearMobileCopy(fileName?: string | null): Promise<void> {
+  const name =
+    fileName?.trim() ||
+    mobileWorkingFileName?.trim() ||
+    memoryHandle?.name?.trim() ||
+    getRememberedWorkingFileName();
+  if (name) await idbDelete(workingFileMobileIdbKey(name));
+  await idbDelete(LEGACY_IDB_MOBILE_KEY);
 }
 
 async function idbGetRecent(): Promise<RecentWorkingFileRecord[]> {
@@ -530,6 +614,7 @@ async function rememberMobileCopy(json: string, fileName: string, sourceLastModi
   const trimmedName = fileName.trim() || STANDARD_WORKING_FILENAME;
   mobileWorkingFileName = trimmedName;
   rememberLastFileNameInStorage(trimmedName);
+  syncTabContextAndWriter(trimmedName);
   try {
     await idbPutMobileCopy({ fileName: trimmedName, json, sourceLastModified });
   } catch {
@@ -562,8 +647,10 @@ async function attachWorkingFileFromText(
   fileName: string,
   fileLastModified: number,
 ): Promise<BrowserFileAttachResult> {
+  const previousName =
+    memoryHandle?.name?.trim() || mobileWorkingFileName?.trim() || null;
   memoryHandle = null;
-  await idbClearHandle();
+  await idbClearHandle(previousName);
 
   if (text.trim() && !boardImportPayloadFromExportText(text)) {
     return {
@@ -587,14 +674,16 @@ async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
   mobileWorkingFileName = null;
   const fileName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
   rememberLastFileNameInStorage(fileName);
+  syncTabContextAndWriter(fileName);
   try {
-    await idbPutHandle(handle);
+    await idbPutHandle(handle, fileName);
   } catch {
     /* ignore */
   }
   await rememberRecentWorkingFile(handle);
   try {
-    await idbClearMobileCopy();
+    // Clear mobile mirror for this file only (handle is authoritative).
+    await idbClearMobileCopy(fileName);
   } catch {
     /* ignore */
   }
@@ -747,6 +836,8 @@ export async function resolveWorkingFileImportConflict(
 }
 
 export async function persistWorkingFileJson(json: string): Promise<WriteWorkingFileResult> {
+  // Multi-tab: only the visible writer tab may push the shared file / mirror.
+  if (!isWorkingFileWriterLeader()) return { ok: false, reason: "not_writer" };
   if (memoryHandle) return writeWorkingFileJson(json);
   if (!mobileWorkingFileName) return { ok: false, reason: "no_handle" };
   try {
@@ -802,52 +893,86 @@ export function notifyWorkingFileAttached(): void {
   window.dispatchEvent(new Event(WORKING_FILE_ATTACHED_EVENT));
 }
 
-export async function restoreWorkingFileFromDisk(): Promise<FileSystemFileHandle | null> {
-  const persisted = await idbGetMobileCopy();
+export async function restoreWorkingFileFromDisk(
+  preferredFileName?: string | null,
+): Promise<FileSystemFileHandle | null> {
+  const preferred =
+    preferredFileName?.trim() || resolvePreferredWorkingFileName();
+
+  const persisted = await idbGetMobileCopy(preferred);
   if (persisted?.fileName?.trim()) {
-    mobileWorkingFileName = persisted.fileName.trim();
-    rememberLastFileNameInStorage(mobileWorkingFileName);
-    if (persisted.json?.trim()) {
-      lastSyncedBoardJson = persisted.json;
-      lastKnownFileModified = persisted.sourceLastModified;
+    // Honor URL/session preference: do not restore a different file's mirror.
+    if (
+      !preferred ||
+      normalizeWorkingFilename(persisted.fileName) === normalizeWorkingFilename(preferred)
+    ) {
+      mobileWorkingFileName = persisted.fileName.trim();
+      rememberLastFileNameInStorage(mobileWorkingFileName);
+      syncTabContextAndWriter(mobileWorkingFileName);
+      if (persisted.json?.trim()) {
+        lastSyncedBoardJson = persisted.json;
+        lastKnownFileModified = persisted.sourceLastModified;
+      }
     }
   }
 
-  if (!isWorkingFileSupported()) return null;
+  if (!isWorkingFileSupported()) {
+    if (mobileWorkingFileName) syncTabContextAndWriter(mobileWorkingFileName);
+    return null;
+  }
 
-  const handle = await idbGetHandle();
-  if (!handle) return null;
+  const handle = await idbGetHandle(preferred);
+  if (!handle) {
+    if (mobileWorkingFileName) syncTabContextAndWriter(mobileWorkingFileName);
+    return null;
+  }
+
+  const handleName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
+  if (
+    preferred &&
+    normalizeWorkingFilename(handleName) !== normalizeWorkingFilename(preferred)
+  ) {
+    // Preferred name has no matching handle; keep mobile mirror if any.
+    if (mobileWorkingFileName) syncTabContextAndWriter(mobileWorkingFileName);
+    return null;
+  }
 
   try {
     let granted = (await handle.queryPermission({ mode: "readwrite" })) === "granted";
     if (!granted) granted = (await handle.requestPermission({ mode: "readwrite" })) === "granted";
     if (granted) {
       memoryHandle = handle;
-      rememberLastFileNameInStorage(handle.name?.trim() || mobileWorkingFileName || STANDARD_WORKING_FILENAME);
+      rememberLastFileNameInStorage(handleName);
+      syncTabContextAndWriter(handleName);
       return handle;
     }
   } catch {
     /* ignore */
   }
 
-  const nameFromHandle = handle.name?.trim();
-  if (nameFromHandle) {
-    mobileWorkingFileName = nameFromHandle;
-    rememberLastFileNameInStorage(nameFromHandle);
+  if (handleName) {
+    mobileWorkingFileName = handleName;
+    rememberLastFileNameInStorage(handleName);
+    syncTabContextAndWriter(handleName);
   }
   memoryHandle = null;
   return null;
 }
 
 export async function detachWorkingFile(): Promise<void> {
+  const name =
+    memoryHandle?.name?.trim() ||
+    mobileWorkingFileName?.trim() ||
+    getRememberedWorkingFileName();
   memoryHandle = null;
   mobileWorkingFileName = null;
   clearWorkingFileSyncState();
   clearWorkingFileSessionHydrated();
   clearRememberedFileNameInStorage();
+  syncTabContextAndWriter(null);
   try {
-    await idbClearHandle();
-    await idbClearMobileCopy();
+    await idbClearHandle(name);
+    await idbClearMobileCopy(name);
   } catch {
     /* ignore */
   }

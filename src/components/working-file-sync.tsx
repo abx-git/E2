@@ -32,6 +32,16 @@ import {
   writeWorkingFileJson,
   WORKING_FILE_ATTACHED_EVENT,
 } from "@/lib/working-file";
+import {
+  getOrCreateTabSessionId,
+  resolvePreferredWorkingFileName,
+} from "@/lib/working-file-tab-context";
+import {
+  ensureWorkingFileWriter,
+  isWorkingFileWriterLeader,
+  onWorkingFileWriterRoleChange,
+  stopWorkingFileWriter,
+} from "@/lib/working-file-writer";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 function urlHasPendingRoomJoin(): boolean {
@@ -42,6 +52,15 @@ function urlHasPendingRoomJoin(): boolean {
 /** Disk must not replace the editor while collab owns the board (or a join is pending). */
 function mustNotApplyFileToStore(): boolean {
   return isWorkingFileToStoreBlocked() || urlHasPendingRoomJoin();
+}
+
+function ensureWriterForAttachedFile(): void {
+  const label = getWorkingFileLabel();
+  if (label && isWorkingFileAttached()) {
+    ensureWorkingFileWriter(label);
+  } else {
+    stopWorkingFileWriter();
+  }
 }
 
 export interface WorkingFileSyncProps {
@@ -102,6 +121,15 @@ export function WorkingFileSync({
         return;
       }
 
+      // Follower tabs must not push to a shared file.
+      if (!isWorkingFileWriterLeader()) {
+        window.alert(
+          "Dieser Tab schreibt die Arbeitsdatei gerade nicht (ein anderer Tab ist aktiv). Bitte den sichtbaren Tab nutzen.",
+        );
+        setConflictOpen(true);
+        return;
+      }
+
       const json = boardJsonFromStoreState();
       const result = isMobileWorkingFileMode()
         ? await persistWorkingFileJson(json)
@@ -125,12 +153,14 @@ export function WorkingFileSync({
   useEffect(() => {
     mountedRef.current = true;
     let storeUnsub: (() => void) | undefined;
+    let roleUnsub: (() => void) | undefined;
     const externalListeners: Array<{ target: EventTarget; type: string; listener: () => void }> = [];
 
     const flushPersist = async (): Promise<boolean> => {
       if (
         !isWorkingFileAttached() ||
         isWorkingFilePersistPaused() ||
+        !isWorkingFileWriterLeader() ||
         saveInFlightRef.current ||
         conflictActiveRef.current ||
         suspendAutoPersistRef.current
@@ -163,6 +193,7 @@ export function WorkingFileSync({
       if (
         !isWorkingFileAttached() ||
         isWorkingFilePersistPaused() ||
+        !isWorkingFileWriterLeader() ||
         conflictActiveRef.current ||
         suspendAutoPersistRef.current
       ) {
@@ -226,6 +257,9 @@ export function WorkingFileSync({
         syncDirty();
         return;
       }
+
+      // Dirty follower: wait until this tab becomes writer; dirty leader: conflict UI.
+      if (!isWorkingFileWriterLeader()) return;
 
       conflictActiveRef.current = true;
       setConflictOpen(true);
@@ -292,8 +326,11 @@ export function WorkingFileSync({
     };
 
     void (async () => {
-      await restoreWorkingFileFromDisk();
+      getOrCreateTabSessionId();
+      const preferred = resolvePreferredWorkingFileName();
+      await restoreWorkingFileFromDisk(preferred);
       if (!mountedRef.current) return;
+      ensureWriterForAttachedFile();
       await hydrateFromWorkingFileOnce();
       if (!mountedRef.current) return;
 
@@ -302,6 +339,9 @@ export function WorkingFileSync({
       syncDirty();
 
       storeUnsub = useStormBoardStore.subscribe(onPersistedBoardChanged);
+      roleUnsub = onWorkingFileWriterRoleChange((role) => {
+        if (role === "leader") void flushPersist();
+      });
 
       const runExternalCheck = () => void applyExternalFileIfNeeded();
       addExternalListener(window, "focus", runExternalCheck);
@@ -315,6 +355,7 @@ export function WorkingFileSync({
       externalListeners.push({ target: window, type: "pagehide", listener: onPageHide });
 
       const onWorkingFileAttached = () => {
+        ensureWriterForAttachedFile();
         lastPersistKeyRef.current = boardPersistKeyFromStoreState();
         syncFileLabel();
         syncDirty();
@@ -325,6 +366,8 @@ export function WorkingFileSync({
     return () => {
       mountedRef.current = false;
       storeUnsub?.();
+      roleUnsub?.();
+      stopWorkingFileWriter();
       for (const { target, type, listener } of externalListeners) {
         target.removeEventListener(type, listener);
       }

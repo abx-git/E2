@@ -1,13 +1,23 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
   isWorkingFileToStoreBlocked,
+  persistWorkingFileJson,
   setWorkingFileToStoreBlocked,
   shouldSuppressExternalFilePoll,
   suppressWorkingFileExternalPoll,
 } from "@/lib/working-file";
+import {
+  ensureWorkingFileWriter,
+  stopWorkingFileWriter,
+} from "@/lib/working-file-writer";
 
 describe("working-file collab guards", () => {
+  afterEach(() => {
+    setWorkingFileToStoreBlocked(false);
+    stopWorkingFileWriter();
+  });
+
   it("blocks and unblocks file→store", () => {
     setWorkingFileToStoreBlocked(true);
     expect(isWorkingFileToStoreBlocked()).toBe(true);
@@ -18,5 +28,14 @@ describe("working-file collab guards", () => {
   it("extends external poll suppression", () => {
     suppressWorkingFileExternalPoll(5_000);
     expect(shouldSuppressExternalFilePoll()).toBe(true);
+  });
+
+  it("persistWorkingFileJson refuses when this tab is not the file writer", async () => {
+    const ctrl = ensureWorkingFileWriter("shared.storm.json");
+    // Stop the lock loop / visibility role → follower, but keep module reference.
+    ctrl.stop();
+    const result = await persistWorkingFileJson("{}");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("not_writer");
   });
 });
