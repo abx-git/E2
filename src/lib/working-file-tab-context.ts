@@ -1,18 +1,25 @@
 /**
- * Per-tab working-file intent: URL `?filename=` + `?wf=` + sessionStorage.
- * `filename` is the display/bookmark name; `wf` is the unique slot id so two
- * tabs with the same basename (e.g. board.storm.json) do not share IDB/locks.
+ * Per-tab document binding — wf-first.
+ *
+ * Identity (bookmark / restore / locks / IDB): `?wf=` + sessionStorage.wf
+ * Label (footer / document.title): session label, never used as identity
+ *
+ * Legacy: old bookmarks may still have `?filename=` — read once for restore, then
+ * rewrite the URL to wf-only.
  */
 
-export const WORKING_FILE_URL_PARAM = "filename";
 export const WORKING_FILE_ID_URL_PARAM = "wf";
+/** @deprecated identity is `wf`; kept only to read old bookmarks */
+export const WORKING_FILE_URL_PARAM = "filename";
 
 const SS_TAB_SESSION_ID = "e2.working-file.tab-session-id";
 const SS_ACTIVE_CONTEXT = "e2.working-file.tab-context";
+const APP_DOCUMENT_TITLE = "E2";
 
 export interface TabWorkingFileContext {
-  filename: string | null;
-  /** Unique working-file slot id (IndexedDB / Web Lock key). */
+  /** Display name only (handle basename). */
+  label: string | null;
+  /** Unique working-file slot id (IndexedDB / Web Lock / bookmark identity). */
   wf: string | null;
   attachedAt: number | null;
 }
@@ -45,6 +52,7 @@ export function getOrCreateTabSessionId(): string {
   }
 }
 
+/** Legacy bookmark label — not identity. */
 export function readFilenameFromUrl(search?: string): string | null {
   if (typeof window === "undefined" && search === undefined) return null;
   try {
@@ -71,77 +79,95 @@ export function readWorkingFileIdFromUrl(search?: string): string | null {
   }
 }
 
+export function syncWorkingFileDocumentTitle(label: string | null): void {
+  if (typeof document === "undefined") return;
+  const name = label?.trim();
+  document.title = name ? `${name} · ${APP_DOCUMENT_TITLE}` : APP_DOCUMENT_TITLE;
+}
+
 /**
- * Update `?filename=` / `?wf=` without navigation; preserves other params (e.g. room).
- * Compares param values (not full href) so encoding / basePath differences cannot skip updates.
+ * Reflect slot identity in the URL: only `?wf=`.
+ * Strips legacy `?filename=` so bookmarks stay unambiguous.
+ * Preserves other params (e.g. room).
  */
-export function syncWorkingFileParamsInUrl(fileName: string | null, wf: string | null): void {
+export function syncWorkingFileIdInUrl(wf: string | null): void {
   if (typeof window === "undefined") return;
   try {
-    const nextName = fileName?.trim() || "";
     const nextWf = wf?.trim() || "";
     const loc = new URLSearchParams(window.location.search);
-    const prevName = loc.get(WORKING_FILE_URL_PARAM)?.trim() || "";
     const prevWf = loc.get(WORKING_FILE_ID_URL_PARAM)?.trim() || "";
-    if (prevName === nextName && prevWf === nextWf) return;
+    const hadLegacyName = Boolean(loc.get(WORKING_FILE_URL_PARAM)?.trim());
+    if (prevWf === nextWf && !hadLegacyName) return;
 
     const url = new URL(window.location.href);
-    if (nextName) url.searchParams.set(WORKING_FILE_URL_PARAM, nextName);
-    else url.searchParams.delete(WORKING_FILE_URL_PARAM);
     if (nextWf) url.searchParams.set(WORKING_FILE_ID_URL_PARAM, nextWf);
     else url.searchParams.delete(WORKING_FILE_ID_URL_PARAM);
+    url.searchParams.delete(WORKING_FILE_URL_PARAM);
 
-    // Relative URL is more reliable with Next basePath than absolute href strings.
     const next = `${url.pathname}${url.search}${url.hash}`;
-    window.history.replaceState(window.history.state ?? {}, "", next);
+    const prevState = window.history.state;
+    const state =
+      prevState && typeof prevState === "object"
+        ? { ...(prevState as Record<string, unknown>), as: next, url: next }
+        : (prevState ?? {});
+    window.history.replaceState(state, "", next);
   } catch {
     /* ignore */
   }
 }
 
-/** @deprecated use syncWorkingFileParamsInUrl — kept for tests / call sites that only set name */
+/** @deprecated use syncWorkingFileIdInUrl */
+export function syncWorkingFileParamsInUrl(_fileName: string | null, wf: string | null): void {
+  syncWorkingFileIdInUrl(wf);
+}
+
+/** @deprecated use bindTabWorkingFile */
 export function syncFilenameInUrl(fileName: string | null): void {
-  const wf = fileName?.trim() ? getTabWorkingFileContext().wf ?? readWorkingFileIdFromUrl() : null;
-  syncWorkingFileParamsInUrl(fileName, fileName?.trim() ? wf : null);
+  const wf = fileName?.trim()
+    ? getTabWorkingFileContext().wf ?? readWorkingFileIdFromUrl()
+    : null;
+  bindTabWorkingFile(wf, fileName);
 }
 
 export function getTabWorkingFileContext(): TabWorkingFileContext {
   if (typeof sessionStorage === "undefined") {
-    return { filename: null, wf: null, attachedAt: null };
+    return { label: null, wf: null, attachedAt: null };
   }
   try {
     const raw = sessionStorage.getItem(SS_ACTIVE_CONTEXT);
-    if (!raw) return { filename: null, wf: null, attachedAt: null };
-    const parsed = JSON.parse(raw) as Partial<TabWorkingFileContext>;
-    const filename =
-      typeof parsed.filename === "string" && parsed.filename.trim()
-        ? parsed.filename.trim()
-        : null;
+    if (!raw) return { label: null, wf: null, attachedAt: null };
+    const parsed = JSON.parse(raw) as Partial<TabWorkingFileContext> & {
+      filename?: string;
+    };
+    const label =
+      (typeof parsed.label === "string" && parsed.label.trim()) ||
+      (typeof parsed.filename === "string" && parsed.filename.trim()) ||
+      null;
     const wf =
       typeof parsed.wf === "string" && parsed.wf.trim() ? parsed.wf.trim() : null;
     const attachedAt =
       typeof parsed.attachedAt === "number" && Number.isFinite(parsed.attachedAt)
         ? parsed.attachedAt
         : null;
-    return { filename, wf, attachedAt };
+    return { label: label?.trim() || null, wf, attachedAt };
   } catch {
-    return { filename: null, wf: null, attachedAt: null };
+    return { label: null, wf: null, attachedAt: null };
   }
 }
 
-export function setTabWorkingFileContext(fileName: string | null, wf: string | null = null): void {
+export function setTabWorkingFileContext(wf: string | null, label: string | null = null): void {
   getOrCreateTabSessionId();
   if (typeof sessionStorage === "undefined") return;
   try {
-    const trimmed = fileName?.trim() || null;
     const trimmedWf = wf?.trim() || null;
-    if (!trimmed && !trimmedWf) {
+    const trimmedLabel = label?.trim() || null;
+    if (!trimmedWf && !trimmedLabel) {
       sessionStorage.removeItem(SS_ACTIVE_CONTEXT);
       return;
     }
     const record: TabWorkingFileContext = {
-      filename: trimmed,
       wf: trimmedWf,
+      label: trimmedLabel,
       attachedAt: Date.now(),
     };
     sessionStorage.setItem(SS_ACTIVE_CONTEXT, JSON.stringify(record));
@@ -151,27 +177,8 @@ export function setTabWorkingFileContext(fileName: string | null, wf: string | n
 }
 
 /**
- * Preferred working-file **display name** for this tab:
- * 1) sessionStorage (authoritative after attach / switch in this tab)
- * 2) URL `?filename=` (bookmark / cold start)
- *
- * Intentionally no localStorage fallback — shared LS would silently reopen another
- * tab's last file and risk overwriting it.
- */
-export function resolvePreferredWorkingFileName(): string | null {
-  const fromSession = getTabWorkingFileContext().filename;
-  if (fromSession) return fromSession;
-
-  const fromUrl = readFilenameFromUrl();
-  if (fromUrl) return fromUrl;
-
-  return null;
-}
-
-/**
- * Preferred working-file **slot id**:
- * 1) sessionStorage
- * 2) URL `?wf=`
+ * Preferred slot id for restore: session → URL `?wf=`.
+ * No localStorage — that would steal another tab's file.
  */
 export function resolvePreferredWorkingFileId(): string | null {
   const fromSession = getTabWorkingFileContext().wf;
@@ -179,10 +186,31 @@ export function resolvePreferredWorkingFileId(): string | null {
   return readWorkingFileIdFromUrl();
 }
 
-/** Remember active file for this tab and reflect it in the URL (bookmarkable). */
-export function bindTabWorkingFileName(fileName: string | null, wf: string | null = null): void {
-  const trimmed = fileName?.trim() || null;
+/**
+ * Preferred display label hint (not identity):
+ * session label → legacy `?filename=`
+ */
+export function resolvePreferredWorkingFileName(): string | null {
+  const fromSession = getTabWorkingFileContext().label;
+  if (fromSession) return fromSession;
+  return readFilenameFromUrl();
+}
+
+/**
+ * Bind this tab's document: `wf` is identity, `label` is UI/title only.
+ * Cleared with `bindTabWorkingFile(null)`.
+ */
+export function bindTabWorkingFile(wf: string | null, label: string | null = null): void {
   const trimmedWf = wf?.trim() || null;
-  setTabWorkingFileContext(trimmed, trimmedWf);
-  syncWorkingFileParamsInUrl(trimmed, trimmedWf);
+  const trimmedLabel = label?.trim() || null;
+  setTabWorkingFileContext(trimmedWf, trimmedLabel);
+  syncWorkingFileIdInUrl(trimmedWf);
+  syncWorkingFileDocumentTitle(trimmedLabel);
+}
+
+/**
+ * @deprecated prefer bindTabWorkingFile(wf, label) — argument order was (label, wf).
+ */
+export function bindTabWorkingFileName(fileName: string | null, wf: string | null = null): void {
+  bindTabWorkingFile(wf, fileName);
 }

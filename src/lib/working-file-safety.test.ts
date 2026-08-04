@@ -64,8 +64,8 @@ describe("working-file-safety", () => {
     expect(gate.shouldRebindUrl).toBe(true);
   });
 
-  it("allows write when URL matches", () => {
-    href = "http://localhost/?filename=a.storm.json&wf=wf-1";
+  it("allows write when wf matches", () => {
+    href = "http://localhost/?wf=wf-1";
     const gate = evaluateWorkingFileWriteGate({
       attached: true,
       isWriterLeader: true,
@@ -76,8 +76,19 @@ describe("working-file-safety", () => {
     expect(gate.shouldRebindUrl).toBeFalsy();
   });
 
+  it("ignores legacy filename mismatch — identity is wf only", () => {
+    href = "http://localhost/?wf=wf-1&filename=other.storm.json";
+    const gate = evaluateWorkingFileWriteGate({
+      attached: true,
+      isWriterLeader: true,
+      activeWf: "wf-1",
+      label: "a.storm.json",
+    });
+    expect(gate.ok).toBe(true);
+  });
+
   it("blocks write on wf mismatch", () => {
-    href = "http://localhost/?filename=a.storm.json&wf=other";
+    href = "http://localhost/?wf=other";
     const gate = evaluateWorkingFileWriteGate({
       attached: true,
       isWriterLeader: true,
@@ -89,7 +100,7 @@ describe("working-file-safety", () => {
   });
 
   it("blocks non-writer tabs", () => {
-    href = "http://localhost/?filename=a.storm.json&wf=wf-1";
+    href = "http://localhost/?wf=wf-1";
     expect(
       evaluateWorkingFileWriteGate({
         attached: true,
@@ -100,8 +111,13 @@ describe("working-file-safety", () => {
     ).toBe("not_writer");
   });
 
-  it("mayAutoRestore requires URL or session — not bare localStorage", () => {
+  it("mayAutoRestore requires wf/session — not bare localStorage", () => {
     expect(mayAutoRestoreWorkingFileFromStorage()).toBe(false);
+    href = "http://localhost/?wf=wf-1";
+    expect(mayAutoRestoreWorkingFileFromStorage()).toBe(true);
+  });
+
+  it("mayAutoRestore still accepts legacy filename bookmarks", () => {
     href = "http://localhost/?filename=a.storm.json";
     expect(mayAutoRestoreWorkingFileFromStorage()).toBe(true);
   });

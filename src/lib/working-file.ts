@@ -12,7 +12,7 @@ import {
 } from "@/lib/file-board-reconcile";
 import { boardImportPayloadFromExportText } from "@/lib/storm-json";
 import {
-  bindTabWorkingFileName,
+  bindTabWorkingFile,
   createWorkingFileId,
   normalizeWorkingFilename,
   resolvePreferredWorkingFileId,
@@ -72,11 +72,9 @@ function syncTabContextAndWriter(
   wf: string | null = activeWorkingFileId,
 ): void {
   activeWorkingFileId = wf?.trim() || null;
-  bindTabWorkingFileName(fileName, activeWorkingFileId);
+  bindTabWorkingFile(activeWorkingFileId, fileName);
   if (activeWorkingFileId) {
     ensureWorkingFileWriter(activeWorkingFileId);
-  } else if (fileName?.trim()) {
-    ensureWorkingFileWriter(normalizeWorkingFilename(fileName) || fileName.trim());
   } else {
     stopWorkingFileWriter();
   }
@@ -228,7 +226,9 @@ export function isWorkingFileDirty(currentJson?: string): boolean {
 export function getWorkingFileLabel(): string | null {
   if (memoryHandle) return workingFileDisplayName(memoryHandle);
   if (mobileWorkingFileName?.trim()) return mobileWorkingFileName.trim();
-  return getRememberedWorkingFileName();
+  // Do not fall back to localStorage — that is only a restore hint and would show a
+  // stale name after „ohne Datei“ / detach.
+  return null;
 }
 
 export function getRememberedWorkingFileName(): string | null {
@@ -554,6 +554,11 @@ async function idbPutRecent(entries: RecentWorkingFileRecord[]): Promise<void> {
   }
 }
 
+/**
+ * True only when the File System Access API confirms the same disk entry.
+ * Never fall back to basename equality — two `board.storm.json` in different
+ * folders would otherwise share one `wf` slot and produce identical bookmark URLs.
+ */
 async function handlesAreSame(
   a: FileSystemFileHandle,
   b: FileSystemFileHandle,
@@ -561,9 +566,9 @@ async function handlesAreSame(
   try {
     if (typeof a.isSameEntry === "function") return await a.isSameEntry(b);
   } catch {
-    /* ignore */
+    /* permission revoked / opaque handle */
   }
-  return a.name === b.name;
+  return false;
 }
 
 async function rememberRecentWorkingFile(
@@ -1077,10 +1082,17 @@ export async function saveWorkingFileAs(
 
 /** Fired when a file handle becomes the live Arbeitsdatei / sync target. */
 export const WORKING_FILE_ATTACHED_EVENT = "e2-working-file-attached";
+/** Fired when the Arbeitsdatei is detached (Neu ohne Datei, etc.). */
+export const WORKING_FILE_DETACHED_EVENT = "e2-working-file-detached";
 
 export function notifyWorkingFileAttached(): void {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new Event(WORKING_FILE_ATTACHED_EVENT));
+}
+
+export function notifyWorkingFileDetached(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(WORKING_FILE_DETACHED_EVENT));
 }
 
 export async function restoreWorkingFileFromDisk(
@@ -1201,6 +1213,7 @@ export async function detachWorkingFile(): Promise<void> {
   } catch {
     /* ignore */
   }
+  notifyWorkingFileDetached();
 }
 
 export function workingFileDisplayName(handle: FileSystemFileHandle | null): string | null {

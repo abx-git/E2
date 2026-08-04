@@ -103,7 +103,7 @@ import {
   saveWorkingFileAs,
   suggestedWorkingFileName,
 } from "@/lib/working-file";
-import { bindTabWorkingFileName } from "@/lib/working-file-tab-context";
+import { bindTabWorkingFile } from "@/lib/working-file-tab-context";
 import { createDefaultBoardDocument } from "@/lib/storm-json";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { flushCollabSnapshotNow, useCollabStore } from "@/lib/collab/session";
@@ -248,7 +248,7 @@ export function StormBoard() {
 
   const syncWorkingFileUrlContext = () => {
     const label = getWorkingFileLabel();
-    bindTabWorkingFileName(label, getActiveWorkingFileId());
+    bindTabWorkingFile(getActiveWorkingFileId(), label);
     setWorkingFileName(label);
   };
 
@@ -364,21 +364,23 @@ export function StormBoard() {
 
       if (choice.action === "empty_without_file") {
         // Tab-Kontext leeren — kein stilles Wiederanbinden der alten Datei.
-        bindTabWorkingFileName(null, null);
+        bindTabWorkingFile(null);
         setWorkingFileName(null);
+        setWorkingFileDirty(false);
+        setWorkingFileSaving(false);
         markWorkingFileSessionHydrated();
         setNewFileOpen(false);
         return;
       }
 
-      // create_with_file: neuen Speicherort wählen → neuer wf + filename in der URL.
+      // create_with_file: neuen Speicherort wählen → neuer wf in der URL.
       const handle = await createAndAttachWorkingFile(
         boardJsonFromStoreState(),
         choice.suggestedFileName,
       );
       if (!handle) {
         // User aborted picker — keep empty board, clear URL context.
-        bindTabWorkingFileName(null, null);
+        bindTabWorkingFile(null);
         setWorkingFileName(null);
         markWorkingFileSessionHydrated();
         setNewFileOpen(false);

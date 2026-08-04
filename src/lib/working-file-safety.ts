@@ -1,14 +1,9 @@
 /**
  * Lightweight gates for Arbeitsdatei writes.
- * Concept: URL/session binding is internal; never block the user with URL theology.
- * Multi-tab: only the writer tab persists; missing URL is auto-healed by re-binding.
+ * Identity is `wf` only — missing URL is healed by rebind; mismatch is blocked.
  */
 
-import {
-  normalizeWorkingFilename,
-  readFilenameFromUrl,
-  readWorkingFileIdFromUrl,
-} from "@/lib/working-file-tab-context";
+import { readWorkingFileIdFromUrl } from "@/lib/working-file-tab-context";
 
 export type WorkingFileWriteBlockReason =
   | "not_attached"
@@ -19,36 +14,50 @@ export interface WorkingFileWriteGate {
   ok: boolean;
   reason?: WorkingFileWriteBlockReason;
   message?: string;
-  /** Caller should re-bind filename/wf into the URL, then retry. */
+  /** Caller should re-bind wf into the URL, then retry. */
   shouldRebindUrl?: boolean;
 }
 
 /**
  * Whether cold-start may auto-restore a remembered file.
- * URL or this-tab session only — never shared localStorage alone.
+ * URL `?wf=` / session wf, or legacy `?filename=` / session label — never shared localStorage alone.
  */
 export function mayAutoRestoreWorkingFileFromStorage(): boolean {
-  if (readFilenameFromUrl() || readWorkingFileIdFromUrl()) return true;
+  if (readWorkingFileIdFromUrl()) return true;
+  try {
+    if (typeof window !== "undefined") {
+      const legacyName = new URLSearchParams(window.location.search).get("filename")?.trim();
+      if (legacyName) return true;
+    }
+  } catch {
+    /* ignore */
+  }
   try {
     if (typeof sessionStorage === "undefined") return false;
     const raw = sessionStorage.getItem("e2.working-file.tab-context");
     if (!raw) return false;
-    const parsed = JSON.parse(raw) as { filename?: string; wf?: string };
-    return Boolean(parsed.filename?.trim() || parsed.wf?.trim());
+    const parsed = JSON.parse(raw) as {
+      wf?: string;
+      label?: string;
+      filename?: string;
+    };
+    return Boolean(
+      parsed.wf?.trim() || parsed.label?.trim() || parsed.filename?.trim(),
+    );
   } catch {
     return false;
   }
 }
 
 /**
- * Soft URL check: missing params → rebind (not a hard block).
- * Hard block only on mismatch (wrong file vs URL).
+ * Soft URL check: missing `wf` → rebind (not a hard block).
+ * Hard block only on wf mismatch.
  */
 export function evaluateWorkingFileWriteGate(input: {
   attached: boolean;
   isWriterLeader: boolean;
   activeWf: string | null;
-  label: string | null;
+  label?: string | null;
   requireWriter?: boolean;
 }): WorkingFileWriteGate {
   if (!input.attached) {
@@ -63,32 +72,18 @@ export function evaluateWorkingFileWriteGate(input: {
     };
   }
 
-  const urlName = readFilenameFromUrl();
   const urlWf = readWorkingFileIdFromUrl();
   const activeWf = input.activeWf?.trim() || null;
-  const label = input.label?.trim() || null;
 
-  if (!urlName && !urlWf) {
+  if (!urlWf) {
     return { ok: true, shouldRebindUrl: true };
   }
 
-  if (urlWf && activeWf && urlWf !== activeWf) {
+  if (activeWf && urlWf !== activeWf) {
     return {
       ok: false,
       reason: "url_context_mismatch",
       message: "URL und verknüpfte Datei stimmen nicht überein.",
-    };
-  }
-
-  if (
-    urlName &&
-    label &&
-    normalizeWorkingFilename(urlName) !== normalizeWorkingFilename(label)
-  ) {
-    return {
-      ok: false,
-      reason: "url_context_mismatch",
-      message: `URL („${urlName}“) weicht von der Datei („${label}“) ab.`,
     };
   }
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
-  bindTabWorkingFileName,
+  bindTabWorkingFile,
   getOrCreateTabSessionId,
   getTabWorkingFileContext,
   normalizeWorkingFilename,
@@ -10,7 +10,7 @@ import {
   resolvePreferredWorkingFileId,
   resolvePreferredWorkingFileName,
   setTabWorkingFileContext,
-  syncWorkingFileParamsInUrl,
+  syncWorkingFileIdInUrl,
   WORKING_FILE_ID_URL_PARAM,
   WORKING_FILE_URL_PARAM,
 } from "@/lib/working-file-tab-context";
@@ -35,9 +35,11 @@ function createMemoryStorage(): Storage {
 
 describe("working-file-tab-context", () => {
   let href = "http://localhost/";
+  let documentTitle = "E2";
 
   beforeEach(() => {
     href = "http://localhost/";
+    documentTitle = "E2";
     const session = createMemoryStorage();
     const local = createMemoryStorage();
     Object.defineProperty(globalThis, "sessionStorage", {
@@ -47,6 +49,17 @@ describe("working-file-tab-context", () => {
     Object.defineProperty(globalThis, "localStorage", {
       configurable: true,
       value: local,
+    });
+    Object.defineProperty(globalThis, "document", {
+      configurable: true,
+      value: {
+        get title() {
+          return documentTitle;
+        },
+        set title(value: string) {
+          documentTitle = value;
+        },
+      },
     });
     Object.defineProperty(globalThis, "window", {
       configurable: true,
@@ -67,6 +80,7 @@ describe("working-file-tab-context", () => {
   afterEach(() => {
     Reflect.deleteProperty(globalThis, "sessionStorage");
     Reflect.deleteProperty(globalThis, "localStorage");
+    Reflect.deleteProperty(globalThis, "document");
     Reflect.deleteProperty(globalThis, "window");
   });
 
@@ -83,64 +97,84 @@ describe("working-file-tab-context", () => {
     expect(a).toBe(b);
   });
 
-  it("reads filename and wf from URL", () => {
+  it("reads legacy filename and wf from URL", () => {
     expect(readFilenameFromUrl("?filename=alpha.storm.json&room=ABCD")).toBe("alpha.storm.json");
     expect(readWorkingFileIdFromUrl("?filename=a&wf=slot-1")).toBe("slot-1");
     expect(readFilenameFromUrl("?room=ABCD")).toBe(null);
   });
 
-  it("syncs filename + wf into the URL without dropping other params", () => {
-    href = "http://localhost/?room=ZZZZ";
-    syncWorkingFileParamsInUrl("beta.storm.json", "wf-beta");
+  it("syncs only wf into the URL and strips legacy filename", () => {
+    href = "http://localhost/?room=ZZZZ&filename=stale.storm.json";
+    syncWorkingFileIdInUrl("wf-beta");
     const params = new URLSearchParams(new URL(href).search);
-    expect(params.get(WORKING_FILE_URL_PARAM)).toBe("beta.storm.json");
     expect(params.get(WORKING_FILE_ID_URL_PARAM)).toBe("wf-beta");
+    expect(params.get(WORKING_FILE_URL_PARAM)).toBe(null);
     expect(params.get("room")).toBe("ZZZZ");
 
-    // Switching to another file with the same display name still updates wf.
-    syncWorkingFileParamsInUrl("beta.storm.json", "wf-other");
+    syncWorkingFileIdInUrl("wf-other");
     expect(new URLSearchParams(new URL(href).search).get(WORKING_FILE_ID_URL_PARAM)).toBe(
       "wf-other",
     );
 
-    syncWorkingFileParamsInUrl(null, null);
+    syncWorkingFileIdInUrl(null);
     const cleared = new URLSearchParams(new URL(href).search);
-    expect(cleared.get(WORKING_FILE_URL_PARAM)).toBe(null);
     expect(cleared.get(WORKING_FILE_ID_URL_PARAM)).toBe(null);
     expect(cleared.get("room")).toBe("ZZZZ");
   });
 
   it("stores tab context in sessionStorage", () => {
-    setTabWorkingFileContext("gamma.storm.json", "wf-gamma");
-    expect(getTabWorkingFileContext().filename).toBe("gamma.storm.json");
+    setTabWorkingFileContext("wf-gamma", "gamma.storm.json");
+    expect(getTabWorkingFileContext().label).toBe("gamma.storm.json");
     expect(getTabWorkingFileContext().wf).toBe("wf-gamma");
     expect(getTabWorkingFileContext().attachedAt).toBeTypeOf("number");
     setTabWorkingFileContext(null, null);
-    expect(getTabWorkingFileContext().filename).toBe(null);
+    expect(getTabWorkingFileContext().label).toBe(null);
     expect(getTabWorkingFileContext().wf).toBe(null);
   });
 
-  it("resolves preferred name: session > URL (no localStorage fallback)", () => {
+  it("resolves preferred id from session then URL; label is separate", () => {
     localStorage.setItem("e2-last-working-file-name", "from-ls.storm.json");
-    href = "http://localhost/?filename=from-url.storm.json";
+    href = "http://localhost/?wf=from-url-wf&filename=from-url.storm.json";
+    expect(resolvePreferredWorkingFileId()).toBe("from-url-wf");
     expect(resolvePreferredWorkingFileName()).toBe("from-url.storm.json");
 
-    setTabWorkingFileContext("from-session.storm.json", "wf-session");
-    // Session wins over stale URL after a file switch in this tab.
-    expect(resolvePreferredWorkingFileName()).toBe("from-session.storm.json");
+    setTabWorkingFileContext("wf-session", "from-session.storm.json");
     expect(resolvePreferredWorkingFileId()).toBe("wf-session");
+    expect(resolvePreferredWorkingFileName()).toBe("from-session.storm.json");
   });
 
   it("does not fall back to localStorage when URL and session are empty", () => {
     localStorage.setItem("e2-last-working-file-name", "legacy.storm.json");
+    expect(resolvePreferredWorkingFileId()).toBe(null);
     expect(resolvePreferredWorkingFileName()).toBe(null);
   });
 
-  it("bindTabWorkingFileName updates session and URL together", () => {
-    bindTabWorkingFileName("bound.storm.json", "wf-bound");
-    expect(getTabWorkingFileContext().filename).toBe("bound.storm.json");
+  it("bindTabWorkingFile updates session, wf URL, and title", () => {
+    bindTabWorkingFile("wf-bound", "bound.storm.json");
+    expect(getTabWorkingFileContext().label).toBe("bound.storm.json");
     expect(getTabWorkingFileContext().wf).toBe("wf-bound");
-    expect(readFilenameFromUrl()).toBe("bound.storm.json");
     expect(readWorkingFileIdFromUrl()).toBe("wf-bound");
+    expect(readFilenameFromUrl()).toBe(null);
+    expect(documentTitle).toBe("bound.storm.json · E2");
+  });
+
+  it("same label with different wf yields different bookmark URLs", () => {
+    bindTabWorkingFile("wf-alpha", "board.storm.json");
+    expect(href).toContain("wf=wf-alpha");
+    expect(href).not.toContain("filename=");
+
+    bindTabWorkingFile("wf-beta", "board.storm.json");
+    expect(href).toContain("wf=wf-beta");
+    expect(href).not.toContain("wf=wf-alpha");
+    expect(documentTitle).toBe("board.storm.json · E2");
+  });
+
+  it("reads legacy session filename field as label", () => {
+    sessionStorage.setItem(
+      "e2.working-file.tab-context",
+      JSON.stringify({ filename: "old.storm.json", wf: "wf-old", attachedAt: 1 }),
+    );
+    expect(getTabWorkingFileContext().label).toBe("old.storm.json");
+    expect(getTabWorkingFileContext().wf).toBe("wf-old");
   });
 });

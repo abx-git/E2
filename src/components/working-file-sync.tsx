@@ -33,9 +33,11 @@ import {
   wasWorkingFileSessionHydrated,
   writeWorkingFileJson,
   WORKING_FILE_ATTACHED_EVENT,
+  WORKING_FILE_DETACHED_EVENT,
 } from "@/lib/working-file";
 import { mayAutoRestoreWorkingFileFromStorage } from "@/lib/working-file-safety";
 import {
+  bindTabWorkingFile,
   getOrCreateTabSessionId,
   resolvePreferredWorkingFileId,
   resolvePreferredWorkingFileName,
@@ -381,7 +383,15 @@ export function WorkingFileSync({
         })();
       });
 
-      const runExternalCheck = () => void applyExternalFileIfNeeded();
+      const reflectSlotInUrl = () => {
+        const wf = getActiveWorkingFileId();
+        if (!wf || !isWorkingFileAttached()) return;
+        bindTabWorkingFile(wf, getWorkingFileLabel());
+      };
+      const runExternalCheck = () => {
+        reflectSlotInUrl();
+        void applyExternalFileIfNeeded();
+      };
       addExternalListener(window, "focus", runExternalCheck);
       addExternalListener(window, "pageshow", runExternalCheck);
       addExternalListener(document, "visibilitychange", () => {
@@ -402,6 +412,7 @@ export function WorkingFileSync({
         syncDirty();
       };
       addExternalListener(window, WORKING_FILE_ATTACHED_EVENT, onWorkingFileAttached);
+      addExternalListener(window, WORKING_FILE_DETACHED_EVENT, onWorkingFileAttached);
     })();
 
     return () => {
