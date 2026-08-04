@@ -82,6 +82,7 @@ import {
 import { stringifyAiBoardContextSchema } from "@/lib/ai-board-context-import";
 import { type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
+import { JsonPasteDialog } from "@/components/json-paste-dialog";
 import {
   getElementHelp,
   getPhaseHelp,
@@ -151,6 +152,7 @@ export function StormBoard() {
     fileName: string;
   } | null>(null);
   const [importConflictBusy, setImportConflictBusy] = useState(false);
+  const [jsonPasteMode, setJsonPasteMode] = useState<"board" | "ai-view" | null>(null);
   const joinRoom = useCollabStore((s) => s.joinRoom);
   const leaveRoom = useCollabStore((s) => s.leaveRoom);
   const syncConflict = useCollabStore((s) => s.syncConflict);
@@ -581,7 +583,7 @@ export function StormBoard() {
     }
   };
 
-  const handlePasteJson = async () => {
+  const handlePasteJson = () => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
       window.alert(
         "Während der Kollaboration kann kein JSON in den Editor geladen werden. Bitte zuerst den Raum verlassen.",
@@ -589,8 +591,10 @@ export function StormBoard() {
       return;
     }
     if (!ensureSavedBeforeOpen()) return;
-    const raw = window.prompt("JSON einfügen:");
-    if (!raw?.trim()) return;
+    setJsonPasteMode("board");
+  };
+
+  const applyPastedBoardJson = async (raw: string) => {
     setBusy(true);
     try {
       backupBeforeSuspiciousSwitch("file");
@@ -605,9 +609,12 @@ export function StormBoard() {
           fileLastModified: result.fileLastModified,
           fileName: "Einfügen",
         });
+        setJsonPasteMode(null);
         return;
       }
+      setJsonPasteMode(null);
       setSetupOpen(false);
+      setStorageOpen(false);
     } finally {
       setBusy(false);
     }
@@ -690,20 +697,21 @@ export function StormBoard() {
 
   const handleImportAsNewViews = () => importViewsInputRef.current?.click();
 
-  const applyImportedFileAsNewViews = (text: string) => {
+  const applyImportedFileAsNewViews = (text: string): boolean => {
     const payload = boardImportPayloadFromAnyExportText(text);
     if (!payload) {
       window.alert(
         'Ungültiges E2-JSON (.storm.json oder KI-Kontext "event-storming-tool-ai-context").',
       );
-      return;
+      return false;
     }
     const result = useStormBoardStore.getState().importDocumentAsNewViews(payload);
     if (!result.ok) {
       window.alert(result.error);
-      return;
+      return false;
     }
     setStorageOpen(false);
+    return true;
   };
 
   const handlePasteAiContextAsNewView = () => {
@@ -713,9 +721,13 @@ export function StormBoard() {
       );
       return;
     }
-    const raw = window.prompt("KI-Kontext JSON einfügen:");
-    if (!raw?.trim()) return;
-    applyImportedFileAsNewViews(raw);
+    setJsonPasteMode("ai-view");
+  };
+
+  const applyPastedAiOrViewJson = (raw: string) => {
+    if (applyImportedFileAsNewViews(raw)) {
+      setJsonPasteMode(null);
+    }
   };
 
   return (
@@ -923,6 +935,28 @@ export function StormBoard() {
         keepLocalLabel="Aktuellen E2-Stand behalten"
         loadFileLabel="Importierten Stand laden"
         onChoose={(choice) => void handleImportConflict(choice)}
+      />
+
+      <JsonPasteDialog
+        open={jsonPasteMode === "board"}
+        title="JSON einfügen"
+        description="Vollständiges Board (.storm.json) oder KI-Kontext einfügen. Ersetzt den aktuellen Board-Stand."
+        placeholder='{ "format": "event-storming-tool", "version": 2, … }'
+        confirmLabel="Board laden"
+        busy={busy}
+        onClose={() => setJsonPasteMode(null)}
+        onConfirm={(text) => void applyPastedBoardJson(text)}
+      />
+
+      <JsonPasteDialog
+        open={jsonPasteMode === "ai-view"}
+        title="KI-Kontext einfügen"
+        description="Reduziertes KI-JSON (oder .storm.json) als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten; Elemente werden automatisch arrangiert."
+        placeholder='{ "format": "event-storming-tool-ai-context", "version": 1, … }'
+        confirmLabel="Als Sicht importieren"
+        busy={busy}
+        onClose={() => setJsonPasteMode(null)}
+        onConfirm={applyPastedAiOrViewJson}
       />
 
       <NewWorkingFileDialog
