@@ -32,6 +32,7 @@ function nodeShape(type: ElementType, id: string, label: string): string {
     case "pivotalEvent":
       return `${id}>${l}]`;
     case "note":
+    case "instruction":
     case "hotspot":
     case "question":
       return `${id}{{${l}}}`;
@@ -137,7 +138,7 @@ function exportClassDiagram(ctx: AiBoardContext): string {
   const idMap = new Map<string, string>();
 
   for (const el of view.elements) {
-    if (el.type === "note" || el.type === "hotspot" || el.type === "link") continue;
+    if (el.type === "note" || el.type === "instruction" || el.type === "hotspot" || el.type === "link") continue;
     const id = diagramSafeId(el.id, "C");
     idMap.set(el.id, id);
     lines.push(`  class ${id}["${escapeDiagramLabel(el.label)}"]`);

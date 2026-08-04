@@ -71,6 +71,7 @@ export function inferElementTypeFromLabel(
   if (/\b(read ?model|view|lesemodell)\b/.test(l)) return "readModel";
   if (/\b(aggregate|agg)\b/.test(l)) return "aggregate";
   if (/\b(event|ereignis)\b/.test(l)) return "domainEvent";
+  if (/\b(instruction|anweisung)\b/.test(l)) return "instruction";
   if (mode === "eventStorming" || mode === "eventModeling") return "domainEvent";
   return "note";
 }

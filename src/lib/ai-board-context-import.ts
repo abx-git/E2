@@ -158,6 +158,7 @@ export function layoutYOffsetForType(type: ElementType): number {
     case "c4Component":
       return 140;
     case "note":
+    case "instruction":
     case "hotspot":
     case "question":
     case "example":

@@ -162,6 +162,7 @@
         "externalSystem",
         "ui",
         "note",
+        "instruction",
         "hotspot",
         "pivotalEvent",
         "entity",

@@ -783,7 +783,7 @@ const ERM_DOCUMENTATION_PHASES: FacilitatorPhase[] = [
     id: "erm-relationships",
     title: "Beziehungen",
     description: "Assoziationen und Kardinalitäten festlegen.",
-    allowedTypes: [...ARCH_DOC_ELEMENT_TYPES.filter((t) => t === "dataEntity" || t === "dataAssociation" || t === "note" || t === "hotspot" || t === "link")],
+    allowedTypes: [...ARCH_DOC_ELEMENT_TYPES.filter((t) => t === "dataEntity" || t === "dataAssociation" || t === "note" || t === "instruction" || t === "hotspot" || t === "link")],
     checklist: [
       "1:1 / 1:n / n:m wählen",
       "Relationen zwischen Entitäten ziehen",
@@ -865,7 +865,8 @@ export function getAllowedTypesForPhase(
   const raw = phase?.allowedTypes ?? catalog;
   const allowed = raw.filter((t) => catalog.includes(t));
   const list = allowed.length > 0 ? allowed : catalog;
-  return list.includes("note") ? list : [...list, "note"];
+  const withNote: ElementType[] = list.includes("note") ? list : [...list, "note"];
+  return withNote.includes("instruction") ? withNote : [...withNote, "instruction"];
 }
 
 export function getCurrentPhase(

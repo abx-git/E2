@@ -18,6 +18,8 @@ export type ElementType =
   | "externalSystem"
   | "ui"
   | "note"
+  /** Implementation guidance / aspects to cover when building. */
+  | "instruction"
   | "hotspot"
   | "pivotalEvent"
   | "entity"
@@ -312,7 +314,12 @@ export const MODELING_MODES: ModelingMode[] = [
 ];
 
 /** Shared annotation types. */
-export const SHARED_ELEMENT_TYPES: ElementType[] = ["note", "hotspot", "link"];
+export const SHARED_ELEMENT_TYPES: ElementType[] = ["note", "instruction", "hotspot", "link"];
+
+/** Freeform / guidance stickies with multiline labels. */
+export function isNoteLike(type: ElementType): boolean {
+  return type === "note" || type === "instruction";
+}
 
 /** Palette order for Event Storming mode (facilitator off / free). */
 export const ES_ELEMENT_TYPES: ElementType[] = [
@@ -325,6 +332,7 @@ export const ES_ELEMENT_TYPES: ElementType[] = [
   "externalSystem",
   "ui",
   "note",
+  "instruction",
   "hotspot",
   "link",
   "pivotalEvent",
@@ -342,6 +350,7 @@ export const DDD_ELEMENT_TYPES: ElementType[] = [
   "domainEvent",
   "externalSystem",
   "note",
+  "instruction",
   "hotspot",
   "link",
 ];
@@ -353,6 +362,7 @@ export const BDD_ELEMENT_TYPES: ElementType[] = [
   "question",
   "actor",
   "note",
+  "instruction",
   "hotspot",
   "link",
 ];
@@ -365,6 +375,7 @@ export const USM_ELEMENT_TYPES: ElementType[] = [
   "release",
   "actor",
   "note",
+  "instruction",
   "hotspot",
   "link",
 ];
@@ -380,6 +391,7 @@ export const EM_ELEMENT_TYPES: ElementType[] = [
   "policy",
   "externalSystem",
   "note",
+  "instruction",
   "hotspot",
   "link",
 ];
@@ -392,6 +404,7 @@ export const PROCESS_ELEMENT_TYPES: ElementType[] = [
   "processEnd",
   "actor",
   "note",
+  "instruction",
   "hotspot",
   "link",
 ];
@@ -401,6 +414,7 @@ export const DATA_ELEMENT_TYPES: ElementType[] = [
   "dataEntity",
   "dataAssociation",
   "note",
+  "instruction",
   "hotspot",
   "link",
 ];
@@ -417,6 +431,7 @@ export const ARCH_DOC_ELEMENT_TYPES: ElementType[] = [
   "dataEntity",
   "dataAssociation",
   "note",
+  "instruction",
   "hotspot",
   "link",
 ];

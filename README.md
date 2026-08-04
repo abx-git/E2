@@ -19,7 +19,7 @@ Diese README beschreibt die **implementierten Funktionen** und stellt sie klassi
 | Bereich | Inhalt |
 |--------|--------|
 | Methoden-Modi | ES · DDD · BDD · USM · EM · PROC · DATA (Palette/Facilitator getrennt); Board darf Typen mischen |
-| Sticky-Typen | Methodenspezifische Kataloge + geteilte Notizen/Hotspots/Links |
+| Sticky-Typen | Methodenspezifische Kataloge + geteilte Notizen/Instructions/Hotspots/Links |
 | Relationen | 8 Verbindungstypen inkl. Auto-Vorschlag |
 | Fläche | Timeline, Swimlanes, Bounded Contexts, Pan/Zoom |
 | Workshop | Pro Modus eigene Facilitator-Formate + Frei |
@@ -48,6 +48,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 | **External System** | Pink | Integration außerhalb der Domäne |
 | **UI** | Grau/Weiß | Screen / View |
 | **Notiz** | Creme, gestrichelt (Farbe wählbar) | Freie Annotation (Workshop-Hinweis) |
+| **Instruction** | Teal, Badge + linker Akzent | Anweisung / Aspekte für die Umsetzung |
 | **Hotspot** | Rot, gedreht | Offene Frage, Konflikt, Unklarheit |
 | **Link** | Himmelblau (Pill) | Externe URL oder Sprung zu einer Board-Sicht |
 | **Pivotal Event** | Breiter gelber Block | Phasenwechsel / signifikanter Einschnitt |
@@ -65,7 +66,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 | **Factory** | Lime | Komplexe Erzeugung |
 | **Domain Event** | Orange | Bedeutsame Zustandsänderung (geteilt) |
 | **External System** | Pink | Integration (geteilt) |
-| **Notiz / Hotspot** | Creme / Rot | Annotationen (geteilt) |
+| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen (geteilt) |
 
 ### BDD / Example Mapping
 
@@ -75,7 +76,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 | **Example** | Grün | Konkretes Szenario (Given/When/Then) |
 | **Question** | Himmelblau | Offene Spec-Frage |
 | **Actor** | Gelb (Pill) | Wer ist betroffen? |
-| **Notiz / Hotspot** | Creme / Rot | Annotationen |
+| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen |
 
 ### User Story Mapping
 
@@ -86,7 +87,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 | **User Story** | Gelb | Umsetzbare Story |
 | **Release** | Rosa, breit | Horizontaler Release-/MVP-Schnitt |
 | **Actor** | Gelb (Pill) | Persona / Rolle |
-| **Notiz / Hotspot** | Creme / Rot | Annotationen |
+| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen |
 
 ### Event Modeling
 
@@ -94,7 +95,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 |-----|--------------|-------------------|
 | **Slice** | Orange, breit | Vertical Slice (UI→Command→Event→View) |
 | **Domain Event / Command / Read Model / UI / Policy / Actor / External System** | wie ES | Bausteine der Timeline |
-| **Notiz / Hotspot** | Creme / Rot | Annotationen |
+| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen |
 
 ### Prozess (BPMN-lite)
 
@@ -104,7 +105,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 | **Aktivität** | Blau | Arbeitsschritt (Rolle, System, I/O, Dauer) |
 | **Gateway** | Raute | XOR / AND / OR-Verzweigung mit Bedingungen |
 | **Ende** | Rot, rund | Prozessende / Ergebnis |
-| **Notiz / Hotspot** | Creme / Rot | Annotationen |
+| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen |
 
 ### Daten (ER-lite)
 
@@ -112,7 +113,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 |-----|--------------|-------------------|
 | **Entität** | Türkis | Tabelle / Konzept (PK, Attribute, Unique Keys) |
 | **Assoziation** | Grau | Beziehung mit Kardinalität (1:1, 1:n, …) |
-| **Notiz / Hotspot** | Creme / Rot | Annotationen |
+| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen |
 
 ### Pro Element bearbeitbar
 
@@ -130,6 +131,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 - **Factory:** Erzeugter Typ, Operationen  
 - **Hotspot:** Status (offen/gelöst), Priorität (niedrig/mittel/hoch)
 - **Notiz:** Hintergrundfarbe (Detailleiste oder Rechtsklick)
+- **Instruction:** feste Kennzeichnung für Umsetzungsanweisungen (kein Farbwähler)
 - **Link:** Zielart (URL oder Sicht), URL bzw. Sicht-Auswahl; Öffnen per Symbol / Detailleiste
 - **Subdomain:** Art (Core / Supporting / Generic)
 - **Rule:** Kriterien / Hinweise  
@@ -162,7 +164,7 @@ Elemente lassen sich verbinden (Canvas **Verbinden**, Pfeil am Sticky oder Recht
 | `invokes` | ruft auf |
 | `causal` | verursacht |
 | `contains` | enthält |
-| `annotates` | annotiert (gestrichelt; Notiz ↔ Sticky) |
+| `annotates` | annotiert (gestrichelt; Notiz/Instruction ↔ Sticky) |
 
 Der Relationstyp wird beim Verbinden **heuristisch vorgeschlagen** und kann per Rechtsklick geändert werden. Optionales Label in der Detailleiste.
 
@@ -179,7 +181,7 @@ Der Relationstyp wird beim Verbinden **heuristisch vorgeschlagen** und kann per 
 - **Größe:** acht Anfasser am ausgewählten Element  
 - **Ausrichten:** Rechtsklick bei ≥2 Elementen (links/mitte/rechts, oben/mitte/unten, verteilen, gleiche Breite/Höhe)  
 - **Anlegen:** Doppelklick auf leere Fläche, Rechtsklick → Element hinzufügen, oder **1–9/0** (Typ) + **Enter/A** (Viewport-Mitte)  
-- **Titel:** Doppelklick auf ein Sticky → Inline-Bearbeitung (Enter speichern, Esc abbrechen; Notizen: ⌘/Ctrl+Enter)  
+- **Titel:** Doppelklick auf ein Sticky → Inline-Bearbeitung (Enter speichern, Esc abbrechen; Notizen/Instructions: ⌘/Ctrl+Enter)  
 - **Aktionen:** Rechtsklick-Context-Menü (Löschen, Zuordnung, Hotspot-Status, Hilfe, …)
 
 ### Timeline

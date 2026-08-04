@@ -319,7 +319,9 @@ function createElement(
   return {
     id: generateStormId(),
     type,
-    label: label ?? defaultLabelForType(type),
+    label:
+      label ??
+      (type === "instruction" ? "Umsetzungsaspekt…" : defaultLabelForType(type)),
     x,
     y,
     width: dims.width,

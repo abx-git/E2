@@ -180,12 +180,12 @@ describe("relation-validation", () => {
 describe("facilitator-phases", () => {
   it("restricts types in phase 1 big picture", () => {
     const allowed = getAllowedTypesForPhase("eventStorming", "bigPicture", 0, true);
-    expect(allowed).toEqual(["domainEvent", "note"]);
+    expect(allowed).toEqual(["domainEvent", "note", "instruction"]);
   });
 
   it("allows ES catalog when facilitator off", () => {
     const allowed = getAllowedTypesForPhase("eventStorming", "bigPicture", 0, false);
-    expect(allowed.length).toBe(12);
+    expect(allowed.length).toBe(13);
   });
 
   it("uses DDD catalog in DDD free mode", () => {
@@ -197,7 +197,7 @@ describe("facilitator-phases", () => {
 
   it("restricts strategic design phase 1", () => {
     const allowed = getAllowedTypesForPhase("domainDrivenDesign", "strategicDesign", 0, true);
-    expect(allowed).toEqual(["subdomain", "note", "hotspot"]);
+    expect(allowed).toEqual(["subdomain", "note", "hotspot", "instruction"]);
   });
 
   it("uses BDD catalog", () => {
@@ -215,6 +215,7 @@ describe("facilitator-phases", () => {
       "slice",
       "note",
       "hotspot",
+      "instruction",
     ]);
   });
 
@@ -226,6 +227,7 @@ describe("facilitator-phases", () => {
       "processActivity",
       "processEnd",
       "note",
+      "instruction",
     ]);
     expect(getAllowedTypesForPhase("dataModel", "free", 0, false)).toContain("dataEntity");
     expect(getAllowedTypesForPhase("dataModel", "free", 0, false)).toContain("dataAssociation");
@@ -244,6 +246,7 @@ describe("facilitator-phases", () => {
       "c4SoftwareSystem",
       "note",
       "link",
+      "instruction",
     ]);
     expect(getAllowedTypesForPhase("architectureDocumentation", "arc42Workshop", 0, true)).toEqual([
       "archBlackbox",
@@ -252,6 +255,7 @@ describe("facilitator-phases", () => {
       "note",
       "hotspot",
       "link",
+      "instruction",
     ]);
   });
 });

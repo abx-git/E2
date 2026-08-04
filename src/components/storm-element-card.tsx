@@ -23,7 +23,7 @@ import { HighlightedText } from "@/components/highlighted-text";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { elementTypesForMode, supportsArchDrilldown, type StormElement } from "@/types/storm-element";
+import { elementTypesForMode, isNoteLike, supportsArchDrilldown, type StormElement } from "@/types/storm-element";
 
 const DRAG_THRESHOLD_PX = 6;
 const MIN_SIZE = 40;
@@ -84,6 +84,8 @@ export function StormElementCard({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(element.label);
   const isNote = element.type === "note";
+  const isInstruction = element.type === "instruction";
+  const noteLike = isNoteLike(element.type);
   const noteColors = isNote ? resolveNoteColor(element.metadata?.noteColor) : null;
   const colors = {
     bg: noteColors?.fill ?? style.fill,
@@ -295,7 +297,7 @@ export function StormElementCard({
 
   const labelClass = [
     "text-xs font-semibold leading-tight",
-    isNote && !showDetails
+    noteLike && !showDetails
       ? "line-clamp-6 w-full whitespace-pre-wrap text-left"
       : showDetails
         ? "line-clamp-2 w-full text-left"
@@ -304,7 +306,7 @@ export function StormElementCard({
 
   const editorClass = [
     "w-full resize-none bg-transparent text-xs font-semibold leading-tight outline-none ring-0",
-    isNote ? "h-full whitespace-pre-wrap text-left" : showDetails ? "text-left" : "text-center",
+    noteLike ? "h-full whitespace-pre-wrap text-left" : showDetails ? "text-left" : "text-center",
   ].join(" ");
 
   return (
@@ -474,7 +476,9 @@ export function StormElementCard({
       <div
         className={[
           "relative flex h-full w-full flex-col border px-2 py-1 shadow-sm transition-shadow",
-          showDetails ? "items-stretch justify-start gap-0.5 overflow-x-hidden overflow-y-auto" : "items-center justify-center",
+          showDetails || noteLike
+            ? "items-stretch justify-start gap-0.5 overflow-x-hidden overflow-y-auto"
+            : "items-center justify-center",
           shapeClass,
           selected || editing ? "ring-2 ring-[var(--accent)]" : "",
           connecting ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
@@ -493,6 +497,7 @@ export function StormElementCard({
           borderColor: colors.border,
           color: colors.text,
           borderStyle: isNote ? "dashed" : undefined,
+          borderLeftWidth: isInstruction ? 4 : undefined,
         }}
         title={
           dimForSearch
@@ -501,11 +506,21 @@ export function StormElementCard({
               ? `Fokus: ${ELEMENT_STYLES[paletteType].label} — anderes Element abgedunkelt`
               : !inActiveMode
                 ? "Element aus dem anderen Methoden-Modus"
-                : undefined
+                : isInstruction
+                  ? "Instruction — Anweisung für die Umsetzung"
+                  : undefined
         }
       >
+        {isInstruction && (
+          <span
+            className="mb-0.5 w-fit shrink-0 rounded px-1 py-px text-[0.58rem] font-bold uppercase tracking-wide"
+            style={{ backgroundColor: colors.border, color: colors.text }}
+          >
+            Instruction
+          </span>
+        )}
         {editing ? (
-          isNote ? (
+          noteLike ? (
             <textarea
               ref={inputRef as React.RefObject<HTMLTextAreaElement>}
               className={editorClass}

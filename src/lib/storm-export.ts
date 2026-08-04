@@ -1094,8 +1094,10 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       dashPattern: el.type === "note" ? "4 3" : undefined,
       rotation: elementExportRotation(el) || undefined,
     });
+    const exportLabel =
+      el.type === "instruction" ? `Instruction\n${el.label}` : el.label;
     cells.push(
-      `<mxCell id="${mxCellId("el", el.id)}" value="${mxLabelValue(el.label)}" style="${style}" vertex="1" parent="1">`,
+      `<mxCell id="${mxCellId("el", el.id)}" value="${mxLabelValue(exportLabel)}" style="${style}" vertex="1" parent="1">`,
       `<mxGeometry x="${r.x + ox}" y="${r.y + oy}" width="${r.w}" height="${r.h}" as="geometry"/>`,
       `</mxCell>`,
     );
@@ -1222,8 +1224,14 @@ export function exportBoardSvg(): void {
     parts.push(
       `<rect x="${x}" y="${y}" width="${r.w}" height="${r.h}" fill="${escapeXml(fill)}" stroke="${escapeXml(stroke)}" stroke-width="1.5" rx="${rx}"${dash}${rot}/>`,
     );
+    if (el.type === "instruction") {
+      parts.push(
+        `<rect x="${x}" y="${y}" width="4" height="${r.h}" fill="${escapeXml(stroke)}" stroke="none"${rot}/>`,
+      );
+    }
 
     const textW = Math.max(20, r.w - CARD_PAD_X * 2);
+    const badgeLines = el.type === "instruction" ? ["INSTRUCTION"] : [];
     const labelLines = wrapLabelLines(el.label, textW, (s) =>
       measureAt(LABEL_FONT_PX, LABEL_FONT_WEIGHT, s),
     );
@@ -1233,14 +1241,16 @@ export function exportBoardSvg(): void {
       : [];
     const lineH = LABEL_FONT_PX * 1.25;
     const metaH = META_FONT_PX * 1.25;
+    const badgeH = badgeLines.length ? META_FONT_PX * 1.2 : 0;
     const blockH =
+      badgeH +
       labelLines.length * lineH +
       descLines.length * metaH +
       preview.attrs.length * metaH +
       preview.methods.length * metaH;
-    let cursorY = y + CARD_PAD_Y + LABEL_FONT_PX;
+    let cursorY = y + CARD_PAD_Y + (badgeLines.length ? META_FONT_PX : LABEL_FONT_PX);
     if (blockH < r.h - CARD_PAD_Y * 2) {
-      cursorY = y + (r.h - blockH) / 2 + LABEL_FONT_PX;
+      cursorY = y + (r.h - blockH) / 2 + (badgeLines.length ? META_FONT_PX : LABEL_FONT_PX);
     }
 
     const pushTextBlock = (
@@ -1251,7 +1261,7 @@ export function exportBoardSvg(): void {
       weightHint: "label" | "meta",
     ) => {
       if (lines.length === 0) return;
-      const anchor = weightHint === "label" && !preview.description && preview.attrs.length === 0 && preview.methods.length === 0
+      const anchor = weightHint === "label" && !preview.description && preview.attrs.length === 0 && preview.methods.length === 0 && badgeLines.length === 0
         ? "middle"
         : "start";
       const tx = anchor === "middle" ? x + r.w / 2 : x + CARD_PAD_X;
@@ -1265,6 +1275,10 @@ export function exportBoardSvg(): void {
       parts.push(`</text>`);
     };
 
+    if (badgeLines.length) {
+      pushTextBlock(badgeLines, "meta", ink, META_FONT_PX * 1.2, "meta");
+      cursorY += 2;
+    }
     pushTextBlock(labelLines, "label", ink, lineH, "label");
     if (descLines.length) {
       cursorY += 2;
@@ -1393,6 +1407,10 @@ export async function exportBoardPng(): Promise<void> {
     ctx.fill();
     ctx.stroke();
     ctx.setLineDash([]);
+    if (el.type === "instruction") {
+      ctx.fillStyle = stroke;
+      ctx.fillRect(x, y, 4, r.h);
+    }
 
     const textW = Math.max(20, r.w - CARD_PAD_X * 2);
     ctx.font = cssFont(LABEL_FONT_WEIGHT, LABEL_FONT_PX);
@@ -1402,19 +1420,22 @@ export async function exportBoardPng(): Promise<void> {
     const descLines = preview.description
       ? wrapLabelLines(preview.description, textW, (s) => ctx.measureText(s).width).slice(0, 3)
       : [];
+    const hasBadge = el.type === "instruction";
     const lineH = LABEL_FONT_PX * 1.25;
     const metaH = META_FONT_PX * 1.25;
+    const badgeH = hasBadge ? META_FONT_PX * 1.2 : 0;
     const blockH =
+      badgeH +
       labelLines.length * lineH +
       descLines.length * metaH +
       preview.attrs.length * metaH +
       preview.methods.length * metaH;
 
     const centered =
-      !preview.description && preview.attrs.length === 0 && preview.methods.length === 0;
-    let cursorY = y + CARD_PAD_Y + LABEL_FONT_PX;
+      !hasBadge && !preview.description && preview.attrs.length === 0 && preview.methods.length === 0;
+    let cursorY = y + CARD_PAD_Y + (hasBadge ? META_FONT_PX : LABEL_FONT_PX);
     if (blockH < r.h - CARD_PAD_Y * 2) {
-      cursorY = y + (r.h - blockH) / 2 + LABEL_FONT_PX;
+      cursorY = y + (r.h - blockH) / 2 + (hasBadge ? META_FONT_PX : LABEL_FONT_PX);
     }
 
     ctx.fillStyle = ink;
@@ -1422,9 +1443,17 @@ export async function exportBoardPng(): Promise<void> {
     ctx.textAlign = centered ? "center" : "left";
     const tx = centered ? x + r.w / 2 : x + CARD_PAD_X;
 
+    if (hasBadge) {
+      ctx.font = cssFont(700, META_FONT_PX);
+      ctx.textAlign = "left";
+      ctx.fillText("INSTRUCTION", x + CARD_PAD_X, cursorY, textW);
+      cursorY += META_FONT_PX * 1.2 + 2;
+      ctx.textAlign = "left";
+    }
+
     ctx.font = cssFont(LABEL_FONT_WEIGHT, LABEL_FONT_PX);
     for (const line of labelLines) {
-      ctx.fillText(line, tx, cursorY, textW);
+      ctx.fillText(line, hasBadge ? x + CARD_PAD_X : tx, cursorY, textW);
       cursorY += lineH;
     }
     ctx.font = cssFont(500, META_FONT_PX);

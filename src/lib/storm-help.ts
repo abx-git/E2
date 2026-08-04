@@ -97,6 +97,20 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
       "Hintergrundfarbe in der Detailleiste oder per Rechtsklick",
     ],
   },
+  instruction: {
+    title: "Instruction",
+    subtitle: "Teal — Anweisung für die Umsetzung",
+    paragraphs: [
+      "Markiert Aspekte, die bei der Implementierung zusätzlich beachtet oder umgesetzt werden sollen.",
+      "Deutlicher als eine freie Notiz: Kennzeichnung „Instruction“ auf der Karte, feste Farbe.",
+      "Mit Verbinden / Pfeil-Handle an Stickies anknüpfen (Relation „annotiert“).",
+    ],
+    bullets: [
+      "Für DoD-Hinweise, Edge Cases, NFR, technische Vorgaben",
+      "Mehrzeiliger Text — ⌘/Ctrl+Enter zum Speichern",
+      "Neben Notiz und Hotspot in allen Methoden verfügbar",
+    ],
+  },
   hotspot: {
     title: "Hotspot",
     subtitle: "Rot (45°) — „Offene Frage / Konflikt“",
