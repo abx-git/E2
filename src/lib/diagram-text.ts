@@ -48,6 +48,18 @@ export function inferElementTypeFromLabel(
   }
   if (mode === "architectureDocumentation") {
     if (/\b(person|user|actor)\b/.test(l)) return "c4Person";
+    if (/\b(vpc|vnet|subnet|netzwerk|network)\b/.test(l)) return "cloudNetwork";
+    if (/\b(compute|lambda|function|aks|eks|gke|vm|container.?app)\b/.test(l)) return "cloudCompute";
+    if (/\b(s3|blob|rds|dynamo|cosmos|storage|datenbank|database|cache|redis)\b/.test(l)) {
+      return "cloudDataStore";
+    }
+    if (/\b(queue|bus|kafka|pubsub|sqs|sns|event.?hub|messaging)\b/.test(l)) return "cloudMessaging";
+    if (/\b(iam|identity|cognito|entra|auth|secrets?)\b/.test(l)) return "cloudIdentity";
+    if (/\b(cdn|gateway|waf|load.?balancer|edge|cloudfront|apigw)\b/.test(l)) return "cloudEdge";
+    if (/\b(account|landing.?zone|subscription|tenant|cloud.?grenze|boundary)\b/.test(l)) {
+      return "cloudBoundary";
+    }
+    if (/\b(managed|saas|paas)\b/.test(l)) return "cloudManagedService";
     if (/\b(container)\b/.test(l)) return "c4Container";
     if (/\b(component|komponente)\b/.test(l)) return "c4Component";
     if (/\b(system)\b/.test(l)) return "c4SoftwareSystem";

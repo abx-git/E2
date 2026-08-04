@@ -451,6 +451,93 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
       "Bei Bedarf als Blackbox weiter verfeinern",
     ],
   },
+  cloudBoundary: {
+    title: "Cloud-Grenze",
+    subtitle: "Account / Landing Zone / Tenant",
+    paragraphs: [
+      "Äußere Grenze einer Cloud-Umgebung: Account, Subscription, Projekt oder Landing Zone.",
+      "Über „Detail-Sicht“ zoomst du hinein — analog C4/arc42 Drill-down.",
+    ],
+    bullets: [
+      "Provider optional setzen (AWS, Azure, GCP, …)",
+      "Regionen als Labels oder mehrere Grenzen",
+      "Detail-Sicht für Workloads und Netzwerke öffnen",
+    ],
+  },
+  cloudNetwork: {
+    title: "Netzwerk",
+    subtitle: "VPC / VNet / Subnetz / Segment",
+    paragraphs: [
+      "Netzwerksegment oder Connectivity-Baustein — provider-agnostisch benennen.",
+    ],
+    bullets: [
+      "CIDR / Zone in der Beschreibung",
+      "Peering und Ingress/Egress als Relationen",
+      "Mit Identity und Edge koppeln",
+    ],
+  },
+  cloudCompute: {
+    title: "Compute",
+    subtitle: "VM · Container · Function · App Service",
+    paragraphs: ["Laufzeit für Workloads: Server, Cluster, Serverless oder PaaS-Apps."],
+    bullets: [
+      "Technologie / Dienstname (z. B. EKS, AKS, Cloud Run)",
+      "Skalierung und Laufzeitmodell kurz notieren",
+      "Daten- und Messaging-Abhängigkeiten als Relationen",
+    ],
+  },
+  cloudDataStore: {
+    title: "Datenspeicher",
+    subtitle: "DB · Object Store · Cache · Warehouse",
+    paragraphs: ["Persistenz und Speicherdienste — relational, dokumentenbasiert, Blob, Cache, …"],
+    bullets: [
+      "Primär- vs. analytische Stores trennen",
+      "Backup / RPO in Notizen oder Hotspots",
+      "Zugriff nur über definierte Compute-/Edge-Pfade",
+    ],
+  },
+  cloudMessaging: {
+    title: "Messaging",
+    subtitle: "Queue · Bus · Stream · Pub/Sub",
+    paragraphs: ["Asynchrone Integration zwischen Workloads und Domänen."],
+    bullets: [
+      "Event- vs. Command-Kanäle klar benennen",
+      "Ordering / DLQ als Hotspot festhalten",
+      "Producer und Consumer per Relation verbinden",
+    ],
+  },
+  cloudIdentity: {
+    title: "Identity",
+    subtitle: "IAM · Directory · Secrets · Policies",
+    paragraphs: ["Identität, Zugriffskontrolle und Geheimnisse der Cloud-Umgebung."],
+    bullets: [
+      "Least Privilege und Trust Boundaries",
+      "Workload-Identitäten vs. menschliche Nutzer",
+      "Secrets und Key Vaults als Managed Service oder hier",
+    ],
+  },
+  cloudEdge: {
+    title: "Edge / Gateway",
+    subtitle: "CDN · API Gateway · WAF · Load Balancer",
+    paragraphs: ["Eingang und Rand der Architektur: Traffic, TLS, Routing, Schutz."],
+    bullets: [
+      "Öffentliche vs. private Einstiegspunkte",
+      "Protokolle und Routingregeln beschriften",
+      "Mit Netzwerk und Identity koppeln",
+    ],
+  },
+  cloudManagedService: {
+    title: "Managed Service",
+    subtitle: "PaaS / SaaS / Cloud-Dienst (Catch-all)",
+    paragraphs: [
+      "Managed Cloud- oder SaaS-Dienst, der nicht klar in Compute/Daten/Messaging fällt.",
+    ],
+    bullets: [
+      "Provider und Produktname setzen",
+      "Verantwortung und Datenfluss kurz beschreiben",
+      "Lieber spezifischere Typen nutzen, wenn passend",
+    ],
+  },
 };
 
 const RELATION_HELP: Record<RelationType, HelpDialogModel> = {

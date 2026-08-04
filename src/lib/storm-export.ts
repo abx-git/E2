@@ -688,7 +688,7 @@ export function exportDataModelMarkdown(): void {
   downloadText(`${slugTitle(title)}-data-model.md`, lines.join("\n"));
 }
 
-/** Architecture documentation: Bausteinsicht, C4, ERM. */
+/** Architecture documentation: Bausteinsicht, C4, Cloud, ERM. */
 export function exportArchitectureDocumentationMarkdown(): void {
   const { elements, title, relations, boundedContexts } = boardActiveSliceFromStore();
   const lines = [
@@ -757,6 +757,33 @@ export function exportArchitectureDocumentationMarkdown(): void {
     lines.push("");
   }
   if (!hasC4) lines.push("_Keine C4-Elemente._", "");
+
+  const cloudTypes = [
+    "cloudBoundary",
+    "cloudNetwork",
+    "cloudCompute",
+    "cloudDataStore",
+    "cloudMessaging",
+    "cloudIdentity",
+    "cloudEdge",
+    "cloudManagedService",
+  ] as const;
+  lines.push("## Cloud Architektur", "");
+  let hasCloud = false;
+  for (const type of cloudTypes) {
+    const items = elements.filter((e) => e.type === type);
+    if (items.length === 0) continue;
+    hasCloud = true;
+    lines.push(`### ${ELEMENT_STYLES[type].label}`, "");
+    for (const el of items) {
+      lines.push(`- **${el.label}**${el.detailViewId ? " _(Detail-Sicht)_" : ""}`);
+      if (el.metadata?.cloudProvider) lines.push(`  - Provider: ${el.metadata.cloudProvider}`);
+      if (el.metadata?.c4Technology) lines.push(`  - Technologie / Dienst: ${el.metadata.c4Technology}`);
+      if (el.description?.trim()) lines.push(`  - ${el.description.trim()}`);
+    }
+    lines.push("");
+  }
+  if (!hasCloud) lines.push("_Keine Cloud-Bausteine._", "");
 
   const entities = elements.filter((e) => e.type === "dataEntity");
   const associations = elements.filter((e) => e.type === "dataAssociation");

@@ -23,7 +23,7 @@ import type {
   StoryPriority,
   SubdomainKind,
 } from "@/types/storm-element";
-import { supportsArchDrilldown } from "@/types/storm-element";
+import { isCloudElementType, supportsArchDrilldown } from "@/types/storm-element";
 import { LINE_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -1146,28 +1146,51 @@ export function ElementDetailSidebar({
               ? "C4 Zoom: Container-Diagramm — Whitebox-Scope mit Containern."
               : selectedElement.type === "c4Container"
                 ? "C4 Zoom: Komponenten-Diagramm — Whitebox-Scope mit Komponenten."
-                : selectedElement.type === "archBlackbox"
-                  ? "Öffnet die Whitebox dieses Bausteins (C4-ähnlicher Drill-down)."
-                  : "Zoom in die nächste Verfeinerungsebene."}
+                : selectedElement.type === "cloudBoundary"
+                  ? "Cloud Zoom: Workloads und Netzwerke innerhalb der Grenze."
+                  : selectedElement.type === "archBlackbox"
+                    ? "Öffnet die Whitebox dieses Bausteins (C4-ähnlicher Drill-down)."
+                    : "Zoom in die nächste Verfeinerungsebene."}
           </p>
         </div>
       )}
 
       {(selectedElement.type === "c4Container" ||
         selectedElement.type === "c4Component" ||
-        selectedElement.type === "archComponent") && (
-        <Field label="Technologie">
-          <input
-            className="dock-field"
-            placeholder="z. B. Spring Boot, PostgreSQL"
-            value={selectedElement.metadata?.c4Technology ?? ""}
-            onChange={(e) =>
-              updateElement(selectedElement.id, {
-                metadata: { ...selectedElement.metadata, c4Technology: e.target.value },
-              })
-            }
-          />
-        </Field>
+        selectedElement.type === "archComponent" ||
+        isCloudElementType(selectedElement.type)) && (
+        <>
+          {isCloudElementType(selectedElement.type) && (
+            <Field label="Provider">
+              <input
+                className="dock-field"
+                placeholder="z. B. AWS, Azure, GCP"
+                value={selectedElement.metadata?.cloudProvider ?? ""}
+                onChange={(e) =>
+                  updateElement(selectedElement.id, {
+                    metadata: { ...selectedElement.metadata, cloudProvider: e.target.value },
+                  })
+                }
+              />
+            </Field>
+          )}
+          <Field label="Technologie">
+            <input
+              className="dock-field"
+              placeholder={
+                isCloudElementType(selectedElement.type)
+                  ? "z. B. Lambda, AKS, Cloud SQL"
+                  : "z. B. Spring Boot, PostgreSQL"
+              }
+              value={selectedElement.metadata?.c4Technology ?? ""}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: { ...selectedElement.metadata, c4Technology: e.target.value },
+                })
+              }
+            />
+          </Field>
+        </>
       )}
 
       {selectedElement.type === "link" && (

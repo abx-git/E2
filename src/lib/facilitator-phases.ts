@@ -798,6 +798,103 @@ const ERM_DOCUMENTATION_PHASES: FacilitatorPhase[] = [
   },
 ];
 
+const CLOUD_ARCHITECTURE_PHASES: FacilitatorPhase[] = [
+  {
+    id: "cloud-context",
+    title: "Kontext & Grenzen",
+    description:
+      "Accounts, Landing Zones und externe Systeme — die äußere Cloud-Grenze vor Workloads.",
+    allowedTypes: [
+      "cloudBoundary",
+      "cloudManagedService",
+      "c4Person",
+      "c4SoftwareSystem",
+      "note",
+      "hotspot",
+      "link",
+    ],
+    checklist: [
+      "Cloud-Grenzen (Account / Subscription / Projekt) benennen",
+      "Provider optional setzen",
+      "Externe SaaS / Partner als Managed Service",
+    ],
+    durationMinutes: 30,
+  },
+  {
+    id: "cloud-workloads",
+    title: "Workloads",
+    description: "Compute, Edge und Managed Services innerhalb der Grenzen platzieren.",
+    allowedTypes: [
+      "cloudBoundary",
+      "cloudCompute",
+      "cloudEdge",
+      "cloudManagedService",
+      "c4Container",
+      "note",
+      "hotspot",
+      "link",
+    ],
+    checklist: [
+      "Detail-Sicht aus einer Cloud-Grenze öffnen",
+      "Workloads mit Technologie/Dienst beschriften",
+      "Öffentliche Einstiegspunkte als Edge markieren",
+    ],
+    durationMinutes: 40,
+  },
+  {
+    id: "cloud-data-integration",
+    title: "Daten & Integration",
+    description: "Speicher, Messaging und Datenflüsse zwischen Workloads.",
+    allowedTypes: [
+      "cloudDataStore",
+      "cloudMessaging",
+      "cloudCompute",
+      "cloudManagedService",
+      "note",
+      "hotspot",
+      "link",
+    ],
+    checklist: [
+      "Primärspeicher vs. Cache / Analytics trennen",
+      "Queues und Event-Streams als Messaging",
+      "Producer → Consumer Relationen beschriften",
+    ],
+    durationMinutes: 40,
+  },
+  {
+    id: "cloud-network-identity",
+    title: "Netz & Identity",
+    description: "Connectivity, Trust Boundaries und Zugriffskontrolle.",
+    allowedTypes: [
+      "cloudNetwork",
+      "cloudIdentity",
+      "cloudEdge",
+      "cloudBoundary",
+      "note",
+      "hotspot",
+      "link",
+    ],
+    checklist: [
+      "Netzsegmente und Peering skizzieren",
+      "IAM / Workload-Identitäten einzeichnen",
+      "Trust Boundaries und Hotspots für Lücken",
+    ],
+    durationMinutes: 35,
+  },
+  {
+    id: "cloud-risks",
+    title: "Risiken & Entscheidungen",
+    description: "Kosten, Resilienz, Compliance und offene Architekturfragen.",
+    allowedTypes: ["cloudBoundary", "note", "hotspot", "link", "instruction"],
+    checklist: [
+      "ADRs und Qualitätsziele als Notizen/Links",
+      "Single Points of Failure und Vendor Lock-in",
+      "Offene Punkte als Hotspots priorisieren",
+    ],
+    durationMinutes: 25,
+  },
+];
+
 export const ARCH_DOC_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   {
     format: "arc42Workshop",
@@ -816,6 +913,12 @@ export const ARCH_DOC_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
     label: "ERM Dokumentation",
     description: "Entitäten, Attribute und Beziehungen",
     phases: ERM_DOCUMENTATION_PHASES,
+  },
+  {
+    format: "cloudArchitecture",
+    label: "Cloud Architektur",
+    description: "Grenzen → Workloads → Daten/Messaging → Netz/IAM (provider-agnostisch)",
+    phases: CLOUD_ARCHITECTURE_PHASES,
   },
 ];
 

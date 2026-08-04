@@ -56,6 +56,15 @@ export type ElementType =
   | "archBlackbox"
   | "archWhitebox"
   | "archComponent"
+  /** Architecture documentation: Cloud / Deployment (provider-agnostic) */
+  | "cloudBoundary"
+  | "cloudNetwork"
+  | "cloudCompute"
+  | "cloudDataStore"
+  | "cloudMessaging"
+  | "cloudIdentity"
+  | "cloudEdge"
+  | "cloudManagedService"
   /** Shared: external URL or board view */
   | "link";
 
@@ -77,6 +86,7 @@ export const ARCH_DRILLDOWN_ELEMENT_TYPES: ElementType[] = [
   "archWhitebox",
   "c4SoftwareSystem",
   "c4Container",
+  "cloudBoundary",
 ];
 
 export function supportsArchDrilldown(type: ElementType): boolean {
@@ -84,7 +94,8 @@ export function supportsArchDrilldown(type: ElementType): boolean {
     type === "archBlackbox" ||
     type === "archWhitebox" ||
     type === "c4SoftwareSystem" ||
-    type === "c4Container"
+    type === "c4Container" ||
+    type === "cloudBoundary"
   );
 }
 
@@ -101,6 +112,20 @@ export function isC4ElementType(type: ElementType): boolean {
 /** Architecture Baustein types (Blackbox / Whitebox / Komponente). */
 export function isArchBuildingBlockType(type: ElementType): boolean {
   return type === "archBlackbox" || type === "archWhitebox" || type === "archComponent";
+}
+
+/** Cloud / deployment building blocks (provider-agnostic). */
+export function isCloudElementType(type: ElementType): boolean {
+  return (
+    type === "cloudBoundary" ||
+    type === "cloudNetwork" ||
+    type === "cloudCompute" ||
+    type === "cloudDataStore" ||
+    type === "cloudMessaging" ||
+    type === "cloudIdentity" ||
+    type === "cloudEdge" ||
+    type === "cloudManagedService"
+  );
 }
 
 export type NoteColorId =
@@ -198,6 +223,8 @@ export interface ElementMetadata {
 
   /** C4 Container / Component: Technologie-Stack (z. B. Spring Boot, PostgreSQL). */
   c4Technology?: string;
+  /** Cloud Baustein: Provider-Hinweis (z. B. AWS, Azure, GCP) — optional, nicht typspezifisch. */
+  cloudProvider?: string;
   /** @deprecated Migrated from old arc42Section stickies; ignored by UI. */
   arc42SectionNumber?: number;
 
@@ -256,7 +283,8 @@ export type WorkshopFormat =
   | "dataModelWorkshop"
   | "arc42Workshop"
   | "c4Modeling"
-  | "ermDocumentation";
+  | "ermDocumentation"
+  | "cloudArchitecture";
 
 export interface Swimlane {
   id: string;
@@ -454,7 +482,7 @@ export const DATA_ELEMENT_TYPES: ElementType[] = [
   "link",
 ];
 
-/** Architecture documentation: Bausteinsicht, C4, ERM. */
+/** Architecture documentation: Bausteinsicht, C4, ERM, Cloud. */
 export const ARCH_DOC_ELEMENT_TYPES: ElementType[] = [
   "archBlackbox",
   "archWhitebox",
@@ -463,6 +491,14 @@ export const ARCH_DOC_ELEMENT_TYPES: ElementType[] = [
   "c4SoftwareSystem",
   "c4Container",
   "c4Component",
+  "cloudBoundary",
+  "cloudNetwork",
+  "cloudCompute",
+  "cloudDataStore",
+  "cloudMessaging",
+  "cloudIdentity",
+  "cloudEdge",
+  "cloudManagedService",
   "dataEntity",
   "dataAssociation",
   "note",
@@ -501,6 +537,14 @@ export const ALL_ELEMENT_TYPES: ElementType[] = [
   "archBlackbox",
   "archWhitebox",
   "archComponent",
+  "cloudBoundary",
+  "cloudNetwork",
+  "cloudCompute",
+  "cloudDataStore",
+  "cloudMessaging",
+  "cloudIdentity",
+  "cloudEdge",
+  "cloudManagedService",
 ];
 
 export const ES_WORKSHOP_FORMATS: WorkshopFormat[] = [
@@ -531,6 +575,7 @@ export const ARCH_DOC_WORKSHOP_FORMATS: WorkshopFormat[] = [
   "arc42Workshop",
   "c4Modeling",
   "ermDocumentation",
+  "cloudArchitecture",
 ];
 
 export const MODELING_MODE_LABELS: Record<ModelingMode, string> = {

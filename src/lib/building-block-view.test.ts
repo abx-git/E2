@@ -123,4 +123,18 @@ describe("building-block-view", () => {
       targetViewName: "API Application",
     });
   });
+
+  it("supports cloud-boundary zoom into a whitebox scope", () => {
+    const boundary = el({ id: "lz", type: "cloudBoundary", label: "Landing Zone Prod" });
+    const payload = extractBuildingBlockViewPayload("lz", [boundary], [])!;
+    const view = buildBoardViewFromBuildingBlock(boundary, payload, {
+      id: "v-cloud",
+      name: "Landing Zone Prod",
+      modelingMode: "architectureDocumentation",
+      workshopFormat: "cloudArchitecture",
+    });
+    expect(
+      view.elements.some((e) => e.type === "archWhitebox" && e.label === "Landing Zone Prod"),
+    ).toBe(true);
+  });
 });

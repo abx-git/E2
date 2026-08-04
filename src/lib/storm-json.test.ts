@@ -240,6 +240,8 @@ describe("facilitator-phases", () => {
     expect(catalog).toContain("archWhitebox");
     expect(catalog).toContain("archComponent");
     expect(catalog).toContain("c4SoftwareSystem");
+    expect(catalog).toContain("cloudBoundary");
+    expect(catalog).toContain("cloudCompute");
     expect(catalog).toContain("dataEntity");
     expect(getAllowedTypesForPhase("architectureDocumentation", "c4Modeling", 0, true)).toEqual([
       "c4Person",
@@ -252,6 +254,16 @@ describe("facilitator-phases", () => {
       "archBlackbox",
       "c4SoftwareSystem",
       "c4Person",
+      "note",
+      "hotspot",
+      "link",
+      "instruction",
+    ]);
+    expect(getAllowedTypesForPhase("architectureDocumentation", "cloudArchitecture", 0, true)).toEqual([
+      "cloudBoundary",
+      "cloudManagedService",
+      "c4Person",
+      "c4SoftwareSystem",
       "note",
       "hotspot",
       "link",

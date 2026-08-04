@@ -240,6 +240,26 @@ export function defaultRelationType(source: StormElement, target: StormElement):
   ) {
     return "contains";
   }
+  if (
+    source.type === "cloudBoundary" ||
+    source.type === "cloudNetwork" ||
+    source.type === "cloudCompute" ||
+    source.type === "cloudDataStore" ||
+    source.type === "cloudMessaging" ||
+    source.type === "cloudIdentity" ||
+    source.type === "cloudEdge" ||
+    source.type === "cloudManagedService" ||
+    target.type === "cloudBoundary" ||
+    target.type === "cloudNetwork" ||
+    target.type === "cloudCompute" ||
+    target.type === "cloudDataStore" ||
+    target.type === "cloudMessaging" ||
+    target.type === "cloudIdentity" ||
+    target.type === "cloudEdge" ||
+    target.type === "cloudManagedService"
+  ) {
+    return "contains";
+  }
   if (source.type === "externalSystem") return "invokes";
   if (source.type === "domainEvent" && target.type === "domainEvent") return "causal";
   return "triggers";

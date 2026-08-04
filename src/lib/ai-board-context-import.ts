@@ -72,6 +72,7 @@ const WORKSHOP_FORMATS: WorkshopFormat[] = [
   "arc42Workshop",
   "c4Modeling",
   "ermDocumentation",
+  "cloudArchitecture",
 ];
 
 const COL_STRIDE = 190;
@@ -148,6 +149,7 @@ export function layoutYOffsetForType(type: ElementType): number {
     case "archWhitebox":
     case "c4SoftwareSystem":
     case "c4Container":
+    case "cloudBoundary":
       return 75;
     case "policy":
     case "processGateway":
@@ -156,6 +158,9 @@ export function layoutYOffsetForType(type: ElementType): number {
     case "factory":
     case "archComponent":
     case "c4Component":
+    case "cloudCompute":
+    case "cloudDataStore":
+    case "cloudManagedService":
       return 140;
     case "note":
     case "instruction":
@@ -166,6 +171,10 @@ export function layoutYOffsetForType(type: ElementType): number {
     case "subdomain":
     case "dataAssociation":
     case "userStory":
+    case "cloudNetwork":
+    case "cloudMessaging":
+    case "cloudIdentity":
+    case "cloudEdge":
       return 175;
     default:
       return 20;

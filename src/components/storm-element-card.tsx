@@ -29,6 +29,7 @@ import {
   elementTypesForMode,
   isArchBuildingBlockType,
   isC4ElementType,
+  isCloudElementType,
   isNoteLike,
   supportsArchDrilldown,
   type StormElement,
@@ -111,9 +112,12 @@ export function StormElementCard({
   const isAggregate = element.type === "aggregate";
   const isSubdomain = element.type === "subdomain";
   const isWhitebox = element.type === "archWhitebox";
-  const isBoundary = isAggregate || isSubdomain || isWhitebox;
+  const isCloudBoundary = element.type === "cloudBoundary";
+  const isBoundary = isAggregate || isSubdomain || isWhitebox || isCloudBoundary;
   const showArchTypeBadge =
-    isC4ElementType(element.type) || isArchBuildingBlockType(element.type);
+    isC4ElementType(element.type) ||
+    isArchBuildingBlockType(element.type) ||
+    isCloudElementType(element.type);
   const noteLike = isNoteLike(element.type);
   const noteColors = isNote ? resolveNoteColor(element.metadata?.noteColor) : null;
   const colors = {

@@ -47,6 +47,7 @@ export function cardAttributeLines(
   }
 
   if (m.c4Technology?.trim()) lines.push(`Tech: ${m.c4Technology.trim()}`);
+  if (m.cloudProvider?.trim()) lines.push(`Provider: ${m.cloudProvider.trim()}`);
 
   const linkKind = m.linkKind ?? "external";
   if (linkKind === "view") {
