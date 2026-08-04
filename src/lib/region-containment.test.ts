@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyContainmentAssignments,
+  elementIdsInAggregate,
   elementIdsInSwimlane,
   rectFullyContains,
+  resolveAggregateId,
   resolveBoundedContextId,
   resolveSwimlaneId,
   translateMatchingElements,
@@ -64,6 +66,90 @@ describe("region-containment", () => {
     ];
     expect(resolveBoundedContextId(el({ id: "a", x: 60, y: 60 }), contexts)).toBe("inner");
     expect(resolveBoundedContextId(el({ id: "a", x: 10, y: 10 }), contexts)).toBe("outer");
+  });
+
+  it("assigns aggregate when fully inside and prefers smallest area", () => {
+    const aggregates = [
+      el({
+        id: "outer-agg",
+        type: "aggregate",
+        x: 0,
+        y: 0,
+        width: 400,
+        height: 300,
+      }),
+      el({
+        id: "inner-agg",
+        type: "aggregate",
+        x: 40,
+        y: 40,
+        width: 200,
+        height: 160,
+      }),
+    ];
+    expect(
+      resolveAggregateId(
+        el({ id: "e", type: "entity", x: 50, y: 50, width: 80, height: 40 }),
+        aggregates,
+      ),
+    ).toBe("inner-agg");
+    expect(
+      resolveAggregateId(
+        el({ id: "e", type: "entity", x: 10, y: 10, width: 80, height: 40 }),
+        aggregates,
+      ),
+    ).toBe("outer-agg");
+  });
+
+  it("does not nest aggregates inside aggregates", () => {
+    const aggregates = [
+      el({ id: "outer-agg", type: "aggregate", x: 0, y: 0, width: 400, height: 300 }),
+    ];
+    expect(
+      resolveAggregateId(
+        el({ id: "inner-agg", type: "aggregate", x: 20, y: 20, width: 140, height: 100 }),
+        aggregates,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("updates aggregateId with containment assignments", () => {
+    const elements = [
+      el({ id: "agg", type: "aggregate", x: 0, y: 0, width: 280, height: 200 }),
+      el({ id: "in", type: "entity", x: 40, y: 40, width: 100, height: 50 }),
+      el({
+        id: "out",
+        type: "valueObject",
+        x: 400,
+        y: 40,
+        width: 100,
+        height: 50,
+        aggregateId: "agg",
+      }),
+    ];
+    const next = applyContainmentAssignments(elements, [], []);
+    expect(next.find((e) => e.id === "in")?.aggregateId).toBe("agg");
+    expect(next.find((e) => e.id === "out")?.aggregateId).toBeUndefined();
+    expect(next.find((e) => e.id === "agg")?.aggregateId).toBeUndefined();
+  });
+
+  it("lists aggregate members by id or containment", () => {
+    const aggregate = el({ id: "agg", type: "aggregate", x: 0, y: 0, width: 280, height: 200 });
+    const elements = [
+      aggregate,
+      el({ id: "inside", type: "entity", x: 40, y: 40, width: 80, height: 40 }),
+      el({
+        id: "assigned",
+        type: "valueObject",
+        x: 500,
+        y: 500,
+        width: 80,
+        height: 40,
+        aggregateId: "agg",
+      }),
+      el({ id: "outside", type: "entity", x: 400, y: 40, width: 80, height: 40 }),
+    ];
+    expect(elementIdsInAggregate(elements, aggregate).sort()).toEqual(["assigned", "inside"]);
   });
 
   it("updates only changed assignment fields", () => {

@@ -64,10 +64,10 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     border: "border-yellow-400",
     text: "text-yellow-950",
     fill: "#fef08a",
-    stroke: "#facc15",
+    stroke: "#eab308",
     ink: "#713f12",
-    defaultWidth: 140,
-    defaultHeight: 80,
+    defaultWidth: 280,
+    defaultHeight: 200,
     shape: "rectangle",
   },
   policy: {

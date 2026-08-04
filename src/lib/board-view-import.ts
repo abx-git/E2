@@ -47,6 +47,9 @@ function remapElement(
   if (el.boundedContextId) {
     next.boundedContextId = idMap.get(el.boundedContextId);
   }
+  if (el.aggregateId) {
+    next.aggregateId = idMap.get(el.aggregateId);
+  }
   const linkViewId = el.metadata?.linkViewId?.trim();
   if (linkViewId) {
     const mapped = viewIdMap.get(linkViewId);

@@ -45,12 +45,15 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
   },
   aggregate: {
     title: "Aggregate",
-    subtitle: "Gelbes Rechteck — „Grenze & Invarianten“",
+    subtitle: "Gelbes Rechteck — Aggregate Root + Boundary",
     paragraphs: [
-      "Cluster von Domänenobjekten, das Commands verarbeitet und Events erzeugt.",
-      "Platzierung: zwischen Command(s) und Event(s).",
+      "Consistency Boundary und Aggregate Root in einem Element: Label = Root-Name, Fläche = Bereich für Entity & Value Objects.",
+      "Im EventStorming zwischen Command(s) und Event(s); im taktischen DDD Entity/VO hineinziehen.",
     ],
-    bullets: ["Hilft bei Microservice-/Boundary-Erkennung", "Später: Methoden & Invarianten pro Aggregate"],
+    bullets: [
+      "Vollständig enthaltene Stickies werden dem Aggregate zugeordnet und mitbewegt",
+      "Methoden & Invarianten in der Detailleiste dokumentieren",
+    ],
   },
   policy: {
     title: "Policy",
@@ -147,7 +150,7 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
     subtitle: "Türkis — Identität über die Zeit",
     paragraphs: [
       "Domänenobjekt mit stabiler Identität; Attribute können sich ändern.",
-      "Typischerweise innerhalb eines Aggregates.",
+      "Typischerweise innerhalb eines Aggregates — in die Aggregate-Boundary ziehen.",
     ],
     bullets: [
       "Beispiel: „Customer“, „Order Line“",
@@ -475,8 +478,11 @@ const RELATION_HELP: Record<RelationType, HelpDialogModel> = {
   contains: {
     title: "Relation: contains",
     subtitle: "Aggregate umschließt Elemente",
-    paragraphs: ["Visuelle/gruppierende Beziehung: dieses Aggregate umfasst Elemente innerhalb seiner Boundary."],
-    bullets: ["In E2 aktuell als Relation-Typ dokumentiert (Bounded Context / Aggregate sind primär visuelle Elemente)."],
+    paragraphs: [
+      "Gruppierende Beziehung: dieses Aggregate umfasst Entity/Value Objects (oder andere Elemente) innerhalb seiner Boundary.",
+      "Primär reicht geometrische Platzierung innerhalb der Aggregate-Fläche; die Relation dokumentiert Zugehörigkeit explizit.",
+    ],
+    bullets: ["Aggregate Root = gelbe Boundary mit Header", "Entity & Value Objects in die Fläche ziehen"],
   },
   annotates: {
     title: "Relation: annotates",

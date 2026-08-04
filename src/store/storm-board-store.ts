@@ -652,6 +652,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
             swimlaneId: e.swimlaneId && laneSet.has(e.swimlaneId) ? undefined : e.swimlaneId,
             boundedContextId:
               e.boundedContextId && bcSet.has(e.boundedContextId) ? undefined : e.boundedContextId,
+            aggregateId: e.aggregateId && elSet.has(e.aggregateId) ? undefined : e.aggregateId,
           })),
         relations: s.relations.filter(
           (r) => !elSet.has(r.sourceId) && !elSet.has(r.targetId),
@@ -1079,7 +1080,9 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
 
   deleteElement: (id) =>
     commit(set, get, (s) => ({
-      elements: s.elements.filter((e) => e.id !== id),
+      elements: s.elements
+        .filter((e) => e.id !== id)
+        .map((e) => (e.aggregateId === id ? { ...e, aggregateId: undefined } : e)),
       relations: s.relations.filter((r) => r.sourceId !== id && r.targetId !== id),
       selectedElementIds: s.selectedElementIds.filter((x) => x !== id),
     })),

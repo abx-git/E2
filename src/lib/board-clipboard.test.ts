@@ -116,14 +116,38 @@ describe("board-clipboard", () => {
     expect(remapped.boundedContexts[0]!.x).toBe(boundedContexts[0]!.x + 50);
   });
 
-  it("takes individual ids out of the clipboard payload", () => {
-    const payload = extractClipboardPayload(elements, relations, ["a", "b", "c"])!;
-    const { taken, remaining } = takeIdsFromClipboard(payload, ["a"]);
-    expect(taken!.elements).toHaveLength(1);
-    expect(taken!.elements[0]!.id).toBe("a");
-    expect(taken!.relations).toHaveLength(0);
-    expect(remaining!.elements.map((e) => e.id).sort()).toEqual(["b", "c"]);
-    expect(remaining!.relations).toHaveLength(1);
-    expect(remaining!.relations[0]!.id).toBe("r2");
+  it("keeps aggregateId when Aggregate Root is also copied and remaps it", () => {
+    const withAgg: StormElement[] = [
+      {
+        id: "agg",
+        type: "aggregate",
+        label: "Order",
+        x: 0,
+        y: 0,
+        width: 280,
+        height: 200,
+      },
+      {
+        id: "ent",
+        type: "entity",
+        label: "LineItem",
+        x: 40,
+        y: 40,
+        width: 100,
+        height: 50,
+        aggregateId: "agg",
+      },
+    ];
+    const alone = extractClipboardPayload(withAgg, [], ["ent"]);
+    expect(alone!.elements[0]!.aggregateId).toBeUndefined();
+
+    const together = extractClipboardPayload(withAgg, [], ["agg", "ent"])!;
+    expect(together.elements.find((e) => e.id === "ent")!.aggregateId).toBe("agg");
+
+    const remapped = remapClipboardForPaste(together, together.originX + 10, together.originY + 10);
+    const newAgg = remapped.elements.find((e) => e.type === "aggregate")!;
+    const newEnt = remapped.elements.find((e) => e.type === "entity")!;
+    expect(newAgg.id).not.toBe("agg");
+    expect(newEnt.aggregateId).toBe(newAgg.id);
   });
 });

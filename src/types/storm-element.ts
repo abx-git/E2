@@ -199,6 +199,11 @@ export interface StormElement {
   swimlaneId?: string;
   boundedContextId?: string;
   /**
+   * Containing Aggregate Root (geometric containment).
+   * Aggregates themselves never have an aggregateId (no nesting).
+   */
+  aggregateId?: string;
+  /**
    * Linked detail view for architecture building-block drill-down
    * (Blackbox/Whitebox → innere Komponenten).
    */

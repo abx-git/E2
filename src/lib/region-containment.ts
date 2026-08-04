@@ -61,23 +61,51 @@ export function resolveBoundedContextId(
 }
 
 /**
- * Returns a new elements array when any swimlaneId / boundedContextId must change
- * based on full geometric containment; otherwise returns the same reference.
+ * Fully containing Aggregate Root, or undefined if none.
+ * Aggregates never nest inside other aggregates.
+ * Prefer smallest area when multiple aggregates enclose the element.
+ */
+export function resolveAggregateId(
+  el: StormElement,
+  aggregates: StormElement[],
+): string | undefined {
+  if (el.type === "aggregate") return undefined;
+  const bounds = elementBounds(el);
+  let best: { id: string; area: number } | null = null;
+  for (const agg of aggregates) {
+    if (agg.type !== "aggregate" || agg.id === el.id) continue;
+    const outer = elementBounds(agg);
+    if (!rectFullyContains(outer, bounds)) continue;
+    const a = area(outer);
+    if (!best || a < best.area) best = { id: agg.id, area: a };
+  }
+  return best?.id;
+}
+
+/**
+ * Returns a new elements array when any swimlaneId / boundedContextId / aggregateId
+ * must change based on full geometric containment; otherwise returns the same reference.
  */
 export function applyContainmentAssignments(
   elements: StormElement[],
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
 ): StormElement[] {
+  const aggregates = elements.filter((e) => e.type === "aggregate");
   let changed = false;
   const next = elements.map((el) => {
     const swimlaneId = resolveSwimlaneId(el, swimlanes);
     const boundedContextId = resolveBoundedContextId(el, boundedContexts);
-    if (el.swimlaneId === swimlaneId && el.boundedContextId === boundedContextId) {
+    const aggregateId = resolveAggregateId(el, aggregates);
+    if (
+      el.swimlaneId === swimlaneId &&
+      el.boundedContextId === boundedContextId &&
+      el.aggregateId === aggregateId
+    ) {
       return el;
     }
     changed = true;
-    return { ...el, swimlaneId, boundedContextId };
+    return { ...el, swimlaneId, boundedContextId, aggregateId };
   });
   return changed ? next : elements;
 }
@@ -101,6 +129,22 @@ export function elementIdsInBoundedContext(
   const outer = boundedContextBounds(bc);
   return elements
     .filter((e) => e.boundedContextId === bc.id || rectFullyContains(outer, elementBounds(e)))
+    .map((e) => e.id);
+}
+
+/** Element IDs that should move with an Aggregate Root (assigned or fully contained now). */
+export function elementIdsInAggregate(
+  elements: StormElement[],
+  aggregate: StormElement,
+): string[] {
+  if (aggregate.type !== "aggregate") return [];
+  const outer = elementBounds(aggregate);
+  return elements
+    .filter(
+      (e) =>
+        e.id !== aggregate.id &&
+        (e.aggregateId === aggregate.id || rectFullyContains(outer, elementBounds(e))),
+    )
     .map((e) => e.id);
 }
 

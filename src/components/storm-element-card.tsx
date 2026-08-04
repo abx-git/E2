@@ -19,6 +19,8 @@ import {
   snapRotationDegrees,
 } from "@/lib/element-rotation";
 import { cssStackingZIndex } from "@/lib/element-z-order";
+import { elementIdsInAggregate } from "@/lib/region-containment";
+import { hexToRgba } from "@/lib/region-style";
 import { HighlightedText } from "@/components/highlighted-text";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
@@ -30,6 +32,8 @@ const MIN_SIZE = 40;
 const ROTATION_SNAP_STEP = 15;
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_CANCEL_PX = 10;
+/** Semi-transparent Aggregate boundary so nested stickies stay readable. */
+const AGGREGATE_FILL_OPACITY = 0.38;
 
 type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
@@ -85,6 +89,7 @@ export function StormElementCard({
   const [draft, setDraft] = useState(element.label);
   const isNote = element.type === "note";
   const isInstruction = element.type === "instruction";
+  const isAggregate = element.type === "aggregate";
   const noteLike = isNoteLike(element.type);
   const noteColors = isNote ? resolveNoteColor(element.metadata?.noteColor) : null;
   const colors = {
@@ -299,14 +304,14 @@ export function StormElementCard({
     "text-xs font-semibold leading-tight",
     noteLike && !showDetails
       ? "line-clamp-6 w-full whitespace-pre-wrap text-left"
-      : showDetails
+      : showDetails || isAggregate
         ? "line-clamp-2 w-full text-left"
         : "line-clamp-3 text-center",
   ].join(" ");
 
   const editorClass = [
     "w-full resize-none bg-transparent text-xs font-semibold leading-tight outline-none ring-0",
-    noteLike ? "h-full whitespace-pre-wrap text-left" : showDetails ? "text-left" : "text-center",
+    noteLike ? "h-full whitespace-pre-wrap text-left" : showDetails || isAggregate ? "text-left" : "text-center",
   ].join(" ");
 
   return (
@@ -360,11 +365,20 @@ export function StormElementCard({
           }, LONG_PRESS_MS);
         }
 
-        const moveIds =
+        const moveIdsBase =
           selected && selectedIds.includes(element.id) && selectedIds.length > 1
             ? selectedIds
             : [element.id];
         const boardElements = useStormBoardStore.getState().elements;
+        const moveIdSet = new Set(moveIdsBase);
+        for (const id of moveIdsBase) {
+          const moving = boardElements.find((el) => el.id === id);
+          if (moving?.type !== "aggregate") continue;
+          for (const childId of elementIdsInAggregate(boardElements, moving)) {
+            moveIdSet.add(childId);
+          }
+        }
+        const moveIds = Array.from(moveIdSet);
         const origins = new Map(
           boardElements
             .filter((el) => moveIds.includes(el.id))
@@ -476,7 +490,7 @@ export function StormElementCard({
       <div
         className={[
           "relative flex h-full w-full flex-col border px-2 py-1 shadow-sm transition-shadow",
-          showDetails || noteLike
+          showDetails || noteLike || isAggregate
             ? "items-stretch justify-start gap-0.5 overflow-x-hidden overflow-y-auto"
             : "items-center justify-center",
           shapeClass,
@@ -491,9 +505,12 @@ export function StormElementCard({
             ? "opacity-70 outline outline-1 outline-dashed outline-[var(--muted)]"
             : "",
           !inActiveMode && dimmed ? "outline outline-1 outline-dashed outline-[var(--muted)]" : "",
+          isAggregate ? "border-2" : "",
         ].join(" ")}
         style={{
-          backgroundColor: colors.bg,
+          backgroundColor: isAggregate
+            ? hexToRgba(colors.bg, AGGREGATE_FILL_OPACITY)
+            : colors.bg,
           borderColor: colors.border,
           color: colors.text,
           borderStyle: isNote ? "dashed" : undefined,
@@ -506,17 +523,19 @@ export function StormElementCard({
               ? `Fokus: ${ELEMENT_STYLES[paletteType].label} — anderes Element abgedunkelt`
               : !inActiveMode
                 ? "Element aus dem anderen Methoden-Modus"
-                : isInstruction
-                  ? "Instruction — Anweisung für die Umsetzung"
-                  : undefined
+                : isAggregate
+                  ? "Aggregate Root — Entity & Value Objects hineinziehen"
+                  : isInstruction
+                    ? "Instruction — Anweisung für die Umsetzung"
+                    : undefined
         }
       >
-        {isInstruction && (
+        {(isInstruction || isAggregate) && (
           <span
             className="mb-0.5 w-fit shrink-0 rounded px-1 py-px text-[0.58rem] font-bold uppercase tracking-wide"
             style={{ backgroundColor: colors.border, color: colors.text }}
           >
-            Instruction
+            {isAggregate ? "Aggregate Root" : "Instruction"}
           </span>
         )}
         {editing ? (
@@ -564,9 +583,17 @@ export function StormElementCard({
             />
           )
         ) : searchActive && searchHit?.inLabel ? (
-          <HighlightedText text={element.label} query={searchQuery} className={labelClass} />
+          <HighlightedText
+            text={element.label}
+            query={searchQuery}
+            className={[labelClass, isAggregate ? "border-b border-current/20 pb-1" : ""].join(" ")}
+          />
         ) : (
-          <span className={labelClass}>{element.label}</span>
+          <span
+            className={[labelClass, isAggregate ? "border-b border-current/20 pb-1" : ""].join(" ")}
+          >
+            {element.label}
+          </span>
         )}
         {!editing && showDescription && (
           <p className="w-full whitespace-pre-wrap break-words text-left text-[0.65rem] leading-snug opacity-80">
