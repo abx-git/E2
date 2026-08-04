@@ -799,7 +799,7 @@ async function attachWorkingFileFromText(
     return {
       status: "read_error",
       message:
-        'Die Datei ist kein gültiges E2-JSON (Format "event-storming-tool" oder "event-storming-tool-ai-context" erwartet).',
+        'Die Datei ist kein gültiges E2-JSON (Format "event-storming-tool" / "event-storming-tool-ai-context") und kein Mermaid-/PlantUML-Diagramm.',
     };
   }
 

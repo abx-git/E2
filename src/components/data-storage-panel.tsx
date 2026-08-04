@@ -71,6 +71,12 @@ export interface DataStoragePanelProps {
   onExportAiContextSchema: () => void;
   /** Paste AI-context JSON as a new view (auto-layout). */
   onPasteAiContextAsNewView: () => void;
+  /** Mermaid / PlantUML for the selected view. */
+  onExportViewMermaid: (viewId: string) => void;
+  onCopyViewMermaidToClipboard: (viewId: string) => boolean | Promise<boolean>;
+  onExportViewPlantUml: (viewId: string) => void;
+  onCopyViewPlantUmlToClipboard: (viewId: string) => boolean | Promise<boolean>;
+  onPasteDiagramAsNewView: () => void;
   onExportJsonSchema: () => void;
   onExportSvg: () => void;
   onExportPng: () => void;
@@ -269,6 +275,11 @@ export function DataStoragePanel({
   onCopyViewAiContextToClipboard,
   onExportAiContextSchema,
   onPasteAiContextAsNewView,
+  onExportViewMermaid,
+  onCopyViewMermaidToClipboard,
+  onExportViewPlantUml,
+  onCopyViewPlantUmlToClipboard,
+  onPasteDiagramAsNewView,
   onExportJsonSchema,
   onExportSvg,
   onExportPng,
@@ -297,6 +308,8 @@ export function DataStoragePanel({
   const [jsonCopied, setJsonCopied] = useState(false);
   const [viewJsonCopied, setViewJsonCopied] = useState(false);
   const [aiContextCopied, setAiContextCopied] = useState(false);
+  const [mermaidCopied, setMermaidCopied] = useState(false);
+  const [plantUmlCopied, setPlantUmlCopied] = useState(false);
   const [exportViewId, setExportViewId] = useState<string | null>(null);
   const [preferredTab, setPreferredTab] = useState<StorageTabId>(() => readStoredTab() ?? "file");
 
@@ -804,6 +817,74 @@ export function DataStoragePanel({
                     disabled={busy}
                     label="KI einfügen"
                     detail="als neue Sicht"
+                    icon={ClipboardPaste}
+                    emphasize
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--control)]/35 p-2.5">
+                <div className="mb-2 flex items-baseline justify-between gap-2 px-0.5">
+                  <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
+                    Diagramm
+                  </p>
+                  <p className="text-[0.65rem] text-[var(--muted)]">Mermaid · PlantUML</p>
+                </div>
+                <p className="mb-2 px-0.5 text-[0.65rem] text-[var(--muted)]">
+                  Export der gewählten Sicht; Import mit Auto-Layout als neue Sicht.
+                </p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <ExportTile
+                    onClick={() => onExportViewMermaid(selectedExportViewId)}
+                    disabled={busy || !selectedExportViewId}
+                    label="Mermaid"
+                    detail=".mmd herunterladen"
+                    emphasize
+                  />
+                  <ExportTile
+                    onClick={() => {
+                      void Promise.resolve(onCopyViewMermaidToClipboard(selectedExportViewId)).then(
+                        (ok) => {
+                          if (!ok) return;
+                          setMermaidCopied(true);
+                          window.setTimeout(() => setMermaidCopied(false), 2000);
+                        },
+                      );
+                    }}
+                    disabled={busy || !selectedExportViewId}
+                    label={mermaidCopied ? "Kopiert" : "Mermaid kopieren"}
+                    detail="Zwischenablage"
+                    icon={ClipboardCopy}
+                    emphasize={mermaidCopied}
+                  />
+                  <ExportTile
+                    onClick={() => onExportViewPlantUml(selectedExportViewId)}
+                    disabled={busy || !selectedExportViewId}
+                    label="PlantUML"
+                    detail=".puml herunterladen"
+                    emphasize
+                  />
+                  <ExportTile
+                    onClick={() => {
+                      void Promise.resolve(
+                        onCopyViewPlantUmlToClipboard(selectedExportViewId),
+                      ).then((ok) => {
+                        if (!ok) return;
+                        setPlantUmlCopied(true);
+                        window.setTimeout(() => setPlantUmlCopied(false), 2000);
+                      });
+                    }}
+                    disabled={busy || !selectedExportViewId}
+                    label={plantUmlCopied ? "Kopiert" : "PlantUML kopieren"}
+                    detail="Zwischenablage"
+                    icon={ClipboardCopy}
+                    emphasize={plantUmlCopied}
+                  />
+                  <ExportTile
+                    onClick={onPasteDiagramAsNewView}
+                    disabled={busy}
+                    label="Diagramm einfügen"
+                    detail="Mermaid / PlantUML"
                     icon={ClipboardPaste}
                     emphasize
                   />

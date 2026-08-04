@@ -79,6 +79,12 @@ import {
   stringifyAiBoardContext,
   stringifySingleViewExport,
 } from "@/lib/view-export";
+import {
+  diagramExportFilename,
+  downloadTextFile,
+  mermaidFromViewId,
+  plantUmlFromViewId,
+} from "@/lib/diagram-io";
 import { stringifyAiBoardContextSchema } from "@/lib/ai-board-context-import";
 import { type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
@@ -152,7 +158,7 @@ export function StormBoard() {
     fileName: string;
   } | null>(null);
   const [importConflictBusy, setImportConflictBusy] = useState(false);
-  const [jsonPasteMode, setJsonPasteMode] = useState<"board" | "ai-view" | null>(null);
+  const [jsonPasteMode, setJsonPasteMode] = useState<"board" | "ai-view" | "diagram" | null>(null);
   const joinRoom = useCollabStore((s) => s.joinRoom);
   const leaveRoom = useCollabStore((s) => s.leaveRoom);
   const syncConflict = useCollabStore((s) => s.syncConflict);
@@ -333,6 +339,70 @@ export function StormBoard() {
     a.download = AI_BOARD_CONTEXT_SCHEMA_FILENAME;
     a.click();
     URL.revokeObjectURL(url);
+  }, []);
+
+  const downloadViewMermaid = useCallback((viewId: string) => {
+    const text = mermaidFromViewId(viewId);
+    const payload = boardImportPayloadFromStore();
+    const view = payload.views.find((v) => v.id === viewId);
+    if (!text || !view) {
+      window.alert("Mermaid konnte nicht exportiert werden.");
+      return;
+    }
+    downloadTextFile(
+      diagramExportFilename("mermaid", payload.title, view.name),
+      text,
+      "text/plain;charset=utf-8",
+    );
+  }, []);
+
+  const copyViewMermaidToClipboard = useCallback(async (viewId: string): Promise<boolean> => {
+    const text = mermaidFromViewId(viewId);
+    if (!text) {
+      window.alert("Mermaid konnte nicht exportiert werden.");
+      return false;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      window.alert(
+        "Mermaid konnte nicht in die Zwischenablage kopiert werden. Bitte herunterladen.",
+      );
+      return false;
+    }
+  }, []);
+
+  const downloadViewPlantUml = useCallback((viewId: string) => {
+    const text = plantUmlFromViewId(viewId);
+    const payload = boardImportPayloadFromStore();
+    const view = payload.views.find((v) => v.id === viewId);
+    if (!text || !view) {
+      window.alert("PlantUML konnte nicht exportiert werden.");
+      return;
+    }
+    downloadTextFile(
+      diagramExportFilename("plantuml", payload.title, view.name),
+      text,
+      "text/plain;charset=utf-8",
+    );
+  }, []);
+
+  const copyViewPlantUmlToClipboard = useCallback(async (viewId: string): Promise<boolean> => {
+    const text = plantUmlFromViewId(viewId);
+    if (!text) {
+      window.alert("PlantUML konnte nicht exportiert werden.");
+      return false;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      window.alert(
+        "PlantUML konnte nicht in die Zwischenablage kopiert werden. Bitte herunterladen.",
+      );
+      return false;
+    }
   }, []);
 
   const syncWorkingFileUrlContext = () => {
@@ -701,7 +771,7 @@ export function StormBoard() {
     const payload = boardImportPayloadFromAnyExportText(text);
     if (!payload) {
       window.alert(
-        'Ungültiges E2-JSON (.storm.json oder KI-Kontext "event-storming-tool-ai-context").',
+        'Ungültiges E2-JSON, KI-Kontext oder Diagramm (Mermaid / PlantUML).',
       );
       return false;
     }
@@ -722,6 +792,16 @@ export function StormBoard() {
       return;
     }
     setJsonPasteMode("ai-view");
+  };
+
+  const handlePasteDiagramAsNewView = () => {
+    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+      window.alert(
+        "Während der Kollaboration kann kein Diagramm eingefügt werden. Bitte zuerst den Raum verlassen.",
+      );
+      return;
+    }
+    setJsonPasteMode("diagram");
   };
 
   const applyPastedAiOrViewJson = (raw: string) => {
@@ -866,6 +946,11 @@ export function StormBoard() {
         onCopyViewAiContextToClipboard={copyViewAiContextToClipboard}
         onExportAiContextSchema={downloadAiContextSchema}
         onPasteAiContextAsNewView={handlePasteAiContextAsNewView}
+        onExportViewMermaid={downloadViewMermaid}
+        onCopyViewMermaidToClipboard={copyViewMermaidToClipboard}
+        onExportViewPlantUml={downloadViewPlantUml}
+        onCopyViewPlantUmlToClipboard={copyViewPlantUmlToClipboard}
+        onPasteDiagramAsNewView={handlePasteDiagramAsNewView}
         onExportJsonSchema={downloadJsonSchema}
         onExportSvg={exportBoardSvg}
         onExportPng={() => void exportBoardPng()}
@@ -953,6 +1038,17 @@ export function StormBoard() {
         title="KI-Kontext einfügen"
         description="Reduziertes KI-JSON (oder .storm.json) als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten; Elemente werden automatisch arrangiert."
         placeholder='{ "format": "event-storming-tool-ai-context", "version": 1, … }'
+        confirmLabel="Als Sicht importieren"
+        busy={busy}
+        onClose={() => setJsonPasteMode(null)}
+        onConfirm={applyPastedAiOrViewJson}
+      />
+
+      <JsonPasteDialog
+        open={jsonPasteMode === "diagram"}
+        title="Diagramm einfügen"
+        description="Mermaid- oder PlantUML-Text als neue Sicht importieren. Elemente werden automatisch arrangiert."
+        placeholder={"flowchart LR\n  A[Place Order] -->|löst aus| B[Order Placed]"}
         confirmLabel="Als Sicht importieren"
         busy={busy}
         onClose={() => setJsonPasteMode(null)}

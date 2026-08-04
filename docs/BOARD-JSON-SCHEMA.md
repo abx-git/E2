@@ -51,6 +51,17 @@ Für Conversation-Context und Roundtrip mit Auto-Layout:
 
 Ohne Koordinaten — beim Import legt die App Positionen (Timeline / Lanes / Bounded Contexts) an. Paste ersetzt das Board oder fügt als neue Sicht ein.
 
+## Mermaid / PlantUML
+
+Pro Sicht unter **Daten → Export → Diagramm**:
+
+| Richtung | Formate |
+|----------|---------|
+| Export | `.mmd` (Mermaid) / `.puml` (PlantUML), auch Zwischenablage |
+| Import | **Diagramm einfügen** oder „Als neue Seite importieren“ / JSON-Paste |
+
+Mode-Mapping (Export): Event Storming & Co. → `flowchart`; DDD → `classDiagram` / PlantUML `class`; Daten → `erDiagram` / PlantUML `entity`; sonst PlantUML `component`. Import erkennt Diagrammtyp heuristisch und arrangiert über denselben Auto-Layout-Pfad wie KI-Kontext.
+
 ## Struktur
 
 | Ebene | Felder |

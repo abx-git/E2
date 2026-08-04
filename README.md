@@ -310,6 +310,7 @@ Im Facilitator-Modus:
 | **JSON** | Vollständiger Board-Stand inkl. Schema-Verweis | alle |
 | **JSON Schema** | Für andere Tools, die gültige Boards erzeugen | alle |
 | **KI-Kontext** | Reduzierte Sicht (semantisch) + Schema; Import mit Auto-Layout | alle |
+| **Mermaid / PlantUML** | Diagramm-Text pro Sicht; Import mit Auto-Layout | alle |
 | **SVG / PNG** | Visueller Snapshot; SVG als `.drawio.svg` mit eingebettetem Diagramm — in [diagrams.net](https://app.diagrams.net) / Draw.io bearbeitbar | alle |
 | **Hotspot-Report (MD)** | Offene Punkte | alle |
 | **Glossary (MD)** | Ubiquitous Language | alle |
