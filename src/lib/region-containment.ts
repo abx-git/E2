@@ -83,8 +83,31 @@ export function resolveAggregateId(
 }
 
 /**
- * Returns a new elements array when any swimlaneId / boundedContextId / aggregateId
- * must change based on full geometric containment; otherwise returns the same reference.
+ * Fully containing Subdomain, or undefined if none.
+ * Subdomains never nest inside other subdomains.
+ * Prefer smallest area when multiple subdomains enclose the element.
+ */
+export function resolveSubdomainId(
+  el: StormElement,
+  subdomains: StormElement[],
+): string | undefined {
+  if (el.type === "subdomain") return undefined;
+  const bounds = elementBounds(el);
+  let best: { id: string; area: number } | null = null;
+  for (const sub of subdomains) {
+    if (sub.type !== "subdomain" || sub.id === el.id) continue;
+    const outer = elementBounds(sub);
+    if (!rectFullyContains(outer, bounds)) continue;
+    const a = area(outer);
+    if (!best || a < best.area) best = { id: sub.id, area: a };
+  }
+  return best?.id;
+}
+
+/**
+ * Returns a new elements array when any swimlaneId / boundedContextId /
+ * aggregateId / subdomainId must change based on full geometric containment;
+ * otherwise returns the same reference.
  */
 export function applyContainmentAssignments(
   elements: StormElement[],
@@ -92,20 +115,23 @@ export function applyContainmentAssignments(
   boundedContexts: BoundedContext[],
 ): StormElement[] {
   const aggregates = elements.filter((e) => e.type === "aggregate");
+  const subdomains = elements.filter((e) => e.type === "subdomain");
   let changed = false;
   const next = elements.map((el) => {
     const swimlaneId = resolveSwimlaneId(el, swimlanes);
     const boundedContextId = resolveBoundedContextId(el, boundedContexts);
     const aggregateId = resolveAggregateId(el, aggregates);
+    const subdomainId = resolveSubdomainId(el, subdomains);
     if (
       el.swimlaneId === swimlaneId &&
       el.boundedContextId === boundedContextId &&
-      el.aggregateId === aggregateId
+      el.aggregateId === aggregateId &&
+      el.subdomainId === subdomainId
     ) {
       return el;
     }
     changed = true;
-    return { ...el, swimlaneId, boundedContextId, aggregateId };
+    return { ...el, swimlaneId, boundedContextId, aggregateId, subdomainId };
   });
   return changed ? next : elements;
 }
@@ -144,6 +170,22 @@ export function elementIdsInAggregate(
       (e) =>
         e.id !== aggregate.id &&
         (e.aggregateId === aggregate.id || rectFullyContains(outer, elementBounds(e))),
+    )
+    .map((e) => e.id);
+}
+
+/** Element IDs that should move with a Subdomain (assigned or fully contained now). */
+export function elementIdsInSubdomain(
+  elements: StormElement[],
+  subdomain: StormElement,
+): string[] {
+  if (subdomain.type !== "subdomain") return [];
+  const outer = elementBounds(subdomain);
+  return elements
+    .filter(
+      (e) =>
+        e.id !== subdomain.id &&
+        (e.subdomainId === subdomain.id || rectFullyContains(outer, elementBounds(e))),
     )
     .map((e) => e.id);
 }

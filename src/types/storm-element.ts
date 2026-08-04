@@ -204,6 +204,11 @@ export interface StormElement {
    */
   aggregateId?: string;
   /**
+   * Containing Subdomain (geometric containment).
+   * Subdomains themselves never have a subdomainId (no nesting).
+   */
+  subdomainId?: string;
+  /**
    * Linked detail view for architecture building-block drill-down
    * (Blackbox/Whitebox → innere Komponenten).
    */

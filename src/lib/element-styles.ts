@@ -260,10 +260,10 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     border: "border-violet-300",
     text: "text-violet-950",
     fill: "#ede9fe",
-    stroke: "#c4b5fd",
+    stroke: "#a78bfa",
     ink: "#4c1d95",
-    defaultWidth: 200,
-    defaultHeight: 88,
+    defaultWidth: 320,
+    defaultHeight: 240,
     shape: "rectangle",
   },
   rule: {

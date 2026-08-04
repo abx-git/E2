@@ -50,6 +50,9 @@ function remapElement(
   if (el.aggregateId) {
     next.aggregateId = idMap.get(el.aggregateId);
   }
+  if (el.subdomainId) {
+    next.subdomainId = idMap.get(el.subdomainId);
+  }
   const linkViewId = el.metadata?.linkViewId?.trim();
   if (linkViewId) {
     const mapped = viewIdMap.get(linkViewId);

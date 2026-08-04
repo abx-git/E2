@@ -653,6 +653,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
             boundedContextId:
               e.boundedContextId && bcSet.has(e.boundedContextId) ? undefined : e.boundedContextId,
             aggregateId: e.aggregateId && elSet.has(e.aggregateId) ? undefined : e.aggregateId,
+            subdomainId: e.subdomainId && elSet.has(e.subdomainId) ? undefined : e.subdomainId,
           })),
         relations: s.relations.filter(
           (r) => !elSet.has(r.sourceId) && !elSet.has(r.targetId),
@@ -1082,7 +1083,12 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => ({
       elements: s.elements
         .filter((e) => e.id !== id)
-        .map((e) => (e.aggregateId === id ? { ...e, aggregateId: undefined } : e)),
+        .map((e) => {
+          let next = e;
+          if (next.aggregateId === id) next = { ...next, aggregateId: undefined };
+          if (next.subdomainId === id) next = { ...next, subdomainId: undefined };
+          return next;
+        }),
       relations: s.relations.filter((r) => r.sourceId !== id && r.targetId !== id),
       selectedElementIds: s.selectedElementIds.filter((x) => x !== id),
     })),

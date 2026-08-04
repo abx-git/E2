@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   applyContainmentAssignments,
   elementIdsInAggregate,
+  elementIdsInSubdomain,
   elementIdsInSwimlane,
   rectFullyContains,
   resolveAggregateId,
   resolveBoundedContextId,
+  resolveSubdomainId,
   resolveSwimlaneId,
   translateMatchingElements,
 } from "@/lib/region-containment";
@@ -150,6 +152,64 @@ describe("region-containment", () => {
       el({ id: "outside", type: "entity", x: 400, y: 40, width: 80, height: 40 }),
     ];
     expect(elementIdsInAggregate(elements, aggregate).sort()).toEqual(["assigned", "inside"]);
+  });
+
+  it("assigns subdomain when fully inside and does not nest subdomains", () => {
+    const subdomains = [
+      el({ id: "outer-sub", type: "subdomain", x: 0, y: 0, width: 500, height: 400 }),
+      el({ id: "inner-sub", type: "subdomain", x: 40, y: 40, width: 220, height: 180 }),
+    ];
+    expect(
+      resolveSubdomainId(
+        el({ id: "e", type: "entity", x: 50, y: 50, width: 80, height: 40 }),
+        subdomains,
+      ),
+    ).toBe("inner-sub");
+    expect(
+      resolveSubdomainId(
+        el({ id: "nested", type: "subdomain", x: 50, y: 50, width: 140, height: 100 }),
+        subdomains,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("updates subdomainId with containment assignments", () => {
+    const elements = [
+      el({ id: "sub", type: "subdomain", x: 0, y: 0, width: 320, height: 240 }),
+      el({ id: "in", type: "aggregate", x: 40, y: 40, width: 140, height: 100 }),
+      el({
+        id: "out",
+        type: "entity",
+        x: 500,
+        y: 40,
+        width: 100,
+        height: 50,
+        subdomainId: "sub",
+      }),
+    ];
+    const next = applyContainmentAssignments(elements, [], []);
+    expect(next.find((e) => e.id === "in")?.subdomainId).toBe("sub");
+    expect(next.find((e) => e.id === "out")?.subdomainId).toBeUndefined();
+    expect(next.find((e) => e.id === "sub")?.subdomainId).toBeUndefined();
+  });
+
+  it("lists subdomain members by id or containment", () => {
+    const subdomain = el({ id: "sub", type: "subdomain", x: 0, y: 0, width: 320, height: 240 });
+    const elements = [
+      subdomain,
+      el({ id: "inside", type: "entity", x: 40, y: 40, width: 80, height: 40 }),
+      el({
+        id: "assigned",
+        type: "aggregate",
+        x: 500,
+        y: 500,
+        width: 140,
+        height: 100,
+        subdomainId: "sub",
+      }),
+      el({ id: "outside", type: "entity", x: 400, y: 40, width: 80, height: 40 }),
+    ];
+    expect(elementIdsInSubdomain(elements, subdomain).sort()).toEqual(["assigned", "inside"]);
   });
 
   it("updates only changed assignment fields", () => {

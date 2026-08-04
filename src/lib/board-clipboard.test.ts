@@ -150,4 +150,40 @@ describe("board-clipboard", () => {
     expect(newAgg.id).not.toBe("agg");
     expect(newEnt.aggregateId).toBe(newAgg.id);
   });
+
+  it("keeps subdomainId when Subdomain is also copied and remaps it", () => {
+    const withSub: StormElement[] = [
+      {
+        id: "sub",
+        type: "subdomain",
+        label: "Sales",
+        x: 0,
+        y: 0,
+        width: 320,
+        height: 240,
+        metadata: { subdomainKind: "core" },
+      },
+      {
+        id: "agg",
+        type: "aggregate",
+        label: "Order",
+        x: 40,
+        y: 40,
+        width: 140,
+        height: 100,
+        subdomainId: "sub",
+      },
+    ];
+    const alone = extractClipboardPayload(withSub, [], ["agg"]);
+    expect(alone!.elements[0]!.subdomainId).toBeUndefined();
+
+    const together = extractClipboardPayload(withSub, [], ["sub", "agg"])!;
+    expect(together.elements.find((e) => e.id === "agg")!.subdomainId).toBe("sub");
+
+    const remapped = remapClipboardForPaste(together, together.originX + 5, together.originY + 5);
+    const newSub = remapped.elements.find((e) => e.type === "subdomain")!;
+    const newAgg = remapped.elements.find((e) => e.type === "aggregate")!;
+    expect(newSub.id).not.toBe("sub");
+    expect(newAgg.subdomainId).toBe(newSub.id);
+  });
 });

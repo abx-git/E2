@@ -215,15 +215,15 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
   },
   subdomain: {
     title: "Subdomain",
-    subtitle: "Violett — Problemraum-Teil",
+    subtitle: "Violette Boundary — Problemraum-Bereich",
     paragraphs: [
-      "Teil des Problemraums: Core (Differenzierung), Supporting oder Generic.",
-      "Strategisches DDD — oft Vorstufe zu Bounded Contexts.",
+      "Teil des Problemraums als Fläche: Core (Differenzierung), Supporting oder Generic.",
+      "Strategisches DDD — oft Vorstufe zu Bounded Contexts. Elemente in die Fläche ziehen.",
     ],
     bullets: [
       "Art in der Detailleiste setzen (Core / Supporting / Generic)",
-      "Core Domain priorisieren",
-      "Nicht mit Bounded Context verwechseln (Lösung vs. Problem)",
+      "Vollständig enthaltene Stickies werden zugeordnet und mitbewegt",
+      "Nicht mit Bounded Context verwechseln (Problem vs. Lösung)",
     ],
   },
   rule: {
