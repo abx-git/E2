@@ -128,6 +128,9 @@
         "eventModeling",
         "processFlow",
         "dataModel",
+        "c4",
+        "arc42",
+        "cloud",
         "architectureDocumentation"
       ]
     },
@@ -146,6 +149,7 @@
         "dataModelWorkshop",
         "arc42Workshop",
         "c4Modeling",
+        "cloudArchitecture",
         "ermDocumentation",
         "free"
       ]

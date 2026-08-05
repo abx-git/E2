@@ -1,7 +1,6 @@
 import type { ElementType, ModelingMode, WorkshopFormat } from "@/types/storm-element";
 import {
   ALL_ELEMENT_TYPES,
-  ARCH_DOC_ELEMENT_TYPES,
   BDD_ELEMENT_TYPES,
   DATA_ELEMENT_TYPES,
   DDD_ELEMENT_TYPES,
@@ -646,25 +645,16 @@ export const PROCESS_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   },
 ];
 
-export const DATA_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
-  {
-    format: "dataModelWorkshop",
-    label: "Datenmodellierung",
-    description: "Konzeptuelle Entitäten, Attribute und Beziehungen",
-    phases: DATA_MODEL_PHASES,
-  },
-];
-
 const ARC42_WORKSHOP_PHASES: FacilitatorPhase[] = [
   {
     id: "arc42-context",
     title: "Kontext (Level 1)",
     description:
-      "Blackbox / Software-System im Umfeld: Personen und externe Systeme — wie C4 System Context.",
-    allowedTypes: ["archBlackbox", "c4SoftwareSystem", "c4Person", "note", "hotspot", "link"],
+      "Blackbox im Umfeld — zentrale Systeme und Schnittstellen der Bausteinsicht.",
+    allowedTypes: ["archBlackbox", "note", "hotspot", "link"],
     checklist: [
-      "Zentrales System als Blackbox oder Software-System",
-      "Personen und externe Systeme darum herum",
+      "Zentrales System als Blackbox",
+      "Externe Systeme als weitere Blackboxes",
       "Beziehungen beschriften (nicht nur „nutzt“)",
     ],
     durationMinutes: 35,
@@ -672,33 +662,30 @@ const ARC42_WORKSHOP_PHASES: FacilitatorPhase[] = [
   {
     id: "arc42-building-blocks",
     title: "Bausteinsicht (Zoom)",
-    description:
-      "Drill-down: Blackbox → Whitebox bzw. System → Container → Komponenten (C4-Zoom).",
+    description: "Drill-down: Blackbox → Whitebox → Komponenten.",
     allowedTypes: [
       "archBlackbox",
       "archWhitebox",
       "archComponent",
-      "c4Container",
-      "c4Component",
       "note",
       "hotspot",
       "link",
     ],
     checklist: [
-      "Detail-Sicht je Blackbox / Software-System öffnen",
-      "Whitebox als Scope; Container oder Komponenten innen",
-      "Optional erneut in Container zoomen",
+      "Detail-Sicht je Blackbox öffnen",
+      "Whitebox als Scope; Komponenten innen",
+      "Optional erneut in Unter-Bausteine zoomen",
     ],
     durationMinutes: 45,
   },
   {
     id: "arc42-runtime-deploy",
     title: "Laufzeit & Verteilung",
-    description: "Dynamik und Deployment mit Containern und Notizen (C4 supporting diagrams).",
-    allowedTypes: ["archBlackbox", "archComponent", "c4Container", "c4SoftwareSystem", "note", "hotspot"],
+    description: "Dynamik und Deployment mit Bausteinen und Notizen.",
+    allowedTypes: ["archBlackbox", "archComponent", "note", "hotspot"],
     checklist: [
       "Laufzeitpfade als Relationen/Notizen",
-      "Verteilung über Container / Systeme",
+      "Verteilung über Blackboxes / Komponenten",
       "Hotspots für offene Fragen",
     ],
     durationMinutes: 35,
@@ -788,7 +775,7 @@ const ERM_DOCUMENTATION_PHASES: FacilitatorPhase[] = [
     id: "erm-relationships",
     title: "Beziehungen",
     description: "Assoziationen und Kardinalitäten festlegen.",
-    allowedTypes: [...ARCH_DOC_ELEMENT_TYPES.filter((t) => t === "dataEntity" || t === "dataAssociation" || t === "note" || t === "instruction" || t === "hotspot" || t === "link")],
+    allowedTypes: [...DATA_ELEMENT_TYPES],
     checklist: [
       "1:1 / 1:n / n:m wählen",
       "Relationen zwischen Entitäten ziehen",
@@ -807,8 +794,6 @@ const CLOUD_ARCHITECTURE_PHASES: FacilitatorPhase[] = [
     allowedTypes: [
       "cloudBoundary",
       "cloudManagedService",
-      "c4Person",
-      "c4SoftwareSystem",
       "note",
       "hotspot",
       "link",
@@ -829,7 +814,6 @@ const CLOUD_ARCHITECTURE_PHASES: FacilitatorPhase[] = [
       "cloudCompute",
       "cloudEdge",
       "cloudManagedService",
-      "c4Container",
       "note",
       "hotspot",
       "link",
@@ -895,30 +879,45 @@ const CLOUD_ARCHITECTURE_PHASES: FacilitatorPhase[] = [
   },
 ];
 
-export const ARCH_DOC_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
+export const ARC42_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   {
     format: "arc42Workshop",
     label: "arc42 Workshop",
-    description: "Bausteinsicht mit C4-ähnlichem Zoom (Blackbox → Whitebox)",
+    description: "Bausteinsicht mit Zoom (Blackbox → Whitebox → Komponente)",
     phases: ARC42_WORKSHOP_PHASES,
   },
+];
+
+export const C4_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   {
     format: "c4Modeling",
     label: "C4 Modellierung",
     description: "Kontext → Container → Komponenten (Zoom wie auf c4model.com/diagrams)",
     phases: C4_MODELING_PHASES,
   },
+];
+
+export const CLOUD_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
+  {
+    format: "cloudArchitecture",
+    label: "Cloud Workshop",
+    description: "Grenzen → Workloads → Daten/Messaging → Netz/IAM (provider-agnostisch)",
+    phases: CLOUD_ARCHITECTURE_PHASES,
+  },
+];
+
+export const DATA_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
+  {
+    format: "dataModelWorkshop",
+    label: "Datenmodellierung",
+    description: "Konzeptuelle Entitäten, Attribute und Beziehungen",
+    phases: DATA_MODEL_PHASES,
+  },
   {
     format: "ermDocumentation",
     label: "ERM Dokumentation",
     description: "Entitäten, Attribute und Beziehungen",
     phases: ERM_DOCUMENTATION_PHASES,
-  },
-  {
-    format: "cloudArchitecture",
-    label: "Cloud Architektur",
-    description: "Grenzen → Workloads → Daten/Messaging → Netz/IAM (provider-agnostisch)",
-    phases: CLOUD_ARCHITECTURE_PHASES,
   },
 ];
 
@@ -930,7 +929,9 @@ const ALL_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   ...EM_FACILITATOR_FORMATS,
   ...PROCESS_FACILITATOR_FORMATS,
   ...DATA_FACILITATOR_FORMATS,
-  ...ARCH_DOC_FACILITATOR_FORMATS,
+  ...C4_FACILITATOR_FORMATS,
+  ...ARC42_FACILITATOR_FORMATS,
+  ...CLOUD_FACILITATOR_FORMATS,
 ];
 
 export function getFacilitatorFormatsForMode(mode: ModelingMode): FacilitatorFormatDefinition[] {
@@ -947,8 +948,12 @@ export function getFacilitatorFormatsForMode(mode: ModelingMode): FacilitatorFor
       return PROCESS_FACILITATOR_FORMATS;
     case "dataModel":
       return DATA_FACILITATOR_FORMATS;
-    case "architectureDocumentation":
-      return ARCH_DOC_FACILITATOR_FORMATS;
+    case "c4":
+      return C4_FACILITATOR_FORMATS;
+    case "arc42":
+      return ARC42_FACILITATOR_FORMATS;
+    case "cloud":
+      return CLOUD_FACILITATOR_FORMATS;
     default:
       return FACILITATOR_FORMATS;
   }

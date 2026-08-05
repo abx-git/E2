@@ -34,9 +34,9 @@ export function inferElementTypeFromLabel(
   if (/\b(start|begin)\b/.test(l)) return "processStart";
   if (/\b(end|ende|finish)\b/.test(l)) return "processEnd";
   if (/\b(xor|gateway|gateway|entscheid)/i.test(l)) return "processGateway";
-  if (mode === "dataModel" || mode === "architectureDocumentation") {
+  if (mode === "dataModel") {
     if (/\b(assoc|beziehung|link)\b/.test(l)) return "dataAssociation";
-    if (mode === "dataModel") return "dataEntity";
+    return "dataEntity";
   }
   if (mode === "processFlow") return "processActivity";
   if (mode === "domainDrivenDesign") {
@@ -46,8 +46,19 @@ export function inferElementTypeFromLabel(
     if (/\b(agg|aggregate)\b/.test(l)) return "aggregate";
     return "entity";
   }
-  if (mode === "architectureDocumentation") {
+  if (mode === "c4") {
     if (/\b(person|user|actor)\b/.test(l)) return "c4Person";
+    if (/\b(container)\b/.test(l)) return "c4Container";
+    if (/\b(component|komponente)\b/.test(l)) return "c4Component";
+    if (/\b(whitebox)\b/.test(l)) return "archWhitebox";
+    return "c4SoftwareSystem";
+  }
+  if (mode === "arc42") {
+    if (/\b(whitebox)\b/.test(l)) return "archWhitebox";
+    if (/\b(blackbox|system)\b/.test(l)) return "archBlackbox";
+    return "archComponent";
+  }
+  if (mode === "cloud") {
     if (/\b(vpc|vnet|subnet|netzwerk|network)\b/.test(l)) return "cloudNetwork";
     if (/\b(compute|lambda|function|aks|eks|gke|vm|container.?app)\b/.test(l)) return "cloudCompute";
     if (/\b(s3|blob|rds|dynamo|cosmos|storage|datenbank|database|cache|redis)\b/.test(l)) {
@@ -60,11 +71,7 @@ export function inferElementTypeFromLabel(
       return "cloudBoundary";
     }
     if (/\b(managed|saas|paas)\b/.test(l)) return "cloudManagedService";
-    if (/\b(container)\b/.test(l)) return "c4Container";
-    if (/\b(component|komponente)\b/.test(l)) return "c4Component";
-    if (/\b(system)\b/.test(l)) return "c4SoftwareSystem";
-    if (/\b(blackbox|whitebox)\b/.test(l)) return "archBlackbox";
-    return "archComponent";
+    return "cloudBoundary";
   }
   if (mode === "bdd") {
     if (/\?|frage|question/.test(l)) return "question";
@@ -102,7 +109,13 @@ export function inferRelationType(edgeLabel: string | undefined, mode: ModelingM
   if (/annot|note/.test(l)) return "annotates";
   if (/causal|verursacht/.test(l)) return "causal";
   if (mode === "processFlow") return "causal";
-  if (mode === "dataModel" || mode === "domainDrivenDesign" || mode === "architectureDocumentation") {
+  if (
+    mode === "dataModel" ||
+    mode === "domainDrivenDesign" ||
+    mode === "c4" ||
+    mode === "arc42" ||
+    mode === "cloud"
+  ) {
     return "contains";
   }
   return "triggers";
@@ -150,7 +163,9 @@ export function inferModelingModeFromDiagram(text: string, kind: "mermaid" | "pl
   const t = text.toLowerCase();
   if (/\berdiagram\b|\bentity\b/.test(t) && /\|/.test(t)) return "dataModel";
   if (/\bclassdiagram\b|\bclass\s+\w+/.test(t)) return "domainDrivenDesign";
-  if (/\bc4|person\(|system\(|container\(|component\(/.test(t)) return "architectureDocumentation";
+  if (/\b(account|landing.?zone|vpc|subnet|iam|cloud)\b/.test(t)) return "cloud";
+  if (/\b(blackbox|whitebox|baustein|arc42)\b/.test(t)) return "arc42";
+  if (/\bc4|person\(|system\(|container\(|component\(/.test(t)) return "c4";
   if (/\bactivity\b|start\b.*:|\|lane/.test(t) || (kind === "plantuml" && /\bif\s*\(/.test(t))) {
     return "processFlow";
   }

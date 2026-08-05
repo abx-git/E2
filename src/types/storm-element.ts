@@ -6,7 +6,9 @@ export type ModelingMode =
   | "eventModeling"
   | "processFlow"
   | "dataModel"
-  | "architectureDocumentation";
+  | "c4"
+  | "arc42"
+  | "cloud";
 
 export type ElementType =
   | "domainEvent"
@@ -373,7 +375,9 @@ export const MODELING_MODES: ModelingMode[] = [
   "eventModeling",
   "processFlow",
   "dataModel",
-  "architectureDocumentation",
+  "c4",
+  "arc42",
+  "cloud",
 ];
 
 /** Shared annotation types. */
@@ -484,17 +488,27 @@ export const DATA_ELEMENT_TYPES: ElementType[] = [
 ];
 
 /**
- * Architecture documentation: C4 entry → Baustein → Cloud → ER,
- * then shared annotations.
+ * C4 model palette — Context → Container → Component (+ Whitebox scope for zoom).
  */
-export const ARCH_DOC_ELEMENT_TYPES: ElementType[] = [
+export const C4_ELEMENT_TYPES: ElementType[] = [
   "c4Person",
   "c4SoftwareSystem",
   "c4Container",
   "c4Component",
+  "archWhitebox",
+  ...SHARED_ELEMENT_TYPES,
+];
+
+/** arc42 Bausteinsicht palette — Blackbox / Whitebox / Komponente. */
+export const ARC42_ELEMENT_TYPES: ElementType[] = [
   "archBlackbox",
   "archWhitebox",
   "archComponent",
+  ...SHARED_ELEMENT_TYPES,
+];
+
+/** Cloud architecture palette — boundaries, workloads, data, net, identity. */
+export const CLOUD_ELEMENT_TYPES: ElementType[] = [
   "cloudBoundary",
   "cloudCompute",
   "cloudEdge",
@@ -503,6 +517,17 @@ export const ARCH_DOC_ELEMENT_TYPES: ElementType[] = [
   "cloudNetwork",
   "cloudIdentity",
   "cloudManagedService",
+  ...SHARED_ELEMENT_TYPES,
+];
+
+/**
+ * @deprecated Prefer C4_ELEMENT_TYPES / ARC42_ELEMENT_TYPES / CLOUD_ELEMENT_TYPES.
+ * Union kept for architecture export coverage.
+ */
+export const ARCH_DOC_ELEMENT_TYPES: ElementType[] = [
+  ...C4_ELEMENT_TYPES.filter((t) => !SHARED_ELEMENT_TYPES.includes(t)),
+  ...ARC42_ELEMENT_TYPES.filter((t) => !SHARED_ELEMENT_TYPES.includes(t) && t !== "archWhitebox"),
+  ...CLOUD_ELEMENT_TYPES.filter((t) => !SHARED_ELEMENT_TYPES.includes(t)),
   "dataEntity",
   "dataAssociation",
   ...SHARED_ELEMENT_TYPES,
@@ -569,15 +594,17 @@ export const EM_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "eventModelingWork
 
 export const PROCESS_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "processWorkshop"];
 
-export const DATA_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "dataModelWorkshop"];
-
-export const ARCH_DOC_WORKSHOP_FORMATS: WorkshopFormat[] = [
+export const DATA_WORKSHOP_FORMATS: WorkshopFormat[] = [
   "free",
-  "arc42Workshop",
-  "c4Modeling",
+  "dataModelWorkshop",
   "ermDocumentation",
-  "cloudArchitecture",
 ];
+
+export const C4_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "c4Modeling"];
+
+export const ARC42_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "arc42Workshop"];
+
+export const CLOUD_WORKSHOP_FORMATS: WorkshopFormat[] = ["free", "cloudArchitecture"];
 
 export const MODELING_MODE_LABELS: Record<ModelingMode, string> = {
   eventStorming: "Event Storming",
@@ -587,7 +614,9 @@ export const MODELING_MODE_LABELS: Record<ModelingMode, string> = {
   eventModeling: "Event Modeling",
   processFlow: "Prozess",
   dataModel: "Daten",
-  architectureDocumentation: "Architektur Dokumentation",
+  c4: "C4",
+  arc42: "arc42",
+  cloud: "Cloud Architektur",
 };
 
 export const MODELING_MODE_SHORT_LABELS: Record<ModelingMode, string> = {
@@ -598,7 +627,9 @@ export const MODELING_MODE_SHORT_LABELS: Record<ModelingMode, string> = {
   eventModeling: "EM",
   processFlow: "PROC",
   dataModel: "DATA",
-  architectureDocumentation: "ARCH",
+  c4: "C4",
+  arc42: "arc42",
+  cloud: "CLOUD",
 };
 
 const ELEMENT_TYPES_BY_MODE: Record<ModelingMode, ElementType[]> = {
@@ -609,7 +640,9 @@ const ELEMENT_TYPES_BY_MODE: Record<ModelingMode, ElementType[]> = {
   eventModeling: EM_ELEMENT_TYPES,
   processFlow: PROCESS_ELEMENT_TYPES,
   dataModel: DATA_ELEMENT_TYPES,
-  architectureDocumentation: ARCH_DOC_ELEMENT_TYPES,
+  c4: C4_ELEMENT_TYPES,
+  arc42: ARC42_ELEMENT_TYPES,
+  cloud: CLOUD_ELEMENT_TYPES,
 };
 
 const WORKSHOP_FORMATS_BY_MODE: Record<ModelingMode, WorkshopFormat[]> = {
@@ -620,7 +653,9 @@ const WORKSHOP_FORMATS_BY_MODE: Record<ModelingMode, WorkshopFormat[]> = {
   eventModeling: EM_WORKSHOP_FORMATS,
   processFlow: PROCESS_WORKSHOP_FORMATS,
   dataModel: DATA_WORKSHOP_FORMATS,
-  architectureDocumentation: ARCH_DOC_WORKSHOP_FORMATS,
+  c4: C4_WORKSHOP_FORMATS,
+  arc42: ARC42_WORKSHOP_FORMATS,
+  cloud: CLOUD_WORKSHOP_FORMATS,
 };
 
 const DEFAULT_PALETTE_BY_MODE: Record<ModelingMode, ElementType> = {
@@ -631,7 +666,9 @@ const DEFAULT_PALETTE_BY_MODE: Record<ModelingMode, ElementType> = {
   eventModeling: "domainEvent",
   processFlow: "processActivity",
   dataModel: "dataEntity",
-  architectureDocumentation: "archBlackbox",
+  c4: "c4SoftwareSystem",
+  arc42: "archBlackbox",
+  cloud: "cloudBoundary",
 };
 
 export function elementTypesForMode(mode: ModelingMode): ElementType[] {
@@ -650,7 +687,20 @@ export function defaultPaletteTypeForMode(mode: ModelingMode): ElementType {
   return DEFAULT_PALETTE_BY_MODE[mode];
 }
 
-export function normalizeModelingMode(value: unknown): ModelingMode {
+/**
+ * Normalize persisted modeling mode. Legacy `architectureDocumentation` is
+ * split into c4 / arc42 / cloud (and erm → dataModel) using the workshop format.
+ */
+export function normalizeModelingMode(
+  value: unknown,
+  workshopFormat?: unknown,
+): ModelingMode {
+  if (value === "architectureDocumentation") {
+    if (workshopFormat === "c4Modeling") return "c4";
+    if (workshopFormat === "cloudArchitecture") return "cloud";
+    if (workshopFormat === "ermDocumentation") return "dataModel";
+    return "arc42";
+  }
   if (
     value === "domainDrivenDesign" ||
     value === "bdd" ||
@@ -658,9 +708,23 @@ export function normalizeModelingMode(value: unknown): ModelingMode {
     value === "eventModeling" ||
     value === "processFlow" ||
     value === "dataModel" ||
-    value === "architectureDocumentation"
+    value === "c4" ||
+    value === "arc42" ||
+    value === "cloud"
   ) {
     return value;
   }
   return "eventStorming";
+}
+
+/** Normalize workshop format after mode migration (e.g. erm under Daten). */
+export function normalizeWorkshopFormatForMode(
+  format: unknown,
+  mode: ModelingMode,
+): WorkshopFormat {
+  const raw = typeof format === "string" ? format : "free";
+  if (isWorkshopFormatForMode(raw as WorkshopFormat, mode)) {
+    return raw as WorkshopFormat;
+  }
+  return "free";
 }

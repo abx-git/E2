@@ -38,7 +38,6 @@ import type {
 } from "@/types/storm-element";
 import {
   ALL_ELEMENT_TYPES,
-  DEFAULT_MODELING_MODE,
   DEFAULT_TIMELINE,
   MODELING_MODES,
   normalizeModelingMode,
@@ -535,10 +534,14 @@ function parseAiView(raw: unknown): AiContextView | null {
   if (!isRecord(raw)) return null;
   const name = asTrimmed(raw.name);
   if (!name) return null;
-  const modelingMode = isModelingMode(raw.modelingMode)
-    ? raw.modelingMode
-    : normalizeModelingMode(asString(raw.modelingMode) ?? DEFAULT_MODELING_MODE);
-  const workshopFormat = isWorkshopFormat(raw.workshopFormat) ? raw.workshopFormat : "free";
+  const workshopFormatRaw = isWorkshopFormat(raw.workshopFormat) ? raw.workshopFormat : "free";
+  const modelingMode = normalizeModelingMode(
+    isModelingMode(raw.modelingMode) ? raw.modelingMode : asString(raw.modelingMode),
+    workshopFormatRaw,
+  );
+  const workshopFormat = isWorkshopFormat(workshopFormatRaw)
+    ? workshopFormatRaw
+    : "free";
   const elementsRaw = Array.isArray(raw.elements) ? raw.elements : [];
   const elements = elementsRaw
     .map((el, i) => parseAiElement(el, i))

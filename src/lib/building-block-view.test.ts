@@ -41,7 +41,7 @@ describe("building-block-view", () => {
     const view = buildBoardViewFromBuildingBlock(parent, payload, {
       id: "v1",
       name: "Ordering",
-      modelingMode: "architectureDocumentation",
+      modelingMode: "arc42",
       workshopFormat: "arc42Workshop",
     });
     expect(view.elements.some((e) => e.type === "archWhitebox" && e.label === "Ordering")).toBe(
@@ -60,13 +60,13 @@ describe("building-block-view", () => {
     const overview = createEmptyBoardView({
       id: "overview",
       name: "Overview",
-      modelingMode: "architectureDocumentation",
+      modelingMode: "arc42",
       elements: [parent],
     });
     const detail = createEmptyBoardView({
       id: "detail",
       name: "Ordering",
-      modelingMode: "architectureDocumentation",
+      modelingMode: "arc42",
       elements: [whitebox],
     });
 
@@ -89,7 +89,7 @@ describe("building-block-view", () => {
     const view = buildBoardViewFromBuildingBlock(system, payload, {
       id: "v-c4",
       name: "Banking",
-      modelingMode: "architectureDocumentation",
+      modelingMode: "c4",
       workshopFormat: "c4Modeling",
     });
     expect(view.elements.some((e) => e.type === "archWhitebox" && e.label === "Banking")).toBe(
@@ -108,13 +108,13 @@ describe("building-block-view", () => {
     const overview = createEmptyBoardView({
       id: "containers",
       name: "Containers",
-      modelingMode: "architectureDocumentation",
+      modelingMode: "c4",
       elements: [container],
     });
     const detail = createEmptyBoardView({
       id: "comp-view",
       name: "API Application",
-      modelingMode: "architectureDocumentation",
+      modelingMode: "c4",
       elements: [whitebox],
     });
     expect(resolveBuildingBlockViewNavigation(container, "containers", [overview, detail])).toEqual({
@@ -130,7 +130,7 @@ describe("building-block-view", () => {
     const view = buildBoardViewFromBuildingBlock(boundary, payload, {
       id: "v-cloud",
       name: "Landing Zone Prod",
-      modelingMode: "architectureDocumentation",
+      modelingMode: "cloud",
       workshopFormat: "cloudArchitecture",
     });
     expect(

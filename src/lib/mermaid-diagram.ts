@@ -46,7 +46,9 @@ function flowchartDirection(mode: ModelingMode): "LR" | "TB" {
     mode === "processFlow" ||
     mode === "bdd" ||
     mode === "userStoryMapping" ||
-    mode === "architectureDocumentation" ||
+    mode === "c4" ||
+    mode === "arc42" ||
+    mode === "cloud" ||
     mode === "domainDrivenDesign"
   ) {
     return "TB";

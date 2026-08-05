@@ -17,6 +17,7 @@ import {
   DEFAULT_TIMELINE,
   DEFAULT_VIEWPORT,
   normalizeModelingMode,
+  normalizeWorkshopFormatForMode,
 } from "@/types/storm-element";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 import {
@@ -217,11 +218,13 @@ export function normalizeTimeline(timeline: Timeline): Timeline {
 
 export function normalizeBoardView(raw: Partial<BoardView> & { id?: string; name?: string }): BoardView {
   const id = raw.id?.trim() || generateStormId();
+  const modelingMode = normalizeModelingMode(raw.modelingMode, raw.workshopFormat);
+  const workshopFormat = normalizeWorkshopFormatForMode(raw.workshopFormat ?? "free", modelingMode);
   return createEmptyBoardView({
     id,
     name: raw.name?.trim() || "Board",
-    modelingMode: normalizeModelingMode(raw.modelingMode),
-    workshopFormat: raw.workshopFormat ?? "free",
+    modelingMode,
+    workshopFormat,
     facilitatorEnabled: Boolean(raw.facilitatorEnabled),
     facilitatorPhase: Number(raw.facilitatorPhase) || 0,
     elements: Array.isArray(raw.elements) ? raw.elements.map(normalizeStormElement) : [],

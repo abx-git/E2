@@ -250,34 +250,40 @@ describe("facilitator-phases", () => {
     expect(getAllowedTypesForPhase("dataModel", "dataModelWorkshop", 0, true)).toContain("dataEntity");
   });
 
-  it("uses Architecture Documentation catalog and workshops", () => {
-    const catalog = getAllowedTypesForPhase("architectureDocumentation", "free", 0, false);
-    expect(catalog).toContain("archBlackbox");
-    expect(catalog).toContain("archWhitebox");
-    expect(catalog).toContain("archComponent");
-    expect(catalog).toContain("c4SoftwareSystem");
-    expect(catalog).toContain("cloudBoundary");
-    expect(catalog).toContain("cloudCompute");
-    expect(catalog).toContain("dataEntity");
-    expect(getAllowedTypesForPhase("architectureDocumentation", "c4Modeling", 0, true)).toEqual([
+  it("uses Architecture mode catalogs separately", () => {
+    expect(getAllowedTypesForPhase("c4", "free", 0, false)).toEqual(
+      expect.arrayContaining(["c4Person", "c4SoftwareSystem", "c4Container", "c4Component"]),
+    );
+    expect(getAllowedTypesForPhase("c4", "free", 0, false)).not.toContain("archBlackbox");
+    expect(getAllowedTypesForPhase("c4", "free", 0, false)).not.toContain("cloudBoundary");
+
+    expect(getAllowedTypesForPhase("arc42", "free", 0, false)).toEqual(
+      expect.arrayContaining(["archBlackbox", "archWhitebox", "archComponent"]),
+    );
+    expect(getAllowedTypesForPhase("arc42", "free", 0, false)).not.toContain("c4Person");
+    expect(getAllowedTypesForPhase("arc42", "free", 0, false)).not.toContain("cloudCompute");
+
+    expect(getAllowedTypesForPhase("cloud", "free", 0, false)).toEqual(
+      expect.arrayContaining(["cloudBoundary", "cloudCompute", "cloudManagedService"]),
+    );
+    expect(getAllowedTypesForPhase("cloud", "free", 0, false)).not.toContain("c4SoftwareSystem");
+    expect(getAllowedTypesForPhase("cloud", "free", 0, false)).not.toContain("archBlackbox");
+
+    expect(getAllowedTypesForPhase("c4", "c4Modeling", 0, true)).toEqual([
       "c4Person",
       "c4SoftwareSystem",
       "note",
       "instruction",
       "link",
     ]);
-    expect(getAllowedTypesForPhase("architectureDocumentation", "arc42Workshop", 0, true)).toEqual([
-      "c4Person",
-      "c4SoftwareSystem",
+    expect(getAllowedTypesForPhase("arc42", "arc42Workshop", 0, true)).toEqual([
       "archBlackbox",
       "note",
       "instruction",
       "hotspot",
       "link",
     ]);
-    expect(getAllowedTypesForPhase("architectureDocumentation", "cloudArchitecture", 0, true)).toEqual([
-      "c4Person",
-      "c4SoftwareSystem",
+    expect(getAllowedTypesForPhase("cloud", "cloudArchitecture", 0, true)).toEqual([
       "cloudBoundary",
       "cloudManagedService",
       "note",
