@@ -24,6 +24,33 @@ export function linkHasTarget(el: StormElement): boolean {
   return Boolean(normalizeExternalUrl(el.metadata?.linkUrl));
 }
 
+/** Short destination label for link chips (URL host/path or view name). */
+export function linkDestinationPreview(
+  el: StormElement,
+  opts?: { viewNameById?: Record<string, string> },
+): string | null {
+  const kind = el.metadata?.linkKind ?? "external";
+  if (kind === "view") {
+    const viewId = el.metadata?.linkViewId?.trim();
+    if (!viewId) return null;
+    const name = opts?.viewNameById?.[viewId]?.trim();
+    return name || "Board-Sicht";
+  }
+  const url = normalizeExternalUrl(el.metadata?.linkUrl);
+  if (!url) {
+    const raw = el.metadata?.linkUrl?.trim();
+    return raw || null;
+  }
+  try {
+    const parsed = new URL(url);
+    const path = parsed.pathname === "/" ? "" : parsed.pathname;
+    const hostPath = `${parsed.host}${path}`;
+    return hostPath.length > 36 ? `${hostPath.slice(0, 34)}…` : hostPath;
+  } catch {
+    return url;
+  }
+}
+
 export type ActivateLinkResult =
   | { ok: true; kind: "external"; url: string }
   | { ok: true; kind: "view"; viewId: string; viewName: string }

@@ -15,7 +15,7 @@ import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { placeElementAtViewportCenter } from "@/lib/place-element-on-canvas";
 import { useIsMobileLayout } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { MODELING_MODE_LABELS, type ElementType } from "@/types/storm-element";
+import { MODELING_MODE_LABELS, partitionPaletteTypes, type ElementType } from "@/types/storm-element";
 import type { FacilitatorPhase } from "@/lib/facilitator-phases";
 import type { WorkshopFormat } from "@/types/storm-element";
 import type { RelationType } from "@/types/storm-relation";
@@ -191,12 +191,53 @@ function MobilePaletteSheet({
     facilitatorPhase,
     facilitatorEnabled,
   );
+  const { modeling, annotations } = partitionPaletteTypes(allowed);
   const modeLabel = MODELING_MODE_LABELS[modelingMode];
 
   const placeType = (type: ElementType) => {
     setPaletteType(type);
     placeElementAtViewportCenter(type);
     onClose();
+  };
+
+  const renderTypeButton = (type: ElementType) => {
+    const style = ELEMENT_STYLES[type];
+    const active = paletteType === type;
+    return (
+      <div key={type} className="flex items-stretch gap-1">
+        <button
+          type="button"
+          onClick={() => placeType(type)}
+          className={[
+            "flex min-h-[2.75rem] flex-1 items-center justify-center rounded-lg border px-2 py-2.5 text-center text-xs font-medium transition touch-manipulation",
+            active
+              ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
+              : "opacity-90 hover:opacity-100",
+          ].join(" ")}
+          style={{
+            backgroundColor: style.fill,
+            borderColor: style.stroke,
+            color: style.ink,
+          }}
+        >
+          {style.label}
+        </button>
+        {onRequestHelp && (
+          <button
+            type="button"
+            className="dock-control shrink-0 self-center rounded-md p-2 touch-manipulation"
+            title="Hilfe"
+            aria-label={`Hilfe für ${type}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRequestHelp(type);
+            }}
+          >
+            <HelpCircle className="size-4" />
+          </button>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -221,46 +262,18 @@ function MobilePaletteSheet({
         </button>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {allowed.map((type) => {
-          const style = ELEMENT_STYLES[type];
-          const active = paletteType === type;
-          return (
-            <div key={type} className="flex items-stretch gap-1">
-              <button
-                type="button"
-                onClick={() => placeType(type)}
-                className={[
-                  "flex min-h-[2.75rem] flex-1 items-center justify-center rounded-lg border px-2 py-2.5 text-center text-xs font-medium transition touch-manipulation",
-                  active
-                    ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
-                    : "opacity-90 hover:opacity-100",
-                ].join(" ")}
-                style={{
-                  backgroundColor: style.fill,
-                  borderColor: style.stroke,
-                  color: style.ink,
-                }}
-              >
-                {style.label}
-              </button>
-              {onRequestHelp && (
-                <button
-                  type="button"
-                  className="dock-control shrink-0 self-center rounded-md p-2 touch-manipulation"
-                  title="Hilfe"
-                  aria-label={`Hilfe für ${type}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRequestHelp(type);
-                  }}
-                >
-                  <HelpCircle className="size-4" />
-                </button>
-              )}
-            </div>
-          );
-        })}
+        {modeling.map(renderTypeButton)}
       </div>
+      {annotations.length > 0 && (
+        <div className="mt-4 border-t border-dashed border-[var(--border)] pt-3">
+          <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
+            Annotationen
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {annotations.map(renderTypeButton)}
+          </div>
+        </div>
+      )}
     </>
   );
 }

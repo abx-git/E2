@@ -971,10 +971,13 @@ export function getAllowedTypesForPhase(
   if (!def) return catalog;
   const phase = def.phases[phaseIndex];
   const raw = phase?.allowedTypes ?? catalog;
-  const allowed = raw.filter((t) => catalog.includes(t));
-  const list = allowed.length > 0 ? allowed : catalog;
-  const withNote: ElementType[] = list.includes("note") ? list : [...list, "note"];
-  return withNote.includes("instruction") ? withNote : [...withNote, "instruction"];
+  const allowed = new Set(raw.filter((t) => catalog.includes(t)));
+  // Notes / instructions stay available for facilitation commentary.
+  allowed.add("note");
+  allowed.add("instruction");
+  // Keep catalog order so newly unlocked types appear below existing ones.
+  const ordered = catalog.filter((t) => allowed.has(t));
+  return ordered.length > 0 ? ordered : catalog;
 }
 
 export function getCurrentPhase(

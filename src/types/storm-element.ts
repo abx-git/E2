@@ -379,132 +379,133 @@ export const MODELING_MODES: ModelingMode[] = [
 /** Shared annotation types. */
 export const SHARED_ELEMENT_TYPES: ElementType[] = ["note", "instruction", "hotspot", "link"];
 
+/** Workshop annotations / meta tools (palette footer, not core method types). */
+export function isSharedElementType(type: ElementType): boolean {
+  return (SHARED_ELEMENT_TYPES as ElementType[]).includes(type);
+}
+
+/** Split palette types into modeling types and trailing annotations (SHARED order). */
+export function partitionPaletteTypes(types: ElementType[]): {
+  modeling: ElementType[];
+  annotations: ElementType[];
+} {
+  const allowed = new Set(types);
+  return {
+    modeling: types.filter((t) => !isSharedElementType(t)),
+    annotations: SHARED_ELEMENT_TYPES.filter((t) => allowed.has(t)),
+  };
+}
+
 /** Freeform / guidance stickies with multiline labels. */
 export function isNoteLike(type: ElementType): boolean {
   return type === "note" || type === "instruction";
 }
 
-/** Palette order for Event Storming mode (facilitator off / free). */
+/**
+ * Palette order for Event Storming — ordered by typical Big-Picture unlock
+ * sequence so new phase types append below existing ones.
+ */
 export const ES_ELEMENT_TYPES: ElementType[] = [
   "domainEvent",
+  "pivotalEvent",
   "command",
   "actor",
-  "aggregate",
   "policy",
   "readModel",
   "externalSystem",
+  "aggregate",
   "ui",
-  "note",
-  "instruction",
-  "hotspot",
-  "link",
-  "pivotalEvent",
+  ...SHARED_ELEMENT_TYPES,
 ];
 
-/** Palette order for Domain-Driven Design mode. */
+/**
+ * Palette order for Domain-Driven Design — strategic → tactical building blocks.
+ */
 export const DDD_ELEMENT_TYPES: ElementType[] = [
   "subdomain",
   "entity",
   "valueObject",
   "aggregate",
-  "domainService",
-  "repository",
-  "factory",
   "domainEvent",
+  "domainService",
+  "factory",
+  "repository",
   "externalSystem",
-  "note",
-  "instruction",
-  "hotspot",
-  "link",
+  ...SHARED_ELEMENT_TYPES,
 ];
 
-/** BDD / Example Mapping palette. */
+/** BDD / Example Mapping palette — rule → examples → questions. */
 export const BDD_ELEMENT_TYPES: ElementType[] = [
   "rule",
   "example",
   "question",
   "actor",
-  "note",
-  "instruction",
-  "hotspot",
-  "link",
+  ...SHARED_ELEMENT_TYPES,
 ];
 
-/** User Story Mapping palette. */
+/** User Story Mapping palette — backbone → tasks → stories → releases. */
 export const USM_ELEMENT_TYPES: ElementType[] = [
   "activity",
   "userTask",
   "userStory",
   "release",
   "actor",
-  "note",
-  "instruction",
-  "hotspot",
-  "link",
+  ...SHARED_ELEMENT_TYPES,
 ];
 
-/** Event Modeling palette (reuses ES building blocks + slice). */
+/** Event Modeling palette — timeline events → slice → UI/commands. */
 export const EM_ELEMENT_TYPES: ElementType[] = [
-  "slice",
   "domainEvent",
+  "slice",
   "command",
-  "readModel",
   "ui",
   "actor",
+  "readModel",
   "policy",
   "externalSystem",
-  "note",
-  "instruction",
-  "hotspot",
-  "link",
+  ...SHARED_ELEMENT_TYPES,
 ];
 
-/** Business process (BPMN-lite) palette. */
+/** Business process (BPMN-lite) palette — start → activities → end → gateway. */
 export const PROCESS_ELEMENT_TYPES: ElementType[] = [
   "processStart",
   "processActivity",
-  "processGateway",
   "processEnd",
+  "processGateway",
   "actor",
-  "note",
-  "instruction",
-  "hotspot",
-  "link",
+  ...SHARED_ELEMENT_TYPES,
 ];
 
 /** Conceptual data model (ER-lite) palette. */
 export const DATA_ELEMENT_TYPES: ElementType[] = [
   "dataEntity",
   "dataAssociation",
-  "note",
-  "instruction",
-  "hotspot",
-  "link",
+  ...SHARED_ELEMENT_TYPES,
 ];
 
-/** Architecture documentation: Bausteinsicht, C4, ERM, Cloud. */
+/**
+ * Architecture documentation: C4 entry → Baustein → Cloud → ER,
+ * then shared annotations.
+ */
 export const ARCH_DOC_ELEMENT_TYPES: ElementType[] = [
-  "archBlackbox",
-  "archWhitebox",
-  "archComponent",
   "c4Person",
   "c4SoftwareSystem",
   "c4Container",
   "c4Component",
+  "archBlackbox",
+  "archWhitebox",
+  "archComponent",
   "cloudBoundary",
-  "cloudNetwork",
   "cloudCompute",
+  "cloudEdge",
   "cloudDataStore",
   "cloudMessaging",
+  "cloudNetwork",
   "cloudIdentity",
-  "cloudEdge",
   "cloudManagedService",
   "dataEntity",
   "dataAssociation",
-  "note",
-  "instruction",
-  "hotspot",
-  "link",
+  ...SHARED_ELEMENT_TYPES,
 ];
 
 /** All sticky types that can appear on a board. */

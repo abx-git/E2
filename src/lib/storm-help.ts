@@ -125,14 +125,15 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
   },
   link: {
     title: "Link",
-    subtitle: "Himmelblau — externer URL oder Board-Sicht",
+    subtitle: "Kompaktes Chip — externer URL oder Board-Sicht",
     paragraphs: [
-      "Verweist auf eine Webseite oder wechselt zu einer anderen Sicht (Tab) im gleichen Board.",
-      "Ziel in der Detailleiste setzen; über das Link-Symbol auf der Karte oder „Öffnen“ springen.",
+      "Navigation statt Domänenkonzept: verweist auf eine Webseite oder wechselt zu einer anderen Sicht im Board.",
+      "Ziel in der Detailleiste setzen. Doppelklick oder das Icon öffnet das Ziel; ohne Ziel erscheint der Chip gestrichelt.",
     ],
     bullets: [
       "Extern: http(s)-URL (ohne Protokoll wird https ergänzt)",
-      "Intern: eine bestehende Sicht auswählen",
+      "Intern: eine bestehende Sicht auswählen — Icon zeigt Board-Symbol",
+      "In der Palette unter Annotationen, abgesetzt von den Methoden-Elementen",
       "Relation „annotiert“ zu anderen Stickies möglich",
     ],
   },

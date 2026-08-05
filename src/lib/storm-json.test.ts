@@ -197,7 +197,7 @@ describe("facilitator-phases", () => {
 
   it("restricts strategic design phase 1", () => {
     const allowed = getAllowedTypesForPhase("domainDrivenDesign", "strategicDesign", 0, true);
-    expect(allowed).toEqual(["subdomain", "note", "hotspot", "instruction"]);
+    expect(allowed).toEqual(["subdomain", "note", "instruction", "hotspot"]);
   });
 
   it("uses BDD catalog", () => {
@@ -214,8 +214,24 @@ describe("facilitator-phases", () => {
       "domainEvent",
       "slice",
       "note",
-      "hotspot",
       "instruction",
+      "hotspot",
+    ]);
+  });
+
+  it("keeps catalog order so new phase types append below", () => {
+    const phase0 = getAllowedTypesForPhase("eventStorming", "bigPicture", 0, true);
+    const phase3 = getAllowedTypesForPhase("eventStorming", "bigPicture", 3, true);
+    expect(phase0).toEqual(["domainEvent", "note", "instruction"]);
+    // Commands/actors appear after events/pivotal; annotations stay at the bottom.
+    expect(phase3).toEqual([
+      "domainEvent",
+      "pivotalEvent",
+      "command",
+      "actor",
+      "note",
+      "instruction",
+      "hotspot",
     ]);
   });
 
@@ -247,27 +263,27 @@ describe("facilitator-phases", () => {
       "c4Person",
       "c4SoftwareSystem",
       "note",
-      "link",
       "instruction",
+      "link",
     ]);
     expect(getAllowedTypesForPhase("architectureDocumentation", "arc42Workshop", 0, true)).toEqual([
-      "archBlackbox",
-      "c4SoftwareSystem",
       "c4Person",
+      "c4SoftwareSystem",
+      "archBlackbox",
       "note",
+      "instruction",
       "hotspot",
       "link",
-      "instruction",
     ]);
     expect(getAllowedTypesForPhase("architectureDocumentation", "cloudArchitecture", 0, true)).toEqual([
-      "cloudBoundary",
-      "cloudManagedService",
       "c4Person",
       "c4SoftwareSystem",
+      "cloudBoundary",
+      "cloudManagedService",
       "note",
+      "instruction",
       "hotspot",
       "link",
-      "instruction",
     ]);
   });
 });

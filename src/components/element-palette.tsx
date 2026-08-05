@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { HelpCircle } from "lucide-react";
 
 import type { ElementType } from "@/types/storm-element";
+import { partitionPaletteTypes } from "@/types/storm-element";
 import { ELEMENT_STYLES, elementDimensions } from "@/lib/element-styles";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { isPointerOverStormCanvas } from "@/lib/board-clipboard";
@@ -47,6 +48,7 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
     facilitatorPhase,
     facilitatorEnabled,
   );
+  const { modeling, annotations } = partitionPaletteTypes(allowed);
   const modeLabel = MODELING_MODE_LABELS[modelingMode];
 
   const dropOnCanvas = (type: ElementType, clientX: number, clientY: number) => {
@@ -118,6 +120,46 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
     window.addEventListener("pointerup", onUp);
   };
 
+  const renderTypeRow = (type: ElementType, compact = false) => {
+    const style = ELEMENT_STYLES[type];
+    const active = paletteType === type;
+    return (
+      <div key={type} className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onPointerDown={(e) => beginPaletteDrag(type, e)}
+          className={[
+            "flex-1 cursor-grab border text-left font-medium transition active:cursor-grabbing",
+            compact ? "rounded-md px-2 py-1.5 text-[0.7rem]" : "rounded-lg px-2 py-2 text-xs",
+            active
+              ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
+              : "opacity-80 hover:opacity-100",
+          ].join(" ")}
+          style={{
+            backgroundColor: style.fill,
+            borderColor: style.stroke,
+            color: style.ink,
+          }}
+          title={`${style.label} — auf die Karte ziehen`}
+        >
+          {style.label}
+        </button>
+        <button
+          type="button"
+          className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
+          title="Hilfe zu diesem Element"
+          aria-label={`Hilfe für ${type}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRequestHelp?.(type);
+          }}
+        >
+          <HelpCircle className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    );
+  };
+
   const ghostStyle = ghost ? ELEMENT_STYLES[ghost.type] : null;
 
   return (
@@ -129,44 +171,18 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
         </p>
       </div>
       <div className="flex flex-col gap-1.5 overflow-y-auto p-2">
-        {allowed.map((type) => {
-          const style = ELEMENT_STYLES[type];
-          const active = paletteType === type;
-          return (
-            <div key={type} className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onPointerDown={(e) => beginPaletteDrag(type, e)}
-                className={[
-                  "flex-1 cursor-grab rounded-lg border px-2 py-2 text-left text-xs font-medium transition active:cursor-grabbing",
-                  active
-                    ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
-                    : "opacity-80 hover:opacity-100",
-                ].join(" ")}
-                style={{
-                  backgroundColor: style.fill,
-                  borderColor: style.stroke,
-                  color: style.ink,
-                }}
-                title={`${style.label} — auf die Karte ziehen`}
-              >
-                {style.label}
-              </button>
-              <button
-                type="button"
-                className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
-                title="Hilfe zu diesem Element"
-                aria-label={`Hilfe für ${type}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRequestHelp?.(type);
-                }}
-              >
-                <HelpCircle className="h-3.5 w-3.5" />
-              </button>
+        {modeling.map((type) => renderTypeRow(type))}
+
+        {annotations.length > 0 && (
+          <div className="mt-2 border-t border-dashed border-[var(--border)] pt-2">
+            <p className="mb-1.5 px-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Annotationen
+            </p>
+            <div className="flex flex-col gap-1">
+              {annotations.map((type) => renderTypeRow(type, true))}
             </div>
-          );
-        })}
+          </div>
+        )}
       </div>
 
       {ghost &&

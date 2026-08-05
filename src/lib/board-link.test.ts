@@ -2,10 +2,15 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 
 import {
   activateBoardLink,
+  linkDestinationPreview,
   linkHasTarget,
   normalizeExternalUrl,
 } from "@/lib/board-link";
 import type { StormElement } from "@/types/storm-element";
+
+vi.mock("@/lib/board-backup", () => ({
+  backupBeforeSuspiciousSwitch: vi.fn(),
+}));
 
 vi.mock("@/store/storm-board-store", () => {
   const state = {
@@ -52,6 +57,18 @@ describe("board-link", () => {
     expect(linkHasTarget(linkEl({ linkKind: "external", linkUrl: "https://a.test" }))).toBe(true);
     expect(linkHasTarget(linkEl({ linkKind: "view", linkViewId: "v2" }))).toBe(true);
     expect(linkHasTarget(linkEl({ linkKind: "external" }))).toBe(false);
+  });
+
+  it("previews destinations for chips", () => {
+    expect(
+      linkDestinationPreview(linkEl({ linkKind: "external", linkUrl: "https://example.com/docs" })),
+    ).toBe("example.com/docs");
+    expect(
+      linkDestinationPreview(linkEl({ linkKind: "view", linkViewId: "v2" }), {
+        viewNameById: { v2: "Prozess" },
+      }),
+    ).toBe("Prozess");
+    expect(linkDestinationPreview(linkEl({ linkKind: "external" }))).toBeNull();
   });
 
   it("opens external links", () => {

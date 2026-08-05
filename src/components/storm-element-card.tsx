@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Clock, ExternalLink, LayoutDashboard, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
 
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
-import { activateBoardLink, linkHasTarget } from "@/lib/board-link";
+import { activateBoardLink, linkDestinationPreview, linkHasTarget } from "@/lib/board-link";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import {
@@ -107,6 +107,7 @@ export function StormElementCard({
   const [draft, setDraft] = useState(element.label);
   const isNote = element.type === "note";
   const isInstruction = element.type === "instruction";
+  const isLink = element.type === "link";
   const isAggregate = element.type === "aggregate";
   const isSubdomain = element.type === "subdomain";
   const isWhitebox = element.type === "archWhitebox";
@@ -117,6 +118,8 @@ export function StormElementCard({
     isArchBuildingBlockType(element.type) ||
     isCloudElementType(element.type);
   const noteLike = isNoteLike(element.type);
+  const linkReady = isLink && linkHasTarget(element);
+  const linkKind = element.metadata?.linkKind ?? "external";
   const noteColors = isNote ? resolveNoteColor(element.metadata?.noteColor) : null;
   const colors = {
     bg: noteColors?.fill ?? style.fill,
@@ -134,6 +137,9 @@ export function StormElementCard({
   const openBuildingBlockView = useStormBoardStore((s) => s.openBuildingBlockView);
   const navigateBuildingBlockViewLink = useStormBoardStore((s) => s.navigateBuildingBlockViewLink);
   const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
+  const linkPreview = isLink
+    ? linkDestinationPreview(element, { viewNameById })
+    : null;
   const archNav = supportsArchDrilldown(element.type)
     ? resolveBuildingBlockViewNavigation(element, activeViewId, views)
     : null;
@@ -530,6 +536,11 @@ export function StormElementCard({
         e.preventDefault();
         if (relationMode) return;
         onSelect(element.id, false);
+        if (isLink && linkReady) {
+          const result = activateBoardLink(element);
+          if (!result.ok) window.alert(result.reason);
+          return;
+        }
         beginEdit();
       }}
       onContextMenu={(e) => {
@@ -540,10 +551,12 @@ export function StormElementCard({
     >
       <div
         className={[
-          "relative flex h-full w-full flex-col border px-2 py-1 shadow-sm transition-shadow",
-          showDetails || noteLike || isBoundary
-            ? "items-stretch justify-start gap-0.5 overflow-x-hidden overflow-y-auto"
-            : "items-center justify-center",
+          "relative flex h-full w-full border px-2 py-1 shadow-sm transition-shadow",
+          isLink && !editing
+            ? "flex-row items-center gap-2 overflow-hidden"
+            : showDetails || noteLike || isBoundary || (isLink && editing)
+              ? "flex-col items-stretch justify-start gap-0.5 overflow-x-hidden overflow-y-auto"
+              : "flex-col items-center justify-center",
           shapeClass,
           selected || editing ? "ring-2 ring-[var(--accent)]" : "",
           connecting ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
@@ -557,6 +570,7 @@ export function StormElementCard({
             : "",
           !inActiveMode && dimmed ? "outline outline-1 outline-dashed outline-[var(--muted)]" : "",
           isBoundary ? "border-2" : "",
+          isLink && linkReady ? "hover:shadow-md" : "",
         ].join(" ")}
         style={{
           backgroundColor: isBoundary
@@ -564,7 +578,7 @@ export function StormElementCard({
             : colors.bg,
           borderColor: colors.border,
           color: colors.text,
-          borderStyle: isNote || isWhitebox ? "dashed" : undefined,
+          borderStyle: isNote || isWhitebox || (isLink && !linkReady) ? "dashed" : undefined,
           borderLeftWidth: isInstruction ? 4 : undefined,
         }}
         title={
@@ -574,7 +588,13 @@ export function StormElementCard({
               ? `Fokus: ${ELEMENT_STYLES[paletteType].label} — anderes Element abgedunkelt`
               : !inActiveMode
                 ? "Element aus dem anderen Methoden-Modus"
-                : isAggregate
+                : isLink
+                  ? linkReady
+                    ? linkKind === "view"
+                      ? `Doppelklick öffnet Sicht${linkPreview ? `: ${linkPreview}` : ""}`
+                      : `Doppelklick öffnet Link${linkPreview ? `: ${linkPreview}` : ""}`
+                    : "Ziel in der Detailleiste setzen"
+                  : isAggregate
                   ? "Aggregate Root — Entity & Value Objects hineinziehen"
                   : isSubdomain
                     ? "Subdomain — Problemraum-Bereich; Elemente hineinziehen"
@@ -587,6 +607,58 @@ export function StormElementCard({
                           : undefined
         }
       >
+        {isLink && !editing ? (
+          <>
+            <button
+              type="button"
+              title={linkReady ? "Link öffnen" : "Kein Ziel gesetzt"}
+              aria-label={linkReady ? "Link öffnen" : "Kein Ziel gesetzt"}
+              disabled={!linkReady}
+              className={[
+                "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-current/20",
+                linkReady
+                  ? "bg-white/75 opacity-90 hover:opacity-100"
+                  : "cursor-default bg-white/40 opacity-50",
+              ].join(" ")}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (!linkReady) return;
+                const result = activateBoardLink(element);
+                if (!result.ok) window.alert(result.reason);
+              }}
+            >
+              {linkKind === "view" ? (
+                <LayoutDashboard className="h-3.5 w-3.5" aria-hidden />
+              ) : (
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              )}
+            </button>
+            <div className="min-w-0 flex-1 text-left">
+              {searchActive && searchHit?.inLabel ? (
+                <HighlightedText
+                  text={element.label}
+                  query={searchQuery}
+                  className="block truncate text-xs font-semibold leading-tight"
+                />
+              ) : (
+                <span className="block truncate text-xs font-semibold leading-tight">
+                  {element.label}
+                </span>
+              )}
+              <span
+                className={[
+                  "mt-0.5 block truncate text-[0.62rem] leading-tight",
+                  linkPreview ? "opacity-75" : "italic opacity-50",
+                ].join(" ")}
+              >
+                {linkPreview ?? (linkKind === "view" ? "Sicht wählen…" : "URL setzen…")}
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
         {(isInstruction || isBoundary || showArchTypeBadge) && (
           <span
             className="mb-0.5 w-fit shrink-0 rounded px-1 py-px text-[0.58rem] font-bold uppercase tracking-wide"
@@ -699,28 +771,13 @@ export function StormElementCard({
             )}
           </ul>
         )}
+          </>
+        )}
         {element.metadata?.isRecurring && !editing && (
           <Clock className="absolute bottom-1 left-1 h-3 w-3 opacity-70" aria-hidden />
         )}
         {element.type === "hotspot" && element.metadata?.hotspotStatus === "resolved" && !editing && (
           <RotateCcw className="absolute bottom-1 right-1 h-3 w-3 opacity-70" aria-hidden />
-        )}
-        {element.type === "link" && !editing && linkHasTarget(element) && (
-          <button
-            type="button"
-            title="Link öffnen"
-            aria-label="Link öffnen"
-            className="absolute bottom-1.5 left-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-current/25 bg-white/70 text-current opacity-80 hover:opacity-100"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              const result = activateBoardLink(element);
-              if (!result.ok) window.alert(result.reason);
-            }}
-          >
-            <ExternalLink className="h-3 w-3" aria-hidden />
-          </button>
         )}
         {supportsArchDrilldown(element.type) && !editing && (
           <button
