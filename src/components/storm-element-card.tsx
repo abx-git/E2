@@ -358,7 +358,9 @@ export function StormElementCard({
         transformOrigin: "center center",
         zIndex:
           cssStackingZIndex(element, {
-            elevated: selected || connecting || editing || searchEmphasize,
+            // Boundary containers stay behind contents — don't elevate them over members.
+            elevated:
+              !isBoundary && (selected || connecting || editing || searchEmphasize),
             highlighted:
               (focusMode && !dimForFocus) || (searchActive && Boolean(searchHit?.match)),
           }),

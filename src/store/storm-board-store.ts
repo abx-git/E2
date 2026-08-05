@@ -32,6 +32,9 @@ import {
   bringElementsToFront as computeBringToFront,
   bringForward as computeBringRegionsForward,
   bringToFront as computeBringRegionsToFront,
+  enforceContainerBehindContents,
+  expandZOrderSelection,
+  itemZIndex,
   nextElementZIndex,
   nextZIndex,
   regionZOrderItems,
@@ -312,6 +315,17 @@ export interface StormBoardState {
     viewIds: string[];
     activeViewId: string;
   } | { ok: false; error: string };
+}
+
+/** Containment assignment + keep stacking containers behind their contents. */
+function settleElements(
+  elements: StormElement[],
+  swimlanes: Swimlane[],
+  boundedContexts: BoundedContext[],
+): StormElement[] {
+  return enforceContainerBehindContents(
+    applyContainmentAssignments(elements, swimlanes, boundedContexts),
+  );
 }
 
 function createElement(
@@ -713,7 +727,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         zIndex: z++,
       }));
       newIds = remapped.newIds;
-      const elements = applyContainmentAssignments(
+      const elements = settleElements(
         [...s.elements, ...elementsWithZ],
         s.swimlanes,
         s.boundedContexts,
@@ -752,7 +766,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         ...el,
         zIndex: z++,
       }));
-      const elements = applyContainmentAssignments(
+      const elements = settleElements(
         [...s.elements, ...pastedElements],
         swimlanes,
         boundedContexts,
@@ -787,7 +801,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         ...el,
         zIndex: z++,
       }));
-      const elements = applyContainmentAssignments(
+      const elements = settleElements(
         [...s.elements, ...pastedElements],
         s.swimlanes,
         s.boundedContexts,
@@ -989,7 +1003,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   beginGesture: () => set({ gestureActive: true, gestureSnapshotTaken: false }),
   endGesture: () => {
     const s = get();
-    const elements = applyContainmentAssignments(s.elements, s.swimlanes, s.boundedContexts);
+    const elements = settleElements(s.elements, s.swimlanes, s.boundedContexts);
     // Fold assignment into the open gesture snapshot (one Undo for move + Zuordnung).
     if (s.gestureActive && s.gestureSnapshotTaken) {
       set({
@@ -1056,7 +1070,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => {
       const el = createElement(type, x, y, label, nextElementZIndex(s.elements));
       createdId = el.id;
-      const elements = applyContainmentAssignments(
+      const elements = settleElements(
         [...s.elements, el],
         s.swimlanes,
         s.boundedContexts,
@@ -1080,7 +1094,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         patch.height !== undefined;
       return {
         elements: geometryChanged
-          ? applyContainmentAssignments(elements, s.swimlanes, s.boundedContexts)
+          ? settleElements(elements, s.swimlanes, s.boundedContexts)
           : elements,
       };
     }),
@@ -1194,31 +1208,71 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           u.width !== undefined ||
           u.height !== undefined,
       );
+      const zChanged = updates.some((u) => u.zIndex !== undefined);
       return {
-        elements: geometryChanged
-          ? applyContainmentAssignments(elements, s.swimlanes, s.boundedContexts)
-          : elements,
+        elements:
+          geometryChanged
+            ? settleElements(elements, s.swimlanes, s.boundedContexts)
+            : zChanged
+              ? enforceContainerBehindContents(elements)
+              : elements,
       };
     }),
 
   bringElementsToFront: (ids) => {
-    const patches = computeBringToFront(get().elements, ids);
-    if (patches.length) get().patchElements(patches);
+    commit(set, get, (s) => {
+      const orderedIds = expandZOrderSelection(s.elements, ids);
+      const patches = computeBringToFront(s.elements, orderedIds);
+      if (!patches.length) return {};
+      const byId = new Map(patches.map((p) => [p.id, p.zIndex]));
+      const elements = s.elements.map((e) => {
+        const z = byId.get(e.id);
+        return z === undefined || itemZIndex(e) === z ? e : { ...e, zIndex: z };
+      });
+      return { elements: enforceContainerBehindContents(elements) };
+    });
   },
 
   sendElementsToBack: (ids) => {
-    const patches = computeSendToBack(get().elements, ids);
-    if (patches.length) get().patchElements(patches);
+    commit(set, get, (s) => {
+      const orderedIds = expandZOrderSelection(s.elements, ids);
+      const patches = computeSendToBack(s.elements, orderedIds);
+      if (!patches.length) return {};
+      const byId = new Map(patches.map((p) => [p.id, p.zIndex]));
+      const elements = s.elements.map((e) => {
+        const z = byId.get(e.id);
+        return z === undefined || itemZIndex(e) === z ? e : { ...e, zIndex: z };
+      });
+      return { elements: enforceContainerBehindContents(elements) };
+    });
   },
 
   bringElementsForward: (ids) => {
-    const patches = computeBringForward(get().elements, ids);
-    if (patches.length) get().patchElements(patches);
+    commit(set, get, (s) => {
+      const orderedIds = expandZOrderSelection(s.elements, ids);
+      const patches = computeBringForward(s.elements, orderedIds);
+      if (!patches.length) return {};
+      const byId = new Map(patches.map((p) => [p.id, p.zIndex]));
+      const elements = s.elements.map((e) => {
+        const z = byId.get(e.id);
+        return z === undefined || itemZIndex(e) === z ? e : { ...e, zIndex: z };
+      });
+      return { elements: enforceContainerBehindContents(elements) };
+    });
   },
 
   sendElementsBackward: (ids) => {
-    const patches = computeSendBackward(get().elements, ids);
-    if (patches.length) get().patchElements(patches);
+    commit(set, get, (s) => {
+      const orderedIds = expandZOrderSelection(s.elements, ids);
+      const patches = computeSendBackward(s.elements, orderedIds);
+      if (!patches.length) return {};
+      const byId = new Map(patches.map((p) => [p.id, p.zIndex]));
+      const elements = s.elements.map((e) => {
+        const z = byId.get(e.id);
+        return z === undefined || itemZIndex(e) === z ? e : { ...e, zIndex: z };
+      });
+      return { elements: enforceContainerBehindContents(elements) };
+    });
   },
 
   addRelation: (sourceId, targetId, type, label) => {
@@ -1449,7 +1503,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         swimlanes,
         selectedSwimlaneIds: [id],
-        elements: applyContainmentAssignments(s.elements, swimlanes, s.boundedContexts),
+        elements: settleElements(s.elements, swimlanes, s.boundedContexts),
       };
     });
     return id;
@@ -1483,7 +1537,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       // Resize and non-gesture edits still update assignments immediately.
       const lockedMove = Boolean(options?.moveElementIds) && !resizing;
       if (!lockedMove && (safePatch.x !== undefined || safePatch.y !== undefined || resizing)) {
-        elements = applyContainmentAssignments(elements, swimlanes, s.boundedContexts);
+        elements = settleElements(elements, swimlanes, s.boundedContexts);
       }
 
       return { swimlanes, elements };
@@ -1515,7 +1569,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         boundedContexts,
         selectedBoundedContextIds: [id],
-        elements: applyContainmentAssignments(s.elements, s.swimlanes, boundedContexts),
+        elements: settleElements(s.elements, s.swimlanes, boundedContexts),
       };
     });
     return id;
@@ -1552,7 +1606,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
 
       const lockedMove = Boolean(options?.moveElementIds) && !resizing;
       if (!lockedMove && (safePatch.x !== undefined || safePatch.y !== undefined || resizing)) {
-        elements = applyContainmentAssignments(elements, s.swimlanes, boundedContexts);
+        elements = settleElements(elements, s.swimlanes, boundedContexts);
       }
 
       return { boundedContexts, elements };

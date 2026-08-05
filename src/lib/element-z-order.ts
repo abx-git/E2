@@ -1,7 +1,134 @@
-import type { StormElement } from "@/types/storm-element";
+import { elementBounds } from "@/lib/selection-geometry";
+import { rectFullyContains } from "@/lib/region-containment";
+import type { ElementType, StormElement } from "@/types/storm-element";
 
 /** Anything with a stable id and optional stacking rank. */
 export type ZOrderable = { id: string; zIndex?: number };
+
+/** Boundary stickies that visually contain other stickies. */
+export function isStackingContainerType(type: ElementType): boolean {
+  return (
+    type === "aggregate" ||
+    type === "subdomain" ||
+    type === "archWhitebox" ||
+    type === "cloudBoundary"
+  );
+}
+
+/** Members that must stack above a stacking container. */
+export function stackingMembersOf(
+  elements: StormElement[],
+  container: StormElement,
+): StormElement[] {
+  if (!isStackingContainerType(container.type)) return [];
+  const outer = elementBounds(container);
+  return elements.filter((e) => {
+    if (e.id === container.id) return false;
+    if (container.type === "aggregate") {
+      return e.aggregateId === container.id || rectFullyContains(outer, elementBounds(e));
+    }
+    if (container.type === "subdomain") {
+      return e.subdomainId === container.id || rectFullyContains(outer, elementBounds(e));
+    }
+    // Whitebox / cloud boundary: geometric containment only.
+    return rectFullyContains(outer, elementBounds(e));
+  });
+}
+
+/**
+ * Ensure stacking containers stay behind their contents (paint order).
+ * Nested containers are resolved iteratively. Returns the same reference if unchanged.
+ */
+export function enforceContainerBehindContents(elements: StormElement[]): StormElement[] {
+  if (elements.length < 2) return elements;
+  const zMap = new Map(elements.map((e) => [e.id, itemZIndex(e)]));
+  let changed = false;
+
+  // Outer containers first (larger area) so nested bumps compose correctly.
+  const containers = elements
+    .filter((e) => isStackingContainerType(e.type))
+    .map((e) => {
+      const b = elementBounds(e);
+      return { el: e, area: Math.max(0, b.w) * Math.max(0, b.h) };
+    })
+    .sort((a, b) => b.area - a.area || a.el.id.localeCompare(b.el.id));
+
+  for (const { el: container } of containers) {
+    const members = stackingMembersOf(elements, container);
+    if (members.length === 0) continue;
+    const containerZ = zMap.get(container.id) ?? 0;
+    const ordered = [...members].sort((a, b) => {
+      const dz = (zMap.get(a.id) ?? 0) - (zMap.get(b.id) ?? 0);
+      if (dz !== 0) return dz;
+      return a.id.localeCompare(b.id);
+    });
+    let nextZ = containerZ + 1;
+    for (const member of ordered) {
+      const current = zMap.get(member.id) ?? 0;
+      if (current < nextZ) {
+        zMap.set(member.id, nextZ);
+        changed = true;
+        nextZ += 1;
+      } else {
+        nextZ = current + 1;
+      }
+    }
+  }
+
+  if (!changed) return elements;
+  return elements.map((e) => {
+    const z = zMap.get(e.id) ?? 0;
+    return itemZIndex(e) === z ? e : { ...e, zIndex: z };
+  });
+}
+
+/**
+ * Expand a z-order selection so stacking containers include their members,
+ * ordered container-then-members so bring-to-front keeps contents above.
+ */
+export function expandZOrderSelection(elements: StormElement[], ids: string[]): string[] {
+  const idSet = new Set(ids);
+  for (const id of ids) {
+    const el = elements.find((e) => e.id === id);
+    if (!el || !isStackingContainerType(el.type)) continue;
+    for (const member of stackingMembersOf(elements, el)) {
+      idSet.add(member.id);
+    }
+  }
+
+  const selected = elements.filter((e) => idSet.has(e.id));
+  // Containers before their members (by area desc among containers, then members by z).
+  const containers = selected
+    .filter((e) => isStackingContainerType(e.type))
+    .sort((a, b) => {
+      const aa = elementBounds(a);
+      const bb = elementBounds(b);
+      return bb.w * bb.h - aa.w * aa.h || a.id.localeCompare(b.id);
+    });
+  const containerIds = new Set(containers.map((c) => c.id));
+  const members = selected
+    .filter((e) => !containerIds.has(e.id))
+    .sort(compareByZOrder);
+
+  const ordered: string[] = [];
+  const seen = new Set<string>();
+  for (const c of containers) {
+    if (seen.has(c.id)) continue;
+    ordered.push(c.id);
+    seen.add(c.id);
+    for (const m of stackingMembersOf(elements, c)) {
+      if (!idSet.has(m.id) || seen.has(m.id)) continue;
+      ordered.push(m.id);
+      seen.add(m.id);
+    }
+  }
+  for (const m of members) {
+    if (seen.has(m.id)) continue;
+    ordered.push(m.id);
+    seen.add(m.id);
+  }
+  return ordered;
+}
 
 /** Stable stacking rank; missing values count as 0. */
 export function itemZIndex(item: Pick<ZOrderable, "zIndex">): number {
