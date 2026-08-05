@@ -102,8 +102,6 @@ export function StormCanvas() {
   const selectedCanvasLineId = useStormBoardStore((s) => s.selectedCanvasLineId);
 
   const addElement = useStormBoardStore((s) => s.addElement);
-  const moveElement = useStormBoardStore((s) => s.moveElement);
-  const moveElements = useStormBoardStore((s) => s.moveElements);
   const selectElement = useStormBoardStore((s) => s.selectElement);
   const setCanvasSelection = useStormBoardStore((s) => s.setCanvasSelection);
   const selectRelation = useStormBoardStore((s) => s.selectRelation);
@@ -402,23 +400,28 @@ export function StormCanvas() {
     setRelationDraftSource(null);
   };
 
-  const handleMoveElement = (id: string, x: number, y: number) => {
-    const snapped = applySnap(x, y);
-    moveElement(id, snapped.x, snapped.y);
-  };
+  const handleMoveCanvasSelection = (updates: {
+    elements?: Array<{ id: string; x: number; y: number }>;
+    swimlanes?: Array<{ id: string; x: number; y: number }>;
+    boundedContexts?: Array<{ id: string; x: number; y: number }>;
+  }) => {
+    const elementUpdates = updates.elements ?? [];
+    const swimlaneUpdates = updates.swimlanes ?? [];
+    const bcUpdates = updates.boundedContexts ?? [];
+    const primary = elementUpdates[0] ?? swimlaneUpdates[0] ?? bcUpdates[0];
+    if (!primary) return;
 
-  const handleMoveElements = (updates: Array<{ id: string; x: number; y: number }>) => {
-    if (updates.length === 0) return;
-    if (updates.length === 1) {
-      handleMoveElement(updates[0].id, updates[0].x, updates[0].y);
-      return;
-    }
-    // Snap relative to the first (dragged) element so the group keeps spacing.
-    const primary = updates[0];
     const snapped = applySnap(primary.x, primary.y);
     const dx = snapped.x - primary.x;
     const dy = snapped.y - primary.y;
-    moveElements(updates.map((u) => ({ id: u.id, x: u.x + dx, y: u.y + dy })));
+    const shift = <T extends { x: number; y: number }>(items: T[]) =>
+      items.map((u) => ({ ...u, x: u.x + dx, y: u.y + dy }));
+
+    useStormBoardStore.getState().moveCanvasSelection({
+      elements: shift(elementUpdates),
+      swimlanes: shift(swimlaneUpdates),
+      boundedContexts: shift(bcUpdates),
+    });
   };
 
   const handleResizeElement = (
@@ -740,7 +743,7 @@ export function StormCanvas() {
             relationMode={relationMode}
             zoom={viewport.zoom}
             onSelect={selectElement}
-            onMoveMany={handleMoveElements}
+            onMoveMany={handleMoveCanvasSelection}
             onResize={handleResizeElement}
             onStartConnect={handleStartConnect}
             onCompleteConnect={handleCompleteConnect}

@@ -210,6 +210,12 @@ export interface StormBoardState {
   deleteElement: (id: string) => void;
   moveElement: (id: string, x: number, y: number) => void;
   moveElements: (updates: Array<{ id: string; x: number; y: number }>) => void;
+  /** Move stickies + regions in one undo step (marquee / multi-select drag). */
+  moveCanvasSelection: (updates: {
+    elements?: Array<{ id: string; x: number; y: number }>;
+    swimlanes?: Array<{ id: string; x: number; y: number }>;
+    boundedContexts?: Array<{ id: string; x: number; y: number }>;
+  }) => void;
   patchElements: (
     updates: Array<{
       id: string;
@@ -1108,6 +1114,67 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           return u ? { ...e, x: u.x, y: u.y } : e;
         }),
       };
+    }),
+
+  moveCanvasSelection: (updates) =>
+    commit(set, get, (s) => {
+      const elementUpdates = updates.elements ?? [];
+      const swimlaneUpdates = updates.swimlanes ?? [];
+      const bcUpdates = updates.boundedContexts ?? [];
+      if (elementUpdates.length === 0 && swimlaneUpdates.length === 0 && bcUpdates.length === 0) {
+        return {};
+      }
+
+      const elById = new Map(elementUpdates.map((u) => [u.id, u]));
+      const laneById = new Map(swimlaneUpdates.map((u) => [u.id, u]));
+      const bcById = new Map(bcUpdates.map((u) => [u.id, u]));
+
+      const elements =
+        elementUpdates.length === 0
+          ? s.elements
+          : s.elements.map((e) => {
+              const u = elById.get(e.id);
+              return u ? { ...e, x: u.x, y: u.y } : e;
+            });
+
+      const swimlanes =
+        swimlaneUpdates.length === 0
+          ? s.swimlanes
+          : s.swimlanes.map((lane) => {
+              const u = laneById.get(lane.id);
+              if (!u) return lane;
+              const safe = sanitizeRegionGeometryPatch(Boolean(lane.locked), {
+                x: u.x,
+                y: u.y,
+              }) as { x?: number; y?: number };
+              if (safe.x === undefined && safe.y === undefined) return lane;
+              return {
+                ...lane,
+                x: safe.x ?? lane.x,
+                y: safe.y ?? lane.y,
+              };
+            });
+
+      const boundedContexts =
+        bcUpdates.length === 0
+          ? s.boundedContexts
+          : s.boundedContexts.map((bc) => {
+              const u = bcById.get(bc.id);
+              if (!u) return bc;
+              const safe = sanitizeRegionGeometryPatch(Boolean(bc.locked), {
+                x: u.x,
+                y: u.y,
+              }) as { x?: number; y?: number };
+              if (safe.x === undefined && safe.y === undefined) return bc;
+              return {
+                ...bc,
+                x: safe.x ?? bc.x,
+                y: safe.y ?? bc.y,
+              };
+            });
+
+      // Containment is re-applied in endGesture so passers-by are not picked up mid-drag.
+      return { elements, swimlanes, boundedContexts };
     }),
 
   patchElements: (updates) =>

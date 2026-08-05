@@ -19,7 +19,7 @@ import {
   snapRotationDegrees,
 } from "@/lib/element-rotation";
 import { cssStackingZIndex } from "@/lib/element-z-order";
-import { elementIdsInAggregate, elementIdsInSubdomain } from "@/lib/region-containment";
+import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
 import { hexToRgba } from "@/lib/region-style";
 import { HighlightedText } from "@/components/highlighted-text";
 import { resolveNoteColor } from "@/lib/note-colors";
@@ -49,12 +49,6 @@ const SUBDOMAIN_KIND_LABEL: Record<string, string> = {
   generic: "Generic",
 };
 
-function memberIdsForBoundary(elements: StormElement[], boundary: StormElement): string[] {
-  if (boundary.type === "aggregate") return elementIdsInAggregate(elements, boundary);
-  if (boundary.type === "subdomain") return elementIdsInSubdomain(elements, boundary);
-  return [];
-}
-
 type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
 const HANDLE_POSITIONS: Record<ResizeHandle, string> = {
@@ -77,7 +71,11 @@ export interface StormElementCardProps {
   relationMode: boolean;
   zoom: number;
   onSelect: (id: string, additive: boolean) => void;
-  onMoveMany: (updates: Array<{ id: string; x: number; y: number }>) => void;
+  onMoveMany: (updates: {
+    elements?: Array<{ id: string; x: number; y: number }>;
+    swimlanes?: Array<{ id: string; x: number; y: number }>;
+    boundedContexts?: Array<{ id: string; x: number; y: number }>;
+  }) => void;
   onResize: (id: string, patch: { x: number; y: number; width: number; height: number }) => void;
   onStartConnect: (id: string) => void;
   onCompleteConnect: (id: string) => void;
@@ -393,25 +391,74 @@ export function StormElementCard({
           }, LONG_PRESS_MS);
         }
 
-        const moveIdsBase =
-          selected && selectedIds.includes(element.id) && selectedIds.length > 1
-            ? selectedIds
-            : [element.id];
-        const boardElements = useStormBoardStore.getState().elements;
-        const moveIdSet = new Set(moveIdsBase);
-        for (const id of moveIdsBase) {
-          const moving = boardElements.find((el) => el.id === id);
-          if (!moving) continue;
-          for (const childId of memberIdsForBoundary(boardElements, moving)) {
-            moveIdSet.add(childId);
-          }
-        }
-        const moveIds = Array.from(moveIdSet);
-        const origins = new Map(
-          boardElements
-            .filter((el) => moveIds.includes(el.id))
+        const store = useStormBoardStore.getState();
+        const multiSelected =
+          selected &&
+          selectedIds.includes(element.id) &&
+          selectionItemCount({
+            elementIds: selectedIds,
+            swimlaneIds: store.selectedSwimlaneIds,
+            boundedContextIds: store.selectedBoundedContextIds,
+          }) > 1;
+
+        const baseSelection = multiSelected
+          ? {
+              elementIds: selectedIds,
+              swimlaneIds: store.selectedSwimlaneIds,
+              boundedContextIds: store.selectedBoundedContextIds,
+            }
+          : {
+              elementIds: [element.id],
+              swimlaneIds: [] as string[],
+              boundedContextIds: [] as string[],
+            };
+
+        const moveSet = expandCanvasMoveSet(
+          store.elements,
+          store.swimlanes,
+          store.boundedContexts,
+          baseSelection,
+        );
+
+        const elementOrigins = new Map(
+          store.elements
+            .filter((el) => moveSet.elementIds.includes(el.id))
             .map((el) => [el.id, { x: el.x, y: el.y }] as const),
         );
+        const swimlaneOrigins = new Map(
+          store.swimlanes
+            .filter((lane) => moveSet.swimlaneIds.includes(lane.id) && !lane.locked)
+            .map((lane) => [lane.id, { x: lane.x ?? 0, y: lane.y }] as const),
+        );
+        const bcOrigins = new Map(
+          store.boundedContexts
+            .filter((bc) => moveSet.boundedContextIds.includes(bc.id) && !bc.locked)
+            .map((bc) => [bc.id, { x: bc.x, y: bc.y }] as const),
+        );
+
+        const buildUpdates = (worldDx: number, worldDy: number) => {
+          const orderedElementIds = [
+            element.id,
+            ...moveSet.elementIds.filter((id) => id !== element.id),
+          ];
+          return {
+            elements: orderedElementIds.flatMap((id) => {
+              const orig = elementOrigins.get(id);
+              if (!orig) return [];
+              return [{ id, x: orig.x + worldDx, y: orig.y + worldDy }];
+            }),
+            swimlanes: Array.from(swimlaneOrigins.entries()).map(([id, orig]) => ({
+              id,
+              x: orig.x + worldDx,
+              y: orig.y + worldDy,
+            })),
+            boundedContexts: Array.from(bcOrigins.entries()).map(([id, orig]) => ({
+              id,
+              x: orig.x + worldDx,
+              y: orig.y + worldDy,
+            })),
+          };
+        };
 
         const onMoveEv = (ev: PointerEvent) => {
           const dx = ev.clientX - startX;
@@ -430,30 +477,12 @@ export function StormElementCard({
           if (relationMode && !draggedRef.current) return;
           const overClip = isPointerOverClipboardDrop(ev.clientX, ev.clientY);
           useStormBoardStore.getState().setClipboardDropHighlight(overClip);
-          const orderedIds = [
-            element.id,
-            ...moveIds.filter((id) => id !== element.id),
-          ];
           if (overClip) {
-            // Park stickies at origin while hovering the clipboard drop zone.
-            onMoveMany(
-              orderedIds.flatMap((id) => {
-                const orig = origins.get(id);
-                if (!orig) return [];
-                return [{ id, x: orig.x, y: orig.y }];
-              }),
-            );
+            // Park selection at origin while hovering the clipboard drop zone.
+            onMoveMany(buildUpdates(0, 0));
             return;
           }
-          const worldDx = dx / zoom;
-          const worldDy = dy / zoom;
-          onMoveMany(
-            orderedIds.flatMap((id) => {
-              const orig = origins.get(id);
-              if (!orig) return [];
-              return [{ id, x: orig.x + worldDx, y: orig.y + worldDy }];
-            }),
-          );
+          onMoveMany(buildUpdates(dx / zoom, dy / zoom));
         };
 
         const onUp = (ev: PointerEvent) => {
@@ -469,17 +498,11 @@ export function StormElementCard({
 
           if (draggedRef.current && isPointerOverClipboardDrop(ev.clientX, ev.clientY)) {
             // Restore pre-drag positions, then cut into clipboard.
-            onMoveMany(
-              Array.from(origins.entries()).map(([id, pos]) => ({
-                id,
-                x: pos.x,
-                y: pos.y,
-              })),
-            );
+            onMoveMany(buildUpdates(0, 0));
             useStormBoardStore.getState().moveToClipboard({
-              elementIds: moveIds,
-              swimlaneIds: useStormBoardStore.getState().selectedSwimlaneIds,
-              boundedContextIds: useStormBoardStore.getState().selectedBoundedContextIds,
+              elementIds: moveSet.elementIds,
+              swimlaneIds: moveSet.swimlaneIds,
+              boundedContextIds: moveSet.boundedContextIds,
             });
             return;
           }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AlertCircle, ChevronDown, ExternalLink, HelpCircle, Trash2 } from "lucide-react";
 
 import { activateBoardLink } from "@/lib/board-link";
@@ -33,8 +33,54 @@ function linesFromMeta(values: string[] | undefined): string {
   return (values ?? []).join("\n");
 }
 
+/** Compact line list for storage / card preview (no blank lines). */
 function linesToMeta(text: string): string[] {
   return text.split("\n").map((l) => l.trim()).filter(Boolean);
+}
+
+/**
+ * Controlled line editor that keeps blank lines while focused so Enter at
+ * end-of-text works. Empty lines are stripped only when committing to meta.
+ */
+function LinesTextarea({
+  values,
+  onChange,
+  resetKey,
+  placeholder,
+  rows = 3,
+  className = "dock-field min-h-[4rem]",
+}: {
+  values: string[] | undefined;
+  onChange: (lines: string[]) => void;
+  resetKey: string;
+  placeholder?: string;
+  rows?: number;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraft(null);
+  }, [resetKey]);
+
+  return (
+    <textarea
+      className={className}
+      rows={rows}
+      value={draft ?? linesFromMeta(values)}
+      placeholder={placeholder}
+      onFocus={() => setDraft(linesFromMeta(values))}
+      onChange={(e) => {
+        const text = e.target.value;
+        setDraft(text);
+        onChange(linesToMeta(text));
+      }}
+      onBlur={() => {
+        if (draft !== null) onChange(linesToMeta(draft));
+        setDraft(null);
+      }}
+    />
+  );
 }
 
 export interface ElementDetailSidebarProps {
@@ -393,49 +439,52 @@ export function ElementDetailSidebar({
       {selectedElement.type === "aggregate" && (
         <>
           <Field label="Attribute (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={3}
-              value={linesFromMeta(selectedElement.metadata?.attributes)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.attributes}
+              onChange={(attributes) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    attributes: linesToMeta(e.target.value),
+                    attributes,
                   },
                 })
               }
+              rows={3}
+              className="dock-field min-h-[4rem]"
               placeholder={"z. B. status: OrderStatus\ntotal: Money"}
             />
           </Field>
           <Field label="Methoden (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={3}
-              value={(selectedElement.metadata?.aggregateMethods ?? []).join("\n")}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.aggregateMethods}
+              onChange={(aggregateMethods) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    aggregateMethods: e.target.value.split("\n").filter(Boolean),
+                    aggregateMethods,
                   },
                 })
               }
+              rows={3}
+              className="dock-field min-h-[4rem]"
             />
           </Field>
           <Field label="Invarianten (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={3}
-              value={(selectedElement.metadata?.aggregateInvariants ?? []).join("\n")}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.aggregateInvariants}
+              onChange={(aggregateInvariants) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    aggregateInvariants: e.target.value.split("\n").filter(Boolean),
+                    aggregateInvariants,
                   },
                 })
               }
+              rows={3}
+              className="dock-field min-h-[4rem]"
               placeholder="z. B. Balance darf nicht negativ sein"
             />
           </Field>
@@ -445,50 +494,53 @@ export function ElementDetailSidebar({
       {selectedElement.type === "entity" && (
         <>
           <Field label="Identität (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[2.5rem]"
-              rows={2}
-              value={linesFromMeta(selectedElement.metadata?.identityFields)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.identityFields}
+              onChange={(identityFields) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    identityFields: linesToMeta(e.target.value),
+                    identityFields,
                   },
                 })
               }
+              rows={2}
+              className="dock-field min-h-[2.5rem]"
               placeholder={"z. B. id\ncustomerId"}
             />
           </Field>
           <Field label="Attribute (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={3}
-              value={linesFromMeta(selectedElement.metadata?.attributes)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.attributes}
+              onChange={(attributes) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    attributes: linesToMeta(e.target.value),
+                    attributes,
                   },
                 })
               }
+              rows={3}
+              className="dock-field min-h-[4rem]"
               placeholder={"z. B. name: string\nemail: Email"}
             />
           </Field>
           <Field label="Operationen (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={3}
-              value={linesFromMeta(selectedElement.metadata?.operations)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.operations}
+              onChange={(operations) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    operations: linesToMeta(e.target.value),
+                    operations,
                   },
                 })
               }
+              rows={3}
+              className="dock-field min-h-[4rem]"
               placeholder={"z. B. rename(name)\nchangeEmail(email)"}
             />
           </Field>
@@ -513,18 +565,19 @@ export function ElementDetailSidebar({
             Unveränderlich (immutable)
           </label>
           <Field label="Attribute / Komponenten (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={3}
-              value={linesFromMeta(selectedElement.metadata?.attributes)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.attributes}
+              onChange={(attributes) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    attributes: linesToMeta(e.target.value),
+                    attributes,
                   },
                 })
               }
+              rows={3}
+              className="dock-field min-h-[4rem]"
               placeholder={"z. B. amount: decimal\ncurrency: string"}
             />
           </Field>
@@ -549,18 +602,19 @@ export function ElementDetailSidebar({
             Zustandslos (stateless)
           </label>
           <Field label="Operationen (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={3}
-              value={linesFromMeta(selectedElement.metadata?.operations)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.operations}
+              onChange={(operations) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    operations: linesToMeta(e.target.value),
+                    operations,
                   },
                 })
               }
+              rows={3}
+              className="dock-field min-h-[4rem]"
               placeholder={"z. B. transfer(from, to, money)\ncalculateRisk(order)"}
             />
           </Field>
@@ -585,18 +639,19 @@ export function ElementDetailSidebar({
             />
           </Field>
           <Field label="Operationen (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={3}
-              value={linesFromMeta(selectedElement.metadata?.operations)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.operations}
+              onChange={(operations) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    operations: linesToMeta(e.target.value),
+                    operations,
                   },
                 })
               }
+              rows={3}
+              className="dock-field min-h-[4rem]"
               placeholder={"z. B. findById(id)\nsave(aggregate)\nnextIdentity()"}
             />
           </Field>
@@ -621,18 +676,19 @@ export function ElementDetailSidebar({
             />
           </Field>
           <Field label="Operationen (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={3}
-              value={linesFromMeta(selectedElement.metadata?.operations)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.operations}
+              onChange={(operations) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    operations: linesToMeta(e.target.value),
+                    operations,
                   },
                 })
               }
+              rows={3}
+              className="dock-field min-h-[4rem]"
               placeholder={"z. B. createFromDraft(draft)\nreconstitute(snapshot)"}
             />
           </Field>
@@ -662,70 +718,74 @@ export function ElementDetailSidebar({
 
       {selectedElement.type === "rule" && (
         <Field label="Kriterien / Hinweise (eine pro Zeile)">
-          <textarea
-            className="dock-field min-h-[4rem]"
-            rows={3}
-            value={linesFromMeta(selectedElement.metadata?.ruleCriteria)}
-            onChange={(e) =>
-              updateElement(selectedElement.id, {
-                metadata: {
-                  ...selectedElement.metadata,
-                  ruleCriteria: linesToMeta(e.target.value),
-                },
-              })
-            }
-            placeholder={"z. B. Nur für registrierte Kunden\nMax. 3 Retouren / Jahr"}
-          />
+          <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.ruleCriteria}
+              onChange={(ruleCriteria) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    ruleCriteria,
+                  },
+                })
+              }
+              rows={3}
+              className="dock-field min-h-[4rem]"
+              placeholder={"z. B. Nur für registrierte Kunden\nMax. 3 Retouren / Jahr"}
+            />
         </Field>
       )}
 
       {selectedElement.type === "example" && (
         <>
           <Field label="Given (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[3rem]"
-              rows={2}
-              value={linesFromMeta(selectedElement.metadata?.exampleGiven)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.exampleGiven}
+              onChange={(exampleGiven) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    exampleGiven: linesToMeta(e.target.value),
+                    exampleGiven,
                   },
                 })
               }
+              rows={2}
+              className="dock-field min-h-[3rem]"
               placeholder="Ausgangssituation"
             />
           </Field>
           <Field label="When (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[3rem]"
-              rows={2}
-              value={linesFromMeta(selectedElement.metadata?.exampleWhen)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.exampleWhen}
+              onChange={(exampleWhen) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    exampleWhen: linesToMeta(e.target.value),
+                    exampleWhen,
                   },
                 })
               }
+              rows={2}
+              className="dock-field min-h-[3rem]"
               placeholder="Aktion"
             />
           </Field>
           <Field label="Then (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[3rem]"
-              rows={2}
-              value={linesFromMeta(selectedElement.metadata?.exampleThen)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.exampleThen}
+              onChange={(exampleThen) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    exampleThen: linesToMeta(e.target.value),
+                    exampleThen,
                   },
                 })
               }
+              rows={2}
+              className="dock-field min-h-[3rem]"
               placeholder="Erwartetes Ergebnis"
             />
           </Field>
@@ -806,18 +866,19 @@ export function ElementDetailSidebar({
             </Field>
           </div>
           <Field label="Akzeptanzkriterien (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={3}
-              value={linesFromMeta(selectedElement.metadata?.storyAcceptance)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.storyAcceptance}
+              onChange={(storyAcceptance) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    storyAcceptance: linesToMeta(e.target.value),
+                    storyAcceptance,
                   },
                 })
               }
+              rows={3}
+              className="dock-field min-h-[4rem]"
             />
           </Field>
         </>
@@ -847,20 +908,21 @@ export function ElementDetailSidebar({
 
       {selectedElement.type === "slice" && (
         <Field label="Systeme / Lanes (eine pro Zeile)">
-          <textarea
-            className="dock-field min-h-[3rem]"
-            rows={2}
-            value={linesFromMeta(selectedElement.metadata?.sliceSystems)}
-            onChange={(e) =>
-              updateElement(selectedElement.id, {
-                metadata: {
-                  ...selectedElement.metadata,
-                  sliceSystems: linesToMeta(e.target.value),
-                },
-              })
-            }
-            placeholder={"z. B. Web UI\nOrder Service"}
-          />
+          <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.sliceSystems}
+              onChange={(sliceSystems) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    sliceSystems,
+                  },
+                })
+              }
+              rows={2}
+              className="dock-field min-h-[3rem]"
+              placeholder={"z. B. Web UI\nOrder Service"}
+            />
         </Field>
       )}
 
@@ -901,33 +963,35 @@ export function ElementDetailSidebar({
             />
           </Field>
           <Field label="Eingaben (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[3rem]"
-              rows={2}
-              value={linesFromMeta(selectedElement.metadata?.processInputs)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.processInputs}
+              onChange={(processInputs) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    processInputs: linesToMeta(e.target.value),
+                    processInputs,
                   },
                 })
               }
+              rows={2}
+              className="dock-field min-h-[3rem]"
             />
           </Field>
           <Field label="Ausgaben (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[3rem]"
-              rows={2}
-              value={linesFromMeta(selectedElement.metadata?.processOutputs)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.processOutputs}
+              onChange={(processOutputs) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    processOutputs: linesToMeta(e.target.value),
+                    processOutputs,
                   },
                 })
               }
+              rows={2}
+              className="dock-field min-h-[3rem]"
             />
           </Field>
         </>
@@ -954,18 +1018,19 @@ export function ElementDetailSidebar({
             </select>
           </Field>
           <Field label="Bedingungen / Pfade (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[3rem]"
-              rows={3}
-              value={linesFromMeta(selectedElement.metadata?.gatewayConditions)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.gatewayConditions}
+              onChange={(gatewayConditions) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    gatewayConditions: linesToMeta(e.target.value),
+                    gatewayConditions,
                   },
                 })
               }
+              rows={3}
+              className="dock-field min-h-[3rem]"
               placeholder={"z. B. genehmigt\nabgelehnt"}
             />
           </Field>
@@ -1014,48 +1079,51 @@ export function ElementDetailSidebar({
             />
           </Field>
           <Field label="Primärschlüssel / Identität (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[3rem]"
-              rows={2}
-              value={linesFromMeta(selectedElement.metadata?.identityFields)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.identityFields}
+              onChange={(identityFields) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    identityFields: linesToMeta(e.target.value),
+                    identityFields,
                   },
                 })
               }
+              rows={2}
+              className="dock-field min-h-[3rem]"
             />
           </Field>
           <Field label="Attribute (eine pro Zeile, z. B. name: string)">
-            <textarea
-              className="dock-field min-h-[4rem]"
-              rows={4}
-              value={linesFromMeta(selectedElement.metadata?.attributes)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.attributes}
+              onChange={(attributes) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    attributes: linesToMeta(e.target.value),
+                    attributes,
                   },
                 })
               }
+              rows={4}
+              className="dock-field min-h-[4rem]"
             />
           </Field>
           <Field label="Unique Keys (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[2.5rem]"
-              rows={2}
-              value={linesFromMeta(selectedElement.metadata?.dataUniqueKeys)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.dataUniqueKeys}
+              onChange={(dataUniqueKeys) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    dataUniqueKeys: linesToMeta(e.target.value),
+                    dataUniqueKeys,
                   },
                 })
               }
+              rows={2}
+              className="dock-field min-h-[2.5rem]"
             />
           </Field>
         </>
@@ -1105,18 +1173,19 @@ export function ElementDetailSidebar({
             />
           </Field>
           <Field label="Beziehungsattribute (eine pro Zeile)">
-            <textarea
-              className="dock-field min-h-[3rem]"
-              rows={2}
-              value={linesFromMeta(selectedElement.metadata?.attributes)}
-              onChange={(e) =>
+            <LinesTextarea
+              resetKey={selectedElement.id}
+              values={selectedElement.metadata?.attributes}
+              onChange={(attributes) =>
                 updateElement(selectedElement.id, {
                   metadata: {
                     ...selectedElement.metadata,
-                    attributes: linesToMeta(e.target.value),
+                    attributes,
                   },
                 })
               }
+              rows={2}
+              className="dock-field min-h-[3rem]"
             />
           </Field>
         </>

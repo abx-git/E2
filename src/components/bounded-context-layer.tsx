@@ -5,7 +5,7 @@ import { LayoutDashboard, Lock } from "lucide-react";
 
 import { resolveBoundedContextViewNavigation } from "@/lib/bounded-context-view";
 import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
-import { elementIdsInBoundedContext } from "@/lib/region-containment";
+import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
 import { resolveRegionPaint } from "@/lib/region-style";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -114,8 +114,20 @@ export function BoundedContextLayer() {
       return;
     }
 
-    selectBoundedContext(bcId);
-    const current = store.boundedContexts.find((b) => b.id === bcId);
+    const alreadySelected = store.selectedBoundedContextIds.includes(bcId);
+    const multiSelected =
+      alreadySelected &&
+      selectionItemCount({
+        elementIds: store.selectedElementIds,
+        swimlaneIds: store.selectedSwimlaneIds,
+        boundedContextIds: store.selectedBoundedContextIds,
+      }) > 1;
+
+    if (!alreadySelected) {
+      selectBoundedContext(bcId);
+    }
+
+    const current = useStormBoardStore.getState().boundedContexts.find((b) => b.id === bcId);
     if (!current || current.locked) return;
 
     const isTouch = e.pointerType === "touch";
@@ -127,18 +139,66 @@ export function BoundedContextLayer() {
 
     const beginDragMove = () => {
       if (moveActive || longPressTriggered) return;
-      const live = useStormBoardStore.getState().boundedContexts.find((b) => b.id === bcId);
+      const liveStore = useStormBoardStore.getState();
+      const live = liveStore.boundedContexts.find((b) => b.id === bcId);
       if (!live || live.locked) return;
       moveActive = true;
-      store.beginGesture();
+      liveStore.beginGesture();
 
-      const orig = { x: live.x, y: live.y };
-      const moveElementIds = elementIdsInBoundedContext(store.elements, live);
+      const baseSelection = multiSelected
+        ? {
+            elementIds: liveStore.selectedElementIds,
+            swimlaneIds: liveStore.selectedSwimlaneIds,
+            boundedContextIds: liveStore.selectedBoundedContextIds,
+          }
+        : {
+            elementIds: [] as string[],
+            swimlaneIds: [] as string[],
+            boundedContextIds: [bcId],
+          };
+      const moveSet = expandCanvasMoveSet(
+        liveStore.elements,
+        liveStore.swimlanes,
+        liveStore.boundedContexts,
+        baseSelection,
+      );
+
+      const elementOrigins = new Map(
+        liveStore.elements
+          .filter((el) => moveSet.elementIds.includes(el.id))
+          .map((el) => [el.id, { x: el.x, y: el.y }] as const),
+      );
+      const swimlaneOrigins = new Map(
+        liveStore.swimlanes
+          .filter((l) => moveSet.swimlaneIds.includes(l.id) && !l.locked)
+          .map((l) => [l.id, { x: l.x ?? 0, y: l.y }] as const),
+      );
+      const bcOrigins = new Map(
+        liveStore.boundedContexts
+          .filter((bc) => moveSet.boundedContextIds.includes(bc.id) && !bc.locked)
+          .map((bc) => [bc.id, { x: bc.x, y: bc.y }] as const),
+      );
 
       const onDragMove = (ev: PointerEvent) => {
         const dx = (ev.clientX - startX) / zoom;
         const dy = (ev.clientY - startY) / zoom;
-        updateBoundedContext(bcId, { x: orig.x + dx, y: orig.y + dy }, { moveElementIds });
+        useStormBoardStore.getState().moveCanvasSelection({
+          elements: Array.from(elementOrigins.entries()).map(([id, orig]) => ({
+            id,
+            x: orig.x + dx,
+            y: orig.y + dy,
+          })),
+          swimlanes: Array.from(swimlaneOrigins.entries()).map(([id, orig]) => ({
+            id,
+            x: orig.x + dx,
+            y: orig.y + dy,
+          })),
+          boundedContexts: Array.from(bcOrigins.entries()).map(([id, orig]) => ({
+            id,
+            x: orig.x + dx,
+            y: orig.y + dy,
+          })),
+        });
       };
 
       const onDragUp = () => {

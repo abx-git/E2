@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
-import { elementIdsInSwimlane } from "@/lib/region-containment";
+import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
 import { resolveRegionPaint } from "@/lib/region-style";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { Lock } from "lucide-react";
@@ -89,7 +89,21 @@ export function SwimlaneLayer() {
     }
     e.stopPropagation();
     e.preventDefault();
-    selectSwimlane(laneId);
+
+    const store = useStormBoardStore.getState();
+    const alreadySelected = store.selectedSwimlaneIds.includes(laneId);
+    const multiSelected =
+      alreadySelected &&
+      selectionItemCount({
+        elementIds: store.selectedElementIds,
+        swimlaneIds: store.selectedSwimlaneIds,
+        boundedContextIds: store.selectedBoundedContextIds,
+      }) > 1;
+
+    if (!alreadySelected) {
+      selectSwimlane(laneId);
+    }
+
     const lane = useStormBoardStore.getState().swimlanes.find((l) => l.id === laneId);
     if (!lane || lane.locked) return;
 
@@ -97,13 +111,61 @@ export function SwimlaneLayer() {
 
     const startX = e.clientX;
     const startY = e.clientY;
-    const orig = { x: lane.x ?? 0, y: lane.y };
-    const moveElementIds = elementIdsInSwimlane(useStormBoardStore.getState().elements, lane);
+    const live = useStormBoardStore.getState();
+    const baseSelection = multiSelected
+      ? {
+          elementIds: live.selectedElementIds,
+          swimlaneIds: live.selectedSwimlaneIds,
+          boundedContextIds: live.selectedBoundedContextIds,
+        }
+      : {
+          elementIds: [] as string[],
+          swimlaneIds: [laneId],
+          boundedContextIds: [] as string[],
+        };
+    const moveSet = expandCanvasMoveSet(
+      live.elements,
+      live.swimlanes,
+      live.boundedContexts,
+      baseSelection,
+    );
+
+    const elementOrigins = new Map(
+      live.elements
+        .filter((el) => moveSet.elementIds.includes(el.id))
+        .map((el) => [el.id, { x: el.x, y: el.y }] as const),
+    );
+    const swimlaneOrigins = new Map(
+      live.swimlanes
+        .filter((l) => moveSet.swimlaneIds.includes(l.id) && !l.locked)
+        .map((l) => [l.id, { x: l.x ?? 0, y: l.y }] as const),
+    );
+    const bcOrigins = new Map(
+      live.boundedContexts
+        .filter((bc) => moveSet.boundedContextIds.includes(bc.id) && !bc.locked)
+        .map((bc) => [bc.id, { x: bc.x, y: bc.y }] as const),
+    );
 
     const onMove = (ev: PointerEvent) => {
       const dx = (ev.clientX - startX) / zoom;
       const dy = (ev.clientY - startY) / zoom;
-      updateSwimlane(laneId, { x: orig.x + dx, y: orig.y + dy }, { moveElementIds });
+      useStormBoardStore.getState().moveCanvasSelection({
+        elements: Array.from(elementOrigins.entries()).map(([id, orig]) => ({
+          id,
+          x: orig.x + dx,
+          y: orig.y + dy,
+        })),
+        swimlanes: Array.from(swimlaneOrigins.entries()).map(([id, orig]) => ({
+          id,
+          x: orig.x + dx,
+          y: orig.y + dy,
+        })),
+        boundedContexts: Array.from(bcOrigins.entries()).map(([id, orig]) => ({
+          id,
+          x: orig.x + dx,
+          y: orig.y + dy,
+        })),
+      });
     };
 
     const onUp = () => {
