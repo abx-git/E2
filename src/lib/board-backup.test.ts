@@ -13,6 +13,7 @@ import {
   resetLastBackupPersistKey,
   resetSuspiciousSwitchBackupDebounce,
   slugForBackupFilename,
+  writeBackupHistoryMode,
 } from "@/lib/board-backup";
 import { createEmptyBoardView } from "@/lib/storm-json";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -37,6 +38,7 @@ describe("board-backup", () => {
     resetSuspiciousSwitchBackupDebounce();
     mockAttached.mockReturnValue(false);
     mockDirty.mockReturnValue(false);
+    writeBackupHistoryMode("history");
     useStormBoardStore.getState().replaceBoardFromImport({
       title: "Backup Test",
       glossary: [],
@@ -47,11 +49,18 @@ describe("board-backup", () => {
     });
   });
 
-  it("builds timestamped filenames", () => {
+  it("builds timestamped filenames for history mode", () => {
     const d = new Date(2026, 6, 23, 7, 5, 9); // month is 0-based
     expect(formatBackupTimestamp(d)).toBe("2026-07-23-070509");
-    expect(buildBackupFilename("Mein Board", d)).toBe(
+    expect(buildBackupFilename("Mein Board", d, "history")).toBe(
       "mein-board-backup-2026-07-23-070509.storm.json",
+    );
+  });
+
+  it("builds a stable filename for rolling mode", () => {
+    const d = new Date(2026, 6, 23, 7, 5, 9);
+    expect(buildBackupFilename("Mein Board", d, "rolling")).toBe(
+      "mein-board-backup.storm.json",
     );
   });
 
@@ -79,39 +88,39 @@ describe("board-backup", () => {
     expect(boardNeedsSafetyBackup()).toBe(true);
   });
 
-  it("skips switch backup when already saved", () => {
+  it("skips switch backup when already saved", async () => {
     useStormBoardStore.getState().addElement("domainEvent", 10, 20);
     mockAttached.mockReturnValue(true);
     mockDirty.mockReturnValue(false);
-    expect(backupBeforeSuspiciousSwitch("view")).toEqual({
+    expect(await backupBeforeSuspiciousSwitch("view")).toEqual({
       skipped: true,
       reason: "already_saved",
     });
-    expect(backupBeforeSuspiciousSwitch("file")).toEqual({
+    expect(await backupBeforeSuspiciousSwitch("file")).toEqual({
       skipped: true,
       reason: "already_saved",
     });
   });
 
-  it("skips onlyIfChanged backups when the board is unchanged", () => {
+  it("skips onlyIfChanged backups when the board is unchanged", async () => {
     useStormBoardStore.getState().addElement("domainEvent", 10, 20);
     rememberBackupBaselineFromStore();
     expect(getLastBackupPersistKey()).toBeTruthy();
 
-    expect(createBoardBackupNow({ onlyIfChanged: true })).toEqual({
+    expect(await createBoardBackupNow({ onlyIfChanged: true })).toEqual({
       skipped: true,
       reason: "unchanged",
     });
 
     useStormBoardStore.getState().addElement("command", 30, 40);
     rememberBackupBaselineFromStore();
-    expect(createBoardBackupNow({ onlyIfChanged: true })).toEqual({
+    expect(await createBoardBackupNow({ onlyIfChanged: true })).toEqual({
       skipped: true,
       reason: "unchanged",
     });
   });
 
-  it("does not skip onlyIfChanged when there is no baseline yet", () => {
+  it("does not skip onlyIfChanged when there is no baseline yet", async () => {
     useStormBoardStore.getState().addElement("domainEvent", 10, 20);
     expect(getLastBackupPersistKey()).toBeNull();
     useStormBoardStore.getState().replaceBoardFromImport({
@@ -122,7 +131,7 @@ describe("board-backup", () => {
       activeViewId: "v1",
       views: [createEmptyBoardView({ id: "v1", name: "Board" })],
     });
-    expect(createBoardBackupNow({ onlyIfChanged: true })).toEqual({
+    expect(await createBoardBackupNow({ onlyIfChanged: true })).toEqual({
       skipped: true,
       reason: "empty",
     });

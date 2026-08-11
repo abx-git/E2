@@ -1,5 +1,6 @@
 /**
- * Timestamped local board backups (download copies, independent of the working file).
+ * Local board backups (download / optional File System Access overwrite).
+ * History mode: timestamped copies. Rolling mode: always the same backup file.
  */
 
 import { boardJsonFromStoreState, boardPersistKeyFromStoreState } from "@/lib/file-board-reconcile";
@@ -10,14 +11,21 @@ import { boardImportPayloadFromStore } from "@/store/storm-board-store";
 export const BACKUP_INTERVAL_OPTIONS_MINUTES = [0, 5, 10, 15, 30] as const;
 export type BackupIntervalMinutes = (typeof BACKUP_INTERVAL_OPTIONS_MINUTES)[number];
 
+/** `history` = timestamped copies; `rolling` = overwrite one fixed backup file. */
+export const BACKUP_HISTORY_MODES = ["history", "rolling"] as const;
+export type BackupHistoryMode = (typeof BACKUP_HISTORY_MODES)[number];
+
 const LS_INTERVAL = "e2-backup-interval-minutes";
 const LS_LAST_AT = "e2-backup-last-at";
+const LS_HISTORY_MODE = "e2-backup-history-mode";
 
 const LOCAL_BACKUP_IDB_NAME = "e2-board-backups";
 const LOCAL_BACKUP_IDB_VERSION = 1;
 const LOCAL_BACKUP_STORE = "backups";
 const LOCAL_BACKUP_LIST_KEY = "recent";
+const LOCAL_BACKUP_ROLLING_HANDLE_KEY = "rolling-handle";
 const LOCAL_BACKUP_LIMIT = 12;
+const ROLLING_BACKUP_RECORD_ID = "rolling";
 
 export interface LocalBackupRecord {
   id: string;
@@ -34,6 +42,9 @@ export interface LocalBackupListItem {
 
 /** Persist key of the last successful backup (session); used to skip unchanged auto-backups. */
 let lastBackupPersistKey: string | null = null;
+
+/** In-memory cache of the rolling backup file handle (FS Access). */
+let rollingBackupHandle: FileSystemFileHandle | null = null;
 
 export function slugForBackupFilename(title: string): string {
   const slug = title
@@ -55,8 +66,24 @@ export function formatBackupTimestamp(date: Date = new Date()): string {
   );
 }
 
-export function buildBackupFilename(title: string, date: Date = new Date()): string {
-  return `${slugForBackupFilename(title)}-backup-${formatBackupTimestamp(date)}.storm.json`;
+export function buildBackupFilename(
+  title: string,
+  date: Date = new Date(),
+  mode: BackupHistoryMode = "history",
+): string {
+  const slug = slugForBackupFilename(title);
+  if (mode === "rolling") {
+    return `${slug}-backup.storm.json`;
+  }
+  return `${slug}-backup-${formatBackupTimestamp(date)}.storm.json`;
+}
+
+function isFileSystemAccessAvailable(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.showSaveFilePicker === "function" &&
+    typeof indexedDB !== "undefined"
+  );
 }
 
 function openLocalBackupDb(): Promise<IDBDatabase> {
@@ -104,24 +131,159 @@ async function idbPutLocalBackups(entries: LocalBackupRecord[]): Promise<void> {
   });
 }
 
+async function idbGetRollingHandle(): Promise<FileSystemFileHandle | null> {
+  try {
+    const db = await openLocalBackupDb();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(LOCAL_BACKUP_STORE, "readonly");
+      const r = tx.objectStore(LOCAL_BACKUP_STORE).get(LOCAL_BACKUP_ROLLING_HANDLE_KEY);
+      r.onsuccess = () => {
+        const raw = r.result;
+        resolve(raw && typeof raw === "object" ? (raw as FileSystemFileHandle) : null);
+      };
+      r.onerror = () => reject(r.error ?? new Error("indexedDB get failed"));
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function idbPutRollingHandle(handle: FileSystemFileHandle | null): Promise<void> {
+  const db = await openLocalBackupDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(LOCAL_BACKUP_STORE, "readwrite");
+    const store = tx.objectStore(LOCAL_BACKUP_STORE);
+    if (handle) store.put(handle, LOCAL_BACKUP_ROLLING_HANDLE_KEY);
+    else store.delete(LOCAL_BACKUP_ROLLING_HANDLE_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("indexedDB put failed"));
+  });
+}
+
+async function ensureReadWritePermission(handle: FileSystemFileHandle): Promise<boolean> {
+  try {
+    let ok = (await handle.queryPermission({ mode: "readwrite" })) === "granted";
+    if (!ok) ok = (await handle.requestPermission({ mode: "readwrite" })) === "granted";
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Resolve / cache the rolling backup file handle (if previously chosen). */
+export async function getRollingBackupHandle(): Promise<FileSystemFileHandle | null> {
+  if (rollingBackupHandle) return rollingBackupHandle;
+  const stored = await idbGetRollingHandle();
+  rollingBackupHandle = stored;
+  return stored;
+}
+
+export async function clearRollingBackupHandle(): Promise<void> {
+  rollingBackupHandle = null;
+  try {
+    await idbPutRollingHandle(null);
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Pick (or re-pick) the single rolling backup file. Needs a user gesture.
+ * Returns null if cancelled or FS Access unavailable.
+ */
+export async function pickRollingBackupFile(
+  suggestedName: string,
+): Promise<FileSystemFileHandle | null> {
+  if (!isFileSystemAccessAvailable() || !window.showSaveFilePicker) return null;
+  try {
+    const handle = await window.showSaveFilePicker({
+      suggestedName,
+      types: [
+        {
+          description: "Event Storming JSON",
+          accept: { "application/json": [".json", ".storm.json"] },
+        },
+      ],
+    });
+    rollingBackupHandle = handle;
+    await idbPutRollingHandle(handle);
+    return handle;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Ensure a rolling backup target exists. Uses remembered handle when possible;
+ * with `allowPick` may open a save picker (user gesture required).
+ */
+export async function ensureRollingBackupHandle(
+  suggestedName: string,
+  options?: { allowPick?: boolean },
+): Promise<FileSystemFileHandle | null> {
+  const existing = await getRollingBackupHandle();
+  if (existing) {
+    if (await ensureReadWritePermission(existing)) return existing;
+    // Stale permission — clear and optionally re-pick.
+    await clearRollingBackupHandle();
+  }
+  if (!options?.allowPick) return null;
+  return pickRollingBackupFile(suggestedName);
+}
+
+async function writeRollingBackupFile(
+  handle: FileSystemFileHandle,
+  json: string,
+): Promise<boolean> {
+  try {
+    if (!(await ensureReadWritePermission(handle))) return false;
+    const writable = await handle.createWritable({ keepExistingData: false });
+    await writable.write(json);
+    await writable.close();
+    return true;
+  } catch (e) {
+    console.error("Rolling backup write:", e);
+    return false;
+  }
+}
+
+function triggerDownload(json: string, filename: string): void {
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 /** Persist a backup copy in IndexedDB so it can be reopened without the Downloads folder. */
 export async function rememberLocalBackup(
   filename: string,
   json: string,
   createdAt: number = Date.now(),
+  mode: BackupHistoryMode = readBackupHistoryMode(),
 ): Promise<LocalBackupRecord> {
   const record: LocalBackupRecord = {
-    id: `${createdAt}-${Math.random().toString(36).slice(2, 9)}`,
+    id: mode === "rolling" ? ROLLING_BACKUP_RECORD_ID : `${createdAt}-${Math.random().toString(36).slice(2, 9)}`,
     filename,
     createdAt,
     json,
   };
   try {
     const existing = await idbGetLocalBackups();
-    const next = [record, ...existing.filter((e) => e.filename !== filename)].slice(
-      0,
-      LOCAL_BACKUP_LIMIT,
-    );
+    const next =
+      mode === "rolling"
+        ? [
+            record,
+            ...existing.filter(
+              (e) => e.id !== ROLLING_BACKUP_RECORD_ID && e.filename !== filename,
+            ),
+          ].slice(0, LOCAL_BACKUP_LIMIT)
+        : [record, ...existing.filter((e) => e.filename !== filename)].slice(
+            0,
+            LOCAL_BACKUP_LIMIT,
+          );
     await idbPutLocalBackups(next);
   } catch (e) {
     console.error("Local backup store:", e);
@@ -147,19 +309,35 @@ export async function clearLocalBackups(): Promise<void> {
   } catch {
     /* ignore */
   }
+  await clearRollingBackupHandle();
 }
 
-export function downloadBoardBackup(json: string, title: string, date: Date = new Date()): string {
-  const filename = buildBackupFilename(title, date);
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+/**
+ * Download or overwrite a backup. Rolling + FS Access prefers writing the same file.
+ */
+export async function downloadBoardBackup(
+  json: string,
+  title: string,
+  date: Date = new Date(),
+  options?: { mode?: BackupHistoryMode; allowPickRollingFile?: boolean },
+): Promise<string> {
+  const mode = options?.mode ?? readBackupHistoryMode();
+  const filename = buildBackupFilename(title, date, mode);
+
+  if (mode === "rolling" && isFileSystemAccessAvailable()) {
+    const handle = await ensureRollingBackupHandle(filename, {
+      allowPick: options?.allowPickRollingFile === true,
+    });
+    if (handle && (await writeRollingBackupFile(handle, json))) {
+      rememberLastBackupAt(date.getTime());
+      void rememberLocalBackup(filename, json, date.getTime(), mode);
+      return filename;
+    }
+  }
+
+  triggerDownload(json, filename);
   rememberLastBackupAt(date.getTime());
-  void rememberLocalBackup(filename, json, date.getTime());
+  void rememberLocalBackup(filename, json, date.getTime(), mode);
   return filename;
 }
 
@@ -195,10 +373,14 @@ export function boardNeedsSafetyBackup(): boolean {
   return true;
 }
 
-/** Create a timestamped backup of the current editor board. */
-export function createBoardBackupNow(
-  options?: { allowEmpty?: boolean; onlyIfChanged?: boolean },
-): CreateBoardBackupResult {
+/** Create a backup of the current editor board (history or rolling per setting). */
+export async function createBoardBackupNow(
+  options?: {
+    allowEmpty?: boolean;
+    onlyIfChanged?: boolean;
+    allowPickRollingFile?: boolean;
+  },
+): Promise<CreateBoardBackupResult> {
   const payload = boardImportPayloadFromStore();
   if (!options?.allowEmpty && !documentHasContent(payload)) {
     return { skipped: true, reason: "empty" };
@@ -212,7 +394,9 @@ export function createBoardBackupNow(
     return { skipped: true, reason: "unchanged" };
   }
   const json = boardJsonFromStoreState();
-  const filename = downloadBoardBackup(json, payload.title || "board");
+  const filename = await downloadBoardBackup(json, payload.title || "board", new Date(), {
+    allowPickRollingFile: options?.allowPickRollingFile,
+  });
   lastBackupPersistKey = persistKey;
   return { filename, skipped: false };
 }
@@ -226,16 +410,16 @@ const LAST_SWITCH_BACKUP_AT: Partial<Record<SuspiciousSwitchKind | "any", number
  * Only when the current stand is not yet saved to the Arbeitsdatei.
  * Debounced per kind so confirm-dialogs don't double-download.
  */
-export function backupBeforeSuspiciousSwitch(
+export async function backupBeforeSuspiciousSwitch(
   kind: SuspiciousSwitchKind,
   options?: { allowEmpty?: boolean; debounceMs?: number; force?: boolean },
-): {
+): Promise<{
   filename: string;
   skipped: false;
 } | {
   skipped: true;
   reason: "empty" | "debounced" | "unchanged" | "already_saved";
-} {
+}> {
   if (!options?.force && !boardNeedsSafetyBackup()) {
     return { skipped: true, reason: "already_saved" };
   }
@@ -247,7 +431,7 @@ export function backupBeforeSuspiciousSwitch(
   if (now - lastKind < debounceMs || now - lastAny < Math.min(debounceMs, 1500)) {
     return { skipped: true, reason: "debounced" };
   }
-  const result = createBoardBackupNow({ allowEmpty: options?.allowEmpty ?? false });
+  const result = await createBoardBackupNow({ allowEmpty: options?.allowEmpty ?? false });
   if (!result.skipped) {
     LAST_SWITCH_BACKUP_AT[kind] = now;
     LAST_SWITCH_BACKUP_AT.any = now;
@@ -281,6 +465,28 @@ export function writeBackupIntervalMinutes(minutes: BackupIntervalMinutes): void
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(LS_INTERVAL, String(minutes));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function readBackupHistoryMode(): BackupHistoryMode {
+  if (typeof localStorage === "undefined") return "history";
+  try {
+    const raw = localStorage.getItem(LS_HISTORY_MODE);
+    if (raw && (BACKUP_HISTORY_MODES as readonly string[]).includes(raw)) {
+      return raw as BackupHistoryMode;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "history";
+}
+
+export function writeBackupHistoryMode(mode: BackupHistoryMode): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(LS_HISTORY_MODE, mode);
   } catch {
     /* ignore */
   }

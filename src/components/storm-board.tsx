@@ -36,12 +36,17 @@ import { WorkingFileSync } from "@/components/working-file-sync";
 import { applyAppearanceToElement } from "@/lib/board-appearance";
 import {
   backupBeforeSuspiciousSwitch,
+  buildBackupFilename,
   formatLastBackupLabel,
   getLocalBackup,
+  readBackupHistoryMode,
   readBackupIntervalMinutes,
   readLastBackupAt,
+  type BackupHistoryMode,
   type BackupIntervalMinutes,
+  writeBackupHistoryMode,
   writeBackupIntervalMinutes,
+  ensureRollingBackupHandle,
 } from "@/lib/board-backup";
 import { boardHasLocalContent, shouldConfirmCollabEnter } from "@/lib/collab/file-guard";
 import {
@@ -134,6 +139,7 @@ export function StormBoard() {
   const [workingFileSaving, setWorkingFileSaving] = useState(false);
   const [busy, setBusy] = useState(false);
   const [backupIntervalMinutes, setBackupIntervalMinutes] = useState<BackupIntervalMinutes>(0);
+  const [backupHistoryMode, setBackupHistoryMode] = useState<BackupHistoryMode>("history");
   const [backupLastLabel, setBackupLastLabel] = useState(() =>
     formatLastBackupLabel(readLastBackupAt()),
   );
@@ -142,6 +148,7 @@ export function StormBoard() {
 
   useEffect(() => {
     setBackupIntervalMinutes(readBackupIntervalMinutes());
+    setBackupHistoryMode(readBackupHistoryMode());
   }, []);
 
   const [helpOpen, setHelpOpen] = useState(false);
@@ -923,12 +930,23 @@ export function StormBoard() {
           workingFileDirty || (!isWorkingFileAttached() && boardHasLocalContent())
         }
         backupIntervalMinutes={backupIntervalMinutes}
+        backupHistoryMode={backupHistoryMode}
         backupLastLabel={backupLastLabel}
         onBackupIntervalChange={(minutes) => {
           writeBackupIntervalMinutes(minutes);
           setBackupIntervalMinutes(minutes);
         }}
-        onBackupNow={() => runManualBoardBackup(setBackupLastLabel)}
+        onBackupHistoryModeChange={(mode) => {
+          writeBackupHistoryMode(mode);
+          setBackupHistoryMode(mode);
+          if (mode === "rolling" && isWorkingFileSupported()) {
+            const title =
+              useStormBoardStore.getState().title?.trim() || "board";
+            const suggested = buildBackupFilename(title, new Date(), "rolling");
+            void ensureRollingBackupHandle(suggested, { allowPick: true });
+          }
+        }}
+        onBackupNow={() => void runManualBoardBackup(setBackupLastLabel)}
         onNewWorkingFile={() => handleNewWorkingFile()}
         onSaveWorkingFile={() => void handleSaveWorkingFile()}
         onOpenWorkingFile={() => void handleOpenWorkingFile()}
