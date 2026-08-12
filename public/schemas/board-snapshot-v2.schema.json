@@ -261,8 +261,8 @@
     },
     "progressMark": {
       "type": "string",
-      "enum": ["ok", "attention", "pending"],
-      "description": "Optionaler Bearbeitungsstand: OK / ! / … (Ctrl+1/2/3)."
+      "enum": ["ok", "attention", "question", "working", "neu", "pending"],
+      "description": "Optionaler Bearbeitungsstand: OK / ! / ? / In Arbeit / Neu (Ctrl+1–5). Legacy: pending ≡ working."
     },
     "elementMetadata": {
       "type": "object",

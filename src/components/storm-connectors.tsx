@@ -2,6 +2,7 @@
 
 import { elementCenter, relationAnchors } from "@/lib/connector-geometry";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
+import { ProgressMarkConnectorBadge } from "@/components/progress-mark-badge";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
 import type { StormRelation } from "@/types/storm-relation";
@@ -56,6 +57,15 @@ export function StormConnectors({
         const tgt = byId.get(rel.targetId);
         if (!src || !tgt) return null;
         const { start, end } = relationAnchors(src, tgt);
+        const midX = (start.x + end.x) / 2;
+        const midY = (start.y + end.y) / 2;
+        // Offset badge perpendicular to the line so it stays readable beside the stroke.
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const badgeOffset = 14;
+        const badgeX = midX + (-dy / len) * badgeOffset;
+        const badgeY = midY + (dx / len) * badgeOffset;
         const dashed = rel.type === "informs" || rel.type === "annotates";
         const selected = rel.id === selectedRelationId;
         const involvesFocusType =
@@ -64,6 +74,7 @@ export function StormConnectors({
         const dimForSearch =
           searchHitIds !== null && !searchHitIds.has(src.id) && !searchHitIds.has(tgt.id);
         const dimmed = dimForFocus || dimForSearch;
+        const mark = rel.progressMark;
         return (
           <g key={rel.id} opacity={dimmed ? 0.22 : 1}>
             {/* Wide invisible stroke for hit-testing without stealing the line bbox. */}
@@ -97,13 +108,18 @@ export function StormConnectors({
             />
             {rel.label && (
               <text
-                x={(start.x + end.x) / 2}
-                y={(start.y + end.y) / 2 - 6}
+                x={midX}
+                y={midY - 8}
                 textAnchor="middle"
                 className="pointer-events-none fill-[var(--muted)] text-[10px]"
               >
                 {rel.label}
               </text>
+            )}
+            {mark && (
+              <g transform={`translate(${badgeX}, ${badgeY})`}>
+                <ProgressMarkConnectorBadge mark={mark} />
+              </g>
             )}
           </g>
         );

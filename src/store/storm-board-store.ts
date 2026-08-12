@@ -53,6 +53,7 @@ import {
 } from "@/lib/custom-card-types";
 import { findCustomCardType } from "@/lib/custom-card-types";
 import type { ProgressMark } from "@/lib/progress-mark";
+import { normalizeProgressMark } from "@/lib/progress-mark";
 
 const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
@@ -1433,8 +1434,12 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         : undefined;
 
       const allAlready =
-        selectedEls.every((e) => e.metadata?.progressMark === mark) &&
-        (selectedRel ? selectedRel.progressMark === mark : true) &&
+        selectedEls.every(
+          (e) => normalizeProgressMark(e.metadata?.progressMark) === mark,
+        ) &&
+        (selectedRel
+          ? normalizeProgressMark(selectedRel.progressMark) === mark
+          : true) &&
         (selectedEls.length > 0 || Boolean(selectedRel));
 
       const next = allAlready ? undefined : mark;

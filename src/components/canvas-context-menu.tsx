@@ -42,8 +42,13 @@ import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import {
   PROGRESS_MARKS,
-  PROGRESS_MARK_GLYPH,
+  PROGRESS_MARK_LABEL,
+  PROGRESS_MARK_SHORT,
+  PROGRESS_MARK_SHORTCUT,
+  PROGRESS_MARK_STYLE,
+  normalizeProgressMark,
 } from "@/lib/progress-mark";
+import { ProgressMarkGlyph } from "@/components/progress-mark-badge";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { supportsArchDrilldown, type NoteColorId } from "@/types/storm-element";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
@@ -418,9 +423,21 @@ export function CanvasContextMenu({
         {PROGRESS_MARKS.map((mark) => (
           <Item
             key={mark}
-            label={PROGRESS_MARK_GLYPH[mark]}
-            hint={mark === "ok" ? "Ctrl+1" : mark === "attention" ? "Ctrl+2" : "Ctrl+3"}
-            active={el.metadata?.progressMark === mark}
+            label={PROGRESS_MARK_SHORT[mark]}
+            hint={PROGRESS_MARK_SHORTCUT[mark]}
+            active={normalizeProgressMark(el.metadata?.progressMark) === mark}
+            leading={
+              <span
+                className="inline-flex h-4 w-4 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
+                  color: PROGRESS_MARK_STYLE[mark].fg,
+                }}
+                title={PROGRESS_MARK_LABEL[mark]}
+              >
+                <ProgressMarkGlyph mark={mark} />
+              </span>
+            }
             onClick={() =>
               run(() => {
                 useStormBoardStore.getState().setSelectedElementIds([el.id]);
@@ -429,13 +446,13 @@ export function CanvasContextMenu({
             }
           />
         ))}
-        {el.metadata?.progressMark ? (
+        {normalizeProgressMark(el.metadata?.progressMark) ? (
           <Item
             label="Stand entfernen"
             onClick={() =>
               run(() => {
                 useStormBoardStore.getState().setSelectedElementIds([el.id]);
-                applyProgressMark(el.metadata!.progressMark!);
+                applyProgressMark(normalizeProgressMark(el.metadata?.progressMark)!);
               })
             }
           />
@@ -603,12 +620,26 @@ export function CanvasContextMenu({
         {PROGRESS_MARKS.map((mark) => (
           <Item
             key={mark}
-            label={PROGRESS_MARK_GLYPH[mark]}
-            hint={mark === "ok" ? "Ctrl+1" : mark === "attention" ? "Ctrl+2" : "Ctrl+3"}
+            label={PROGRESS_MARK_SHORT[mark]}
+            hint={PROGRESS_MARK_SHORTCUT[mark]}
             active={target.ids.every(
               (id) =>
-                elements.find((e) => e.id === id)?.metadata?.progressMark === mark,
+                normalizeProgressMark(
+                  elements.find((e) => e.id === id)?.metadata?.progressMark,
+                ) === mark,
             )}
+            leading={
+              <span
+                className="inline-flex h-4 w-4 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
+                  color: PROGRESS_MARK_STYLE[mark].fg,
+                }}
+                title={PROGRESS_MARK_LABEL[mark]}
+              >
+                <ProgressMarkGlyph mark={mark} />
+              </span>
+            }
             onClick={() =>
               run(() => {
                 useStormBoardStore.getState().setSelectedElementIds(target.ids);
@@ -672,9 +703,21 @@ export function CanvasContextMenu({
         {PROGRESS_MARKS.map((mark) => (
           <Item
             key={mark}
-            label={PROGRESS_MARK_GLYPH[mark]}
-            hint={mark === "ok" ? "Ctrl+1" : mark === "attention" ? "Ctrl+2" : "Ctrl+3"}
-            active={rel.progressMark === mark}
+            label={PROGRESS_MARK_SHORT[mark]}
+            hint={PROGRESS_MARK_SHORTCUT[mark]}
+            active={normalizeProgressMark(rel.progressMark) === mark}
+            leading={
+              <span
+                className="inline-flex h-4 w-4 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
+                  color: PROGRESS_MARK_STYLE[mark].fg,
+                }}
+                title={PROGRESS_MARK_LABEL[mark]}
+              >
+                <ProgressMarkGlyph mark={mark} />
+              </span>
+            }
             onClick={() =>
               run(() => {
                 useStormBoardStore.getState().selectRelation(rel.id);
@@ -683,13 +726,13 @@ export function CanvasContextMenu({
             }
           />
         ))}
-        {rel.progressMark ? (
+        {normalizeProgressMark(rel.progressMark) ? (
           <Item
             label="Stand entfernen"
             onClick={() =>
               run(() => {
                 useStormBoardStore.getState().selectRelation(rel.id);
-                applyProgressMark(rel.progressMark!);
+                applyProgressMark(normalizeProgressMark(rel.progressMark)!);
               })
             }
           />
@@ -986,6 +1029,7 @@ function Item({
   label,
   onClick,
   icon: Icon,
+  leading,
   danger,
   disabled,
   active,
@@ -994,6 +1038,7 @@ function Item({
   label: string;
   onClick: () => void;
   icon?: typeof Trash2;
+  leading?: ReactNode;
   danger?: boolean;
   disabled?: boolean;
   active?: boolean;
@@ -1014,7 +1059,13 @@ function Item({
             : "text-[var(--text)] hover:bg-[var(--control-hover)]",
       ].join(" ")}
     >
-      {Icon ? <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" /> : <span className="w-3.5" />}
+      {leading ? (
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center">{leading}</span>
+      ) : Icon ? (
+        <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" />
+      ) : (
+        <span className="w-3.5" />
+      )}
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {hint ? (
         <span className="shrink-0 text-[0.65rem] text-[var(--muted)]">{hint}</span>
