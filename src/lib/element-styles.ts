@@ -1,4 +1,6 @@
-import type { ElementType } from "@/types/storm-element";
+import type { CustomCardType } from "@/lib/custom-card-types";
+import { findCustomCardType, stereotypeLabel } from "@/lib/custom-card-types";
+import type { ElementType, StormElement } from "@/types/storm-element";
 
 export interface ElementStyle {
   label: string;
@@ -661,6 +663,19 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     defaultHeight: 80,
     shape: "rounded",
   },
+  customCard: {
+    label: "Kartentyp",
+    shortLabel: "Typ",
+    bg: "bg-slate-100",
+    border: "border-slate-300",
+    text: "text-slate-900",
+    fill: "#f1f5f9",
+    stroke: "#94a3b8",
+    ink: "#0f172a",
+    defaultWidth: 160,
+    defaultHeight: 80,
+    shape: "rounded",
+  },
 };
 
 export function elementDimensions(type: ElementType): { width: number; height: number } {
@@ -670,4 +685,36 @@ export function elementDimensions(type: ElementType): { width: number; height: n
 
 export function defaultLabelForType(type: ElementType): string {
   return ELEMENT_STYLES[type].label;
+}
+
+/** Resolve palette/canvas colors — custom cards use their stereotype definition. */
+export function resolveElementStyle(
+  element: Pick<StormElement, "type" | "metadata">,
+  customCardTypes: CustomCardType[] = [],
+): ElementStyle {
+  const base = ELEMENT_STYLES[element.type];
+  if (element.type !== "customCard") return base;
+  const def = findCustomCardType(customCardTypes, element.metadata?.customTypeId);
+  if (!def) return base;
+  return {
+    ...base,
+    label: def.name,
+    shortLabel: stereotypeLabel(def.name),
+    fill: def.fill,
+    stroke: def.stroke,
+    ink: def.ink,
+  };
+}
+
+/** Style for a custom type row in the palette (before an element exists). */
+export function styleForCustomCardType(def: CustomCardType): ElementStyle {
+  const base = ELEMENT_STYLES.customCard;
+  return {
+    ...base,
+    label: def.name,
+    shortLabel: stereotypeLabel(def.name),
+    fill: def.fill,
+    stroke: def.stroke,
+    ink: def.ink,
+  };
 }

@@ -8,7 +8,8 @@ export type ModelingMode =
   | "dataModel"
   | "c4"
   | "arc42"
-  | "cloud";
+  | "cloud"
+  | "freeform";
 
 export type ElementType =
   | "domainEvent"
@@ -68,7 +69,9 @@ export type ElementType =
   | "cloudEdge"
   | "cloudManagedService"
   /** Shared: external URL or board view */
-  | "link";
+  | "link"
+  /** Freeform: user-defined card type (stereotype); see metadata.customTypeId */
+  | "customCard";
 
 export type HotspotStatus = "open" | "resolved";
 export type HotspotPriority = "low" | "medium" | "high";
@@ -149,6 +152,8 @@ export interface ElementMetadata {
   hotspotPriority?: HotspotPriority;
   /** Background preset for `note` elements. */
   noteColor?: NoteColorId;
+  /** Freeform `customCard`: id of a view-scoped CustomCardType. */
+  customTypeId?: string;
   /** Strategic DDD: Core / Supporting / Generic. */
   subdomainKind?: SubdomainKind;
 
@@ -378,6 +383,7 @@ export const MODELING_MODES: ModelingMode[] = [
   "c4",
   "arc42",
   "cloud",
+  "freeform",
 ];
 
 /** Shared annotation types. */
@@ -521,6 +527,14 @@ export const CLOUD_ELEMENT_TYPES: ElementType[] = [
 ];
 
 /**
+ * Freeform palette base types — concrete stereotypes come from `customCardTypes`.
+ * `customCard` is the placeholder element type; the palette renders one row per definition.
+ */
+export const FREEFORM_ELEMENT_TYPES: ElementType[] = ["customCard", ...SHARED_ELEMENT_TYPES];
+
+export const FREEFORM_WORKSHOP_FORMATS: WorkshopFormat[] = ["free"];
+
+/**
  * @deprecated Prefer C4_ELEMENT_TYPES / ARC42_ELEMENT_TYPES / CLOUD_ELEMENT_TYPES.
  * Union kept for architecture export coverage.
  */
@@ -617,6 +631,7 @@ export const MODELING_MODE_LABELS: Record<ModelingMode, string> = {
   c4: "C4",
   arc42: "arc42",
   cloud: "Cloud Architektur",
+  freeform: "Freiform",
 };
 
 export const MODELING_MODE_SHORT_LABELS: Record<ModelingMode, string> = {
@@ -630,6 +645,7 @@ export const MODELING_MODE_SHORT_LABELS: Record<ModelingMode, string> = {
   c4: "C4",
   arc42: "arc42",
   cloud: "CLOUD",
+  freeform: "FREE",
 };
 
 const ELEMENT_TYPES_BY_MODE: Record<ModelingMode, ElementType[]> = {
@@ -643,6 +659,7 @@ const ELEMENT_TYPES_BY_MODE: Record<ModelingMode, ElementType[]> = {
   c4: C4_ELEMENT_TYPES,
   arc42: ARC42_ELEMENT_TYPES,
   cloud: CLOUD_ELEMENT_TYPES,
+  freeform: FREEFORM_ELEMENT_TYPES,
 };
 
 const WORKSHOP_FORMATS_BY_MODE: Record<ModelingMode, WorkshopFormat[]> = {
@@ -656,6 +673,7 @@ const WORKSHOP_FORMATS_BY_MODE: Record<ModelingMode, WorkshopFormat[]> = {
   c4: C4_WORKSHOP_FORMATS,
   arc42: ARC42_WORKSHOP_FORMATS,
   cloud: CLOUD_WORKSHOP_FORMATS,
+  freeform: FREEFORM_WORKSHOP_FORMATS,
 };
 
 const DEFAULT_PALETTE_BY_MODE: Record<ModelingMode, ElementType> = {
@@ -669,6 +687,7 @@ const DEFAULT_PALETTE_BY_MODE: Record<ModelingMode, ElementType> = {
   c4: "c4SoftwareSystem",
   arc42: "archBlackbox",
   cloud: "cloudBoundary",
+  freeform: "customCard",
 };
 
 export function elementTypesForMode(mode: ModelingMode): ElementType[] {
@@ -710,7 +729,8 @@ export function normalizeModelingMode(
     value === "dataModel" ||
     value === "c4" ||
     value === "arc42" ||
-    value === "cloud"
+    value === "cloud" ||
+    value === "freeform"
   ) {
     return value;
   }

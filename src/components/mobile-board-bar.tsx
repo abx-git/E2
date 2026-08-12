@@ -180,11 +180,16 @@ function MobilePaletteSheet({
 }) {
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const setPaletteType = useStormBoardStore((s) => s.setPaletteType);
+  const paletteCustomTypeId = useStormBoardStore((s) => s.paletteCustomTypeId);
+  const setPaletteCustomTypeId = useStormBoardStore((s) => s.setPaletteCustomTypeId);
+  const customCardTypes = useStormBoardStore((s) => s.customCardTypes);
+  const addCustomCardType = useStormBoardStore((s) => s.addCustomCardType);
   const modelingMode = useStormBoardStore((s) => s.modelingMode);
   const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
   const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
   const facilitatorPhase = useStormBoardStore((s) => s.facilitatorPhase);
 
+  const isFreeform = modelingMode === "freeform";
   const allowed = getAllowedTypesForPhase(
     modelingMode,
     workshopFormat,
@@ -192,11 +197,13 @@ function MobilePaletteSheet({
     facilitatorEnabled,
   );
   const { modeling, annotations } = partitionPaletteTypes(allowed);
+  const fixedModeling = modeling.filter((t) => t !== "customCard");
   const modeLabel = MODELING_MODE_LABELS[modelingMode];
 
-  const placeType = (type: ElementType) => {
+  const placeType = (type: ElementType, customTypeId?: string) => {
     setPaletteType(type);
-    placeElementAtViewportCenter(type);
+    if (customTypeId) setPaletteCustomTypeId(customTypeId);
+    placeElementAtViewportCenter(type, customTypeId ? { customTypeId } : undefined);
     onClose();
   };
 
@@ -261,9 +268,50 @@ function MobilePaletteSheet({
           <X className="size-4" />
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {modeling.map(renderTypeButton)}
-      </div>
+      {isFreeform ? (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {customCardTypes.map((t) => {
+            const active = paletteType === "customCard" && paletteCustomTypeId === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => placeType("customCard", t.id)}
+                className={[
+                  "flex min-h-[2.75rem] flex-col items-center justify-center rounded-lg border px-2 py-2.5 text-center text-xs font-medium transition touch-manipulation",
+                  active
+                    ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
+                    : "opacity-90 hover:opacity-100",
+                ].join(" ")}
+                style={{
+                  backgroundColor: t.fill,
+                  borderColor: t.stroke,
+                  color: t.ink,
+                }}
+              >
+                <span className="text-[0.55rem] font-bold uppercase tracking-wide opacity-80">
+                  «{t.name}»
+                </span>
+                <span>{t.name}</span>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            className="dock-control flex min-h-[2.75rem] items-center justify-center rounded-lg px-2 py-2.5 text-xs font-medium touch-manipulation"
+            onClick={() => {
+              const id = addCustomCardType();
+              placeType("customCard", id);
+            }}
+          >
+            + Typ
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {fixedModeling.map(renderTypeButton)}
+        </div>
+      )}
       {annotations.length > 0 && (
         <div className="mt-4 border-t border-dashed border-[var(--border)] pt-3">
           <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)]">

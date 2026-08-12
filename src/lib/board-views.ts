@@ -1,6 +1,7 @@
 import type { BoardView } from "@/lib/storm-json";
 import { createEmptyBoardView, normalizeBoardView } from "@/lib/storm-json";
 import { generateStormId } from "@/lib/storm-id";
+import type { CustomCardType } from "@/lib/custom-card-types";
 import { defaultPaletteTypeForMode } from "@/types/storm-element";
 import type {
   ModelingMode,
@@ -33,6 +34,7 @@ export interface ActiveViewFlatState {
   viewport: Viewport;
   snapToTimeline: boolean;
   snapToGrid: boolean;
+  customCardTypes: CustomCardType[];
 }
 
 export interface ViewDocumentState extends ActiveViewFlatState {
@@ -62,6 +64,7 @@ export function flatFieldsFromView(view: BoardView): ActiveViewFlatState {
     viewport: view.viewport,
     snapToTimeline: view.snapToTimeline,
     snapToGrid: view.snapToGrid,
+    customCardTypes: view.customCardTypes ?? [],
   };
 }
 
@@ -95,10 +98,15 @@ export function resolveActiveView(
 
 export function applyViewToFlatPatch(view: BoardView): ActiveViewFlatState & {
   paletteType: ReturnType<typeof defaultPaletteTypeForMode>;
+  paletteCustomTypeId: string | null;
 } {
   return {
     ...flatFieldsFromView(view),
     paletteType: defaultPaletteTypeForMode(view.modelingMode),
+    paletteCustomTypeId:
+      view.modelingMode === "freeform"
+        ? view.customCardTypes?.[0]?.id ?? null
+        : null,
   };
 }
 

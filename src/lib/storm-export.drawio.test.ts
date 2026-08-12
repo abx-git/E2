@@ -69,6 +69,7 @@ const sample: BoardActiveSlice = {
   appearance: { ...DEFAULT_APPEARANCE },
   snapToTimeline: false,
   snapToGrid: false,
+  customCardTypes: [],
 };
 
 describe("buildDrawioMxFile", () => {

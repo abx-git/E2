@@ -4,7 +4,10 @@ import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ElementType } from "@/types/storm-element";
 
 /** Place an element at the center of the visible canvas viewport. */
-export function placeElementAtViewportCenter(type: ElementType): void {
+export function placeElementAtViewportCenter(
+  type: ElementType,
+  options?: { customTypeId?: string },
+): void {
   const canvas = document.querySelector<HTMLElement>("[data-storm-canvas]");
   if (!canvas) return;
 
@@ -27,5 +30,8 @@ export function placeElementAtViewportCenter(type: ElementType): void {
   }
 
   store.setPaletteType(type);
-  store.addElement(type, x, y);
+  if (type === "customCard" && options?.customTypeId) {
+    store.setPaletteCustomTypeId(options.customTypeId);
+  }
+  store.addElement(type, x, y, undefined, options);
 }

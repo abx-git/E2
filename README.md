@@ -1,6 +1,6 @@
 # E2 — Collaborative Domain Modeling
 
-Browserbasiertes Board für **Event Storming**, **Domain-Driven Design**, **BDD / Example Mapping**, **User Story Mapping**, **Event Modeling**, **Prozess** und **Daten** mit lokaler JSON-Persistenz (`.storm.json`).  
+Browserbasiertes Board für **Event Storming**, **Domain-Driven Design**, **BDD / Example Mapping**, **User Story Mapping**, **Event Modeling**, **Prozess**, **Daten** und **Freiform** (eigene Kartentypen / Stereotypen) mit lokaler JSON-Persistenz (`.storm.json`).  
 Kein Server für Domänendaten — die Arbeitsdatei liegt beim Nutzer.
 
 **Live:** [abx-git.github.io/E2](https://abx-git.github.io/E2/)  
@@ -18,8 +18,8 @@ Diese README beschreibt die **implementierten Funktionen** und stellt sie klassi
 
 | Bereich | Inhalt |
 |--------|--------|
-| Methoden-Modi | ES · DDD · BDD · USM · EM · PROC · DATA (Palette/Facilitator getrennt); Board darf Typen mischen |
-| Sticky-Typen | Methodenspezifische Kataloge + geteilte Notizen/Instructions/Hotspots/Links |
+| Methoden-Modi | ES · DDD · BDD · USM · EM · PROC · DATA · C4 · arc42 · Cloud · Freiform (Palette/Facilitator getrennt); Board darf Typen mischen |
+| Sticky-Typen | Methodenspezifische Kataloge + Freiform-Stereotypen + geteilte Notizen/Instructions/Hotspots/Links |
 | Relationen | 8 Verbindungstypen inkl. Auto-Vorschlag |
 | Fläche | Timeline, Swimlanes, Bounded Contexts, Pan/Zoom |
 | Workshop | Pro Modus eigene Facilitator-Formate + Frei |
@@ -218,7 +218,11 @@ Methodisch: Cluster nach Sprache und Verantwortung; Context-Map-Muster modellier
 
 ## 4. Methoden-Modi, Facilitator & Workshop-Formate
 
-In der App-Leiste: Methoden-Dropdown (**Event Storming**, DDD, …). Der Modus steuert Palette und Facilitator-Formate — nicht den Board-Inhalt. Workshop-Format und Facilitator liegen unter **Session**.
+In der App-Leiste: Methoden-Dropdown (**Event Storming**, DDD, …, **Freiform**). Der Modus steuert Palette und Facilitator-Formate — nicht den Board-Inhalt. Workshop-Format und Facilitator liegen unter **Session**.
+
+### Freiform
+
+Eigene Kartentypen (UML-ähnlich als «Stereotyp») in der linken Palette anlegen, umbenennen und einfärben. Typen gelten pro Sicht und erscheinen auf den Karten als Badge. Starter: Concept, Interface, Class — alles editierbar. Annotationen bleiben verfügbar.
 
 ### Event Storming
 

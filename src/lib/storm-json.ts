@@ -26,6 +26,11 @@ import {
   DEFAULT_APPEARANCE,
 } from "@/lib/board-appearance";
 import { generateStormId } from "@/lib/storm-id";
+import type { CustomCardType } from "@/lib/custom-card-types";
+import {
+  createDefaultCustomCardTypes,
+  normalizeCustomCardTypes,
+} from "@/lib/custom-card-types";
 import boardSnapshotV2Schema from "../../public/schemas/board-snapshot-v2.schema.json";
 
 /** Migrate legacy arc42 section stickies to Blackbox building blocks. */
@@ -74,6 +79,8 @@ export interface BoardView {
   viewport: Viewport;
   snapToTimeline: boolean;
   snapToGrid: boolean;
+  /** Freeform mode: user-defined card types (stereotypes) for this view. */
+  customCardTypes: CustomCardType[];
 }
 
 /** Runtime / on-disk document body (multi-view). */
@@ -109,6 +116,7 @@ export interface BoardActiveSlice {
   viewport: Viewport;
   snapToTimeline: boolean;
   snapToGrid: boolean;
+  customCardTypes: CustomCardType[];
 }
 
 export interface BoardSnapshotV2 {
@@ -156,8 +164,14 @@ export type BoardSnapshot = BoardSnapshotV2;
 export function createEmptyBoardView(
   overrides: Partial<BoardView> & Pick<BoardView, "id" | "name">,
 ): BoardView {
+  const modelingMode = overrides.modelingMode ?? DEFAULT_MODELING_MODE;
+  const seededTypes =
+    overrides.customCardTypes !== undefined
+      ? normalizeCustomCardTypes(overrides.customCardTypes)
+      : modelingMode === "freeform"
+        ? createDefaultCustomCardTypes()
+        : [];
   return {
-    modelingMode: DEFAULT_MODELING_MODE,
     workshopFormat: "free",
     facilitatorEnabled: false,
     facilitatorPhase: 0,
@@ -172,6 +186,8 @@ export function createEmptyBoardView(
     snapToTimeline: true,
     snapToGrid: false,
     ...overrides,
+    modelingMode,
+    customCardTypes: seededTypes,
   };
 }
 
@@ -237,6 +253,7 @@ export function normalizeBoardView(raw: Partial<BoardView> & { id?: string; name
     viewport: raw.viewport ? { ...DEFAULT_VIEWPORT, ...raw.viewport } : { ...DEFAULT_VIEWPORT },
     snapToTimeline: raw.snapToTimeline ?? true,
     snapToGrid: raw.snapToGrid ?? false,
+    customCardTypes: normalizeCustomCardTypes(raw.customCardTypes),
   });
 }
 
@@ -341,6 +358,7 @@ export function activeSliceFromDocument(doc: BoardImportPayload): BoardActiveSli
     viewport: view.viewport,
     snapToTimeline: view.snapToTimeline,
     snapToGrid: view.snapToGrid,
+    customCardTypes: view.customCardTypes ?? [],
   };
 }
 

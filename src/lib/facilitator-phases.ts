@@ -954,6 +954,8 @@ export function getFacilitatorFormatsForMode(mode: ModelingMode): FacilitatorFor
       return ARC42_FACILITATOR_FORMATS;
     case "cloud":
       return CLOUD_FACILITATOR_FORMATS;
+    case "freeform":
+      return [];
     default:
       return FACILITATOR_FORMATS;
   }

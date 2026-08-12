@@ -6,7 +6,7 @@ import { ArrowRight, Clock, ExternalLink, LayoutDashboard, MoreVertical, RotateC
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkDestinationPreview, linkHasTarget } from "@/lib/board-link";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
-import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { ELEMENT_STYLES, resolveElementStyle } from "@/lib/element-styles";
 import {
   cardAttributeLines,
   cardMethodLines,
@@ -95,7 +95,8 @@ export function StormElementCard({
   onStartConnect,
   onCompleteConnect,
 }: StormElementCardProps) {
-  const style = ELEMENT_STYLES[element.type];
+  const customCardTypes = useStormBoardStore((s) => s.customCardTypes);
+  const style = resolveElementStyle(element, customCardTypes);
   const w = element.width ?? style.defaultWidth;
   const h = element.height ?? style.defaultHeight;
   const rotation = effectiveElementRotation(element.rotation, style.rotation);
@@ -107,6 +108,7 @@ export function StormElementCard({
   const [draft, setDraft] = useState(element.label);
   const isNote = element.type === "note";
   const isInstruction = element.type === "instruction";
+  const isCustomCard = element.type === "customCard";
   const isLink = element.type === "link";
   const isAggregate = element.type === "aggregate";
   const isSubdomain = element.type === "subdomain";
@@ -127,7 +129,10 @@ export function StormElementCard({
     text: noteColors?.ink ?? style.ink,
   };
   const modelingMode = useStormBoardStore((s) => s.modelingMode);
-  const inActiveMode = elementTypesForMode(modelingMode).includes(element.type);
+  const inActiveMode =
+    element.type === "customCard"
+      ? modelingMode === "freeform"
+      : elementTypesForMode(modelingMode).includes(element.type);
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
@@ -183,7 +188,7 @@ export function StormElementCard({
   const commitLabel = (value: string) => {
     if (!editingRef.current) return;
     editingRef.current = false;
-    const next = value.trim() || ELEMENT_STYLES[element.type].label;
+    const next = value.trim() || style.label;
     setEditing(false);
     if (next !== element.label) {
       useStormBoardStore.getState().updateElement(element.id, { label: next });
@@ -661,7 +666,7 @@ export function StormElementCard({
           </>
         ) : (
           <>
-        {(isInstruction || isBoundary || showArchTypeBadge) && (
+        {(isInstruction || isBoundary || showArchTypeBadge || isCustomCard) && (
           <span
             className="mb-0.5 w-fit shrink-0 rounded px-1 py-px text-[0.58rem] font-bold uppercase tracking-wide"
             style={{ backgroundColor: colors.border, color: colors.text }}

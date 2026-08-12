@@ -102,6 +102,8 @@ export function ElementDetailSidebar({
   const selectedBoundedContextId = useStormBoardStore((s) => s.selectedBoundedContextIds[0] ?? null);
   const selectedSwimlaneId = useStormBoardStore((s) => s.selectedSwimlaneIds[0] ?? null);
   const updateElement = useStormBoardStore((s) => s.updateElement);
+  const updateCustomCardType = useStormBoardStore((s) => s.updateCustomCardType);
+  const customCardTypes = useStormBoardStore((s) => s.customCardTypes);
   const updateRelation = useStormBoardStore((s) => s.updateRelation);
   const updateCanvasLine = useStormBoardStore((s) => s.updateCanvasLine);
   const deleteCanvasLine = useStormBoardStore((s) => s.deleteCanvasLine);
@@ -374,6 +376,74 @@ export function ElementDetailSidebar({
                 );
               })}
             </div>
+          </div>
+        )}
+        {selectedElement.type === "customCard" && (
+          <div className="mt-2 space-y-2">
+            <label className="flex flex-col gap-1 text-xs text-[var(--text)]">
+              <span className="text-[0.65rem] font-medium text-[var(--muted)]">Kartentyp</span>
+              <select
+                className="dock-field"
+                value={selectedElement.metadata?.customTypeId ?? ""}
+                onChange={(e) => {
+                  const customTypeId = e.target.value || undefined;
+                  updateElement(selectedElement.id, {
+                    metadata: { ...selectedElement.metadata, customTypeId },
+                  });
+                }}
+              >
+                <option value="">— ohne Typ —</option>
+                {customCardTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {(() => {
+              const typeId = selectedElement.metadata?.customTypeId;
+              const def = customCardTypes.find((t) => t.id === typeId);
+              if (!def) return null;
+              return (
+                <div>
+                  <p className="mb-1.5 text-[0.65rem] font-medium text-[var(--muted)]">
+                    Typfarbe (alle «{def.name}»)
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {NOTE_COLOR_IDS.map((id) => {
+                      const c = NOTE_COLORS[id];
+                      const active = def.fill === c.fill;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          title={c.label}
+                          aria-label={c.label}
+                          aria-pressed={active}
+                          className={[
+                            "h-7 w-7 rounded-md border-2 shadow-sm transition-transform",
+                            active
+                              ? "scale-110 border-[var(--accent)]"
+                              : "border-transparent hover:scale-105",
+                          ].join(" ")}
+                          style={{
+                            backgroundColor: c.fill,
+                            boxShadow: `inset 0 0 0 1px ${c.stroke}`,
+                          }}
+                          onClick={() =>
+                            updateCustomCardType(def.id, {
+                              fill: c.fill,
+                              stroke: c.stroke,
+                              ink: c.ink,
+                            })
+                          }
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </CollapsibleSection>

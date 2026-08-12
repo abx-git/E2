@@ -88,6 +88,7 @@
         "c4",
         "arc42",
         "cloud",
+        "freeform",
         "architectureDocumentation"
       ]
     },
@@ -154,7 +155,16 @@
         "archBlackbox",
         "archWhitebox",
         "archComponent",
-        "link"
+        "cloudBoundary",
+        "cloudNetwork",
+        "cloudCompute",
+        "cloudDataStore",
+        "cloudMessaging",
+        "cloudIdentity",
+        "cloudEdge",
+        "cloudManagedService",
+        "link",
+        "customCard"
       ]
     },
     "linkKind": {
@@ -281,6 +291,10 @@
         },
         "noteColor": {
           "$ref": "#/$defs/noteColor"
+        },
+        "customTypeId": {
+          "type": "string",
+          "description": "Freiform customCard: ID eines customCardType in der Sicht."
         },
         "subdomainKind": {
           "$ref": "#/$defs/subdomainKind"
@@ -959,7 +973,26 @@
           "items": {
             "$ref": "#/$defs/canvasLine"
           }
+        },
+        "customCardTypes": {
+          "type": "array",
+          "description": "Freiform: benutzerdefinierte Kartentypen (Stereotypen) dieser Sicht.",
+          "items": {
+            "$ref": "#/$defs/customCardType"
+          }
         }
+      }
+    },
+    "customCardType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "fill", "stroke", "ink"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "fill": { "type": "string", "pattern": "^#[0-9A-Fa-f]{3,8}$" },
+        "stroke": { "type": "string", "pattern": "^#[0-9A-Fa-f]{3,8}$" },
+        "ink": { "type": "string", "pattern": "^#[0-9A-Fa-f]{3,8}$" }
       }
     },
     "lineArrowHead": {

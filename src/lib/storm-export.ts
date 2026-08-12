@@ -9,12 +9,13 @@ import {
   sortByZOrder,
   sortElementsByZOrder,
 } from "@/lib/element-z-order";
-import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { ELEMENT_STYLES, resolveElementStyle } from "@/lib/element-styles";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { resolveRegionPaint } from "@/lib/region-style";
 import { boardActiveSliceFromStore } from "@/store/storm-board-store";
 import type { BoardActiveSlice } from "@/lib/storm-json";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
+import type { CustomCardType } from "@/lib/custom-card-types";
 import {
   ACTION_ITEM_AREA_LABELS,
   ACTION_ITEM_STATUS_LABELS,
@@ -882,12 +883,15 @@ function cornerRadius(el: StormElement, h: number): number {
   return 8;
 }
 
-function elementFillStrokeInk(el: StormElement): { fill: string; stroke: string; ink: string } {
+function elementFillStrokeInk(
+  el: StormElement,
+  customCardTypes: CustomCardType[] = [],
+): { fill: string; stroke: string; ink: string } {
   if (el.type === "note") {
     const c = resolveNoteColor(el.metadata?.noteColor);
     return { fill: c.fill, stroke: c.stroke, ink: c.ink };
   }
-  const s = ELEMENT_STYLES[el.type];
+  const s = resolveElementStyle(el, customCardTypes);
   return { fill: s.fill, stroke: s.stroke, ink: s.ink };
 }
 
@@ -1102,7 +1106,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
 
   for (const el of sortElementsByZOrder(state.elements)) {
     const r = elementRect(el);
-    const { fill, stroke, ink } = elementFillStrokeInk(el);
+    const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
     const shape = ELEMENT_STYLES[el.type].shape;
     const style = mxStyle({
       rounded: shape === "rectangle" ? 0 : 1,
@@ -1239,7 +1243,7 @@ export function exportBoardSvg(): void {
 
   for (const el of sortElementsByZOrder(state.elements)) {
     const r = elementRect(el);
-    const { fill, stroke, ink } = elementFillStrokeInk(el);
+    const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
     const x = r.x + ox;
     const y = r.y + oy;
     const rx = cornerRadius(el, r.h);
@@ -1416,7 +1420,7 @@ export async function exportBoardPng(): Promise<void> {
     const r = elementRect(el);
     const x = r.x + ox;
     const y = r.y + oy;
-    const { fill, stroke, ink } = elementFillStrokeInk(el);
+    const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
     const rx = cornerRadius(el, r.h);
 
     ctx.save();

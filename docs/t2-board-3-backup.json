@@ -1,0 +1,2061 @@
+{
+  "format": "hierarchical-task-manager",
+  "version": 1,
+  "exportedAt": "2026-08-12T04:30:48.712Z",
+  "scope": "board",
+  "roots": [
+    {
+      "id": "WGZ8-3PYJ",
+      "title": "ToDo",
+      "description": "",
+      "tags": [],
+      "dueDate": null,
+      "reminderDate": null,
+      "effort": 0,
+      "children": [
+        {
+          "id": "X1QQ-QNMN",
+          "title": "Liquida",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": [
+            {
+              "id": "DD97-ZPY9",
+              "title": "Login versuchen",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            },
+            {
+              "id": "5DSZ-WMHQ",
+              "title": "Schreiben Amtsgericht Schlesig,",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            },
+            {
+              "id": "1X53-B8V2",
+              "title": "Prüfen Schufa-Eintrag",
+              "description": "",
+              "tags": [
+                "WICHTIG"
+              ],
+              "dueDate": "2026-07-31T12:23:00.000Z",
+              "reminderDate": null,
+              "effort": 0,
+              "cardColor": "rose",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "YMHP-P4GD",
+          "title": "Verkaufen",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": [
+            {
+              "id": "E4E8-MYN9",
+              "kind": "note",
+              "title": "Artikel",
+              "markdown": "## Verkauf Boox\n\nNoteAir3C\nVersion 19.5.2026\nAndroid 12\nmit Stift, neuwertig, keine Gebrauchspuren\n\n## kleinen Fotodrucker verkaufen\n",
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "4NM1-HCVM",
+          "title": "Klasse 2 Medical",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "cardColor": "rose",
+          "children": []
+        },
+        {
+          "id": "P7ZE-WWXP",
+          "title": "Überweisung Achumer Störche",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "cardColor": "rose",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "MASY-5PTJ",
+      "title": "Boberg",
+      "description": "",
+      "tags": [],
+      "dueDate": null,
+      "reminderDate": null,
+      "effort": 0,
+      "children": [
+        {
+          "id": "DQNK-VB8V",
+          "title": "HAC",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "effortSource": "calculated",
+          "children": [
+            {
+              "id": "HRV2-YJE6",
+              "title": "Flugbetrieb",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "G0RK-DMK0",
+                  "kind": "note",
+                  "title": "Mäuse",
+                  "markdown": "## Nichts auf den Boden legen\n\n## Dürfen wir Fallen ausbringen?\n",
+                  "children": []
+                },
+                {
+                  "id": "9J8A-QN22",
+                  "kind": "note",
+                  "title": "Gutschein Management",
+                  "markdown": "## Erfassung weitere Gutscheine\n\n## Absprache, ob Abrechnung via VF funktioniert\n\n## Verbesserung der Info an Startleiter\n\n## Direktverkauf inkl. SumUp Konfig?\n\n## Abrechnung Gutscheine\n",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "200S-M2JT",
+              "title": "Flugzeugpark",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "ZW8C-NH80",
+                  "title": "Arcus",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "C48Y-VYAQ",
+                      "title": "Arcus ist bestellt",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "X68B-WKG5",
+                      "title": "Interessent für Arkus vrhanden",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "NZP0-ZR8A",
+                      "title": "Preis ermitteln",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "EMDK-ZYFX",
+                      "title": "Angebot nach Abschluss der Saison, der Arcus soll dan nochmals durch die Werkstatt gehen",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ZHK7-S52K",
+              "title": "Konfiguration der Gebühren überprüfen, wir haben immer wieder Lücken",
+              "description": "",
+              "tags": [
+                "VS"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            },
+            {
+              "id": "J1JK-BHMF",
+              "title": "E-Winde",
+              "description": "",
+              "tags": [
+                "QV"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            },
+            {
+              "id": "Z6YC-B5JA",
+              "title": "Clubhaus und Platz",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "YSWZ-790X",
+                  "title": "HAC-Buch Auslage",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "CW0W-P1MJ",
+                  "title": "Platz & Gebäude",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "BTQ1-G1C6",
+                      "title": "Clubheim",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": [
+                        {
+                          "id": "S72J-CPMN",
+                          "title": "Glasvitrine ...",
+                          "description": "",
+                          "tags": [],
+                          "dueDate": null,
+                          "reminderDate": null,
+                          "effort": 0,
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "74XJ-8WRJ",
+                      "title": "Restarbeiten Schulungsraum",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": [
+                        {
+                          "id": "X49Y-0S4M",
+                          "title": "Gardinenstange",
+                          "description": "",
+                          "tags": [],
+                          "dueDate": null,
+                          "reminderDate": null,
+                          "effort": 0,
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "GP5X-S4J0",
+                      "title": "Bibliothek",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": [
+                        {
+                          "id": "NHJV-ZNGG",
+                          "kind": "note",
+                          "title": "",
+                          "markdown": "* Gitta hat Ikea Regale vorgeschlagen\n* in Absprache mit Harald\n* Reduzieren des Bestandes,\n* direkt für Flugbetrieb und Ausbildung geeignet im Schulungsraum\n* Geschichte und allgemeines in Vereinsheim, wo aktuell die Spiele stehen",
+                          "children": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "201P-XQPR",
+                  "title": "alter Baterierraum",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "HM6W-ACM3",
+              "title": "Flug Community",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            },
+            {
+              "id": "142S-TXFR",
+              "title": "Abrechnung",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "2GM4-35B2",
+                  "title": "Erstattung Belege prüfen",
+                  "description": "",
+                  "tags": [
+                    "Erledigt"
+                  ],
+                  "dueDate": null,
+                  "reminderDate": "2026-05-29T11:00:00.000Z",
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "1A2N-ZZFB",
+                  "title": "Klärung Kasse mit Ingo Müller",
+                  "description": "wie ist das bisherige Verfahren?",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "BHYG-PFD2",
+                  "title": "Andere Belege prüfen",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "PZTV-653F",
+              "title": "Flugbetrieb",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "9EWT-YQB8",
+                  "title": "Henry-Nachschulung",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "TFBD-J1NJ",
+                      "title": "Termin / BN",
+                      "description": "",
+                      "tags": [
+                        "Erledigt"
+                      ],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "EJVM-DHD9",
+                      "title": "Foto-Story?",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "NHT2-FPKN",
+                      "title": "Aussenlandeübungen",
+                      "description": "",
+                      "tags": [
+                        "Erledigt"
+                      ],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "N178-SMB8",
+                  "title": "Startbus",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "FVFC-NJZ6",
+                      "title": "Abstimmung Layout Startbus - mit Jörn",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": "2026-08-25T22:23:00.000Z",
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "TWHM-WHDC",
+                  "title": "Fahrzeuge -> E-Fahrzeuge",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "B7NE-CPNV",
+                      "title": "Als Lepo",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "P8NW-0HAN",
+                  "title": "Kurzanleitungen (paginiert DIN A5)",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "SP2T-24HG",
+                      "title": "Handbuch Startleiter",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "9SJH-NP6R",
+                      "title": "Handbuch Startschreiber",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "GK73-1BEE",
+                      "title": "Handbuch Lepofahrer",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "DF9Q-9YA3",
+                      "title": "Überlandbriefing",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "Z7EB-NHP2",
+                  "title": "Patenschaften",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "QEY7-2XG3",
+                      "title": "Vorschlag",
+                      "description": "Jedes Mitglied ist mindestens in einer Patenschaft\nArbeitsaufwand gering - aber Routine",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ZJFP-W7BK",
+                  "title": "Gespräch mit Sicherheitspilot",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "2VRM-6P40",
+                      "title": "Briefkasten -Ersatz?",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "64J8-XR7P",
+              "title": "Neue WebSeite",
+              "description": "",
+              "tags": [
+                "QV"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "effortSource": "calculated",
+              "children": [
+                {
+                  "id": "1NJP-MA0H",
+                  "title": "Absprache mit Henry",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "91JR-WR0D",
+                  "title": "Neue Webseite als Zwischenlösung",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "X4KR-2SZ3",
+              "title": "HAC Cloud",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "DACA-V7GC",
+                  "title": "restrukturierung",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "TVVM-9CG8",
+              "title": "Versicherungen",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "9F3A-2Q77",
+                  "title": "Fluglehrer Versicherungen an ABL",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "AXEK-1RWD",
+                  "title": "Anfrage Braasch",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "cardColor": "rose",
+                  "children": []
+                },
+                {
+                  "id": "BVT3-88BW",
+                  "title": "Anfrage HDI Bartels",
+                  "description": "Schreiben am 21.5.",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "1ZCT-CT2D",
+                  "title": "Anfrage Sportbund / Hartwig",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "7MX8-0JZD",
+              "title": "Morgenbriefing",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "JF5R-BCR0",
+                  "title": "Wetter Flugwetter de",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "0PRW-TPNV",
+                  "title": "Wetter Topmeteo / Skysight / Rasp",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "5HW2-GSX8",
+                  "title": "Abstimmung der Startreihnfolge",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "E6YN-8CJG",
+                  "title": "Web-AUP Sperrgebiete",
+                  "link": "https://ais.dfs.de/pilotservice/briefing/aup/aup_edit.jsp",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "03ND-VJ91",
+              "title": "Mitglieder",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "V1AK-PB36",
+                  "title": "Prozedur neue Mitglieder",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "R8X7-QX1N",
+                      "title": "Aufnahmeantrag",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": [
+                        {
+                          "id": "M8CB-1G01",
+                          "title": "Anlage in VF",
+                          "description": "",
+                          "tags": [],
+                          "dueDate": null,
+                          "reminderDate": null,
+                          "effort": 0,
+                          "children": [
+                            {
+                              "id": "8ANZ-2Q78",
+                              "title": "Stammdaten",
+                              "description": "",
+                              "tags": [],
+                              "dueDate": null,
+                              "reminderDate": null,
+                              "effort": 0,
+                              "children": []
+                            },
+                            {
+                              "id": "0MMB-1JH6",
+                              "title": "Bankdaten mit Lastschrift und Mandatsbeginn",
+                              "description": "",
+                              "tags": [],
+                              "dueDate": null,
+                              "reminderDate": null,
+                              "effort": 0,
+                              "children": []
+                            },
+                            {
+                              "id": "SKEN-ZD9D",
+                              "title": "Rollen",
+                              "description": "",
+                              "tags": [],
+                              "dueDate": null,
+                              "reminderDate": null,
+                              "effort": 0,
+                              "children": []
+                            },
+                            {
+                              "id": "2YFQ-AJR1",
+                              "title": "Zugangsdaten",
+                              "description": "",
+                              "tags": [],
+                              "dueDate": null,
+                              "reminderDate": null,
+                              "effort": 0,
+                              "children": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "E77F-QKRM",
+                          "title": "Ablage Aufnahemeantrag in VF",
+                          "description": "",
+                          "tags": [],
+                          "dueDate": null,
+                          "reminderDate": null,
+                          "effort": 0,
+                          "children": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "TVPP-134F",
+                      "title": "Anschreiben vom Ausbildungsleiter",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "P3QD-FW6E",
+                      "title": "Anzahlung oder Überweisung erfolgt",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "CFVM-AKWS",
+                      "title": "Versicherung und Verzichtserklärung",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "BKD7-NPP1",
+                      "title": "Bodeneinweisung",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "EMWK-HNK2",
+                      "title": "Info an Vorstand",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "34AT-CTPH",
+              "title": "SumUp - Konfiguration",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "N9CR-H875",
+                  "title": "Dokumentation prüfen",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "DKWP-7AHX",
+              "title": "Gastflug Tool",
+              "description": "",
+              "tags": [
+                "QV"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "EZAZ-C6XV",
+                  "kind": "note",
+                  "title": "Gastflug Tool & Konzept",
+                  "markdown": "* Nach dem Jokern wird geprüft, ob ein Doppelsitzer übrig geblieben ist.\n* Es ergibt sich die Priorität 'Streckenflug/ Ausbildung - Gastflugbetrieb - freier Flugbetrieb'\n* Mitglieder, die gerne fliegen möchten ohne zu Jokern und nicht im Rahmen der Ausbildung können sich mit dem Gastflugpiloten koordinieren\n* Ein Gastflugpilot kann diesen Doppelsitzer für Gastflüge reservieren und kümmert sich ab diesem Zeitpunkt um das Flugzeug\n* Der Gastflugpilot trägt in ein Tool ein, dass er Gastflüge macht\n* Die Info, dass Gastflüge gemacht werden wird auf der Internet-Seite veröffentlich (allerdings nur für Personen, die den Link genannt bekommen haben)\n* Der Gastflugpilot kümmert sich um die Gäste und koordiniert selbst wieviele Gäste er annehmen kann.\n* Das Gastflugflugzeug kann zwischendurch auch für andere Flüge genutzt werden - aber Gäste haben auf dem Flugzeug Vorrang.\n* Es ist auch möglich, dass eine ASK21 aus dem Schulbetrieb genommen wird, das entscheidet aber der diensthabende Fluglehrer.\n* Diese Regelung wird zunächst im Probebetrieb laufen und nicht in der Clubordnung manifestiert. Wenn sich das Verfahren bewährt können wir es in die Clubordnung aufnehmen\n* In der Joker liste (flight bidding) wird das Flugzeug, das für Gastflüge verwendet wird gesperrt",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "PJ6X-NZ5E",
+              "title": "Garantieverlängerung Breezer",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "effortSource": "calculated",
+              "children": [
+                {
+                  "id": "4A98-DWPJ",
+                  "title": "Headset verkaufen",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "T7MP-T5D5",
+                      "title": "Frage an Bernd - wo ist das Headset?",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "CXY7-6SW6",
+                      "title": "in Vorstandsgruppe kurz erklären",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "cardColor": "rose",
+                      "children": []
+                    },
+                    {
+                      "id": "4X1C-KRD7",
+                      "title": "Preis ermitteln",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "QWH8-JCDD",
+                  "title": "Dokumentation der Garantieleistungen ins Intranet",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "VHM6-TZMZ",
+              "title": "Ausbildungsgruppen- Initiative?",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            },
+            {
+              "id": "5NGK-614V",
+              "title": "Status Stellplätze / private Gegenstände",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            },
+            {
+              "id": "ZT7C-X5WZ",
+              "title": "Handhabung UL Berechtigung / Nutzung",
+              "description": "",
+              "tags": [
+                "QV",
+                "VS"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "FBVS-31D8",
+                  "kind": "note",
+                  "title": "UL Konzept",
+                  "markdown": "# Aktuelle Situation\n\n- Aktuell sind keine Flüge, abgesehen von erforderlichen Übungsflügen oder Schleppflügen erlaubt\n- Dies sollte der Schonung des Materials dienen, da unklar war wie sich der UL im Schleppbetrieb bewährt.\n- Etliche Mitglieder haben gefragt, ob sie mal mitfliegen dürfen oder auch ihre eigenen UL Scheine mit dem Breezer und einem UL Fluglehrer auffrischen können.\n- Wenn wir den UL zu sehr 'öffnen' wird das Argument kommen, dass wir ein Segelflug Verein sind\n- Wenn wir die Nutzung erweitern, muss das unter einer einfachen klaren Regelung erfolgen\n- Eine Bevorzugung einzelner Mitglieder muss vermieden werden um den Frieden zu wahren\n- Einzelne Freigaben vorbei an den Regeln, die für alle Mitglieder gelten stören den Vereinsfrieden\n",
+                  "children": []
+                },
+                {
+                  "id": "6Z6H-AY33",
+                  "kind": "note",
+                  "title": "Überlegung",
+                  "markdown": "- der Motor muss zwischendurch mal länger laufen\n- Einweisungsflüge der UL-Schleppiloten reichen aus, wenn regelmäßig durchgeführt\n- Flugzeit / Entfernung soll begrenzt werden\n",
+                  "children": []
+                },
+                {
+                  "id": "DC15-80Q1",
+                  "kind": "note",
+                  "title": "UL Nutzung - externe Schlepps",
+                  "markdown": "* Verfügbarkeit ist weiterhin ein sensibles Thema\n* Probleme / Stundenkontrollen sollen nur durch den eigenen Betrieb entstehen\n* Das konkrete Vorhaben wurde nicht erklärt, ich wusste erst nach mehreren Nachfragen, um was es tatsächlich ging\n* Ron ist als Mitglied bei uns im Verein eingetragen",
+                  "children": []
+                },
+                {
+                  "id": "Q4FV-7JCF",
+                  "title": "Nur für den Scheinerhalt oder in Übung zu bleiben",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "cardColor": "slate",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "815T-SHH1",
+              "title": "Angesammelte Werkstattpunkte",
+              "description": "",
+              "tags": [
+                "VS",
+                "COM"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "TQXQ-FW0E",
+                  "kind": "note",
+                  "title": "Konzept für angesammelte Werkstattpunkte",
+                  "markdown": "# Konzept für Werkstattpunkte Fond\n- maximal 2000 Pkt, danach ?\n- Punkte können in Fond überführt werde\n- Fond dient der Kostenreduzierung für fliegerischen Nachwuchs\n- in Zusammenarbeit mit Klaus Tesch",
+                  "children": []
+                },
+                {
+                  "id": "CDNY-5FYY",
+                  "title": "Verbuchen auf andere Flüge geht ohnehin jetzt schon",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "WRMV-NR0D",
+                  "title": "Regeln waren die ganze Zeit klar, auch dass es sich um einen rechtlichen Rahmen handelt",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "PSZV-QWKF",
+                  "title": "Förderungsfond",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "NZJD-3Z8R",
+                      "title": "Gero Scheffel",
+                      "description": "Piloten, die sich aus bestimmten Gründen nicht finanzieren können\nKriterien des Landeverbandes unklar",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "AZNQ-02WS",
+              "title": "Schnupper-Konzept",
+              "description": "",
+              "tags": [
+                "QV",
+                "VS"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "YFDP-GD25",
+                  "kind": "note",
+                  "title": "Schnupper-Konzept",
+                  "markdown": "* Führt zu unzufriedenen Teilnehmern und Stört den Flugbetrieb\n* Angebot wird häufig als Gastflug genutzt\n* Monats-Mitgliedschaft mit einer Sicherheitseinweisung\n* zwei Monate Ausstiegsoption\n* &#x20; Berechnung der bis dahin angefallenen Gebühren plus € 200/400 handling\n* vielleicht vergünstigte Gastflüge\n* Aufnahmetermin, Bodeneinweisung 1x pro Monat",
+                  "children": []
+                },
+                {
+                  "id": "KY0T-K5ME",
+                  "title": "Passive Einsteigen",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "K7NX-720D",
+              "title": "Ingo fragen wegen Kasse",
+              "description": "",
+              "tags": [
+                "TODO"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            },
+            {
+              "id": "RMPA-HWVC",
+              "title": "Schlüssel / Schliessanlage",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "FH48-1X6T",
+                  "title": "Andreas Wagner",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "08XF-PW8D",
+              "title": "Sicherheitsübung",
+              "description": "",
+              "tags": [
+                "VS",
+                "1V"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "2FE2-BYV4",
+                  "title": "Johannes Wiesner?",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "64F0-JFRV",
+                  "title": "Roter Kasten auf dem Parkplatz - muss weg",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "JQ39-HY3S",
+                  "title": "HVL Koordination",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "1V4F-KYSK",
+                  "title": "Termin im Wechsel mit dem Tag der Segelflieger",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "E7QE-8YRD",
+                  "title": "Wer im Vorstand treibt das Thema (FBL)",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "GZT4-0XV1",
+                  "title": "Umfang 2027 - kleiner Sicherheitstag",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "BF26-MYGQ",
+                      "title": "Zufahrten",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "FJSE-JNSD",
+                      "title": "Löschen",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "QWTE-B0HH",
+                      "title": "Verhalten",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "EYSD-6D2H",
+                      "title": "Erste Hilfe",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "3SKG-4E6E",
+              "title": "Aktionstag",
+              "description": "",
+              "tags": [
+                "VS"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "S2TX-ZMGC",
+                  "kind": "note",
+                  "title": "",
+                  "markdown": "**Aktionstag**\n\n\\- was machen wir mit den Mitgliedern, die nicht teilgenommen haben?\n\n\\- wer organisiert den nächsten?\n\n\\- Themen sammeln\n\n\\- Ausfallhonorar für nächste Saison (HVL hat z.B. €25)",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "RW6P-W086",
+              "title": "Dienstplan",
+              "description": "",
+              "tags": [
+                "VS"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "XNKX-Q12K",
+                  "title": "viele Rückmeldungen bei mir, dass Lücken im Plan sind, weil sich die Mitglieder nicht gekümmert haben",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "687F-GW43",
+                  "title": "14 Tage Vorwarnung eingerichtet",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "39CA-3MJW",
+              "title": "Anmerkungen Betriebsleiter von Axel Losansky",
+              "description": "",
+              "tags": [
+                "VS"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            },
+            {
+              "id": "9GPM-A91R",
+              "title": "Verfahren Berechtigungskarten funktioniert nicht, Mitglieder warten z.T. Monate bis die Einträge im System sind.",
+              "description": "",
+              "tags": [
+                "VS"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "S0N6-FM01",
+                  "title": "Diskussion Alternativen",
+                  "description": "",
+                  "tags": [
+                    "VS"
+                  ],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "cardColor": "amber",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "R2C9-M7GP",
+              "title": "Mitgliederverwaltung",
+              "description": "",
+              "tags": [
+                "VS"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "KGZZ-M2N7",
+                  "title": "email für Berechtigungskarten / fbl klappt nicht",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "9VT3-VC0R",
+                  "title": "Foto an email - Erfassung durch ein V-Mitglied, FBL kann sich informieren",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "8AZB-10YJ",
+              "title": "Günter Zink",
+              "description": "",
+              "tags": [
+                "VS"
+              ],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "1PAG-TBC7",
+                  "title": "Janus soll verkauft werden",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "ZV19-FD6B",
+                  "title": "Werkstattkosten für die Haube berechnet",
+                  "description": "",
+                  "tags": [
+                    "VS"
+                  ],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TPRD-KGHA",
+      "title": "Admin",
+      "description": "",
+      "tags": [],
+      "dueDate": null,
+      "reminderDate": null,
+      "effort": 0,
+      "children": []
+    },
+    {
+      "id": "6MJQ-P6BK",
+      "title": "Projekte",
+      "description": "",
+      "tags": [],
+      "dueDate": null,
+      "reminderDate": null,
+      "effort": 0,
+      "children": [
+        {
+          "id": "F6TP-9GSB",
+          "title": "UL Fluglehrer",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": [
+            {
+              "id": "9AR0-MSQY",
+              "title": "Altersgrenze ? Freiwilligkeit",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "ZTFS-RB5K",
+          "title": "Fluggebühren Überprüfungsflüge UL",
+          "description": "Zum Saisonstart werden für die Überprüfungsflüge Ermässigungen gewährt. Nach welcher Regelung werden diese definiert/vergeben.",
+          "tags": [
+            "VS"
+          ],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "G6M4-NC3J",
+          "title": "Vorschlag UL Übungsflug -Su",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "C9KM-X4N7",
+          "title": "in GOB UL Trainingsflug",
+          "description": "Begrenzung der Ü-Flüge",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "RE6D-FJFC",
+          "title": "App-Entwicklung",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": [
+            {
+              "id": "W1HV-K851",
+              "title": "Konzept Wuuster Map",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "16EE-W3YZ",
+                  "title": "Erfassung von IGC Dateien und Analyse der Höhen and den Hängen",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "JESN-D5Z3",
+                      "title": "Erstellen von Punkten mit Höhe und Geschwindigkeit als Attribut",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "KM32-D03T",
+                  "title": "Aggregation der Daten in einem geeigneten Geo-Format",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "FKZH-BE3J",
+                  "title": "Erstellen einer Layer (SHP) die das Aggregations-Ergebnis enthält",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "25T6-6J7S",
+                  "title": "Mobile App, die diese Karte darstellt.",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                },
+                {
+                  "id": "GMPE-AB19",
+                  "title": "Zusätzlich Navigations-Funktion",
+                  "description": "Darstellung eines Kreises und eines Punktes, Der Punkt wird anhand der aktuellen Position und des Bewegungsvektors ausgesteuert.(Ablage nach oben / untern und rechts / links)",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "7264-18C6",
+          "title": "Pic",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": [
+            {
+              "id": "SFXD-VTCZ",
+              "title": "Abstract Elements",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "D313-5H7M",
+                  "title": "Moderne Architektur",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "FC4W-3BB9",
+                      "title": "nur mit 300mm Objektiv durch die Hafencity",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                },
+                {
+                  "id": "7MWV-ETGN",
+                  "title": "Hafen-Elemente",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "YBVD-8F1M",
+              "title": "Streets of Hamburg",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "H79W-ZTFM",
+          "title": "Fliegen",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": [
+            {
+              "id": "YYKN-3MTE",
+              "title": "Kalibrieren Hawk",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "cardColor": "rose",
+              "children": [
+                {
+                  "id": "V94R-JNAS",
+                  "title": "Hanbuch / WebSeite",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": []
+                }
+              ]
+            },
+            {
+              "id": "KSF6-C6G0",
+              "title": "Rampe säubern",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": []
+            },
+            {
+              "id": "7NJD-D72P",
+              "title": "Security Themen",
+              "description": "",
+              "tags": [],
+              "dueDate": null,
+              "reminderDate": null,
+              "effort": 0,
+              "children": [
+                {
+                  "id": "8AHH-TTYF",
+                  "title": "Verstopftes Staurohr",
+                  "description": "",
+                  "tags": [],
+                  "dueDate": null,
+                  "reminderDate": null,
+                  "effort": 0,
+                  "children": [
+                    {
+                      "id": "1VAF-3RD5",
+                      "title": "Prüfen vor dem Start",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "1TCQ-YH61",
+                      "title": "Sofort beim Start - abbrechen?",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "3TFX-NGYB",
+                      "title": "Im F-Schlepp genug Höhe um das Horizontbild zu erfliegen",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "WPFE-5V2R",
+                      "title": "GPS - Groundspeed",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "HTYR-9HGR",
+                      "title": "Bodennahe kurven mit erhöhter Fahrt",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    },
+                    {
+                      "id": "77GW-GFFR",
+                      "title": "Mit Erhöhter Fahrt anfliegen und lange in Bodennähe ausschweben",
+                      "description": "",
+                      "tags": [],
+                      "dueDate": null,
+                      "reminderDate": null,
+                      "effort": 0,
+                      "children": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "7RF2-35N6",
+      "title": "USA 2026",
+      "description": "",
+      "tags": [],
+      "dueDate": null,
+      "reminderDate": null,
+      "effort": 0,
+      "children": [
+        {
+          "id": "F03M-D4JH",
+          "title": "ESTA beantragen",
+          "description": "",
+          "tags": [],
+          "dueDate": "2026-08-07T05:54:00.000Z",
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "XQC5-5W91",
+          "title": "Google Doc aktualisieren",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "W0EV-7FYK",
+          "title": "Ausweise prüfen",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "794F-6YX6",
+          "title": "Mietwagen buchen",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "1EJ7-TPXA",
+          "title": "Ziele zusammenstellen",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "FRVH-RP8T",
+          "title": "Unterkünfte zusammenstellen",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        }
+      ]
+    }
+  ],
+  "pathIds": [
+    "MASY-5PTJ",
+    "DQNK-VB8V",
+    "HRV2-YJE6"
+  ],
+  "collapsedIds": [
+    "BTQ1-G1C6",
+    "74XJ-8WRJ",
+    "R8X7-QX1N",
+    "4A98-DWPJ",
+    "PJ6X-NZ5E",
+    "03ND-VJ91",
+    "W1HV-K851"
+  ],
+  "cardCollapsedIds": [
+    "7NJD-D72P",
+    "34AT-CTPH",
+    "4A98-DWPJ",
+    "GZT4-0XV1",
+    "08XF-PW8D",
+    "RMPA-HWVC",
+    "9GPM-A91R",
+    "RW6P-W086",
+    "R8X7-QX1N",
+    "V1AK-PB36",
+    "3SKG-4E6E",
+    "PJ6X-NZ5E",
+    "7MX8-0JZD",
+    "W1HV-K851",
+    "TVVM-9CG8",
+    "X4KR-2SZ3"
+  ],
+  "columnTitleOverrides": {
+    "0": "E1",
+    "1": "E2",
+    "2": "E3",
+    "3": "E4"
+  },
+  "showFullTree": false,
+  "cardFieldVisibility": {
+    "completedCheck": true,
+    "id": false,
+    "description": true,
+    "link": true,
+    "command": true,
+    "tags": true,
+    "effort": true,
+    "dueDate": true,
+    "reminderDate": true
+  },
+  "filterCombineMode": "or",
+  "clipboardRoots": [
+    {
+      "id": "8C9X-1KAW",
+      "title": "Mitgleider",
+      "description": "",
+      "tags": [],
+      "dueDate": null,
+      "reminderDate": null,
+      "effort": 0,
+      "children": [
+        {
+          "id": "G8AV-NYRZ",
+          "title": "Neue Mitglieder",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "RWMC-PYPM",
+          "title": "Anschreiben vom Ausbildungsleiter",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "RV0A-3N38",
+          "title": "Bodeneinweisung",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "VMDS-D4G3",
+          "title": "Anzahlung oder Überweisung erfolgt",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        },
+        {
+          "id": "ADME-FVCQ",
+          "title": "Info an Vorstand",
+          "description": "",
+          "tags": [],
+          "dueDate": null,
+          "reminderDate": null,
+          "effort": 0,
+          "children": []
+        }
+      ]
+    }
+  ],
+  "templates": [
+    {
+      "id": "51ac4e1b-0f23-4eff-84c4-bd3d9ca073a2",
+      "name": "Aufnahme Mitglied",
+      "updatedAt": 1785438541431,
+      "root": {
+        "id": "8C9X-1KAW",
+        "kind": "card",
+        "title": "Mitgleider",
+        "description": "",
+        "tags": [],
+        "dueDate": null,
+        "reminderDate": null,
+        "effort": 0,
+        "children": [
+          {
+            "id": "G8AV-NYRZ",
+            "kind": "card",
+            "title": "Neue Mitglieder",
+            "description": "",
+            "tags": [],
+            "dueDate": null,
+            "reminderDate": null,
+            "effort": 0,
+            "children": []
+          },
+          {
+            "id": "RWMC-PYPM",
+            "kind": "card",
+            "title": "Anschreiben vom Ausbildungsleiter",
+            "description": "",
+            "tags": [],
+            "dueDate": null,
+            "reminderDate": null,
+            "effort": 0,
+            "children": []
+          },
+          {
+            "id": "RV0A-3N38",
+            "kind": "card",
+            "title": "Bodeneinweisung",
+            "description": "",
+            "tags": [],
+            "dueDate": null,
+            "reminderDate": null,
+            "effort": 0,
+            "children": []
+          },
+          {
+            "id": "VMDS-D4G3",
+            "kind": "card",
+            "title": "Anzahlung oder Überweisung erfolgt",
+            "description": "",
+            "tags": [],
+            "dueDate": null,
+            "reminderDate": null,
+            "effort": 0,
+            "children": []
+          },
+          {
+            "id": "ADME-FVCQ",
+            "kind": "card",
+            "title": "Info an Vorstand",
+            "description": "",
+            "tags": [],
+            "dueDate": null,
+            "reminderDate": null,
+            "effort": 0,
+            "children": []
+          }
+        ]
+      }
+    }
+  ]
+}

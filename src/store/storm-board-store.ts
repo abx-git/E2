@@ -44,6 +44,14 @@ import {
   sendToBack as computeSendRegionsToBack,
 } from "@/lib/element-z-order";
 import { generateStormId } from "@/lib/storm-id";
+import type { CustomCardType } from "@/lib/custom-card-types";
+import {
+  colorsFromPreset,
+  createDefaultCustomCardTypes,
+  CUSTOM_CARD_COLOR_PRESETS,
+  DEFAULT_CUSTOM_CARD_COLORS,
+} from "@/lib/custom-card-types";
+import { findCustomCardType } from "@/lib/custom-card-types";
 
 const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
@@ -120,6 +128,8 @@ export interface StormBoardState {
   appearance: BoardAppearance;
   snapToTimeline: boolean;
   snapToGrid: boolean;
+  /** Freeform: stereotype definitions for the active view. */
+  customCardTypes: CustomCardType[];
   selectedElementIds: string[];
   selectedRelationId: string | null;
   selectedContextRelationId: string | null;
@@ -128,6 +138,8 @@ export interface StormBoardState {
   /** Ephemeral UI: element that should enter label edit (e.g. after create). */
   editingElementId: string | null;
   paletteType: ElementType;
+  /** Ephemeral: which freeform stereotype is selected for placement. */
+  paletteCustomTypeId: string | null;
   focusMode: boolean;
   /** Ephemeral canvas text search (not persisted / not undo). */
   searchQuery: string;
@@ -167,6 +179,7 @@ export interface StormBoardState {
   setSnapToGrid: (v: boolean) => void;
   setAppearance: (patch: Partial<BoardAppearance>) => void;
   setPaletteType: (type: ElementType) => void;
+  setPaletteCustomTypeId: (id: string | null) => void;
   setFocusMode: (enabled: boolean) => void;
   setSearchQuery: (query: string) => void;
   setClipboardDropHighlight: (active: boolean) => void;
@@ -208,7 +221,19 @@ export interface StormBoardState {
   canUndo: () => boolean;
   canRedo: () => boolean;
 
-  addElement: (type: ElementType, x: number, y: number, label?: string) => string;
+  addElement: (
+    type: ElementType,
+    x: number,
+    y: number,
+    label?: string,
+    options?: { customTypeId?: string },
+  ) => string;
+  addCustomCardType: (partial?: Partial<Pick<CustomCardType, "name" | "fill" | "stroke" | "ink">>) => string;
+  updateCustomCardType: (
+    id: string,
+    patch: Partial<Pick<CustomCardType, "name" | "fill" | "stroke" | "ink">>,
+  ) => void;
+  deleteCustomCardType: (id: string) => void;
   updateElement: (id: string, patch: Partial<StormElement>) => void;
   deleteElement: (id: string) => void;
   moveElement: (id: string, x: number, y: number) => void;
@@ -334,13 +359,19 @@ function createElement(
   y: number,
   label?: string,
   zIndex = 0,
+  options?: { customTypeId?: string; customTypeName?: string },
 ): StormElement {
   const dims = elementDimensions(type);
+  const customLabel =
+    type === "customCard" && options?.customTypeName
+      ? options.customTypeName
+      : undefined;
   return {
     id: generateStormId(),
     type,
     label:
       label ??
+      customLabel ??
       (type === "instruction" ? "Umsetzungsaspekt…" : defaultLabelForType(type)),
     x,
     y,
@@ -352,23 +383,25 @@ function createElement(
       ? { hotspotStatus: "open", hotspotPriority: "medium" }
       : type === "note"
         ? { noteColor: "cream" }
-        : type === "subdomain"
-          ? { subdomainKind: "core" }
-          : type === "valueObject"
-            ? { immutable: true }
-            : type === "domainService"
-              ? { stateless: true }
-              : type === "question"
-                ? { questionStatus: "open" }
-                : type === "userStory"
-                  ? { storyPriority: "must" }
-                  : type === "processGateway"
-                    ? { gatewayKind: "xor" }
-                    : type === "dataAssociation"
-                      ? { dataCardinality: "1:n" }
-                      : type === "link"
-                          ? { linkKind: "external" }
-                          : undefined,
+        : type === "customCard"
+          ? { customTypeId: options?.customTypeId }
+          : type === "subdomain"
+            ? { subdomainKind: "core" }
+            : type === "valueObject"
+              ? { immutable: true }
+              : type === "domainService"
+                ? { stateless: true }
+                : type === "question"
+                  ? { questionStatus: "open" }
+                  : type === "userStory"
+                    ? { storyPriority: "must" }
+                    : type === "processGateway"
+                      ? { gatewayKind: "xor" }
+                      : type === "dataAssociation"
+                        ? { dataCardinality: "1:n" }
+                        : type === "link"
+                            ? { linkKind: "external" }
+                            : undefined,
   };
 }
 
@@ -488,6 +521,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   appearance: { ...DEFAULT_APPEARANCE },
   snapToTimeline: initialViewDoc.snapToTimeline,
   snapToGrid: initialViewDoc.snapToGrid,
+  customCardTypes: initialViewDoc.customCardTypes ?? [],
   selectedElementIds: [],
   selectedRelationId: null,
   selectedContextRelationId: null,
@@ -495,6 +529,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   selectedSwimlaneIds: [],
   editingElementId: null,
   paletteType: defaultPaletteTypeForMode(initialViewDoc.modelingMode),
+  paletteCustomTypeId: null,
   focusMode: false,
   searchQuery: "",
   relationMode: false,
@@ -612,12 +647,24 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       const workshopFormat = isWorkshopFormatForMode(s.workshopFormat, modelingMode)
         ? s.workshopFormat
         : "free";
+      let customCardTypes = s.customCardTypes;
+      let paletteCustomTypeId = s.paletteCustomTypeId;
+      if (modelingMode === "freeform") {
+        if (customCardTypes.length === 0) {
+          customCardTypes = createDefaultCustomCardTypes();
+        }
+        paletteCustomTypeId = customCardTypes[0]?.id ?? null;
+      } else {
+        paletteCustomTypeId = null;
+      }
       return {
         modelingMode,
         workshopFormat,
         facilitatorPhase: 0,
         facilitatorEnabled: workshopFormat === "free" ? false : s.facilitatorEnabled,
         paletteType: defaultPaletteTypeForMode(modelingMode),
+        customCardTypes,
+        paletteCustomTypeId,
       };
     }),
   setWorkshopFormat: (workshopFormat) =>
@@ -635,6 +682,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   setAppearance: (patch) =>
     commit(set, get, (s) => ({ appearance: { ...s.appearance, ...patch } })),
   setPaletteType: (paletteType) => set({ paletteType }),
+  setPaletteCustomTypeId: (paletteCustomTypeId) => set({ paletteCustomTypeId }),
   setFocusMode: (focusMode) => set({ focusMode }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setClipboardDropHighlight: (clipboardDropHighlight) => set({ clipboardDropHighlight }),
@@ -1065,10 +1113,20 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   canUndo: () => get().past.length > 0,
   canRedo: () => get().future.length > 0,
 
-  addElement: (type, x, y, label) => {
+  addElement: (type, x, y, label, options) => {
     let createdId = "";
     commit(set, get, (s) => {
-      const el = createElement(type, x, y, label, nextElementZIndex(s.elements));
+      const customTypeId =
+        type === "customCard"
+          ? options?.customTypeId ?? s.paletteCustomTypeId ?? s.customCardTypes[0]?.id
+          : undefined;
+      const customDef = customTypeId
+        ? findCustomCardType(s.customCardTypes, customTypeId)
+        : null;
+      const el = createElement(type, x, y, label, nextElementZIndex(s.elements), {
+        customTypeId: customDef?.id,
+        customTypeName: customDef?.name,
+      });
       createdId = el.id;
       const elements = settleElements(
         [...s.elements, el],
@@ -1079,10 +1137,66 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         elements,
         selectedElementIds: [el.id],
         editingElementId: el.id,
+        paletteType: type,
+        paletteCustomTypeId: customDef?.id ?? s.paletteCustomTypeId,
       };
     });
     return createdId;
   },
+
+  addCustomCardType: (partial) => {
+    let createdId = "";
+    commit(set, get, (s) => {
+      const preset =
+        CUSTOM_CARD_COLOR_PRESETS[
+          s.customCardTypes.length % CUSTOM_CARD_COLOR_PRESETS.length
+        ]!;
+      const colors = partial?.fill
+        ? {
+            fill: partial.fill,
+            stroke: partial.stroke ?? DEFAULT_CUSTOM_CARD_COLORS.stroke,
+            ink: partial.ink ?? DEFAULT_CUSTOM_CARD_COLORS.ink,
+          }
+        : colorsFromPreset(preset);
+      const next: CustomCardType = {
+        id: generateStormId(),
+        name: partial?.name?.trim() || `Typ ${s.customCardTypes.length + 1}`,
+        ...colors,
+      };
+      createdId = next.id;
+      return {
+        customCardTypes: [...s.customCardTypes, next],
+        paletteType: "customCard",
+        paletteCustomTypeId: next.id,
+      };
+    });
+    return createdId;
+  },
+
+  updateCustomCardType: (id, patch) =>
+    commit(set, get, (s) => ({
+      customCardTypes: s.customCardTypes.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              ...(patch.name !== undefined ? { name: patch.name.trim() || t.name } : {}),
+              ...(patch.fill !== undefined ? { fill: patch.fill } : {}),
+              ...(patch.stroke !== undefined ? { stroke: patch.stroke } : {}),
+              ...(patch.ink !== undefined ? { ink: patch.ink } : {}),
+            }
+          : t,
+      ),
+    })),
+
+  deleteCustomCardType: (id) =>
+    commit(set, get, (s) => {
+      const customCardTypes = s.customCardTypes.filter((t) => t.id !== id);
+      const paletteCustomTypeId =
+        s.paletteCustomTypeId === id
+          ? customCardTypes[0]?.id ?? null
+          : s.paletteCustomTypeId;
+      return { customCardTypes, paletteCustomTypeId };
+    }),
 
   updateElement: (id, patch) =>
     commit(set, get, (s) => {
@@ -2013,5 +2127,6 @@ export function boardActiveSliceFromStore() {
     viewport: s.viewport,
     snapToTimeline: s.snapToTimeline,
     snapToGrid: s.snapToGrid,
+    customCardTypes: s.customCardTypes,
   };
 }
