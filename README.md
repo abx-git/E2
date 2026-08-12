@@ -153,7 +153,7 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 
 Elemente lassen sich verbinden (Canvas **Verbinden**, Pfeil am Sticky oder Rechtsklick → Relation starten).
 
-**Undo/Redo:** App-Leiste oder ⌘Z / Ctrl+Z (Undo) und ⌘⇧Z / Ctrl+Y (Redo). **Duplizieren:** ⌘D / Ctrl+D (Auswahl). Drag einer Gruppe zählt als ein Schritt. History wird nicht in `.storm.json` gespeichert.
+**Undo/Redo:** App-Leiste oder ⌘Z / Ctrl+Z (Undo) und ⌘⇧Z / Ctrl+Y (Redo). **Duplizieren:** ⌘D / Ctrl+D (Auswahl). **Bearbeitungsstand:** ⌘/Ctrl+1 = OK, +2 = !, +3 = … (nochmals = entfernen; gilt für Karten und Verbinder). Drag einer Gruppe zählt als ein Schritt. History wird nicht in `.storm.json` gespeichert.
 
 | Typ | Bedeutung (UI) |
 |-----|----------------|

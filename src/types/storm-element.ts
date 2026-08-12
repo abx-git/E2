@@ -1,3 +1,5 @@
+import type { ProgressMark } from "@/lib/progress-mark";
+
 export type ModelingMode =
   | "eventStorming"
   | "domainDrivenDesign"
@@ -154,6 +156,11 @@ export interface ElementMetadata {
   noteColor?: NoteColorId;
   /** Freeform `customCard`: id of a view-scoped CustomCardType. */
   customTypeId?: string;
+  /**
+   * Optional progress mark (Ctrl+1 OK / Ctrl+2 ! / Ctrl+3 …).
+   * Document processing / review status on the sticky.
+   */
+  progressMark?: ProgressMark;
   /** Strategic DDD: Core / Supporting / Generic. */
   subdomainKind?: SubdomainKind;
 

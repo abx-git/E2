@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Clock, ExternalLink, LayoutDashboard, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
 
+import { ProgressMarkBadge } from "@/components/progress-mark-badge";
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkDestinationPreview, linkHasTarget } from "@/lib/board-link";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
@@ -614,6 +615,9 @@ export function StormElementCard({
                           : undefined
         }
       >
+        {element.metadata?.progressMark ? (
+          <ProgressMarkBadge mark={element.metadata.progressMark} />
+        ) : null}
         {isLink && !editing ? (
           <>
             <button

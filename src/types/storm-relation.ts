@@ -1,3 +1,5 @@
+import type { ProgressMark } from "@/lib/progress-mark";
+
 export type RelationType =
   | "triggers"
   | "reactsWith"
@@ -14,6 +16,8 @@ export interface StormRelation {
   sourceId: string;
   targetId: string;
   label?: string;
+  /** Optional progress mark (Ctrl+1 OK / Ctrl+2 ! / Ctrl+3 …). */
+  progressMark?: ProgressMark;
 }
 
 export const RELATION_TYPE_LABELS: Record<RelationType, string> = {

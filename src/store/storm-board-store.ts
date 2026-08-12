@@ -52,6 +52,7 @@ import {
   DEFAULT_CUSTOM_CARD_COLORS,
 } from "@/lib/custom-card-types";
 import { findCustomCardType } from "@/lib/custom-card-types";
+import type { ProgressMark } from "@/lib/progress-mark";
 
 const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
@@ -263,6 +264,8 @@ export interface StormBoardState {
   addRelation: (sourceId: string, targetId: string, type?: RelationType, label?: string) => string | null;
   updateRelation: (id: string, patch: Partial<StormRelation>) => void;
   deleteRelation: (id: string) => void;
+  /** Toggle progress mark on selected stickies and/or selected connector (Ctrl+1/2/3). */
+  applyProgressMark: (mark: ProgressMark) => void;
   setRelationMode: (enabled: boolean) => void;
   setRelationDraftSource: (id: string | null) => void;
   connectElements: (sourceId: string, targetId: string) => string | null;
@@ -1417,6 +1420,52 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => ({
       relations: s.relations.map((r) => (r.id === id ? { ...r, ...patch, id: r.id } : r)),
     })),
+
+  applyProgressMark: (mark) =>
+    commit(set, get, (s) => {
+      const elementIds = s.selectedElementIds;
+      const relationId = s.selectedRelationId;
+      if (elementIds.length === 0 && !relationId) return {};
+
+      const selectedEls = s.elements.filter((e) => elementIds.includes(e.id));
+      const selectedRel = relationId
+        ? s.relations.find((r) => r.id === relationId)
+        : undefined;
+
+      const allAlready =
+        selectedEls.every((e) => e.metadata?.progressMark === mark) &&
+        (selectedRel ? selectedRel.progressMark === mark : true) &&
+        (selectedEls.length > 0 || Boolean(selectedRel));
+
+      const next = allAlready ? undefined : mark;
+
+      const elements =
+        elementIds.length === 0
+          ? s.elements
+          : s.elements.map((e) => {
+              if (!elementIds.includes(e.id)) return e;
+              const metadata = { ...(e.metadata ?? {}) };
+              if (next) metadata.progressMark = next;
+              else delete metadata.progressMark;
+              return {
+                ...e,
+                metadata: Object.keys(metadata).length ? metadata : undefined,
+              };
+            });
+
+      const relations = selectedRel
+        ? s.relations.map((r) => {
+            if (r.id !== selectedRel.id) return r;
+            if (!next) {
+              const { progressMark: _removed, ...rest } = r;
+              return rest;
+            }
+            return { ...r, progressMark: next };
+          })
+        : s.relations;
+
+      return { elements, relations };
+    }),
 
   deleteRelation: (id) =>
     commit(set, get, (s) => ({

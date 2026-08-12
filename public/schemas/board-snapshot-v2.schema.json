@@ -259,6 +259,11 @@
       ],
       "description": "Hintergrundfarbe für Notizen."
     },
+    "progressMark": {
+      "type": "string",
+      "enum": ["ok", "attention", "pending"],
+      "description": "Optionaler Bearbeitungsstand: OK / ! / … (Ctrl+1/2/3)."
+    },
     "elementMetadata": {
       "type": "object",
       "additionalProperties": true,
@@ -295,6 +300,9 @@
         "customTypeId": {
           "type": "string",
           "description": "Freiform customCard: ID eines customCardType in der Sicht."
+        },
+        "progressMark": {
+          "$ref": "#/$defs/progressMark"
         },
         "subdomainKind": {
           "$ref": "#/$defs/subdomainKind"
@@ -580,6 +588,9 @@
         },
         "label": {
           "type": "string"
+        },
+        "progressMark": {
+          "$ref": "#/$defs/progressMark"
         }
       }
     },

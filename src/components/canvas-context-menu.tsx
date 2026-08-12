@@ -40,6 +40,10 @@ import {
 } from "@/lib/element-rotation";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
+import {
+  PROGRESS_MARKS,
+  PROGRESS_MARK_GLYPH,
+} from "@/lib/progress-mark";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { supportsArchDrilldown, type NoteColorId } from "@/types/storm-element";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
@@ -119,6 +123,7 @@ export function CanvasContextMenu({
   const moveToClipboard = useStormBoardStore((s) => s.moveToClipboard);
   const copyToClipboard = useStormBoardStore((s) => s.copyToClipboard);
   const duplicateElements = useStormBoardStore((s) => s.duplicateElements);
+  const applyProgressMark = useStormBoardStore((s) => s.applyProgressMark);
   const pasteClipboardAt = useStormBoardStore((s) => s.pasteClipboardAt);
   const clipboard = useStormBoardStore((s) => s.clipboard);
   const isMobile = useIsMobileLayout();
@@ -409,6 +414,33 @@ export function CanvasContextMenu({
           onClick={() => run(() => sendElementsToBack([el.id]))}
         />
         <Separator />
+        <Section label="Bearbeitungsstand" />
+        {PROGRESS_MARKS.map((mark) => (
+          <Item
+            key={mark}
+            label={PROGRESS_MARK_GLYPH[mark]}
+            hint={mark === "ok" ? "Ctrl+1" : mark === "attention" ? "Ctrl+2" : "Ctrl+3"}
+            active={el.metadata?.progressMark === mark}
+            onClick={() =>
+              run(() => {
+                useStormBoardStore.getState().setSelectedElementIds([el.id]);
+                applyProgressMark(mark);
+              })
+            }
+          />
+        ))}
+        {el.metadata?.progressMark ? (
+          <Item
+            label="Stand entfernen"
+            onClick={() =>
+              run(() => {
+                useStormBoardStore.getState().setSelectedElementIds([el.id]);
+                applyProgressMark(el.metadata!.progressMark!);
+              })
+            }
+          />
+        ) : null}
+        <Separator />
         <Item
           icon={Copy}
           label="Duplizieren"
@@ -567,6 +599,25 @@ export function CanvasContextMenu({
           onClick={() => run(() => sendElementsToBack(target.ids))}
         />
         <Separator />
+        <Section label="Bearbeitungsstand" />
+        {PROGRESS_MARKS.map((mark) => (
+          <Item
+            key={mark}
+            label={PROGRESS_MARK_GLYPH[mark]}
+            hint={mark === "ok" ? "Ctrl+1" : mark === "attention" ? "Ctrl+2" : "Ctrl+3"}
+            active={target.ids.every(
+              (id) =>
+                elements.find((e) => e.id === id)?.metadata?.progressMark === mark,
+            )}
+            onClick={() =>
+              run(() => {
+                useStormBoardStore.getState().setSelectedElementIds(target.ids);
+                applyProgressMark(mark);
+              })
+            }
+          />
+        ))}
+        <Separator />
         <Item
           icon={Copy}
           label="Duplizieren"
@@ -616,6 +667,33 @@ export function CanvasContextMenu({
           label="Hilfe"
           onClick={() => run(() => onRequestHelpRelationType?.(rel.type))}
         />
+        <Separator />
+        <Section label="Bearbeitungsstand" />
+        {PROGRESS_MARKS.map((mark) => (
+          <Item
+            key={mark}
+            label={PROGRESS_MARK_GLYPH[mark]}
+            hint={mark === "ok" ? "Ctrl+1" : mark === "attention" ? "Ctrl+2" : "Ctrl+3"}
+            active={rel.progressMark === mark}
+            onClick={() =>
+              run(() => {
+                useStormBoardStore.getState().selectRelation(rel.id);
+                applyProgressMark(mark);
+              })
+            }
+          />
+        ))}
+        {rel.progressMark ? (
+          <Item
+            label="Stand entfernen"
+            onClick={() =>
+              run(() => {
+                useStormBoardStore.getState().selectRelation(rel.id);
+                applyProgressMark(rel.progressMark!);
+              })
+            }
+          />
+        ) : null}
         <Separator />
         <Item
           icon={Trash2}

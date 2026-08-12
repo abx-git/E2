@@ -12,6 +12,7 @@ import {
   BoardBackupSync,
   runManualBoardBackup,
 } from "@/components/board-backup-sync";
+import { progressMarkFromDigit } from "@/lib/progress-mark";
 import { BoardSideRail } from "@/components/board-side-rail";
 import { MobileBoardBar } from "@/components/mobile-board-bar";
 import { CollabEnterConfirmDialog } from "@/components/collab-enter-confirm-dialog";
@@ -187,6 +188,7 @@ export function StormBoard() {
   const undo = useStormBoardStore((s) => s.undo);
   const redo = useStormBoardStore((s) => s.redo);
   const duplicateElements = useStormBoardStore((s) => s.duplicateElements);
+  const applyProgressMark = useStormBoardStore((s) => s.applyProgressMark);
   const boardRootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -228,6 +230,15 @@ export function StormBoard() {
         return;
       }
 
+      const progressMark = progressMarkFromDigit(e.key);
+      if (progressMark) {
+        const s = useStormBoardStore.getState();
+        if (s.selectedElementIds.length === 0 && !s.selectedRelationId) return;
+        e.preventDefault();
+        applyProgressMark(progressMark);
+        return;
+      }
+
       if (e.key === "z" || e.key === "Z") {
         e.preventDefault();
         if (e.shiftKey) redo();
@@ -241,7 +252,7 @@ export function StormBoard() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [undo, redo, duplicateElements]);
+  }, [undo, redo, duplicateElements, applyProgressMark]);
 
   const downloadJson = useCallback(() => {
     const json = boardJsonFromStoreState();
