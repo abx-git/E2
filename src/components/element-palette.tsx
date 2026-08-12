@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { HelpCircle, Pencil, Plus, Trash2, X } from "lucide-react";
 
@@ -46,6 +46,189 @@ type GhostState =
       overCanvas: boolean;
     };
 
+function commitCustomTypeName(
+  id: string,
+  draft: string,
+  updateCustomCardType: (
+    id: string,
+    patch: Partial<Pick<CustomCardType, "name" | "fill" | "stroke" | "ink">>,
+  ) => void,
+): string {
+  const name = draft.trim() || "Typ";
+  updateCustomCardType(id, { name });
+  return name;
+}
+
+function CustomCardTypeEditDialog({
+  customType,
+  onClose,
+}: {
+  customType: CustomCardType;
+  onClose: () => void;
+}) {
+  const updateCustomCardType = useStormBoardStore((s) => s.updateCustomCardType);
+  const deleteCustomCardType = useStormBoardStore((s) => s.deleteCustomCardType);
+  const liveType =
+    useStormBoardStore((s) => s.customCardTypes.find((t) => t.id === customType.id)) ??
+    customType;
+
+  const [nameDraft, setNameDraft] = useState(customType.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      commitCustomTypeName(liveType.id, nameDraft, updateCustomCardType);
+      onClose();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [liveType.id, nameDraft, onClose, updateCustomCardType]);
+
+  const finish = () => {
+    commitCustomTypeName(liveType.id, nameDraft, updateCustomCardType);
+    onClose();
+  };
+
+  const previewName = nameDraft.trim() || "Typ";
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[1400] flex items-end justify-center bg-black/30 p-3 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Kartentyp bearbeiten"
+      // pointerdown on backdrop only — click after text-select drag must not close
+      onPointerDown={(e) => {
+        if (e.target === e.currentTarget) finish();
+      }}
+    >
+      <div
+        className="w-full max-w-sm rounded-xl border border-[var(--border)] bg-[var(--panel-solid)] p-4 shadow-xl"
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold text-[var(--text)]">Kartentyp</h3>
+            <p className="mt-0.5 text-[0.7rem] text-[var(--muted)]">
+              Name und Farbe gelten für alle Karten dieses Typs.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="dock-control rounded-md p-1.5"
+            aria-label="Schließen"
+            onClick={finish}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <label className="mb-3 flex flex-col gap-1 text-xs text-[var(--text)]">
+          <span className="text-[var(--muted)]">Name / Stereotyp</span>
+          <input
+            ref={inputRef}
+            className="dock-field"
+            value={nameDraft}
+            maxLength={64}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={() => {
+              const name = commitCustomTypeName(liveType.id, nameDraft, updateCustomCardType);
+              setNameDraft(name);
+            }}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter") {
+                e.preventDefault();
+                finish();
+              }
+            }}
+            placeholder="z. B. Interface"
+          />
+          <span className="text-[0.65rem] text-[var(--muted)]">
+            Vorschau: {stereotypeLabel(previewName)}
+          </span>
+        </label>
+
+        <p className="mb-1.5 text-[0.7rem] font-medium text-[var(--muted)]">Farbe</p>
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          {CUSTOM_CARD_COLOR_PRESETS.map((preset) => {
+            const active = liveType.fill === preset.fill;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                title={preset.label}
+                aria-label={preset.label}
+                aria-pressed={active}
+                className={[
+                  "h-7 w-7 rounded-md border-2 shadow-sm transition-transform",
+                  active
+                    ? "scale-110 border-[var(--accent)]"
+                    : "border-transparent hover:scale-105",
+                ].join(" ")}
+                style={{
+                  backgroundColor: preset.fill,
+                  boxShadow: `inset 0 0 0 1px ${preset.stroke}`,
+                }}
+                onClick={() => updateCustomCardType(liveType.id, colorsFromPreset(preset))}
+              />
+            );
+          })}
+        </div>
+
+        <div
+          className="mb-4 rounded-lg border px-3 py-2"
+          style={{
+            backgroundColor: liveType.fill,
+            borderColor: liveType.stroke,
+            color: liveType.ink,
+          }}
+        >
+          <span className="block text-[0.58rem] font-bold uppercase tracking-wide opacity-80">
+            {stereotypeLabel(previewName)}
+          </span>
+          <span className="text-sm font-medium">Beispielkarte</span>
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            className="dock-control flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-red-700"
+            onClick={() => {
+              if (
+                window.confirm(
+                  `Typ „${previewName}“ löschen? Vorhandene Karten behalten den Verweis, verlieren aber die Typfarbe.`,
+                )
+              ) {
+                deleteCustomCardType(liveType.id);
+                onClose();
+              }
+            }}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Löschen
+          </button>
+          <button
+            type="button"
+            className="dock-control rounded-lg px-3 py-1.5 text-xs font-medium"
+            onClick={finish}
+          >
+            Fertig
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
 export function ElementPalette({ onSelectType, onRequestHelp }: ElementPaletteProps) {
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const setPaletteType = useStormBoardStore((s) => s.setPaletteType);
@@ -58,8 +241,6 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
   const facilitatorPhase = useStormBoardStore((s) => s.facilitatorPhase);
   const customCardTypes = useStormBoardStore((s) => s.customCardTypes);
   const addCustomCardType = useStormBoardStore((s) => s.addCustomCardType);
-  const updateCustomCardType = useStormBoardStore((s) => s.updateCustomCardType);
-  const deleteCustomCardType = useStormBoardStore((s) => s.deleteCustomCardType);
 
   const [ghost, setGhost] = useState<GhostState | null>(null);
   const [editingTypeId, setEditingTypeId] = useState<string | null>(null);
@@ -298,7 +479,9 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
           <span className="truncate text-[0.58rem] font-bold uppercase tracking-wide opacity-80">
             {stereotypeLabel(customType.name)}
           </span>
-          <span className="truncate text-xs font-medium">{customType.name}</span>
+          <span className="truncate text-xs font-medium">
+            {customType.name.trim() || "Typ"}
+          </span>
         </button>
         <button
           type="button"
@@ -378,127 +561,12 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
         )}
       </div>
 
-      {editingType &&
-        typeof document !== "undefined" &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[1400] flex items-end justify-center bg-black/30 p-3 sm:items-center"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Kartentyp bearbeiten"
-            onClick={() => setEditingTypeId(null)}
-          >
-            <div
-              className="w-full max-w-sm rounded-xl border border-[var(--border)] bg-[var(--panel-solid)] p-4 shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mb-3 flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--text)]">Kartentyp</h3>
-                  <p className="mt-0.5 text-[0.7rem] text-[var(--muted)]">
-                    Name und Farbe gelten für alle Karten dieses Typs.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="dock-control rounded-md p-1.5"
-                  aria-label="Schließen"
-                  onClick={() => setEditingTypeId(null)}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              <label className="mb-3 flex flex-col gap-1 text-xs text-[var(--text)]">
-                <span className="text-[var(--muted)]">Name / Stereotyp</span>
-                <input
-                  className="dock-field"
-                  value={editingType.name}
-                  maxLength={64}
-                  autoFocus
-                  onChange={(e) =>
-                    updateCustomCardType(editingType.id, { name: e.target.value })
-                  }
-                  placeholder="z. B. Interface"
-                />
-                <span className="text-[0.65rem] text-[var(--muted)]">
-                  Vorschau: {stereotypeLabel(editingType.name || "Typ")}
-                </span>
-              </label>
-
-              <p className="mb-1.5 text-[0.7rem] font-medium text-[var(--muted)]">Farbe</p>
-              <div className="mb-4 flex flex-wrap gap-1.5">
-                {CUSTOM_CARD_COLOR_PRESETS.map((preset) => {
-                  const active = editingType.fill === preset.fill;
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      title={preset.label}
-                      aria-label={preset.label}
-                      aria-pressed={active}
-                      className={[
-                        "h-7 w-7 rounded-md border-2 shadow-sm transition-transform",
-                        active
-                          ? "scale-110 border-[var(--accent)]"
-                          : "border-transparent hover:scale-105",
-                      ].join(" ")}
-                      style={{
-                        backgroundColor: preset.fill,
-                        boxShadow: `inset 0 0 0 1px ${preset.stroke}`,
-                      }}
-                      onClick={() =>
-                        updateCustomCardType(editingType.id, colorsFromPreset(preset))
-                      }
-                    />
-                  );
-                })}
-              </div>
-
-              <div
-                className="mb-4 rounded-lg border px-3 py-2"
-                style={{
-                  backgroundColor: editingType.fill,
-                  borderColor: editingType.stroke,
-                  color: editingType.ink,
-                }}
-              >
-                <span className="block text-[0.58rem] font-bold uppercase tracking-wide opacity-80">
-                  {stereotypeLabel(editingType.name || "Typ")}
-                </span>
-                <span className="text-sm font-medium">Beispielkarte</span>
-              </div>
-
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  className="dock-control flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-red-700"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Typ „${editingType.name}“ löschen? Vorhandene Karten behalten den Verweis, verlieren aber die Typfarbe.`,
-                      )
-                    ) {
-                      deleteCustomCardType(editingType.id);
-                      setEditingTypeId(null);
-                    }
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Löschen
-                </button>
-                <button
-                  type="button"
-                  className="dock-control rounded-lg px-3 py-1.5 text-xs font-medium"
-                  onClick={() => setEditingTypeId(null)}
-                >
-                  Fertig
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      {editingType && typeof document !== "undefined" && (
+        <CustomCardTypeEditDialog
+          customType={editingType}
+          onClose={() => setEditingTypeId(null)}
+        />
+      )}
 
       {ghost &&
         ghostStyle &&

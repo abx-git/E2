@@ -1175,17 +1175,18 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
 
   updateCustomCardType: (id, patch) =>
     commit(set, get, (s) => ({
-      customCardTypes: s.customCardTypes.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              ...(patch.name !== undefined ? { name: patch.name.trim() || t.name } : {}),
-              ...(patch.fill !== undefined ? { fill: patch.fill } : {}),
-              ...(patch.stroke !== undefined ? { stroke: patch.stroke } : {}),
-              ...(patch.ink !== undefined ? { ink: patch.ink } : {}),
-            }
-          : t,
-      ),
+      customCardTypes: s.customCardTypes.map((t) => {
+        if (t.id !== id) return t;
+        const next = { ...t };
+        if (patch.name !== undefined) {
+          // Allow empty while editing; display layers fall back to "Typ".
+          next.name = patch.name.slice(0, 64);
+        }
+        if (patch.fill !== undefined) next.fill = patch.fill;
+        if (patch.stroke !== undefined) next.stroke = patch.stroke;
+        if (patch.ink !== undefined) next.ink = patch.ink;
+        return next;
+      }),
     })),
 
   deleteCustomCardType: (id) =>
