@@ -412,6 +412,7 @@ export function CanvasContextMenu({
         <Item
           icon={Copy}
           label="Duplizieren"
+          hint="⌘D / Ctrl+D"
           onClick={() => run(() => duplicateElements([el.id]))}
         />
         <Item
@@ -569,6 +570,7 @@ export function CanvasContextMenu({
         <Item
           icon={Copy}
           label="Duplizieren"
+          hint="⌘D / Ctrl+D"
           onClick={() => run(() => duplicateElements(target.ids))}
         />
         <Item
@@ -909,6 +911,7 @@ function Item({
   danger,
   disabled,
   active,
+  hint,
 }: {
   label: string;
   onClick: () => void;
@@ -916,6 +919,7 @@ function Item({
   danger?: boolean;
   disabled?: boolean;
   active?: boolean;
+  hint?: string;
 }) {
   return (
     <button
@@ -933,7 +937,10 @@ function Item({
       ].join(" ")}
     >
       {Icon ? <Icon className="h-3.5 w-3.5 shrink-0 opacity-80" /> : <span className="w-3.5" />}
-      <span className="truncate">{label}</span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {hint ? (
+        <span className="shrink-0 text-[0.65rem] text-[var(--muted)]">{hint}</span>
+      ) : null}
     </button>
   );
 }

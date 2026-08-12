@@ -186,6 +186,7 @@ export function StormBoard() {
   const appearance = useStormBoardStore((s) => s.appearance);
   const undo = useStormBoardStore((s) => s.undo);
   const redo = useStormBoardStore((s) => s.redo);
+  const duplicateElements = useStormBoardStore((s) => s.duplicateElements);
   const boardRootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -219,6 +220,14 @@ export function StormBoard() {
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) return;
 
+      if (e.key === "d" || e.key === "D") {
+        const ids = useStormBoardStore.getState().selectedElementIds;
+        if (ids.length === 0) return;
+        e.preventDefault();
+        duplicateElements(ids);
+        return;
+      }
+
       if (e.key === "z" || e.key === "Z") {
         e.preventDefault();
         if (e.shiftKey) redo();
@@ -232,7 +241,7 @@ export function StormBoard() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [undo, redo]);
+  }, [undo, redo, duplicateElements]);
 
   const downloadJson = useCallback(() => {
     const json = boardJsonFromStoreState();
