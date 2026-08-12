@@ -21,6 +21,8 @@ import { CollabPresenceBanner } from "@/components/collab-presence-banner";
 import { CollabRoomDialog } from "@/components/collab-room-dialog";
 import { CollabSyncConflictDialog } from "@/components/collab-sync-conflict-dialog";
 import { DataStoragePanel } from "@/components/data-storage-panel";
+import { BoardShareLinkDialog } from "@/components/board-share-link-dialog";
+import { RemoteBoardLoadDialog } from "@/components/remote-board-load-dialog";
 import { CanvasContextMenu } from "@/components/canvas-context-menu";
 import { ElementPalette } from "@/components/element-palette";
 import {
@@ -57,6 +59,11 @@ import {
   hasPreCollabStash,
 } from "@/lib/collab/pre-collab-stash";
 import { boardJsonFromStoreState, applyBoardJsonToStore } from "@/lib/file-board-reconcile";
+import {
+  fetchAndValidateRemoteBoard,
+  readBoardUrlFromSearch,
+  stripBoardUrlParamFromLocation,
+} from "@/lib/board-remote-url";
 import {
   exportBoardPng,
   exportBoardSvg,
@@ -167,6 +174,10 @@ export function StormBoard() {
   } | null>(null);
   const [importConflictBusy, setImportConflictBusy] = useState(false);
   const [jsonPasteMode, setJsonPasteMode] = useState<"board" | "ai-view" | "diagram" | null>(null);
+  const [shareLinkOpen, setShareLinkOpen] = useState(false);
+  const [remoteBoardUrl, setRemoteBoardUrl] = useState<string | null>(null);
+  const [remoteBoardBusy, setRemoteBoardBusy] = useState(false);
+  const [remoteBoardError, setRemoteBoardError] = useState<string | null>(null);
   const joinRoom = useCollabStore((s) => s.joinRoom);
   const leaveRoom = useCollabStore((s) => s.leaveRoom);
   const syncConflict = useCollabStore((s) => s.syncConflict);
@@ -212,6 +223,42 @@ export function StormBoard() {
       void joinRoom(room, name);
     }
   }, [joinRoom]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("room")?.trim()) return;
+    const boardUrl = readBoardUrlFromSearch(window.location.search);
+    if (!boardUrl) return;
+    setRemoteBoardUrl(boardUrl);
+    setRemoteBoardError(null);
+  }, []);
+
+  const handleRemoteBoardCancel = useCallback(() => {
+    setRemoteBoardUrl(null);
+    setRemoteBoardError(null);
+    setRemoteBoardBusy(false);
+    stripBoardUrlParamFromLocation();
+  }, []);
+
+  const handleRemoteBoardConfirm = useCallback(async () => {
+    if (!remoteBoardUrl || remoteBoardBusy) return;
+    setRemoteBoardBusy(true);
+    setRemoteBoardError(null);
+    try {
+      const outcome = await fetchAndValidateRemoteBoard(remoteBoardUrl);
+      if (!outcome.ok) {
+        setRemoteBoardError(outcome.reason);
+        return;
+      }
+      backupBeforeSuspiciousSwitch("file");
+      applyBoardJsonToStore(outcome.rawText);
+      setRemoteBoardUrl(null);
+      stripBoardUrlParamFromLocation();
+    } finally {
+      setRemoteBoardBusy(false);
+    }
+  }, [remoteBoardUrl, remoteBoardBusy]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -975,6 +1022,10 @@ export function StormBoard() {
         onOpenLocalBackup={(id) => void handleOpenLocalBackup(id)}
         onRestoreBackupFile={handleRestoreBackupFilePick}
         onRestoreBackupPaste={() => void handlePasteJson()}
+        onOpenBoardShareLink={() => {
+          setStorageOpen(false);
+          setShareLinkOpen(true);
+        }}
         onImportAsNewViews={handleImportAsNewViews}
         onExportJson={downloadJson}
         onCopyJsonToClipboard={copyJsonToClipboard}
@@ -1091,6 +1142,18 @@ export function StormBoard() {
         busy={busy}
         onClose={() => setJsonPasteMode(null)}
         onConfirm={applyPastedAiOrViewJson}
+      />
+
+      <BoardShareLinkDialog open={shareLinkOpen} onClose={() => setShareLinkOpen(false)} />
+
+      <RemoteBoardLoadDialog
+        open={remoteBoardUrl !== null}
+        sourceUrl={remoteBoardUrl ?? ""}
+        busy={remoteBoardBusy}
+        boardHasContent={boardHasLocalContent()}
+        error={remoteBoardError}
+        onCancel={handleRemoteBoardCancel}
+        onConfirm={() => void handleRemoteBoardConfirm()}
       />
 
       <NewWorkingFileDialog

@@ -303,6 +303,7 @@ Im Facilitator-Modus:
 - Format **v2** (`views[]`); ältere v1-Dateien werden beim Öffnen migriert  
 - Alternativen: Datei öffnen / JSON einfügen (bei Konflikt: Dialog)  
 - **Import als neue Seite:** Daten → *Als neue Seite importieren* — Sichten aus einer `.storm.json` als neue Tabs; **Farben / Titel / Glossary / Workshop-Modus** bleiben aus der geöffneten Datei  
+- **Board-Link teilen:** Daten → *Board-Link teilen…* — Remote-URL zu einer öffentlichen `.storm.json` prüfen (Schema); bei Erfolg Share-Link mit `?board=…`. Öffnen des Links fragt nach Bestätigung und lädt danach lokal weiter (CORS muss erlaubt sein)  
 - Auto-Speichern, Konfliktbehandlung bei externer Änderung  
 - **Backup:** Daten → mit Historie (zeitgestempelte Kopien) oder ohne Historie (immer dieselbe Backup-Datei überschreiben); manuell oder alle 5–30 Min.  
 - Während **Kollaboration** spiegelt die Arbeitsdatei den Editor (Autosave aktiv); beim Verlassen: Board behalten oder Stand vor dem Raum wiederherstellen  

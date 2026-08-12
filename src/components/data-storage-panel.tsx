@@ -59,6 +59,8 @@ export interface DataStoragePanelProps {
   onOpenLocalBackup: (backupId: string) => void;
   onRestoreBackupFile: () => void;
   onRestoreBackupPaste: () => void;
+  /** Prüfen einer Remote-.storm.json und Teilen-Link erzeugen. */
+  onOpenBoardShareLink?: () => void;
   /** Import E2 file as new view tab(s); keeps open document appearance/globals. */
   onImportAsNewViews: () => void;
   onExportJson: () => void;
@@ -271,6 +273,7 @@ export function DataStoragePanel({
   onOpenLocalBackup,
   onRestoreBackupFile,
   onRestoreBackupPaste,
+  onOpenBoardShareLink,
   onImportAsNewViews,
   onExportJson,
   onCopyJsonToClipboard,
@@ -702,6 +705,14 @@ export function DataStoragePanel({
                 <ActionButton onClick={onImportAsNewViews} disabled={busy}>
                   <Upload className="h-4 w-4" /> Als neue Seite importieren
                 </ActionButton>
+                {onOpenBoardShareLink && (
+                  <ActionButton
+                    onClick={onOpenBoardShareLink}
+                    disabled={busy}
+                  >
+                    <Share2 className="h-4 w-4" /> Board-Link teilen…
+                  </ActionButton>
+                )}
                 {onOpenCollab && (
                   <ActionButton onClick={onOpenCollab}>
                     <Users className="h-4 w-4" /> Raum erstellen / beitreten
