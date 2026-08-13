@@ -666,6 +666,8 @@ export function StormBoard() {
         });
         return;
       }
+      setPersistPaused(false);
+      setWorkingFileDirty(false);
       syncWorkingFileUrlContext();
       setSetupOpen(false);
       setStorageOpen(false);
@@ -708,6 +710,8 @@ export function StormBoard() {
         });
         return;
       }
+      setPersistPaused(false);
+      setWorkingFileDirty(false);
       syncWorkingFileUrlContext();
       setSetupOpen(false);
       setStorageOpen(false);
@@ -797,6 +801,14 @@ export function StormBoard() {
         importConflict.fileName,
       );
       setImportConflict(null);
+      if (choice === "keep_local") {
+        setPersistPaused(true);
+        window.alert(
+          "Editor behalten — die geöffnete Datei wurde nicht überschrieben. Nutze „Speichern unter…“, wenn du speichern willst.",
+        );
+      } else {
+        setPersistPaused(false);
+      }
       setSetupOpen(false);
     } finally {
       setImportConflictBusy(false);
@@ -1149,10 +1161,10 @@ export function StormBoard() {
         open={importConflict !== null}
         fileName={importConflict?.fileName ?? null}
         busy={importConflictBusy}
-        title="Import-Konflikt"
-        description="Der Import und dein aktueller Board-Stand unterscheiden sich beide vom leeren Zustand. Was soll übernommen werden?"
-        keepLocalLabel="Aktuellen E2-Stand behalten"
-        loadFileLabel="Importierten Stand laden"
+        title="Datei öffnen"
+        description="Die gewählte Datei konnte nicht als E2-Board geladen werden, oder der Inhalt ist ungültig. Der Editor behält deinen aktuellen Stand — die Datei wird nicht überschrieben."
+        keepLocalLabel="Editor behalten (Datei nicht überschreiben)"
+        loadFileLabel="Datei trotzdem versuchen"
         onChoose={(choice) => void handleImportConflict(choice)}
       />
 

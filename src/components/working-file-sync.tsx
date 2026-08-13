@@ -14,6 +14,7 @@ import {
 } from "@/lib/file-board-reconcile";
 import {
   downloadWorkingFileSafetyCopy,
+  EXTERNAL_WORKING_FILE_POLL_MS,
   getWorkingFileHandle,
   getWorkingFileLabel,
   getActiveWorkingFileId,
@@ -24,9 +25,11 @@ import {
   isWorkingFileDirty,
   isWorkingFileMultiTabUnsafe,
   isWorkingFilePersistPaused,
+  isWorkingFileSwitchInProgress,
   isWorkingFileToStoreBlocked,
   markWorkingFileSessionHydrated,
   markWorkingFileSynced,
+  peekWorkingFileLastModified,
   persistWorkingFileJson,
   readWorkingFileSnapshot,
   restoreWorkingFileFromDisk,
@@ -86,7 +89,8 @@ export interface WorkingFileSyncProps {
 
 /**
  * Solo: autosave with content+mtime CAS.
- * External dirty conflict: keep editor, safety-download disk, pause until Speichern unter / reload.
+ * External file edits (other tools/tabs): poll while visible and adopt disk into the editor.
+ * If the editor was dirty, download an editor safety copy first — disk wins for the Arbeitsdatei.
  * Collab: never write Arbeitsdatei (persist paused).
  */
 export function WorkingFileSync({
@@ -136,33 +140,6 @@ export function WorkingFileSync({
     callbacksRef.current.onPersistPausedChange?.(isWorkingFilePersistPaused());
   };
 
-  const adoptDiskQuietly = async (snap: { text: string; lastModified: number }) => {
-    suspendAutoPersistRef.current = true;
-    try {
-      if (snap.text.trim()) applyBoardJsonToStore(snap.text);
-      markWorkingFileSynced(snap.text, snap.lastModified);
-      lastPersistKeyRef.current = boardPersistKeyFromStoreState();
-    } finally {
-      suspendAutoPersistRef.current = false;
-    }
-    syncDirty();
-  };
-
-  /**
-   * Default safe conflict resolution without asking:
-   * keep editor, download disk copy, pause autosave.
-   */
-  const resolveExternalConflictSafely = async (diskJson: string) => {
-    if (diskJson.trim()) downloadWorkingFileSafetyCopy(diskJson, "disk");
-    setWorkingFilePersistPaused(true, "external_conflict");
-    syncPaused();
-    conflictActiveRef.current = false;
-    setConflictOpen(false);
-    window.alert(
-      "Die Arbeitsdatei wurde außerhalb dieses Tabs geändert.\n\nDein Editor-Stand bleibt erhalten. Eine Kopie des Dateistands wurde heruntergeladen.\n\nWeiter: „Speichern unter…“ oder Datei neu öffnen.",
-    );
-  };
-
   const handleConflictChoice = useCallback(
     async (choice: FileConflictChoice) => {
       if (conflictBusy) return;
@@ -207,6 +184,7 @@ export function WorkingFileSync({
     mountedRef.current = true;
     let storeUnsub: (() => void) | undefined;
     let roleUnsub: (() => void) | undefined;
+    let pollId: number | null = null;
     const externalListeners: Array<{ target: EventTarget; type: string; listener: () => void }> =
       [];
 
@@ -214,6 +192,7 @@ export function WorkingFileSync({
       if (
         !isWorkingFileAttached() ||
         isWorkingFilePersistPaused() ||
+        isWorkingFileSwitchInProgress() ||
         isCollabMode() ||
         !isWorkingFileWriterLeader() ||
         saveInFlightRef.current ||
@@ -243,7 +222,29 @@ export function WorkingFileSync({
           result.reason === "empty_over_nonempty" ||
           result.reason === "unknown_disk_baseline"
         ) {
-          await resolveExternalConflictSafely(result.diskJson ?? "");
+          // Disk moved under us — adopt external stand; keep editor copy if dirty.
+          const handle = getWorkingFileHandle();
+          const snap = handle
+            ? await readWorkingFileSnapshot(handle)
+            : result.diskJson != null
+              ? { text: result.diskJson, lastModified: Date.now() }
+              : null;
+          if (snap) {
+            if (isWorkingFileDirty()) {
+              const editorJson = boardJsonFromStoreState();
+              if (editorJson.trim() && !boardStatesEquivalent(editorJson, snap.text)) {
+                downloadWorkingFileSafetyCopy(editorJson, "editor");
+              }
+            }
+            suspendAutoPersistRef.current = true;
+            try {
+              if (snap.text.trim()) applyBoardJsonToStore(snap.text);
+              markWorkingFileSynced(snap.text, snap.lastModified);
+              lastPersistKeyRef.current = boardPersistKeyFromStoreState();
+            } finally {
+              suspendAutoPersistRef.current = false;
+            }
+          }
           syncDirty();
           return false;
         }
@@ -259,6 +260,7 @@ export function WorkingFileSync({
       if (
         !isWorkingFileAttached() ||
         isWorkingFilePersistPaused() ||
+        isWorkingFileSwitchInProgress() ||
         isCollabMode() ||
         !isWorkingFileWriterLeader() ||
         conflictActiveRef.current ||
@@ -292,6 +294,7 @@ export function WorkingFileSync({
       if (isCollabMode() || isWorkingFileToStoreBlocked()) return;
       if (
         isWorkingFilePersistPaused() ||
+        isWorkingFileSwitchInProgress() ||
         conflictActiveRef.current ||
         suspendAutoPersistRef.current ||
         saveInFlightRef.current ||
@@ -303,9 +306,13 @@ export function WorkingFileSync({
       const handle = getWorkingFileHandle();
       if (!handle) return;
 
+      // Fast path: unchanged mtime → skip full read.
+      const mtime = await peekWorkingFileLastModified(handle);
+      if (mtime == null || !mountedRef.current) return;
+      if (isKnownFileRevision(mtime)) return;
+
       const snap = await readWorkingFileSnapshot(handle);
       if (!snap || !mountedRef.current) return;
-      if (isKnownFileRevision(snap.lastModified)) return;
 
       const localJson = boardJsonFromStoreState();
       if (boardStatesEquivalent(snap.text, localJson)) {
@@ -314,14 +321,21 @@ export function WorkingFileSync({
         return;
       }
 
-      if (!isWorkingFileDirty()) {
-        await adoptDiskQuietly(snap);
-        return;
+      // External tool (or other tab) wrote the Arbeitsdatei → editor follows disk.
+      if (isWorkingFileDirty()) {
+        if (localJson.trim() && !boardStatesEquivalent(localJson, snap.text)) {
+          downloadWorkingFileSafetyCopy(localJson, "editor");
+        }
       }
-
-      // Dirty local + changed disk — keep editor, safety-download, pause (no force write).
-      if (!isWorkingFileWriterLeader()) return;
-      await resolveExternalConflictSafely(snap.text);
+      suspendAutoPersistRef.current = true;
+      try {
+        if (snap.text.trim()) applyBoardJsonToStore(snap.text);
+        markWorkingFileSynced(snap.text, snap.lastModified);
+        lastPersistKeyRef.current = boardPersistKeyFromStoreState();
+      } finally {
+        suspendAutoPersistRef.current = false;
+      }
+      syncDirty();
     };
 
     const hydrateFromWorkingFileOnce = async (): Promise<void> => {
@@ -427,6 +441,12 @@ export function WorkingFileSync({
         if (document.visibilityState === "visible") runExternalCheck();
       });
 
+      // Reliable refresh while the tab stays open and another tool saves the file.
+      pollId = window.setInterval(() => {
+        if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+        void applyExternalFileIfNeeded();
+      }, EXTERNAL_WORKING_FILE_POLL_MS);
+
       const onPageHide = () => {
         if (conflictActiveRef.current || isWorkingFilePersistPaused() || isCollabMode()) return;
         void flushPersist();
@@ -440,6 +460,7 @@ export function WorkingFileSync({
         syncFileLabel();
         syncDirty();
         syncPaused();
+        void applyExternalFileIfNeeded();
       };
       addExternalListener(window, WORKING_FILE_ATTACHED_EVENT, onWorkingFileAttached);
       addExternalListener(window, WORKING_FILE_DETACHED_EVENT, onWorkingFileAttached);
@@ -452,6 +473,7 @@ export function WorkingFileSync({
 
     return () => {
       mountedRef.current = false;
+      if (pollId != null) window.clearInterval(pollId);
       storeUnsub?.();
       roleUnsub?.();
       stopWorkingFileWriter();

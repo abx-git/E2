@@ -11,6 +11,8 @@ import {
   planFileReconcile,
 } from "@/lib/file-board-reconcile";
 import { boardImportPayloadFromAnyExportText } from "@/lib/board-import-text";
+import { createDefaultBoardDocument } from "@/lib/storm-json";
+import { useStormBoardStore } from "@/store/storm-board-store";
 import {
   bindTabWorkingFile,
   createWorkingFileId,
@@ -205,6 +207,8 @@ export function isWorkingFileAttached(): boolean {
 
 /** When true, WorkingFileSync must not auto-write (foreign load / collab). */
 let workingFilePersistPaused = false;
+/** True while switching Arbeitsdatei (attach → hydrate). Blocks autosave into the new handle. */
+let workingFileSwitchInProgress = false;
 
 export function setWorkingFilePersistPaused(paused: boolean, reason?: string | null): void {
   workingFilePersistPaused = paused;
@@ -217,6 +221,29 @@ export function isWorkingFilePersistPaused(): boolean {
 
 export function getWorkingFilePersistPauseReason(): string | null {
   return workingFilePersistPauseReason;
+}
+
+export function isWorkingFileSwitchInProgress(): boolean {
+  return workingFileSwitchInProgress;
+}
+
+/** Call before attaching a new handle; blocks autosave until hydrate finishes. */
+export function beginWorkingFileSwitch(): void {
+  workingFileSwitchInProgress = true;
+  setWorkingFilePersistPaused(true, "file_switch");
+  clearWorkingFileSyncState();
+  notifyWorkingFilePersistPaused();
+}
+
+/** Call after hydrate / Save As write completes (or on failure after detach). */
+export function endWorkingFileSwitch(opts?: { keepPaused?: boolean; pauseReason?: string }): void {
+  workingFileSwitchInProgress = false;
+  if (opts?.keepPaused) {
+    setWorkingFilePersistPaused(true, opts.pauseReason ?? "paused");
+  } else if (workingFilePersistPauseReason === "file_switch") {
+    setWorkingFilePersistPaused(false);
+  }
+  notifyWorkingFilePersistPaused();
 }
 
 export function markWorkingFileSynced(json: string, fileLastModified: number): void {
@@ -772,6 +799,22 @@ export async function readWorkingFileSnapshot(
   }
 }
 
+/** Cheap mtime peek for external-change polling (no full text read). */
+export async function peekWorkingFileLastModified(
+  handle: FileSystemFileHandle = memoryHandle!,
+): Promise<number | null> {
+  if (!handle) return null;
+  try {
+    const file = await handle.getFile();
+    return file.lastModified;
+  } catch {
+    return null;
+  }
+}
+
+/** How often to re-check the Arbeitsdatei for external tool edits (visible tab). */
+export const EXTERNAL_WORKING_FILE_POLL_MS = 1000;
+
 export async function writeWorkingFileJson(
   json: string,
   handle: FileSystemFileHandle = memoryHandle!,
@@ -856,6 +899,34 @@ function hydrateFromFileText(fileJson: string, fileLastModified: number): Hydrat
   return { status: "conflict", fileText: fileJson, fileLastModified };
 }
 
+/**
+ * Explicit „Datei öffnen“: disk always wins. Never push the previous editor into the new file.
+ */
+function hydrateOpenedFile(fileJson: string, fileLastModified: number): HydrateWorkingFileResult {
+  const trimmed = fileJson.trim();
+  if (!trimmed) {
+    // Empty file → empty editor; do not keep previous board as "synced" (that would autosave into it).
+    const empty = createDefaultBoardDocument({ title: "" });
+    useStormBoardStore.getState().replaceBoardFromImport(empty);
+    markWorkingFileSynced(fileJson, fileLastModified);
+    return { status: "empty" };
+  }
+
+  if (!boardImportPayloadFromAnyExportText(trimmed)) {
+    return {
+      status: "conflict",
+      fileText: fileJson,
+      fileLastModified,
+    };
+  }
+
+  if (!loadBoardFromJsonText(trimmed)) {
+    return { status: "conflict", fileText: fileJson, fileLastModified };
+  }
+  markWorkingFileSynced(fileJson, fileLastModified);
+  return { status: "loaded" };
+}
+
 async function rememberMobileCopy(json: string, fileName: string, sourceLastModified: number): Promise<void> {
   const trimmedName = fileName.trim() || STANDARD_WORKING_FILENAME;
   const wf = activeWorkingFileId || createWorkingFileId();
@@ -926,6 +997,10 @@ async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
   const fileName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
   const wf = await resolveWfForHandle(handle);
 
+  // Block autosave until hydrate / explicit write finishes — prevents writing the
+  // previous board into the newly attached file.
+  beginWorkingFileSwitch();
+
   memoryHandle = handle;
   // File-System-Handle ist die Quelle der Wahrheit — Mobile-Copy-Name nur als Fallback.
   mobileWorkingFileName = null;
@@ -933,9 +1008,6 @@ async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
   rememberLastFileNameInStorage(fileName);
   // Always refresh URL/session — even when basename is unchanged (wf still changes).
   syncTabContextAndWriter(fileName, wf);
-  // Avoid pushing a previous/empty board into the newly attached file before hydrate.
-  clearWorkingFileSyncState();
-  setWorkingFilePersistPaused(false);
   try {
     await idbPutHandle(handle, fileName, wf);
   } catch {
@@ -998,18 +1070,40 @@ export async function attachWorkingFileCreate(
   }
 }
 
-export async function hydrateStoreFromWorkingFile(handle: FileSystemFileHandle): Promise<HydrateWorkingFileResult> {
-  const snap = await readWorkingFileSnapshot(handle);
-  if (!snap) return { status: "empty" };
+export async function hydrateStoreFromWorkingFile(
+  handle: FileSystemFileHandle,
+  options?: { intent?: "open" | "reconcile" },
+): Promise<HydrateWorkingFileResult> {
+  const intent = options?.intent ?? "open";
+  try {
+    const snap = await readWorkingFileSnapshot(handle);
+    if (!snap) {
+      endWorkingFileSwitch();
+      return { status: "empty" };
+    }
 
-  const result = hydrateFromFileText(snap.text, snap.lastModified);
-  if (result.status !== "conflict") {
+    const result =
+      intent === "open"
+        ? hydrateOpenedFile(snap.text, snap.lastModified)
+        : hydrateFromFileText(snap.text, snap.lastModified);
+
+    if (result.status === "conflict") {
+      // Keep switch gate up — caller must not autosave previous board into this file.
+      // User resolves via dialog; load_file ends switch, keep_local should Speichern unter.
+      return result;
+    }
+
     markWorkingFileSessionHydrated();
     const syncedJson = getLastSyncedBoardJson() ?? snap.text;
     const fileName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
     await rememberMobileCopy(syncedJson, fileName, snap.lastModified);
+    endWorkingFileSwitch();
+    return result;
+  } catch (e) {
+    console.error("Arbeitsdatei hydrate:", e);
+    endWorkingFileSwitch({ keepPaused: true, pauseReason: "hydrate_error" });
+    return { status: "empty" };
   }
-  return result;
 }
 
 /**
@@ -1109,18 +1203,28 @@ export async function resolveWorkingFileImportConflict(
     if (fileText.trim()) loadBoardFromJsonText(fileText);
     markWorkingFileSynced(fileText, fileLastModified);
     await rememberMobileCopy(fileText, fileName, fileLastModified);
-  } else {
-    const localJson = boardJsonFromStoreState();
-    markWorkingFileSynced(localJson, fileLastModified);
-    await rememberMobileCopy(localJson, fileName, fileLastModified);
+    markWorkingFileSessionHydrated();
+    endWorkingFileSwitch();
+    return;
   }
+
+  // Keep editor — never write the previous board into the file we just opened.
+  // Persist stays paused until Speichern unter… / reopen.
   markWorkingFileSessionHydrated();
+  endWorkingFileSwitch({ keepPaused: true, pauseReason: "open_keep_local" });
 }
 
 export async function persistWorkingFileJson(
   json: string,
   options?: { skipCas?: boolean },
 ): Promise<WriteWorkingFileResult> {
+  if (workingFileSwitchInProgress && !options?.skipCas) {
+    return {
+      ok: false,
+      reason: "persist_paused",
+      message: "Dateiwechsel läuft — Speichern in die neue Datei ist blockiert, bis sie geladen ist.",
+    };
+  }
   if (workingFilePersistPaused && !options?.skipCas) {
     return {
       ok: false,
@@ -1203,9 +1307,11 @@ export async function createAndAttachWorkingFile(
   const result = await writeWorkingFileJson(initialJson, handle, { skipCas: true });
   if (!result.ok) {
     await detachWorkingFile();
+    endWorkingFileSwitch();
     return null;
   }
   setWorkingFilePersistPaused(false);
+  endWorkingFileSwitch();
   markWorkingFileSessionHydrated();
   // After write: sync state is clean — refresh listeners (dirty/label).
   notifyWorkingFileAttached();
@@ -1353,6 +1459,7 @@ export async function detachWorkingFile(): Promise<void> {
   memoryHandle = null;
   mobileWorkingFileName = null;
   activeWorkingFileId = null;
+  workingFileSwitchInProgress = false;
   clearWorkingFileSyncState();
   clearWorkingFileSessionHydrated();
   setWorkingFilePersistPaused(false);
