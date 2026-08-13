@@ -8,7 +8,7 @@ import { NOTE_COLORS, type NoteColorStyle } from "@/lib/note-colors";
 
 export interface CustomCardType {
   id: string;
-  /** Stereotype / type name without « » — e.g. "Interface" */
+  /** Type / stereotype name shown on cards (plain text; color carries the type). */
   name: string;
   fill: string;
   stroke: string;
@@ -51,9 +51,9 @@ export function createDefaultCustomCardTypes(): CustomCardType[] {
   ];
 }
 
+/** Display label for a custom type — plain name; card color is the visual cue. */
 export function stereotypeLabel(name: string): string {
-  const trimmed = name.trim() || "Typ";
-  return `«${trimmed}»`;
+  return name.trim() || "Typ";
 }
 
 export function normalizeCustomCardType(raw: unknown): CustomCardType | null {

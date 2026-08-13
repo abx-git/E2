@@ -222,7 +222,7 @@ In der App-Leiste: Methoden-Dropdown (**Event Storming**, DDD, …, **Freiform**
 
 ### Freiform
 
-Eigene Kartentypen (UML-ähnlich als «Stereotyp») in der linken Palette anlegen, umbenennen und einfärben. Typen gelten pro Sicht und erscheinen auf den Karten als Badge. Starter: Concept, Interface, Class — alles editierbar. Annotationen bleiben verfügbar.
+Eigene Kartentypen in der linken Palette anlegen, umbenennen und einfärben. Typen gelten pro Sicht und erscheinen farbig auf den Karten. Starter: Concept, Interface, Class — alles editierbar. Annotationen bleiben verfügbar.
 
 ### Event Storming
 

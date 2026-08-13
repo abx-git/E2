@@ -290,7 +290,7 @@ function MobilePaletteSheet({
                 }}
               >
                 <span className="text-[0.55rem] font-bold uppercase tracking-wide opacity-80">
-                  «{t.name}»
+                  {t.name}
                 </span>
                 <span>{t.name}</span>
               </button>

@@ -132,7 +132,7 @@ function CustomCardTypeEditDialog({
         </div>
 
         <label className="mb-3 flex flex-col gap-1 text-xs text-[var(--text)]">
-          <span className="text-[var(--muted)]">Name / Stereotyp</span>
+          <span className="text-[var(--muted)]">Name</span>
           <input
             ref={inputRef}
             className="dock-field"
@@ -540,8 +540,8 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
             </button>
             {customCardTypes.length === 0 && (
               <p className="px-0.5 text-[0.65rem] leading-snug text-[var(--muted)]">
-                Lege Stereotypen an (z.&nbsp;B. Interface, Class) — sie erscheinen hier und auf den
-                Karten als «Name».
+                Lege Typen an (z.&nbsp;B. Interface, Class) — sie erscheinen hier und farbig auf den
+                Karten.
               </p>
             )}
           </>

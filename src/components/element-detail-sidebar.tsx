@@ -407,7 +407,7 @@ export function ElementDetailSidebar({
               return (
                 <div>
                   <p className="mb-1.5 text-[0.65rem] font-medium text-[var(--muted)]">
-                    Typfarbe (alle «{def.name}»)
+                    Typfarbe (alle {def.name})
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {NOTE_COLOR_IDS.map((id) => {

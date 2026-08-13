@@ -9,8 +9,8 @@ import { resolveElementStyle, styleForCustomCardType } from "@/lib/element-style
 
 describe("custom-card-types", () => {
   it("builds stereotype labels", () => {
-    expect(stereotypeLabel("Interface")).toBe("«Interface»");
-    expect(stereotypeLabel("  ")).toBe("«Typ»");
+    expect(stereotypeLabel("Interface")).toBe("Interface");
+    expect(stereotypeLabel("  ")).toBe("Typ");
   });
 
   it("normalizes types and drops invalid entries", () => {
@@ -39,7 +39,7 @@ describe("custom-card-types", () => {
       types,
     );
     expect(style.fill).toBe(iface.fill);
-    expect(style.shortLabel).toBe("«Interface»");
+    expect(style.shortLabel).toBe("Interface");
     expect(styleForCustomCardType(iface).label).toBe("Interface");
   });
 });

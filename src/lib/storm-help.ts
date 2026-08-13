@@ -541,13 +541,13 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
   },
   customCard: {
     title: "Freiform-Kartentyp",
-    subtitle: "Stereotyp «Name» — eigene Typen im Freiform-Modus",
+    subtitle: "Eigene Typen im Freiform-Modus",
     paragraphs: [
-      "Karten mit selbst definierten Typen, analog zu UML-Stereotypen.",
+      "Karten mit selbst definierten Typen — die Farbe kennzeichnet den Typ.",
       "Typen legst du links in der Elementleiste an; Farbe und Name gelten für alle Karten dieses Typs.",
     ],
     bullets: [
-      "Beispiel: «Interface», «Class», «Entity»",
+      "Beispiel: Interface, Class, Entity",
       "Typ bearbeiten: Stift-Icon neben dem Typ in der Palette",
       "Annotationen (Notiz, Hotspot, …) bleiben zusätzlich verfügbar",
     ],
