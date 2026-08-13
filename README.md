@@ -304,9 +304,10 @@ Im Facilitator-Modus:
 - Alternativen: Datei öffnen / JSON einfügen (bei Konflikt: Dialog)  
 - **Import als neue Seite:** Daten → *Als neue Seite importieren* — Sichten aus einer `.storm.json` als neue Tabs; **Farben / Titel / Glossary / Workshop-Modus** bleiben aus der geöffneten Datei  
 - **Board-Link teilen:** Daten → *Board-Link teilen…* — Remote-URL zu einer öffentlichen `.storm.json` prüfen (Schema); bei Erfolg Share-Link mit `?board=…`. Öffnen des Links fragt nach Bestätigung und lädt danach lokal weiter (CORS muss erlaubt sein)  
+- **Schutz vor Überschreiben:** Autosave schreibt nie einen leeren/fremden Stand über eine nicht-leere Arbeitsdatei. Backup / Remote und Kollaboration pausieren das Speichern in die verknüpfte Datei — Weiter mit „Speichern unter…“. Bei externer Dateiänderung: Editor behalten, Datei-Kopie laden, kein Force-Overwrite.  
 - Auto-Speichern, Konfliktbehandlung bei externer Änderung  
-- **Backup:** Daten → mit Historie (zeitgestempelte Kopien) oder ohne Historie (immer dieselbe Backup-Datei überschreiben); manuell oder alle 5–30 Min.  
-- Während **Kollaboration** spiegelt die Arbeitsdatei den Editor (Autosave aktiv); beim Verlassen: Board behalten oder Stand vor dem Raum wiederherstellen  
+- **Backup:** Daten → mit Historie (zeitgestempelte Kopien) oder ohne Historie (immer dieselbe Backup-Datei überschreiben); manuell oder alle 5–30 Min. Backup öffnen überschreibt die Arbeitsdatei nicht.  
+- Während **Kollaboration** wird die Arbeitsdatei **nicht** gespiegelt (Autosave pausiert); beim Verlassen: Board behalten oder Stand vor dem Raum wiederherstellen (ohne stilles Disk-Overwrite)  
 - **Workshop**-Schalter: in Collab den aktiven Tab für alle synchronisieren (sonst lokal wie Viewport)  
 - PWA / offline-fähig (Serwist)
 

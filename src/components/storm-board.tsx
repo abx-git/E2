@@ -58,7 +58,7 @@ import {
   getPreCollabStash,
   hasPreCollabStash,
 } from "@/lib/collab/pre-collab-stash";
-import { boardJsonFromStoreState, applyBoardJsonToStore } from "@/lib/file-board-reconcile";
+import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
 import {
   fetchAndValidateRemoteBoard,
   readBoardUrlFromSearch,
@@ -110,7 +110,8 @@ import {
   type HelpDialogModel,
 } from "@/lib/storm-help";
 import {
-  forceApplyBoardJson,
+  loadForeignBoardIntoEditor,
+  downloadWorkingFileSafetyCopy,
   attachWorkingFileFromBrowserFile,
   attachWorkingFileFromPastedText,
   attachWorkingFileOpen,
@@ -121,6 +122,7 @@ import {
   hydrateStoreFromWorkingFile,
   isWorkingFileAttached,
   isWorkingFileDirty,
+  isWorkingFilePersistPaused,
   isWorkingFileSupported,
   isWorkingFileUiAvailable,
   markWorkingFileSessionHydrated,
@@ -164,6 +166,8 @@ export function StormBoard() {
   const [collabOpen, setCollabOpen] = useState(false);
   const [pendingRoomCode, setPendingRoomCode] = useState<string | null>(null);
   const [urlJoinConfirm, setUrlJoinConfirm] = useState(false);
+  const [persistPaused, setPersistPaused] = useState(false);
+  const [multiTabUnsafe, setMultiTabUnsafe] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [leaveBusy, setLeaveBusy] = useState(false);
   const [bcMobileSheetOpen, setBcMobileSheetOpen] = useState(false);
@@ -252,7 +256,10 @@ export function StormBoard() {
         return;
       }
       backupBeforeSuspiciousSwitch("file");
-      applyBoardJsonToStore(outcome.rawText);
+      if (!loadForeignBoardIntoEditor(outcome.rawText, { reason: "remote_board" })) {
+        setRemoteBoardError("Board konnte nicht geladen werden.");
+        return;
+      }
       setRemoteBoardUrl(null);
       stripBoardUrlParamFromLocation();
     } finally {
@@ -520,6 +527,7 @@ export function StormBoard() {
       if (handle) {
         syncWorkingFileUrlContext();
         setWorkingFileDirty(false);
+        setPersistPaused(false);
         setSetupOpen(false);
         setStorageOpen(false);
       }
@@ -529,7 +537,7 @@ export function StormBoard() {
   };
 
   const handleSaveWorkingFile = async () => {
-    if (!isWorkingFileAttached()) {
+    if (!isWorkingFileAttached() || isWorkingFilePersistPaused()) {
       await handleSaveWorkingFileAs();
       return;
     }
@@ -537,17 +545,25 @@ export function StormBoard() {
     try {
       const result = await persistWorkingFileJson(boardJsonFromStoreState());
       if (!result.ok) {
+        if (result.diskJson?.trim()) {
+          downloadWorkingFileSafetyCopy(result.diskJson, "disk");
+        }
         window.alert(
-          result.reason === "conflict"
-            ? "Die Datei wurde zwischenzeitlich geändert. Bitte „Speichern unter…“ nutzen oder die Datei neu öffnen."
-            : result.reason === "not_writer"
-              ? "Ein anderer Tab speichert diese Datei gerade. Bitte den sichtbaren Tab nutzen."
-              : result.message ?? "Speichern fehlgeschlagen.",
+          result.reason === "conflict" || result.reason === "content_cas_mismatch"
+            ? "Die Datei wurde zwischenzeitlich geändert und wurde nicht überschrieben. Eine Kopie des Dateistands wurde heruntergeladen — bitte „Speichern unter…“ nutzen oder die Datei neu öffnen."
+            : result.reason === "empty_over_nonempty"
+              ? "Leerer Stand wird nicht über die Arbeitsdatei geschrieben."
+              : result.reason === "persist_paused"
+                ? "Speichern ist pausiert — bitte „Speichern unter…“ nutzen."
+                : result.reason === "not_writer"
+                  ? "Ein anderer Tab speichert diese Datei gerade. Bitte den sichtbaren Tab nutzen."
+                  : result.message ?? "Speichern fehlgeschlagen — Datei nicht überschrieben.",
         );
         return;
       }
       syncWorkingFileUrlContext();
       setWorkingFileDirty(false);
+      setPersistPaused(false);
     } finally {
       setBusy(false);
     }
@@ -716,11 +732,12 @@ export function StormBoard() {
         return;
       }
       backupBeforeSuspiciousSwitch("file");
-      if (!forceApplyBoardJson(record.json)) {
+      if (!loadForeignBoardIntoEditor(record.json, { reason: "backup" })) {
         window.alert("Backup konnte nicht geladen werden.");
         return;
       }
       setWorkingFileName(getWorkingFileLabel());
+      setPersistPaused(true);
       setStorageOpen(false);
     } finally {
       setBusy(false);
@@ -791,7 +808,7 @@ export function StormBoard() {
     try {
       if (choice === "restore_pre_collab") {
         const ok = window.confirm(
-          "Stand vor dem Raum wiederherstellen?\n\nDer aktuelle Board-Inhalt (Raum-Stand) wird im Editor und in der Arbeitsdatei durch die ältere lokale Kopie ersetzt.\n\nWähle Abbrechen und danach „Raum verlassen“, wenn du den Remote-Stand behalten willst.",
+          "Stand vor dem Raum wiederherstellen?\n\nDer aktuelle Board-Inhalt (Raum-Stand) wird im Editor durch die ältere lokale Kopie ersetzt. Die Arbeitsdatei wird dabei nicht überschrieben.\n\nWähle Abbrechen und danach „Raum verlassen“, wenn du den Remote-Stand behalten willst.",
         );
         if (!ok) return;
         backupBeforeSuspiciousSwitch("room");
@@ -803,13 +820,13 @@ export function StormBoard() {
       if (choice === "restore_pre_collab") {
         const stash = getPreCollabStash();
         if (stash?.json.trim()) {
-          if (!forceApplyBoardJson(stash.json)) {
+          if (!loadForeignBoardIntoEditor(stash.json, { reason: "pre_collab_restore" })) {
             window.alert("Vorheriger Stand konnte nicht wiederhergestellt werden.");
-          } else if (isWorkingFileAttached()) {
-            const result = await persistWorkingFileJson(boardJsonFromStoreState());
-            if (!result.ok) {
-              window.alert("Wiederhergestellt, aber Speichern in die Arbeitsdatei fehlgeschlagen.");
-            }
+          } else {
+            setPersistPaused(true);
+            window.alert(
+              "Stand vor dem Raum wiederhergestellt. Die Arbeitsdatei wurde nicht überschrieben — nutze „Speichern unter…“, wenn du speichern willst.",
+            );
           }
         }
       }
@@ -895,6 +912,8 @@ export function StormBoard() {
         onDirtyChange={setWorkingFileDirty}
         onSavingChange={setWorkingFileSaving}
         onNeedsFileSetup={() => setSetupOpen(true)}
+        onPersistPausedChange={setPersistPaused}
+        onMultiTabUnsafeChange={setMultiTabUnsafe}
       />
       <BoardBackupSync
         intervalMinutes={backupIntervalMinutes}
@@ -941,11 +960,21 @@ export function StormBoard() {
 
       <footer className="flex shrink-0 items-center justify-between px-4 pb-2 text-[0.72rem] text-[var(--muted)]">
         <span>
-          {workingFileName
-            ? `Arbeitsdatei: ${workingFileName}${workingFileDirty ? " · ungespeichert" : workingFileSaving ? " · speichert …" : " · gespeichert"}`
-            : isWorkingFileAttached()
-              ? "Arbeitsdatei verknüpft"
-              : (
+          {multiTabUnsafe ? (
+            <span className="mr-2 text-[var(--accent-2)]">
+              Mehrere Tabs ohne Lock — nur der sichtbare Tab speichert.{" "}
+            </span>
+          ) : null}
+          {persistPaused ? (
+            <span className="text-[var(--accent-2)]">
+              Nicht in Arbeitsdatei speichern — „Speichern unter…“
+              {workingFileName ? ` · ${workingFileName}` : ""}
+            </span>
+          ) : workingFileName ? (
+            `Arbeitsdatei: ${workingFileName}${workingFileDirty ? " · ungespeichert" : workingFileSaving ? " · speichert …" : " · gespeichert"}`
+          ) : isWorkingFileAttached() ? (
+            "Arbeitsdatei verknüpft"
+          ) : (
                 <>
                   Keine Arbeitsdatei —{" "}
                   {isWorkingFileUiAvailable() ? (
@@ -993,6 +1022,7 @@ export function StormBoard() {
         workingFileAttached={isWorkingFileAttached()}
         workingFileDirty={workingFileDirty}
         workingFileSaving={workingFileSaving}
+        workingFilePersistPaused={persistPaused}
         mustSaveBeforeOpen={
           workingFileDirty || (!isWorkingFileAttached() && boardHasLocalContent())
         }
@@ -1067,6 +1097,13 @@ export function StormBoard() {
         onClose={() => {
           setCollabOpen(false);
           setPendingRoomCode(null);
+          if (typeof window !== "undefined") {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has("room") && !useCollabStore.getState().active) {
+              url.searchParams.delete("room");
+              window.history.replaceState({}, "", url.toString());
+            }
+          }
         }}
         initialJoinCode={pendingRoomCode}
         onExportJson={downloadJson}
@@ -1082,7 +1119,15 @@ export function StormBoard() {
         onExportJson={downloadJson}
         onChoose={(choice) => {
           setUrlJoinConfirm(false);
-          if (choice === "cancel" || !pendingRoomCode) return;
+          if (choice === "cancel" || !pendingRoomCode) {
+            setPendingRoomCode(null);
+            if (typeof window !== "undefined") {
+              const url = new URL(window.location.href);
+              url.searchParams.delete("room");
+              window.history.replaceState({}, "", url.toString());
+            }
+            return;
+          }
           const name = useCollabStore.getState().displayName || "Gast";
           const code = pendingRoomCode;
           void beginCollabEnter(choice, async () => {

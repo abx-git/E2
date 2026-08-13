@@ -54,7 +54,7 @@ describe("pre-collab-stash", () => {
 });
 
 describe("working-file persist pause", () => {
-  it("is not paused by default (collab mirrors locally)", () => {
+  it("is not paused by default", () => {
     expect(isWorkingFilePersistPaused()).toBe(false);
   });
 });

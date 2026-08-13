@@ -37,11 +37,11 @@ import {
 } from "@/lib/collab/tab-writer";
 import {
   isWorkingFileAttached,
-  persistWorkingFileJson,
+  pauseWorkingFilePersistForCollab,
+  setWorkingFilePersistPaused,
   setWorkingFileToStoreBlocked,
   suppressWorkingFileExternalPoll,
 } from "@/lib/working-file";
-import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
 import {
   boardExportTextsEquivalent,
   boardImportPayloadFromExportText,
@@ -318,10 +318,7 @@ function onCollabPageHide(): void {
   if (isTabWriterLeader()) {
     void flushCollabSnapshotNow();
   }
-  // Working-file mirror: only if URL context + CAS allow — never force overwrite.
-  if (isWorkingFileAttached()) {
-    void persistWorkingFileJson(boardJsonFromStoreState());
-  }
+  // Never mirror room → Arbeitsdatei (prevents wiping the local file).
 }
 
 function bindPageHideFlush(): void {
@@ -718,11 +715,13 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
     // Block disk→editor for the whole join + session (prevents old file overwriting the room).
     setWorkingFileToStoreBlocked(true);
+    pauseWorkingFilePersistForCollab();
     suppressWorkingFileExternalPoll(15_000);
     set({ connecting: true, error: null, status: "connecting" });
     teardownSession();
     // teardown clears the block — re-assert for the new session.
     setWorkingFileToStoreBlocked(true);
+    pauseWorkingFilePersistForCollab();
     suppressWorkingFileExternalPoll(15_000);
 
     const hostToken =
@@ -733,6 +732,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     const result = await joinCollabRoom(code, hostToken);
     if ("error" in result) {
       setWorkingFileToStoreBlocked(false);
+      setWorkingFilePersistPaused(false);
       set({ connecting: false, status: "error", error: result.error });
       return { ok: false, error: result.error };
     }
@@ -830,13 +830,10 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       syncConflict: null,
     });
 
-    // Mirror room → local backup file. Skip CAS conflicts silently (backup is ours).
+    // Do not write room state into the Arbeitsdatei — pause autosave for the session.
     if (isWorkingFileAttached()) {
+      pauseWorkingFilePersistForCollab();
       suppressWorkingFileExternalPoll(10_000);
-      await persistWorkingFileJson(boardJsonFromStoreState(), {
-        skipCas: true,
-      });
-      suppressWorkingFileExternalPoll(5_000);
     }
 
     syncPeers(set);
@@ -856,6 +853,11 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
   leaveRoom: () => {
     teardownSession();
+    // Keep persist paused after leave if a file is attached — room stand must not
+    // silently overwrite disk. User uses Speichern / Speichern unter… deliberately.
+    if (isWorkingFileAttached()) {
+      setWorkingFilePersistPaused(true, "after_collab");
+    }
     set({
       active: false,
       connecting: false,

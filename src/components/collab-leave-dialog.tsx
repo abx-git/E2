@@ -51,8 +51,9 @@ export function CollabLeaveDialog({
           Raum verlassen
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          Die Live-Verbindung endet. Der aktuelle Board-Stand bleibt im Editor; die Arbeitsdatei
-          wurde während des Raums mitgeschrieben.
+          Die Live-Verbindung endet. Der aktuelle Board-Stand bleibt im Editor. Die Arbeitsdatei
+          wurde während des Raums <strong className="font-semibold text-slate-800">nicht</strong>{" "}
+          überschrieben — speichere bei Bedarf mit „Speichern unter…“.
         </p>
         <div className="mt-5 flex flex-col gap-2">
           <button

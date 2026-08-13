@@ -20,10 +20,16 @@ import {
 } from "@/lib/working-file-tab-context";
 import { evaluateWorkingFileWriteGate, mayAutoRestoreWorkingFileFromStorage } from "@/lib/working-file-safety";
 import {
+  assertSafeWorkingFileWrite,
+  boardContentHash,
+} from "@/lib/working-file-write-fence";
+import {
   ensureWorkingFileWriter,
   isWorkingFileWriterLeader,
   stopWorkingFileWriter,
+  supportsWorkingFileWebLocks,
 } from "@/lib/working-file-writer";
+import { downloadTextFile } from "@/lib/diagram-io";
 
 export const STANDARD_WORKING_FILENAME = "board.storm.json";
 
@@ -102,9 +108,13 @@ interface MobileWorkingCopyRecord {
 }
 
 let lastSyncedBoardJson: string | null = null;
+/** Content hash of lastSyncedBoardJson (stableBoardStateKey); used for content CAS. */
+let lastSyncedContentHash: string | null = null;
 let lastKnownFileModified = 0;
 let suppressExternalPollUntil = 0;
 let sessionHydrated = false;
+/** Why persist is paused (foreign load / collab) — for UI status. */
+let workingFilePersistPauseReason: string | null = null;
 
 export function wasWorkingFileSessionHydrated(): boolean {
   return sessionHydrated;
@@ -146,8 +156,14 @@ export type WriteWorkingFileResult =
         | "conflict"
         | "io_error"
         | "not_writer"
-        | "url_context_mismatch";
+        | "url_context_mismatch"
+        | "persist_paused"
+        | "empty_over_nonempty"
+        | "content_cas_mismatch"
+        | "unknown_disk_baseline";
       message?: string;
+      /** Disk snapshot when write was refused due to external change (caller may safety-download). */
+      diskJson?: string;
     };
 
 export function isWorkingFileSupported(): boolean {
@@ -187,20 +203,30 @@ export function isWorkingFileAttached(): boolean {
   return memoryHandle !== null || mobileWorkingFileName !== null;
 }
 
-/** When true, WorkingFileSync must not auto-write (reserved; unused in normal collab). */
+/** When true, WorkingFileSync must not auto-write (foreign load / collab). */
 let workingFilePersistPaused = false;
 
-export function setWorkingFilePersistPaused(paused: boolean): void {
+export function setWorkingFilePersistPaused(paused: boolean, reason?: string | null): void {
   workingFilePersistPaused = paused;
+  workingFilePersistPauseReason = paused ? reason?.trim() || "paused" : null;
 }
 
 export function isWorkingFilePersistPaused(): boolean {
   return workingFilePersistPaused;
 }
 
+export function getWorkingFilePersistPauseReason(): string | null {
+  return workingFilePersistPauseReason;
+}
+
 export function markWorkingFileSynced(json: string, fileLastModified: number): void {
   lastSyncedBoardJson = json;
+  lastSyncedContentHash = boardContentHash(json);
   lastKnownFileModified = fileLastModified;
+}
+
+export function getLastSyncedContentHash(): string | null {
+  return lastSyncedContentHash;
 }
 
 export function noteOwnWriteToWorkingFile(json: string, fileLastModified: number): void {
@@ -211,16 +237,66 @@ export function noteOwnWriteToWorkingFile(json: string, fileLastModified: number
 
 export function clearWorkingFileSyncState(): void {
   lastSyncedBoardJson = null;
+  lastSyncedContentHash = null;
   lastKnownFileModified = 0;
   suppressExternalPollUntil = 0;
 }
 
 export function isWorkingFileDirty(currentJson?: string): boolean {
   if (!isWorkingFileAttached()) return false;
+  if (workingFilePersistPaused) return false;
   const json = currentJson ?? boardJsonFromStoreState();
   const synced = getLastSyncedBoardJson();
   if (!synced) return json.trim().length > 0;
   return !boardStatesEquivalent(json, synced);
+}
+
+/**
+ * Load board JSON that is not the attached Arbeitsdatei (backup, remote, paste preview).
+ * Pauses autosave so the linked file is never overwritten; use Speichern unter… to persist.
+ */
+export function loadForeignBoardIntoEditor(
+  json: string,
+  opts?: { reason?: string },
+): boolean {
+  if (!json.trim()) return false;
+  if (!loadBoardFromJsonText(json)) return false;
+  setWorkingFilePersistPaused(true, opts?.reason ?? "foreign_load");
+  // Keep attachment for identity/label, but do not mark dirty vs disk.
+  clearWorkingFileSyncState();
+  markWorkingFileSessionHydrated();
+  notifyWorkingFilePersistPaused();
+  return true;
+}
+
+/** Download a safety copy of disk JSON when a write/conflict is refused. */
+export function downloadWorkingFileSafetyCopy(
+  json: string,
+  kind: "disk" | "editor" = "disk",
+): void {
+  const base =
+    getWorkingFileLabel()?.replace(/\.storm\.json$/i, "") ||
+    getRememberedWorkingFileName()?.replace(/\.storm\.json$/i, "") ||
+    "board";
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const suffix = kind === "disk" ? "disk-copy" : "editor-copy";
+  downloadTextFile(
+    `${base}-${suffix}-${stamp}.storm.json`,
+    json,
+    "application/json",
+  );
+}
+
+export const WORKING_FILE_PERSIST_PAUSED_EVENT = "e2-working-file-persist-paused";
+
+export function notifyWorkingFilePersistPaused(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(WORKING_FILE_PERSIST_PAUSED_EVENT));
+}
+
+/** True when Web Locks are missing — only the focused tab should write. */
+export function isWorkingFileMultiTabUnsafe(): boolean {
+  return typeof window !== "undefined" && !supportsWorkingFileWebLocks();
 }
 
 export function getWorkingFileLabel(): string | null {
@@ -369,6 +445,7 @@ async function idbPutHandle(
 async function idbResolveWf(
   preferredWf?: string | null,
   preferredFileName?: string | null,
+  opts?: { allowNameIndex?: boolean },
 ): Promise<string | null> {
   const wf = preferredWf?.trim() || null;
   if (wf) {
@@ -378,10 +455,13 @@ async function idbResolveWf(
     if (mobile) return wf;
   }
 
-  const preferred = preferredFileName?.trim() || null;
-  if (preferred) {
-    const indexed = await idbGet<string>(nameIndexIdbKey(preferred));
-    if (indexed?.trim()) return indexed.trim();
+  // Basename index is last-writer-wins across tabs — never use for auto-restore.
+  if (opts?.allowNameIndex) {
+    const preferred = preferredFileName?.trim() || null;
+    if (preferred) {
+      const indexed = await idbGet<string>(nameIndexIdbKey(preferred));
+      if (indexed?.trim()) return indexed.trim();
+    }
   }
 
   return null;
@@ -390,8 +470,9 @@ async function idbResolveWf(
 async function idbGetHandle(
   preferredWf?: string | null,
   preferredFileName?: string | null,
+  opts?: { allowNameIndex?: boolean },
 ): Promise<FileSystemFileHandle | null> {
-  const wf = await idbResolveWf(preferredWf, preferredFileName);
+  const wf = await idbResolveWf(preferredWf, preferredFileName, opts);
   if (wf) {
     const keyed = await idbGet<FileSystemFileHandle>(workingFileHandleIdbKey(wf));
     if (keyed) return keyed;
@@ -694,7 +775,11 @@ export async function readWorkingFileSnapshot(
 export async function writeWorkingFileJson(
   json: string,
   handle: FileSystemFileHandle = memoryHandle!,
-  options?: { expectedLastModified?: number; skipCas?: boolean },
+  options?: {
+    expectedLastModified?: number;
+    /** Only for explicit Create / Speichern unter after user picked a path. */
+    skipCas?: boolean;
+  },
 ): Promise<WriteWorkingFileResult> {
   if (!handle) return { ok: false, reason: "no_handle" };
   try {
@@ -702,6 +787,24 @@ export async function writeWorkingFileJson(
       return { ok: false, reason: "permission_denied" };
     }
     const before = await handle.getFile();
+    const diskText = await before.text();
+
+    const fence = assertSafeWorkingFileWrite({
+      outgoingJson: json,
+      diskJson: diskText,
+      expectedContentHash: options?.skipCas ? undefined : lastSyncedContentHash,
+      skipCas: options?.skipCas,
+      requireDiskBaseline: !options?.skipCas,
+    });
+    if (!fence.ok) {
+      return {
+        ok: false,
+        reason: fence.reason,
+        message: fence.message,
+        diskJson: diskText,
+      };
+    }
+
     const expected =
       options?.skipCas
         ? undefined
@@ -711,8 +814,11 @@ export async function writeWorkingFileJson(
             ? lastKnownFileModified
             : undefined;
     if (expected !== undefined && before.lastModified !== expected) {
-      return { ok: false, reason: "conflict" };
+      return { ok: false, reason: "conflict", diskJson: diskText, message: "Datei wurde extern geändert." };
     }
+    // Without mtime baseline, content fence already ran; still refuse mtime-unknown + skipCas false
+    // if disk content hash diverges from synced (handled above).
+
     const writable = await handle.createWritable({ keepExistingData: false });
     await writable.write(json);
     await writable.close();
@@ -721,7 +827,7 @@ export async function writeWorkingFileJson(
     return { ok: true, lastModified: file.lastModified };
   } catch (e) {
     console.error("Arbeitsdatei schreiben:", e);
-    return { ok: false, reason: "io_error" };
+    return { ok: false, reason: "io_error", message: "Schreiben fehlgeschlagen — Datei ggf. prüfen." };
   }
 }
 
@@ -819,9 +925,6 @@ async function attachWorkingFileFromText(
 async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
   const fileName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
   const wf = await resolveWfForHandle(handle);
-  const switching =
-    Boolean(memoryHandle) &&
-    !(memoryHandle && (await handlesAreSame(memoryHandle, handle)));
 
   memoryHandle = handle;
   // File-System-Handle ist die Quelle der Wahrheit — Mobile-Copy-Name nur als Fallback.
@@ -830,10 +933,9 @@ async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
   rememberLastFileNameInStorage(fileName);
   // Always refresh URL/session — even when basename is unchanged (wf still changes).
   syncTabContextAndWriter(fileName, wf);
-  if (switching) {
-    // Avoid pushing the previous board into the newly attached file before hydrate.
-    clearWorkingFileSyncState();
-  }
+  // Avoid pushing a previous/empty board into the newly attached file before hydrate.
+  clearWorkingFileSyncState();
+  setWorkingFilePersistPaused(false);
   try {
     await idbPutHandle(handle, fileName, wf);
   } catch {
@@ -938,16 +1040,37 @@ export async function forceHydrateFromWorkingFile(
 }
 
 /**
- * Apply arbitrary board JSON to the store and mark the working file as needing
- * a persist (caller should `persistWorkingFileJson` afterwards).
+ * Apply board JSON for intentional restore into the editor.
+ * Does NOT mark the Arbeitsdatei dirty for autosave — use loadForeignBoardIntoEditor
+ * for backup/remote, or persistWorkingFileJson after an explicit user save.
  */
 export function forceApplyBoardJson(json: string): boolean {
   if (!json.trim()) return false;
   if (!loadBoardFromJsonText(json)) return false;
-  // Leave sync marker stale so autosave / explicit persist writes the restored stand.
-  lastSyncedBoardJson = null;
   markWorkingFileSessionHydrated();
   return true;
+}
+
+/**
+ * Pause Arbeitsdatei autosave (collab / foreign content). Handle stays attached for label.
+ */
+export function pauseWorkingFilePersistForCollab(): void {
+  setWorkingFilePersistPaused(true, "collab");
+  notifyWorkingFilePersistPaused();
+}
+
+export function resumeWorkingFilePersistAfterCollab(): void {
+  if (workingFilePersistPauseReason === "collab" || workingFilePersistPauseReason === "paused") {
+    setWorkingFilePersistPaused(false);
+    // Re-sync marker from current editor so we don't immediately dirty-write.
+    const json = boardJsonFromStoreState();
+    if (lastKnownFileModified > 0) {
+      markWorkingFileSynced(json, lastKnownFileModified);
+    } else {
+      clearWorkingFileSyncState();
+    }
+    notifyWorkingFilePersistPaused();
+  }
 }
 
 export async function attachWorkingFileFromBrowserFile(
@@ -998,6 +1121,15 @@ export async function persistWorkingFileJson(
   json: string,
   options?: { skipCas?: boolean },
 ): Promise<WriteWorkingFileResult> {
+  if (workingFilePersistPaused && !options?.skipCas) {
+    return {
+      ok: false,
+      reason: "persist_paused",
+      message:
+        "Speichern in die Arbeitsdatei ist pausiert (fremder Stand oder Kollaboration). Nutze Speichern unter…",
+    };
+  }
+
   const gate = evaluateWorkingFileWriteGate({
     attached: isWorkingFileAttached(),
     isWriterLeader: isWorkingFileWriterLeader(),
@@ -1019,6 +1151,7 @@ export async function persistWorkingFileJson(
   }
 
   if (memoryHandle) {
+    // Never disable CAS merely because lastKnown is 0 — writeWorkingFileJson reads disk + content fence.
     return writeWorkingFileJson(json, memoryHandle, {
       skipCas: options?.skipCas,
       expectedLastModified:
@@ -1027,14 +1160,29 @@ export async function persistWorkingFileJson(
   }
   if (!mobileWorkingFileName) return { ok: false, reason: "no_handle" };
   try {
-    if (!options?.skipCas && lastKnownFileModified > 0) {
-      const existing = await idbGetMobileCopy(activeWorkingFileId, mobileWorkingFileName);
+    const existing = await idbGetMobileCopy(activeWorkingFileId, mobileWorkingFileName);
+    const diskJson = existing?.json ?? "";
+    const fence = assertSafeWorkingFileWrite({
+      outgoingJson: json,
+      diskJson,
+      expectedContentHash: options?.skipCas ? undefined : lastSyncedContentHash,
+      skipCas: options?.skipCas,
+      requireDiskBaseline: !options?.skipCas && Boolean(existing),
+    });
+    if (!fence.ok) {
+      return {
+        ok: false,
+        reason: fence.reason,
+        message: fence.message,
+        diskJson,
+      };
+    }
+    if (!options?.skipCas && lastKnownFileModified > 0 && existing) {
       if (
-        existing &&
         existing.sourceLastModified > 0 &&
         existing.sourceLastModified !== lastKnownFileModified
       ) {
-        return { ok: false, reason: "conflict" };
+        return { ok: false, reason: "conflict", diskJson, message: "Mobile-Kopie wurde extern geändert." };
       }
     }
     const sourceLastModified = Date.now();
@@ -1057,6 +1205,7 @@ export async function createAndAttachWorkingFile(
     await detachWorkingFile();
     return null;
   }
+  setWorkingFilePersistPaused(false);
   markWorkingFileSessionHydrated();
   // After write: sync state is clean — refresh listeners (dirty/label).
   notifyWorkingFileAttached();
@@ -1145,7 +1294,7 @@ export async function restoreWorkingFileFromDisk(
     return null;
   }
 
-  const handle = await idbGetHandle(preferredId, preferredName);
+  const handle = await idbGetHandle(preferredId, preferredName, { allowNameIndex: false });
   if (!handle) {
     if (mobileWorkingFileName) syncTabContextAndWriter(mobileWorkingFileName, activeWorkingFileId);
     return null;
@@ -1206,6 +1355,7 @@ export async function detachWorkingFile(): Promise<void> {
   activeWorkingFileId = null;
   clearWorkingFileSyncState();
   clearWorkingFileSessionHydrated();
+  setWorkingFilePersistPaused(false);
   clearRememberedFileNameInStorage();
   syncTabContextAndWriter(null, null);
   try {

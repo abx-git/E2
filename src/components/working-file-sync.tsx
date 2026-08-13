@@ -13,15 +13,16 @@ import {
   boardStatesEquivalent,
 } from "@/lib/file-board-reconcile";
 import {
+  downloadWorkingFileSafetyCopy,
   getWorkingFileHandle,
   getWorkingFileLabel,
   getActiveWorkingFileId,
   getLastSyncedBoardJson,
-  getLastKnownFileModified,
   isKnownFileRevision,
   isMobileWorkingFileMode,
   isWorkingFileAttached,
   isWorkingFileDirty,
+  isWorkingFileMultiTabUnsafe,
   isWorkingFilePersistPaused,
   isWorkingFileToStoreBlocked,
   markWorkingFileSessionHydrated,
@@ -31,9 +32,11 @@ import {
   restoreWorkingFileFromDisk,
   shouldSuppressExternalFilePoll,
   wasWorkingFileSessionHydrated,
-  writeWorkingFileJson,
   WORKING_FILE_ATTACHED_EVENT,
   WORKING_FILE_DETACHED_EVENT,
+  WORKING_FILE_PERSIST_PAUSED_EVENT,
+  setWorkingFilePersistPaused,
+  pauseWorkingFilePersistForCollab,
 } from "@/lib/working-file";
 import { mayAutoRestoreWorkingFileFromStorage } from "@/lib/working-file-safety";
 import {
@@ -55,8 +58,8 @@ function urlHasPendingRoomJoin(): boolean {
   return Boolean(new URLSearchParams(window.location.search).get("room")?.trim());
 }
 
-/** Collab / pending join: room owns the editor; file is backup only (editor → file). */
-function isCollabBackupMode(): boolean {
+/** Collab / pending join: room owns the editor; never write Arbeitsdatei. */
+function isCollabMode(): boolean {
   return isWorkingFileToStoreBlocked() || urlHasPendingRoomJoin();
 }
 
@@ -77,23 +80,42 @@ export interface WorkingFileSyncProps {
   onDirtyChange?: (dirty: boolean) => void;
   onSavingChange?: (saving: boolean) => void;
   onNeedsFileSetup?: () => void;
+  onPersistPausedChange?: (paused: boolean) => void;
+  onMultiTabUnsafeChange?: (unsafe: boolean) => void;
 }
 
 /**
- * Solo: autosave + rare conflict when disk was changed externally while dirty.
- * Collab: silent editor→file backup only; never pull file into editor; no dialogs for peers.
+ * Solo: autosave with content+mtime CAS.
+ * External dirty conflict: keep editor, safety-download disk, pause until Speichern unter / reload.
+ * Collab: never write Arbeitsdatei (persist paused).
  */
 export function WorkingFileSync({
   onWorkingFileNameChange,
   onDirtyChange,
   onSavingChange,
   onNeedsFileSetup,
+  onPersistPausedChange,
+  onMultiTabUnsafeChange,
 }: WorkingFileSyncProps) {
   const [conflictOpen, setConflictOpen] = useState(false);
   const [conflictBusy, setConflictBusy] = useState(false);
 
-  const callbacksRef = useRef({ onWorkingFileNameChange, onDirtyChange, onSavingChange, onNeedsFileSetup });
-  callbacksRef.current = { onWorkingFileNameChange, onDirtyChange, onSavingChange, onNeedsFileSetup };
+  const callbacksRef = useRef({
+    onWorkingFileNameChange,
+    onDirtyChange,
+    onSavingChange,
+    onNeedsFileSetup,
+    onPersistPausedChange,
+    onMultiTabUnsafeChange,
+  });
+  callbacksRef.current = {
+    onWorkingFileNameChange,
+    onDirtyChange,
+    onSavingChange,
+    onNeedsFileSetup,
+    onPersistPausedChange,
+    onMultiTabUnsafeChange,
+  };
 
   const mountedRef = useRef(true);
   const saveQueuedRef = useRef(false);
@@ -110,71 +132,89 @@ export function WorkingFileSync({
     callbacksRef.current.onDirtyChange?.(isWorkingFileDirty());
   };
 
-  const handleConflictChoice = useCallback(async (choice: FileConflictChoice) => {
-    if (conflictBusy) return;
-    const handle = getWorkingFileHandle();
-    if (!handle && !isMobileWorkingFileMode()) return;
+  const syncPaused = () => {
+    callbacksRef.current.onPersistPausedChange?.(isWorkingFilePersistPaused());
+  };
 
-    setConflictBusy(true);
+  const adoptDiskQuietly = async (snap: { text: string; lastModified: number }) => {
     suspendAutoPersistRef.current = true;
-    setConflictOpen(false);
-
     try {
-      if (choice === "load_file" && handle && !isCollabBackupMode()) {
-        const snap = await readWorkingFileSnapshot(handle);
-        if (!snap) return;
-        if (snap.text.trim()) applyBoardJsonToStore(snap.text);
-        markWorkingFileSynced(snap.text, snap.lastModified);
-        lastPersistKeyRef.current = boardPersistKeyFromStoreState();
-        syncDirty();
-        return;
-      }
+      if (snap.text.trim()) applyBoardJsonToStore(snap.text);
+      markWorkingFileSynced(snap.text, snap.lastModified);
+      lastPersistKeyRef.current = boardPersistKeyFromStoreState();
+    } finally {
+      suspendAutoPersistRef.current = false;
+    }
+    syncDirty();
+  };
 
-      if (!isWorkingFileWriterLeader()) return;
+  /**
+   * Default safe conflict resolution without asking:
+   * keep editor, download disk copy, pause autosave.
+   */
+  const resolveExternalConflictSafely = async (diskJson: string) => {
+    if (diskJson.trim()) downloadWorkingFileSafetyCopy(diskJson, "disk");
+    setWorkingFilePersistPaused(true, "external_conflict");
+    syncPaused();
+    conflictActiveRef.current = false;
+    setConflictOpen(false);
+    window.alert(
+      "Die Arbeitsdatei wurde außerhalb dieses Tabs geändert.\n\nDein Editor-Stand bleibt erhalten. Eine Kopie des Dateistands wurde heruntergeladen.\n\nWeiter: „Speichern unter…“ oder Datei neu öffnen.",
+    );
+  };
 
-      const json = boardJsonFromStoreState();
-      const expected = getLastKnownFileModified();
-      const result = isMobileWorkingFileMode()
-        ? await persistWorkingFileJson(json, { skipCas: true })
-        : handle
-          ? await writeWorkingFileJson(json, handle, {
-              expectedLastModified: expected > 0 ? expected : undefined,
-              skipCas: isCollabBackupMode(),
-            })
-          : { ok: false as const, reason: "no_handle" as const };
+  const handleConflictChoice = useCallback(
+    async (choice: FileConflictChoice) => {
+      if (conflictBusy) return;
+      const handle = getWorkingFileHandle();
+      if (!handle && !isMobileWorkingFileMode()) return;
 
-      if (!result.ok && result.reason === "conflict" && handle) {
-        // Force keep-local after user chose keep: skip CAS once.
-        const forced = await writeWorkingFileJson(json, handle, { skipCas: true });
-        if (!forced.ok) {
-          window.alert("Speichern fehlgeschlagen.");
-          setConflictOpen(true);
+      setConflictBusy(true);
+      suspendAutoPersistRef.current = true;
+      setConflictOpen(false);
+
+      try {
+        if (choice === "load_file" && handle && !isCollabMode()) {
+          const snap = await readWorkingFileSnapshot(handle);
+          if (!snap) return;
+          setWorkingFilePersistPaused(false);
+          if (snap.text.trim()) applyBoardJsonToStore(snap.text);
+          markWorkingFileSynced(snap.text, snap.lastModified);
+          lastPersistKeyRef.current = boardPersistKeyFromStoreState();
+          syncDirty();
+          syncPaused();
           return;
         }
-      } else if (!result.ok) {
-        window.alert("Speichern fehlgeschlagen.");
-        setConflictOpen(true);
-        return;
+
+        // Keep editor → Speichern unter path: pause + safety download of disk
+        if (handle) {
+          const snap = await readWorkingFileSnapshot(handle);
+          if (snap?.text) downloadWorkingFileSafetyCopy(snap.text, "disk");
+        }
+        setWorkingFilePersistPaused(true, "external_conflict");
+        syncPaused();
+        syncDirty();
+      } finally {
+        conflictActiveRef.current = false;
+        suspendAutoPersistRef.current = false;
+        setConflictBusy(false);
       }
-      lastPersistKeyRef.current = boardPersistKeyFromStoreState();
-      syncDirty();
-    } finally {
-      conflictActiveRef.current = false;
-      suspendAutoPersistRef.current = false;
-      setConflictBusy(false);
-    }
-  }, [conflictBusy]);
+    },
+    [conflictBusy],
+  );
 
   useEffect(() => {
     mountedRef.current = true;
     let storeUnsub: (() => void) | undefined;
     let roleUnsub: (() => void) | undefined;
-    const externalListeners: Array<{ target: EventTarget; type: string; listener: () => void }> = [];
+    const externalListeners: Array<{ target: EventTarget; type: string; listener: () => void }> =
+      [];
 
-    const flushPersist = async (opts?: { skipCas?: boolean }): Promise<boolean> => {
+    const flushPersist = async (): Promise<boolean> => {
       if (
         !isWorkingFileAttached() ||
         isWorkingFilePersistPaused() ||
+        isCollabMode() ||
         !isWorkingFileWriterLeader() ||
         saveInFlightRef.current ||
         conflictActiveRef.current ||
@@ -190,30 +230,22 @@ export function WorkingFileSync({
       saveInFlightRef.current = true;
       callbacksRef.current.onSavingChange?.(true);
       try {
-        const skipCas = opts?.skipCas || isCollabBackupMode();
-        const result = await persistWorkingFileJson(boardJsonFromStoreState(), { skipCas });
+        const result = await persistWorkingFileJson(boardJsonFromStoreState());
         if (!mountedRef.current) return false;
         if (result.ok) {
           lastPersistKeyRef.current = boardPersistKeyFromStoreState();
           syncDirty();
           return true;
         }
-        // Solo: external change while dirty → one conflict dialog.
-        // Collab backup: force rewrite (file is our mirror of the room).
-        if (result.reason === "conflict") {
-          if (isCollabBackupMode()) {
-            const forced = await persistWorkingFileJson(boardJsonFromStoreState(), {
-              skipCas: true,
-            });
-            if (forced.ok) {
-              lastPersistKeyRef.current = boardPersistKeyFromStoreState();
-              syncDirty();
-              return true;
-            }
-          } else {
-            conflictActiveRef.current = true;
-            setConflictOpen(true);
-          }
+        if (
+          result.reason === "conflict" ||
+          result.reason === "content_cas_mismatch" ||
+          result.reason === "empty_over_nonempty" ||
+          result.reason === "unknown_disk_baseline"
+        ) {
+          await resolveExternalConflictSafely(result.diskJson ?? "");
+          syncDirty();
+          return false;
         }
         syncDirty();
         return false;
@@ -227,6 +259,7 @@ export function WorkingFileSync({
       if (
         !isWorkingFileAttached() ||
         isWorkingFilePersistPaused() ||
+        isCollabMode() ||
         !isWorkingFileWriterLeader() ||
         conflictActiveRef.current ||
         suspendAutoPersistRef.current
@@ -243,6 +276,10 @@ export function WorkingFileSync({
 
     const onPersistedBoardChanged = () => {
       if (suspendAutoPersistRef.current) return;
+      if (isWorkingFilePersistPaused() || isCollabMode()) {
+        syncDirty();
+        return;
+      }
       const key = boardPersistKeyFromStoreState();
       if (key === lastPersistKeyRef.current) return;
       lastPersistKeyRef.current = key;
@@ -250,16 +287,9 @@ export function WorkingFileSync({
       schedulePersistOnChange();
     };
 
-    /**
-     * Focus / visibility:
-     * - Collab: never pull disk into editor (room owns editor).
-     * - Solo, clean editor, disk changed: silent pull (like reopening the file).
-     * - Solo, dirty editor, disk changed: one conflict dialog.
-     * - Same file other tab wrote: follower pulls silently when clean; leader already wrote.
-     */
     const applyExternalFileIfNeeded = async () => {
       if (isMobileWorkingFileMode()) return;
-      if (isCollabBackupMode()) return;
+      if (isCollabMode() || isWorkingFileToStoreBlocked()) return;
       if (
         isWorkingFilePersistPaused() ||
         conflictActiveRef.current ||
@@ -285,23 +315,13 @@ export function WorkingFileSync({
       }
 
       if (!isWorkingFileDirty()) {
-        // Disk ahead, editor clean → adopt silently (other tab or external save).
-        suspendAutoPersistRef.current = true;
-        try {
-          if (snap.text.trim()) applyBoardJsonToStore(snap.text);
-          markWorkingFileSynced(snap.text, snap.lastModified);
-          lastPersistKeyRef.current = boardPersistKeyFromStoreState();
-        } finally {
-          suspendAutoPersistRef.current = false;
-        }
-        syncDirty();
+        await adoptDiskQuietly(snap);
         return;
       }
 
-      // Dirty local + changed disk — only the writer tab asks once.
+      // Dirty local + changed disk — keep editor, safety-download, pause (no force write).
       if (!isWorkingFileWriterLeader()) return;
-      conflictActiveRef.current = true;
-      setConflictOpen(true);
+      await resolveExternalConflictSafely(snap.text);
     };
 
     const hydrateFromWorkingFileOnce = async (): Promise<void> => {
@@ -313,8 +333,11 @@ export function WorkingFileSync({
         if (!snap || !mountedRef.current) return;
         markWorkingFileSessionHydrated();
 
-        if (isCollabBackupMode()) {
-          markWorkingFileSynced(snap.text, snap.lastModified);
+        if (isCollabMode()) {
+          // Room owns editor — do NOT sync markers to disk (would dirty empty editor → wipe).
+          // Pause persist so nothing writes until after leave + Speichern unter.
+          pauseWorkingFilePersistForCollab();
+          syncPaused();
           return;
         }
 
@@ -339,7 +362,11 @@ export function WorkingFileSync({
           return;
         }
         markWorkingFileSessionHydrated();
-        if (isCollabBackupMode()) return;
+        if (isCollabMode()) {
+          pauseWorkingFilePersistForCollab();
+          syncPaused();
+          return;
+        }
         suspendAutoPersistRef.current = true;
         try {
           applyBoardJsonToStore(synced);
@@ -359,6 +386,7 @@ export function WorkingFileSync({
 
     void (async () => {
       getOrCreateTabSessionId();
+      callbacksRef.current.onMultiTabUnsafeChange?.(isWorkingFileMultiTabUnsafe());
       const preferred = resolvePreferredWorkingFileName();
       const preferredWf = resolvePreferredWorkingFileId();
       if (mayAutoRestoreWorkingFileFromStorage() || preferred || preferredWf) {
@@ -372,14 +400,15 @@ export function WorkingFileSync({
       lastPersistKeyRef.current = boardPersistKeyFromStoreState();
       syncFileLabel();
       syncDirty();
+      syncPaused();
 
       storeUnsub = useStormBoardStore.subscribe(onPersistedBoardChanged);
       roleUnsub = onWorkingFileWriterRoleChange((role) => {
         if (role !== "leader") return;
         void (async () => {
           await applyExternalFileIfNeeded();
-          if (conflictActiveRef.current) return;
-          void flushPersist({ skipCas: isCollabBackupMode() });
+          if (conflictActiveRef.current || isWorkingFilePersistPaused() || isCollabMode()) return;
+          void flushPersist();
         })();
       });
 
@@ -399,8 +428,8 @@ export function WorkingFileSync({
       });
 
       const onPageHide = () => {
-        if (conflictActiveRef.current) return;
-        void flushPersist({ skipCas: isCollabBackupMode() });
+        if (conflictActiveRef.current || isWorkingFilePersistPaused() || isCollabMode()) return;
+        void flushPersist();
       };
       window.addEventListener("pagehide", onPageHide);
       externalListeners.push({ target: window, type: "pagehide", listener: onPageHide });
@@ -410,9 +439,15 @@ export function WorkingFileSync({
         lastPersistKeyRef.current = boardPersistKeyFromStoreState();
         syncFileLabel();
         syncDirty();
+        syncPaused();
       };
       addExternalListener(window, WORKING_FILE_ATTACHED_EVENT, onWorkingFileAttached);
       addExternalListener(window, WORKING_FILE_DETACHED_EVENT, onWorkingFileAttached);
+      addExternalListener(window, WORKING_FILE_PERSIST_PAUSED_EVENT, () => {
+        syncPaused();
+        syncDirty();
+        syncFileLabel();
+      });
     })();
 
     return () => {
@@ -431,10 +466,11 @@ export function WorkingFileSync({
       open={conflictOpen}
       fileName={getWorkingFileLabel()}
       busy={conflictBusy}
-      allowLoadFile={!isCollabBackupMode()}
-      description="Die Datei wurde außerhalb dieses Tabs geändert, während ungespeicherte Änderungen vorliegen."
-      keepLocalLabel="Meine Version speichern"
-      loadFileLabel="Datei laden"
+      allowLoadFile={!isCollabMode()}
+      title="Datei wurde extern geändert"
+      description="Dein Editor-Stand bleibt erhalten. Du kannst die Datei laden oder den Editor behalten und später unter neuem Namen speichern."
+      keepLocalLabel="Editor behalten (Datei-Kopie laden)"
+      loadFileLabel="Datei in E2 laden"
       onChoose={(choice) => void handleConflictChoice(choice)}
     />
   );

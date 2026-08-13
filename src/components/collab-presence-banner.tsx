@@ -82,11 +82,11 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
           className={fileDirty ? "text-[var(--accent-2)]" : "text-[var(--muted)]"}
           title={
             fileDirty
-              ? "Editor-Stand noch nicht in die Arbeitsdatei geschrieben"
-              : "Arbeitsdatei spiegelt den Editor-Stand"
+              ? "Editor weicht von der lokalen Datei ab (während Collab nicht automatisch geschrieben)"
+              : "Arbeitsdatei während Collab nicht gespiegelt — danach Speichern unter…"
           }
         >
-          {fileDirty ? "Lokal ungespeichert" : "Lokal gesichert"}
+          {fileDirty ? "Lokal abweichend" : "Datei nicht gespiegelt"}
         </span>
       )}
       <div className="flex -space-x-1">

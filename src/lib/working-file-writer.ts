@@ -24,6 +24,11 @@ function supportsWebLocks(): boolean {
   return typeof navigator !== "undefined" && typeof navigator.locks?.request === "function";
 }
 
+/** Exported for UI banner when multi-tab writes are unsafe. */
+export function supportsWorkingFileWebLocks(): boolean {
+  return supportsWebLocks();
+}
+
 function waitUntilVisible(isStopped: () => boolean): Promise<void> {
   if (typeof document === "undefined") return Promise.resolve();
   if (document.visibilityState === "visible") return Promise.resolve();

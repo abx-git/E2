@@ -63,9 +63,9 @@ export function CollabEnterConfirmDialog({
           )}
           {workingFileAttached ? (
             <p>
-              Deine Datei dient als <strong className="font-semibold text-slate-800">lokales Backup</strong>{" "}
-              und wird automatisch mitgeschrieben. Neu/Öffnen ist im Raum nicht möglich — erst nach dem
-              Verlassen.
+              Deine verknüpfte Datei bleibt erhalten und wird während des Raums{" "}
+              <strong className="font-semibold text-slate-800">nicht überschrieben</strong>. Neu/Öffnen
+              ist im Raum nicht möglich — erst nach dem Verlassen.
             </p>
           ) : (
             !isJoin && (

@@ -293,7 +293,7 @@ export function CollabRoomDialog({
                   </p>
                   {isWorkingFileAttached() && (
                     <p className="mt-2 text-[0.68rem] text-[var(--accent-2)]">
-                      Arbeitsdatei wird parallel mitgeschrieben
+                      Arbeitsdatei wird während des Raums nicht überschrieben
                     </p>
                   )}
                 </div>

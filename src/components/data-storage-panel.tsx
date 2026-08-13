@@ -42,6 +42,8 @@ export interface DataStoragePanelProps {
   workingFileAttached: boolean;
   workingFileDirty: boolean;
   workingFileSaving: boolean;
+  /** Autosave paused (foreign load / collab) — Speichern unter… required. */
+  workingFilePersistPaused?: boolean;
   /** When true, opening another file/backup is disabled until the board is saved. */
   mustSaveBeforeOpen: boolean;
   backupIntervalMinutes: BackupIntervalMinutes;
@@ -258,6 +260,7 @@ export function DataStoragePanel({
   workingFileAttached,
   workingFileDirty,
   workingFileSaving,
+  workingFilePersistPaused,
   mustSaveBeforeOpen,
   backupIntervalMinutes,
   backupHistoryMode,
@@ -436,11 +439,13 @@ export function DataStoragePanel({
   const otherMethods = methodExports.filter((m) => !modeMatches(modelingMode, ...m.modes));
 
   const syncStatus = workingFileAttached
-    ? workingFileDirty
-      ? "ungespeichert"
-      : workingFileSaving
-        ? "speichert …"
-        : "gespeichert"
+    ? workingFilePersistPaused
+      ? "Autosave pausiert"
+      : workingFileDirty
+        ? "ungespeichert"
+        : workingFileSaving
+          ? "speichert …"
+          : "gespeichert"
     : null;
 
   if (!open) return null;
@@ -528,6 +533,12 @@ export function DataStoragePanel({
                 ) : (
                   <p className="text-xs text-[var(--muted)]">
                     Kein Sync-Ziel — „Speichern unter…“ verknüpft eine Arbeitsdatei.
+                  </p>
+                )}
+                {workingFilePersistPaused && (
+                  <p className="rounded-lg border border-[var(--accent-2)]/40 bg-[rgba(233,196,106,0.12)] px-2.5 py-2 text-xs text-[var(--accent-2)]">
+                    Autosave pausiert — die verknüpfte Datei wird nicht überschrieben. Nutze
+                    „Speichern unter…“.
                   </p>
                 )}
                 {mustSaveBeforeOpen && (
@@ -626,7 +637,8 @@ export function DataStoragePanel({
                     ? "Ohne Historie: immer dieselbe Backup-Datei überschreiben (bei File-System-API) bzw. fester Dateiname."
                     : "Mit Historie: zeitgestempelte .storm.json-Kopien."}{" "}
                   Nur bei ungespeichertem Stand — vor Datei-/Sichtwechsel und optional
-                  zeitgesteuert. {backupLastLabel}.
+                  zeitgesteuert. {backupLastLabel}. Öffnen eines Backups überschreibt die
+                  Arbeitsdatei nicht (Autosave pausiert — Speichern unter…).
                 </p>
                 <ActionButton onClick={onBackupNow} disabled={busy}>
                   <Save className="h-4 w-4" /> Jetzt sichern
