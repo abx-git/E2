@@ -152,10 +152,13 @@ function ActionButton({
 
 function Disclosure({
   title,
+  hint,
   defaultOpen,
   children,
 }: {
   title: string;
+  /** Compact status next to the title (e.g. last backup). */
+  hint?: string;
   defaultOpen?: boolean;
   children: ReactNode;
 }) {
@@ -168,9 +171,14 @@ function Disclosure({
     >
       <summary className="cursor-pointer list-none px-3 py-2 text-xs font-medium text-[var(--text)] marker:content-none [&::-webkit-details-marker]:hidden">
         <span className="flex items-center justify-between gap-2">
-          {title}
+          <span className="min-w-0 flex-1 truncate">
+            {title}
+            {hint ? (
+              <span className="ml-2 font-normal text-[var(--muted)]">{hint}</span>
+            ) : null}
+          </span>
           <span
-            className="text-[0.65rem] text-[var(--muted)] transition group-open:rotate-180"
+            className="shrink-0 text-[0.65rem] text-[var(--muted)] transition group-open:rotate-180"
             aria-hidden
           >
             ▾
@@ -180,6 +188,22 @@ function Disclosure({
       <div className="space-y-2 border-t border-[var(--border)] px-3 py-2.5">{children}</div>
     </details>
   );
+}
+
+const BACKUP_LIST_PREVIEW = 3;
+
+function formatBackupWhen(createdAt: number): string {
+  try {
+    return new Date(createdAt).toLocaleString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
 }
 
 function ExportGroup({
@@ -320,6 +344,7 @@ export function DataStoragePanel({
     Array<{ name: string; openedAt: number; handle: FileSystemFileHandle }>
   >([]);
   const [localBackups, setLocalBackups] = useState<LocalBackupListItem[]>([]);
+  const [backupListExpanded, setBackupListExpanded] = useState(false);
   const [jsonCopied, setJsonCopied] = useState(false);
   const [viewJsonCopied, setViewJsonCopied] = useState(false);
   const [aiContextCopied, setAiContextCopied] = useState(false);
@@ -341,7 +366,10 @@ export function DataStoragePanel({
   }, [open, activeViewId]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setBackupListExpanded(false);
+      return;
+    }
     if (hasUnsavedDocument || workingFileDirty) {
       setPreferredTab("file");
     }
@@ -636,84 +664,97 @@ export function DataStoragePanel({
               </Disclosure>
 
               <Disclosure
-                key={localBackups.length > 0 ? "backup-has" : "backup-empty"}
                 title="Backup"
-                defaultOpen={localBackups.length > 0}
+                hint={
+                  localBackups.length > 0
+                    ? `${localBackups.length} · ${backupLastLabel}`
+                    : backupLastLabel
+                }
               >
-                <p className="text-xs text-[var(--muted)]">
-                  {backupHistoryMode === "rolling"
-                    ? "Ohne Historie: immer dieselbe Backup-Datei überschreiben (bei File-System-API) bzw. fester Dateiname."
-                    : "Mit Historie: zeitgestempelte .storm.json-Kopien."}{" "}
-                  Nur bei ungespeichertem Stand — vor Datei-/Sichtwechsel und optional
-                  zeitgesteuert. {backupLastLabel}. Öffnen eines Backups überschreibt die
-                  Arbeitsdatei nicht (Autosave pausiert — Speichern unter…).
+                <p className="text-[0.7rem] leading-snug text-[var(--muted)]">
+                  Nur bei ungespeichertem Stand. Öffnen überschreibt die Arbeitsdatei nicht.
                 </p>
-                <ActionButton onClick={onBackupNow} disabled={busy}>
-                  <Save className="h-4 w-4" /> Jetzt sichern
-                </ActionButton>
-                <ActionButton
-                  onClick={onRestoreBackupFile}
-                  disabled={busy}
-                >
-                  <FolderOpen className="h-4 w-4" /> Backup-Datei öffnen
-                </ActionButton>
-                {localBackups.length > 0 && (
-                  <div className="space-y-1.5">
-                    <p className="text-[0.7rem] font-medium text-[var(--muted)]">
-                      Gesicherte Backups
+                <div className="grid grid-cols-2 gap-2">
+                  <ActionButton onClick={onBackupNow} disabled={busy}>
+                    <Save className="h-4 w-4" /> Jetzt sichern
+                  </ActionButton>
+                  <ActionButton onClick={onRestoreBackupFile} disabled={busy}>
+                    <FolderOpen className="h-4 w-4" /> Datei öffnen
+                  </ActionButton>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="flex min-w-0 flex-col gap-1 text-xs text-[var(--text)]">
+                    <span className="text-[var(--muted)]">Historie</span>
+                    <select
+                      className="dock-field"
+                      value={backupHistoryMode}
+                      onChange={(e) =>
+                        onBackupHistoryModeChange(e.target.value as BackupHistoryMode)
+                      }
+                    >
+                      <option value="history">Mit Historie</option>
+                      <option value="rolling">Eine Datei</option>
+                    </select>
+                  </label>
+                  <label className="flex min-w-0 flex-col gap-1 text-xs text-[var(--text)]">
+                    <span className="text-[var(--muted)]">Automatisch</span>
+                    <select
+                      className="dock-field"
+                      value={backupIntervalMinutes}
+                      onChange={(e) =>
+                        onBackupIntervalChange(Number(e.target.value) as BackupIntervalMinutes)
+                      }
+                    >
+                      {BACKUP_INTERVAL_OPTIONS_MINUTES.map((m) => (
+                        <option key={m} value={m}>
+                          {m === 0 ? "Aus" : `${m} Min.`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                {localBackups.length > 0 ? (
+                  <div className="space-y-1">
+                    <p className="text-[0.65rem] font-medium text-[var(--muted)]">
+                      Zuletzt gesichert
                     </p>
-                    <ul className="space-y-1">
-                      {localBackups.map((entry) => (
+                    <ul className="divide-y divide-[var(--border)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--panel-solid)]/40">
+                      {(backupListExpanded
+                        ? localBackups
+                        : localBackups.slice(0, BACKUP_LIST_PREVIEW)
+                      ).map((entry) => (
                         <li key={entry.id}>
                           <button
                             type="button"
                             disabled={busy}
                             onClick={() => onOpenLocalBackup(entry.id)}
-                            className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
+                            className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs hover:bg-[var(--control-hover)] disabled:opacity-50"
                             title={new Date(entry.createdAt).toLocaleString("de-DE")}
                           >
-                            <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate font-medium">{entry.filename}</span>
-                              <span className="block text-[0.65rem] text-[var(--muted)]">
-                                {new Date(entry.createdAt).toLocaleString("de-DE")}
-                              </span>
+                            <Clock className="h-3 w-3 shrink-0 text-[var(--muted)]" aria-hidden />
+                            <span className="min-w-0 flex-1 truncate font-medium">
+                              {entry.filename}
+                            </span>
+                            <span className="shrink-0 tabular-nums text-[0.65rem] text-[var(--muted)]">
+                              {formatBackupWhen(entry.createdAt)}
                             </span>
                           </button>
                         </li>
                       ))}
                     </ul>
+                    {localBackups.length > BACKUP_LIST_PREVIEW ? (
+                      <button
+                        type="button"
+                        className="text-[0.65rem] font-medium text-[var(--muted)] underline-offset-2 hover:text-[var(--text)] hover:underline"
+                        onClick={() => setBackupListExpanded((v) => !v)}
+                      >
+                        {backupListExpanded
+                          ? "Weniger anzeigen"
+                          : `Alle ${localBackups.length} anzeigen`}
+                      </button>
+                    ) : null}
                   </div>
-                )}
-                <label className="flex flex-col gap-1 text-xs text-[var(--text)]">
-                  <span className="text-[var(--muted)]">Historie</span>
-                  <select
-                    className="dock-field"
-                    value={backupHistoryMode}
-                    onChange={(e) =>
-                      onBackupHistoryModeChange(e.target.value as BackupHistoryMode)
-                    }
-                  >
-                    <option value="history">Mit Historie (neue Datei je Backup)</option>
-                    <option value="rolling">Ohne Historie (gleiche Datei überschreiben)</option>
-                  </select>
-                </label>
-                <label className="flex flex-col gap-1 text-xs text-[var(--text)]">
-                  <span className="text-[var(--muted)]">Automatisch alle …</span>
-                  <select
-                    className="dock-field"
-                    value={backupIntervalMinutes}
-                    onChange={(e) =>
-                      onBackupIntervalChange(Number(e.target.value) as BackupIntervalMinutes)
-                    }
-                  >
-                    {BACKUP_INTERVAL_OPTIONS_MINUTES.map((m) => (
-                      <option key={m} value={m}>
-                        {m === 0 ? "Aus" : `${m} Minuten`}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                ) : null}
               </Disclosure>
 
               <div className="space-y-2 border-t border-[var(--border)] pt-4">
