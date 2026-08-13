@@ -201,7 +201,7 @@ export async function pickRollingBackupFile(
       types: [
         {
           description: "Event Storming JSON",
-          accept: { "application/json": [".json", ".storm.json"] },
+          accept: { "application/json": [".json"] },
         },
       ],
     });

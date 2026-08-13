@@ -782,9 +782,31 @@ async function ensureReadWritePermission(handle: FileSystemFileHandle): Promise<
   return ok;
 }
 
+/**
+ * Picker types for macOS/Chrome: do NOT list compound ".storm.json" — the OS
+ * treats the extension as ".json", and ".storm.json" in accept greys out valid boards.
+ * Always keep "All files" available (excludeAcceptAllOption: false).
+ */
 const JSON_PICKER_TYPES: FilePickerAcceptType[] = [
-  { description: "Event Storming JSON", accept: { "application/json": [".json", ".storm.json"] } },
+  {
+    description: "E2 Board JSON",
+    accept: {
+      "application/json": [".json"],
+      "text/json": [".json"],
+    },
+  },
 ];
+
+const OPEN_FILE_PICKER_OPTIONS: OpenFilePickerOptions = {
+  multiple: false,
+  excludeAcceptAllOption: false,
+  types: JSON_PICKER_TYPES,
+};
+
+const SAVE_FILE_PICKER_OPTIONS_BASE: Omit<SaveFilePickerOptions, "suggestedName"> = {
+  excludeAcceptAllOption: false,
+  types: JSON_PICKER_TYPES,
+};
 
 export async function readWorkingFileSnapshot(
   handle: FileSystemFileHandle = memoryHandle!,
@@ -1026,7 +1048,7 @@ async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
 export async function attachWorkingFileOpen(): Promise<FileSystemFileHandle | null> {
   if (!isWorkingFileSupported() || !window.showOpenFilePicker) return null;
   try {
-    const [handle] = await window.showOpenFilePicker({ multiple: false, types: JSON_PICKER_TYPES });
+    const [handle] = await window.showOpenFilePicker(OPEN_FILE_PICKER_OPTIONS);
     await rememberHandle(handle);
     return handle;
   } catch (e) {
@@ -1059,8 +1081,8 @@ export async function attachWorkingFileCreate(
   if (!isWorkingFileSupported() || !window.showSaveFilePicker) return null;
   try {
     const handle = await window.showSaveFilePicker({
+      ...SAVE_FILE_PICKER_OPTIONS_BASE,
       suggestedName: suggestedWorkingFileName(suggestedName),
-      types: JSON_PICKER_TYPES,
     });
     await rememberHandle(handle);
     return handle;
