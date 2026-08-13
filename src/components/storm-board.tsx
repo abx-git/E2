@@ -132,6 +132,7 @@ import {
   resolveWorkingFileImportConflict,
   saveWorkingFileAs,
   suggestedWorkingFileName,
+  renameWorkingFile,
 } from "@/lib/working-file";
 import { bindTabWorkingFile } from "@/lib/working-file-tab-context";
 import { createDefaultBoardDocument } from "@/lib/storm-json";
@@ -139,6 +140,10 @@ import { boardImportPayloadFromStore, useStormBoardStore } from "@/store/storm-b
 import { flushCollabSnapshotNow, useCollabStore } from "@/lib/collab/session";
 import type { ElementType, WorkshopFormat } from "@/types/storm-element";
 import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
+import {
+  UnsavedChangesDialog,
+  type UnsavedChangesChoice,
+} from "@/components/unsaved-changes-dialog";
 
 export function StormBoard() {
   const [storageOpen, setStorageOpen] = useState(false);
@@ -177,6 +182,12 @@ export function StormBoard() {
     fileName: string;
   } | null>(null);
   const [importConflictBusy, setImportConflictBusy] = useState(false);
+  const [unsavedPrompt, setUnsavedPrompt] = useState<{
+    actionLabel: string;
+    /** Runs after Speichern or Nicht speichern (same user-gesture chain when possible). */
+    proceed: () => void | Promise<void>;
+  } | null>(null);
+  const [unsavedBusy, setUnsavedBusy] = useState(false);
   const [jsonPasteMode, setJsonPasteMode] = useState<"board" | "ai-view" | "diagram" | null>(null);
   const [shareLinkOpen, setShareLinkOpen] = useState(false);
   const [remoteBoardUrl, setRemoteBoardUrl] = useState<string | null>(null);
@@ -569,19 +580,58 @@ export function StormBoard() {
     }
   };
 
-  /** Block loading another document while the current board is not persisted. */
-  const ensureSavedBeforeOpen = (): boolean => {
-    const attached = isWorkingFileAttached();
-    const dirty = isWorkingFileDirty();
-    const unsavedWithoutFile = !attached && boardHasLocalContent();
-    if (!dirty && !unsavedWithoutFile) return true;
+  /** Windows-style prompt before New / Open / Close when the document is dirty. */
+  const runWithUnsavedGuard = useCallback(
+    async (actionLabel: string, proceed: () => void | Promise<void>) => {
+      const attached = isWorkingFileAttached();
+      const dirty = isWorkingFileDirty() || persistPaused;
+      const unsavedWithoutFile = !attached && boardHasLocalContent();
+      if (!dirty && !unsavedWithoutFile) {
+        await proceed();
+        return;
+      }
+      setUnsavedPrompt({ actionLabel, proceed });
+    },
+    [persistPaused],
+  );
 
-    window.alert(
-      attached
-        ? "Es gibt ungespeicherte Änderungen. Bitte zuerst speichern (Speichern oder Speichern unter…), bevor du eine andere Datei oder ein Backup öffnest."
-        : "Das Board ist noch nicht gespeichert. Bitte zuerst „Speichern unter…“ wählen, bevor du eine andere Datei oder ein Backup öffnest.",
-    );
-    return false;
+  const handleUnsavedChoice = async (choice: UnsavedChangesChoice) => {
+    if (!unsavedPrompt) return;
+    const { proceed } = unsavedPrompt;
+    if (choice === "cancel") {
+      setUnsavedPrompt(null);
+      return;
+    }
+    if (choice === "discard") {
+      setUnsavedPrompt(null);
+      await proceed();
+      return;
+    }
+    // save — then continue (picker needs this click activation when possible)
+    setUnsavedBusy(true);
+    try {
+      if (!isWorkingFileAttached() || isWorkingFilePersistPaused()) {
+        const suggested = suggestedWorkingFileName(
+          getWorkingFileLabel() || title || undefined,
+        );
+        const handle = await saveWorkingFileAs(boardJsonFromStoreState(), suggested);
+        if (!handle) return; // aborted Speichern unter
+        syncWorkingFileUrlContext();
+        setWorkingFileDirty(false);
+        setPersistPaused(false);
+      } else {
+        const result = await persistWorkingFileJson(boardJsonFromStoreState());
+        if (!result.ok) {
+          window.alert(result.message ?? "Speichern fehlgeschlagen.");
+          return;
+        }
+        setWorkingFileDirty(false);
+      }
+      setUnsavedPrompt(null);
+      await proceed();
+    } finally {
+      setUnsavedBusy(false);
+    }
   };
 
   const handleNewWorkingFile = () => {
@@ -591,7 +641,9 @@ export function StormBoard() {
       );
       return;
     }
-    setNewFileOpen(true);
+    void runWithUnsavedGuard("Neu", () => {
+      setNewFileOpen(true);
+    });
   };
 
   const handleNewWorkingFileChoice = async (choice: NewWorkingFileChoice) => {
@@ -608,6 +660,7 @@ export function StormBoard() {
         createDefaultBoardDocument({ title: choice.title }),
       );
       setWorkingFileDirty(false);
+      setPersistPaused(false);
       setSetupOpen(false);
       setStorageOpen(false);
 
@@ -643,17 +696,9 @@ export function StormBoard() {
     }
   };
 
-  const handleOpenWorkingFile = async () => {
-    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-      window.alert(
-        "Während der Kollaboration kann keine andere Datei in den Editor geladen werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
-      );
-      return;
-    }
-    if (!ensureSavedBeforeOpen()) return;
+  const openWorkingFileNow = async () => {
     setBusy(true);
     try {
-      // Picker needs user activation — run before any safety-download click.
       const handle = await attachWorkingFileOpen();
       if (!handle) return;
       backupBeforeSuspiciousSwitch("file");
@@ -676,76 +721,136 @@ export function StormBoard() {
     }
   };
 
-  const handleOpenRecentWorkingFile = async (handle: FileSystemFileHandle) => {
+  const handleOpenWorkingFile = () => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
       window.alert(
         "Während der Kollaboration kann keine andere Datei in den Editor geladen werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
       );
       return;
     }
-    if (!ensureSavedBeforeOpen()) return;
+    void runWithUnsavedGuard("Öffnen", () => openWorkingFileNow());
+  };
+
+  const handleCloseWorkingFile = () => {
+    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+      window.alert(
+        "Während der Kollaboration kann die Datei nicht geschlossen werden. Bitte zuerst den Raum verlassen.",
+      );
+      return;
+    }
+    void runWithUnsavedGuard("Schließen", async () => {
+      setBusy(true);
+      try {
+        backupBeforeSuspiciousSwitch("file");
+        await detachWorkingFile();
+        useStormBoardStore.getState().replaceBoardFromImport(createDefaultBoardDocument({ title: "" }));
+        bindTabWorkingFile(null);
+        setWorkingFileName(null);
+        setWorkingFileDirty(false);
+        setPersistPaused(false);
+        markWorkingFileSessionHydrated();
+        setStorageOpen(false);
+      } finally {
+        setBusy(false);
+      }
+    });
+  };
+
+  const handleRenameWorkingFile = async () => {
+    if (!isWorkingFileAttached()) {
+      window.alert("Keine Arbeitsdatei verknüpft — zuerst Speichern unter…");
+      return;
+    }
+    const current = getWorkingFileLabel() || "board.storm.json";
+    const next = window.prompt("Neuer Dateiname:", current);
+    if (next == null) return;
+    const trimmed = next.trim();
+    if (!trimmed) return;
     setBusy(true);
     try {
-      // Permission must run while the click gesture is still valid — before backup download.
-      const permitted = await requestWorkingFilePermission(handle);
-      if (!permitted) {
-        window.alert(
-          "Datei konnte nicht geöffnet werden. Bitte Berechtigung erteilen oder die Datei erneut über „Datei öffnen“ wählen.",
-        );
+      const result = await renameWorkingFile(trimmed);
+      if (!result.ok) {
+        window.alert(result.reason);
         return;
       }
-      backupBeforeSuspiciousSwitch("file");
-      const result = await openRecentWorkingFile(handle, { skipPermission: true });
-      if (!result) {
-        window.alert(
-          "Datei konnte nicht geöffnet werden. Bitte die Datei erneut über „Datei öffnen“ wählen.",
-        );
-        return;
-      }
-      if (result.hydrate.status === "conflict") {
-        setImportConflict({
-          fileText: result.hydrate.fileText,
-          fileLastModified: result.hydrate.fileLastModified,
-          fileName: result.handle.name || "Arbeitsdatei",
-        });
-        return;
-      }
-      setPersistPaused(false);
-      setWorkingFileDirty(false);
+      setWorkingFileName(result.name);
       syncWorkingFileUrlContext();
-      setSetupOpen(false);
-      setStorageOpen(false);
     } finally {
       setBusy(false);
     }
   };
 
-  const handleOpenLocalBackup = async (backupId: string) => {
+  const handleOpenRecentWorkingFile = (handle: FileSystemFileHandle) => {
+    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+      window.alert(
+        "Während der Kollaboration kann keine andere Datei in den Editor geladen werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
+      );
+      return;
+    }
+    void runWithUnsavedGuard("Öffnen", async () => {
+      setBusy(true);
+      try {
+        const permitted = await requestWorkingFilePermission(handle);
+        if (!permitted) {
+          window.alert(
+            "Datei konnte nicht geöffnet werden. Bitte Berechtigung erteilen oder die Datei erneut über „Datei öffnen“ wählen.",
+          );
+          return;
+        }
+        backupBeforeSuspiciousSwitch("file");
+        const result = await openRecentWorkingFile(handle, { skipPermission: true });
+        if (!result) {
+          window.alert(
+            "Datei konnte nicht geöffnet werden. Bitte die Datei erneut über „Datei öffnen“ wählen.",
+          );
+          return;
+        }
+        if (result.hydrate.status === "conflict") {
+          setImportConflict({
+            fileText: result.hydrate.fileText,
+            fileLastModified: result.hydrate.fileLastModified,
+            fileName: result.handle.name || "Arbeitsdatei",
+          });
+          return;
+        }
+        setPersistPaused(false);
+        setWorkingFileDirty(false);
+        syncWorkingFileUrlContext();
+        setSetupOpen(false);
+        setStorageOpen(false);
+      } finally {
+        setBusy(false);
+      }
+    });
+  };
+
+  const handleOpenLocalBackup = (backupId: string) => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
       window.alert(
         "Während der Kollaboration kann kein Backup in den Editor geladen werden. Bitte zuerst den Raum verlassen.",
       );
       return;
     }
-    if (!ensureSavedBeforeOpen()) return;
-    setBusy(true);
-    try {
-      const record = await getLocalBackup(backupId);
-      if (!record?.json?.trim()) {
-        window.alert("Backup wurde nicht gefunden oder ist leer.");
-        return;
+    void runWithUnsavedGuard("Backup öffnen", async () => {
+      setBusy(true);
+      try {
+        const record = await getLocalBackup(backupId);
+        if (!record?.json?.trim()) {
+          window.alert("Backup wurde nicht gefunden oder ist leer.");
+          return;
+        }
+        backupBeforeSuspiciousSwitch("file");
+        if (!loadForeignBoardIntoEditor(record.json, { reason: "backup" })) {
+          window.alert("Backup konnte nicht geladen werden.");
+          return;
+        }
+        setWorkingFileName(getWorkingFileLabel());
+        setPersistPaused(true);
+        setStorageOpen(false);
+      } finally {
+        setBusy(false);
       }
-      backupBeforeSuspiciousSwitch("file");
-      if (!loadForeignBoardIntoEditor(record.json, { reason: "backup" })) {
-        window.alert("Backup konnte nicht geladen werden.");
-        return;
-      }
-      setWorkingFileName(getWorkingFileLabel());
-      setPersistPaused(true);
-      setStorageOpen(false);
-    } finally {
-      setBusy(false);
-    }
+    });
   };
 
   const handlePasteJson = () => {
@@ -755,8 +860,9 @@ export function StormBoard() {
       );
       return;
     }
-    if (!ensureSavedBeforeOpen()) return;
-    setJsonPasteMode("board");
+    void runWithUnsavedGuard("JSON einfügen", () => {
+      setJsonPasteMode("board");
+    });
   };
 
   const applyPastedBoardJson = async (raw: string) => {
@@ -786,8 +892,9 @@ export function StormBoard() {
   };
 
   const handleRestoreBackupFilePick = () => {
-    if (!ensureSavedBeforeOpen()) return;
-    fileInputRef.current?.click();
+    void runWithUnsavedGuard("Öffnen", () => {
+      fileInputRef.current?.click();
+    });
   };
 
   const handleImportConflict = async (choice: FileConflictChoice) => {
@@ -1035,8 +1142,8 @@ export function StormBoard() {
         workingFileDirty={workingFileDirty}
         workingFileSaving={workingFileSaving}
         workingFilePersistPaused={persistPaused}
-        mustSaveBeforeOpen={
-          workingFileDirty || (!isWorkingFileAttached() && boardHasLocalContent())
+        hasUnsavedDocument={
+          workingFileDirty || persistPaused || (!isWorkingFileAttached() && boardHasLocalContent())
         }
         backupIntervalMinutes={backupIntervalMinutes}
         backupHistoryMode={backupHistoryMode}
@@ -1056,10 +1163,12 @@ export function StormBoard() {
           }
         }}
         onBackupNow={() => void runManualBoardBackup(setBackupLastLabel)}
-        onNewWorkingFile={() => handleNewWorkingFile()}
+        onNewWorkingFile={() => void handleNewWorkingFile()}
         onSaveWorkingFile={() => void handleSaveWorkingFile()}
         onOpenWorkingFile={() => void handleOpenWorkingFile()}
         onSaveWorkingFileAs={() => void handleSaveWorkingFileAs()}
+        onCloseWorkingFile={() => void handleCloseWorkingFile()}
+        onRenameWorkingFile={() => void handleRenameWorkingFile()}
         onOpenRecentWorkingFile={(handle) => void handleOpenRecentWorkingFile(handle)}
         onOpenLocalBackup={(id) => void handleOpenLocalBackup(id)}
         onRestoreBackupFile={handleRestoreBackupFilePick}
@@ -1217,10 +1326,24 @@ export function StormBoard() {
         open={newFileOpen}
         busy={busy}
         currentFileName={workingFileName}
-        hasUnsavedChanges={workingFileDirty}
-        hasBoardContent={boardHasLocalContent()}
+        hasUnsavedChanges={false}
+        hasBoardContent={false}
         fsAccessSupported={isWorkingFileSupported()}
         onChoose={(choice) => void handleNewWorkingFileChoice(choice)}
+      />
+
+      <UnsavedChangesDialog
+        open={unsavedPrompt !== null}
+        actionLabel={unsavedPrompt?.actionLabel ?? ""}
+        fileName={workingFileName ?? getWorkingFileLabel()}
+        busy={unsavedBusy}
+        canSave={isWorkingFileSupported() || isWorkingFileAttached()}
+        saveLabel={
+          isWorkingFileAttached() && !isWorkingFilePersistPaused()
+            ? "Speichern"
+            : "Speichern unter…"
+        }
+        onChoose={(choice) => void handleUnsavedChoice(choice)}
       />
 
       <WorkingFileSetupDialog
@@ -1248,7 +1371,6 @@ export function StormBoard() {
             );
             return;
           }
-          if (!ensureSavedBeforeOpen()) return;
           setBusy(true);
           backupBeforeSuspiciousSwitch("file");
           void attachWorkingFileFromBrowserFile(file).then((result) => {
@@ -1265,6 +1387,8 @@ export function StormBoard() {
               });
               return;
             }
+            setPersistPaused(false);
+            setWorkingFileDirty(false);
             syncWorkingFileUrlContext();
             setSetupOpen(false);
             setStorageOpen(false);

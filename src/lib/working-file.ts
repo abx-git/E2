@@ -1450,6 +1450,58 @@ export async function restoreWorkingFileFromDisk(
   return null;
 }
 
+/**
+ * Rename the attached Arbeitsdatei in place (Chromium `FileSystemFileHandle.move`).
+ * Falls back to null when unsupported — caller should offer Speichern unter….
+ */
+export async function renameWorkingFile(
+  newNameRaw: string,
+): Promise<{ ok: true; name: string } | { ok: false; reason: string }> {
+  const handle = memoryHandle;
+  if (!handle) {
+    return { ok: false, reason: "Keine Arbeitsdatei verknüpft." };
+  }
+  if (typeof handle.move !== "function") {
+    return {
+      ok: false,
+      reason: "Umbenennen wird in diesem Browser nicht unterstützt. Nutze Speichern unter…",
+    };
+  }
+  const next = suggestedWorkingFileName(newNameRaw.trim() || handle.name);
+  if (next === (handle.name?.trim() || "")) {
+    return { ok: true, name: next };
+  }
+  try {
+    if (!(await ensureReadWritePermission(handle))) {
+      return { ok: false, reason: "Keine Schreibberechtigung für die Datei." };
+    }
+    const oldName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
+    await handle.move(next);
+    const fileName = handle.name?.trim() || next;
+    rememberLastFileNameInStorage(fileName);
+    syncTabContextAndWriter(fileName, activeWorkingFileId);
+    try {
+      if (activeWorkingFileId) {
+        await idbPutHandle(handle, fileName, activeWorkingFileId);
+        await rememberRecentWorkingFile(handle, activeWorkingFileId);
+      }
+      if (oldName !== fileName) {
+        await idbDelete(nameIndexIdbKey(oldName));
+      }
+    } catch {
+      /* ignore index errors */
+    }
+    notifyWorkingFileAttached();
+    return { ok: true, name: fileName };
+  } catch (e) {
+    console.error("Arbeitsdatei umbenennen:", e);
+    return {
+      ok: false,
+      reason: e instanceof Error ? e.message : "Umbenennen fehlgeschlagen.",
+    };
+  }
+}
+
 export async function detachWorkingFile(): Promise<void> {
   const name =
     memoryHandle?.name?.trim() ||

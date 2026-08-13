@@ -44,8 +44,8 @@ export interface DataStoragePanelProps {
   workingFileSaving: boolean;
   /** Autosave paused (foreign load / collab) — Speichern unter… required. */
   workingFilePersistPaused?: boolean;
-  /** When true, opening another file/backup is disabled until the board is saved. */
-  mustSaveBeforeOpen: boolean;
+  /** When true, show a hint that there are unsaved changes (Open/New still allowed — with prompt). */
+  hasUnsavedDocument?: boolean;
   backupIntervalMinutes: BackupIntervalMinutes;
   backupHistoryMode: BackupHistoryMode;
   backupLastLabel: string;
@@ -57,6 +57,8 @@ export interface DataStoragePanelProps {
   onOpenWorkingFile: () => void;
   /** Speichern unter… — pick a new path; becomes the Arbeitsdatei. */
   onSaveWorkingFileAs: () => void;
+  onCloseWorkingFile?: () => void;
+  onRenameWorkingFile?: () => void;
   onOpenRecentWorkingFile: (handle: FileSystemFileHandle) => void;
   onOpenLocalBackup: (backupId: string) => void;
   onRestoreBackupFile: () => void;
@@ -261,7 +263,7 @@ export function DataStoragePanel({
   workingFileDirty,
   workingFileSaving,
   workingFilePersistPaused,
-  mustSaveBeforeOpen,
+  hasUnsavedDocument,
   backupIntervalMinutes,
   backupHistoryMode,
   backupLastLabel,
@@ -272,6 +274,8 @@ export function DataStoragePanel({
   onSaveWorkingFile,
   onOpenWorkingFile,
   onSaveWorkingFileAs,
+  onCloseWorkingFile,
+  onRenameWorkingFile,
   onOpenRecentWorkingFile,
   onOpenLocalBackup,
   onRestoreBackupFile,
@@ -338,7 +342,7 @@ export function DataStoragePanel({
 
   useEffect(() => {
     if (!open) return;
-    if (mustSaveBeforeOpen || workingFileDirty) {
+    if (hasUnsavedDocument || workingFileDirty) {
       setPreferredTab("file");
     }
     let cancelled = false;
@@ -541,9 +545,10 @@ export function DataStoragePanel({
                     „Speichern unter…“.
                   </p>
                 )}
-                {mustSaveBeforeOpen && (
+                {hasUnsavedDocument && (
                   <p className="rounded-lg border border-[var(--accent-2)]/40 bg-[rgba(233,196,106,0.12)] px-2.5 py-2 text-xs text-[var(--accent-2)]">
-                    Ungespeichert — zuerst speichern, bevor du eine andere Datei öffnest.
+                    Ungespeicherte Änderungen — bei Neu / Öffnen / Schließen kannst du speichern oder
+                    verwerfen.
                   </p>
                 )}
                 <div className="grid grid-cols-2 gap-2">
@@ -551,25 +556,19 @@ export function DataStoragePanel({
                     <FilePlus className="h-4 w-4" /> Neu
                   </ActionButton>
                   {fsAccessSupported ? (
-                    <ActionButton
-                      onClick={onOpenWorkingFile}
-                      disabled={busy || mustSaveBeforeOpen}
-                    >
-                      <FolderOpen className="h-4 w-4" /> Öffnen
+                    <ActionButton onClick={onOpenWorkingFile} disabled={busy}>
+                      <FolderOpen className="h-4 w-4" /> Öffnen…
                     </ActionButton>
                   ) : (
-                    <ActionButton
-                      onClick={onRestoreBackupFile}
-                      disabled={busy || mustSaveBeforeOpen}
-                    >
-                      <FolderOpen className="h-4 w-4" /> Öffnen
+                    <ActionButton onClick={onRestoreBackupFile} disabled={busy}>
+                      <FolderOpen className="h-4 w-4" /> Öffnen…
                     </ActionButton>
                   )}
                   {workingFileAttached ? (
                     <ActionButton
                       onClick={onSaveWorkingFile}
-                      disabled={busy || !workingFileDirty}
-                      emphasize={workingFileDirty || mustSaveBeforeOpen}
+                      disabled={busy || (!workingFileDirty && !workingFilePersistPaused)}
+                      emphasize={workingFileDirty || Boolean(hasUnsavedDocument)}
                     >
                       <Save className="h-4 w-4" /> Speichern
                     </ActionButton>
@@ -577,10 +576,20 @@ export function DataStoragePanel({
                   <ActionButton
                     onClick={onSaveWorkingFileAs}
                     disabled={busy}
-                    emphasize={!workingFileAttached && mustSaveBeforeOpen}
+                    emphasize={!workingFileAttached && Boolean(hasUnsavedDocument)}
                   >
                     <Save className="h-4 w-4" /> Speichern unter…
                   </ActionButton>
+                  {workingFileAttached && onCloseWorkingFile ? (
+                    <ActionButton onClick={onCloseWorkingFile} disabled={busy}>
+                      <X className="h-4 w-4" /> Schließen
+                    </ActionButton>
+                  ) : null}
+                  {workingFileAttached && onRenameWorkingFile ? (
+                    <ActionButton onClick={onRenameWorkingFile} disabled={busy}>
+                      Umbenennen…
+                    </ActionButton>
+                  ) : null}
                 </div>
                 {busy && (
                   <p className="flex items-center gap-2 text-xs text-[var(--muted)]">
@@ -592,7 +601,7 @@ export function DataStoragePanel({
               <Disclosure title="Weitere Aktionen">
                 <ActionButton
                   onClick={onRestoreBackupPaste}
-                  disabled={busy || mustSaveBeforeOpen}
+                  disabled={busy}
                 >
                   JSON einfügen
                 </ActionButton>
@@ -600,14 +609,13 @@ export function DataStoragePanel({
                   <div className="space-y-1.5">
                     <p className="text-[0.7rem] font-medium text-[var(--muted)]">
                       Zuletzt verwendet
-                      {mustSaveBeforeOpen ? " — erst speichern" : ""}
                     </p>
                     <ul className="space-y-1">
                       {recentFiles.map((entry) => (
                         <li key={`${entry.name}-${entry.openedAt}`}>
                           <button
                             type="button"
-                            disabled={busy || mustSaveBeforeOpen}
+                            disabled={busy}
                             onClick={() => onOpenRecentWorkingFile(entry.handle)}
                             className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
                             title={new Date(entry.openedAt).toLocaleString("de-DE")}
@@ -645,7 +653,7 @@ export function DataStoragePanel({
                 </ActionButton>
                 <ActionButton
                   onClick={onRestoreBackupFile}
-                  disabled={busy || mustSaveBeforeOpen}
+                  disabled={busy}
                 >
                   <FolderOpen className="h-4 w-4" /> Backup-Datei öffnen
                 </ActionButton>
@@ -653,14 +661,13 @@ export function DataStoragePanel({
                   <div className="space-y-1.5">
                     <p className="text-[0.7rem] font-medium text-[var(--muted)]">
                       Gesicherte Backups
-                      {mustSaveBeforeOpen ? " — erst speichern" : ""}
                     </p>
                     <ul className="space-y-1">
                       {localBackups.map((entry) => (
                         <li key={entry.id}>
                           <button
                             type="button"
-                            disabled={busy || mustSaveBeforeOpen}
+                            disabled={busy}
                             onClick={() => onOpenLocalBackup(entry.id)}
                             className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
                             title={new Date(entry.createdAt).toLocaleString("de-DE")}

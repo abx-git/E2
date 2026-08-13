@@ -301,7 +301,8 @@ Im Facilitator-Modus:
 
 - Primär: lokale `.storm.json` (File System Access API, wo verfügbar) — **ein Dokument, mehrere Sichten (Tabs)**  
 - Format **v2** (`views[]`); ältere v1-Dateien werden beim Öffnen migriert  
-- Alternativen: Datei öffnen / JSON einfügen (bei Konflikt: Dialog)  
+- Alternativen: Datei öffnen / JSON einfügen — bei ungespeicherten Änderungen: Speichern / Nicht speichern / Abbrechen (wie in Desktop-Apps)  
+- Datei-Menü: **Neu**, **Öffnen…**, **Speichern**, **Speichern unter…**, **Schließen**, **Umbenennen…**  
 - **Import als neue Seite:** Daten → *Als neue Seite importieren* — Sichten aus einer `.storm.json` als neue Tabs; **Farben / Titel / Glossary / Workshop-Modus** bleiben aus der geöffneten Datei  
 - **Board-Link teilen:** Daten → *Board-Link teilen…* — Remote-URL zu einer öffentlichen `.storm.json` prüfen (Schema); bei Erfolg Share-Link mit `?board=…`. Öffnen des Links fragt nach Bestätigung und lädt danach lokal weiter (CORS muss erlaubt sein)  
 - **Schutz vor Überschreiben:** Autosave schreibt nie einen leeren/fremden Stand über eine nicht-leere Arbeitsdatei. Beim Öffnen einer anderen Datei ist Speichern blockiert, bis deren Inhalt geladen ist — der vorherige Editor-Stand wird nie in die neue Datei geschrieben. Backup / Remote und Kollaboration pausieren das Speichern — Weiter mit „Speichern unter…“. Ändert ein anderes Tool die Arbeitsdatei, übernimmt E2 den Dateistand automatisch (sichtbarer Tab, ~1 s Poll); waren Editor-Änderungen offen, wird zuvor eine Editor-Sicherheitskopie heruntergeladen.  
