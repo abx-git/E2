@@ -132,15 +132,30 @@ describe("working-file-tab-context", () => {
     expect(getTabWorkingFileContext().wf).toBe(null);
   });
 
-  it("resolves preferred id from session then URL; label is separate", () => {
+  it("resolves preferred id from URL then session; label is separate", () => {
     localStorage.setItem("e2-last-working-file-name", "from-ls.storm.json");
     href = "http://localhost/?wf=from-url-wf&filename=from-url.storm.json";
     expect(resolvePreferredWorkingFileId()).toBe("from-url-wf");
     expect(resolvePreferredWorkingFileName()).toBe("from-url.storm.json");
 
     setTabWorkingFileContext("wf-session", "from-session.storm.json");
+    // Bookmark / deep-link URL wins over a later session board.
+    expect(resolvePreferredWorkingFileId()).toBe("from-url-wf");
+    expect(resolvePreferredWorkingFileName()).toBe("from-url.storm.json");
+  });
+
+  it("uses session id when URL has no wf", () => {
+    href = "http://localhost/";
+    setTabWorkingFileContext("wf-session", "from-session.storm.json");
     expect(resolvePreferredWorkingFileId()).toBe("wf-session");
     expect(resolvePreferredWorkingFileName()).toBe("from-session.storm.json");
+  });
+
+  it("uses session label when URL wf matches session", () => {
+    href = "http://localhost/?wf=wf-same";
+    setTabWorkingFileContext("wf-same", "session-label.storm.json");
+    expect(resolvePreferredWorkingFileId()).toBe("wf-same");
+    expect(resolvePreferredWorkingFileName()).toBe("session-label.storm.json");
   });
 
   it("does not fall back to localStorage when URL and session are empty", () => {

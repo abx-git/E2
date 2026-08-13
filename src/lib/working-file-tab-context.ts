@@ -1,7 +1,8 @@
 /**
  * Per-tab document binding — wf-first.
  *
- * Identity (bookmark / restore / locks / IDB): `?wf=` + sessionStorage.wf
+ * Identity (bookmark / restore / locks / IDB): URL `?wf=` wins over sessionStorage.wf
+ * (so browser bookmarks / deep-links reopen the intended file in the same tab).
  * Label (footer / document.title): session label, never used as identity
  *
  * Legacy: old bookmarks may still have `?filename=` — read once for restore, then
@@ -177,22 +178,28 @@ export function setTabWorkingFileContext(wf: string | null, label: string | null
 }
 
 /**
- * Preferred slot id for restore: session → URL `?wf=`.
- * No localStorage — that would steal another tab's file.
+ * Preferred slot id for restore: URL `?wf=` → session.
+ * URL wins so bookmarks reopen the bookmarked file even when session still
+ * points at a later-opened board. No localStorage — that would steal another tab's file.
  */
 export function resolvePreferredWorkingFileId(): string | null {
-  const fromSession = getTabWorkingFileContext().wf;
-  if (fromSession) return fromSession;
-  return readWorkingFileIdFromUrl();
+  const fromUrl = readWorkingFileIdFromUrl();
+  if (fromUrl) return fromUrl;
+  return getTabWorkingFileContext().wf;
 }
 
 /**
  * Preferred display label hint (not identity):
  * session label → legacy `?filename=`
+ * When URL `?wf=` disagrees with session, ignore the stale session label.
  */
 export function resolvePreferredWorkingFileName(): string | null {
-  const fromSession = getTabWorkingFileContext().label;
-  if (fromSession) return fromSession;
+  const urlWf = readWorkingFileIdFromUrl();
+  const session = getTabWorkingFileContext();
+  if (urlWf && session.wf && urlWf !== session.wf) {
+    return readFilenameFromUrl();
+  }
+  if (session.label) return session.label;
   return readFilenameFromUrl();
 }
 
