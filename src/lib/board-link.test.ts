@@ -8,10 +8,6 @@ import {
 } from "@/lib/board-link";
 import type { StormElement } from "@/types/storm-element";
 
-vi.mock("@/lib/board-backup", () => ({
-  backupBeforeSuspiciousSwitch: vi.fn(),
-}));
-
 vi.mock("@/store/storm-board-store", () => {
   const state = {
     views: [

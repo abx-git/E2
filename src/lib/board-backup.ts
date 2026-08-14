@@ -401,12 +401,13 @@ export async function createBoardBackupNow(
   return { filename, skipped: false };
 }
 
-export type SuspiciousSwitchKind = "view" | "file" | "room";
+export type SuspiciousSwitchKind = "file" | "room";
 
 const LAST_SWITCH_BACKUP_AT: Partial<Record<SuspiciousSwitchKind | "any", number>> = {};
 
 /**
- * Safety backup before replacing/switching board context (Sicht, Datei, Raum).
+ * Safety backup before replacing board context (Datei öffnen, Raum betreten).
+ * Not used for Sicht-Tabs — those stay in the same document.
  * Only when the current stand is not yet saved to the Arbeitsdatei.
  * Debounced per kind so confirm-dialogs don't double-download.
  */
@@ -423,8 +424,7 @@ export async function backupBeforeSuspiciousSwitch(
   if (!options?.force && !boardNeedsSafetyBackup()) {
     return { skipped: true, reason: "already_saved" };
   }
-  const debounceMs =
-    options?.debounceMs ?? (kind === "view" ? 4000 : 2000);
+  const debounceMs = options?.debounceMs ?? 2000;
   const now = Date.now();
   const lastKind = LAST_SWITCH_BACKUP_AT[kind] ?? 0;
   const lastAny = LAST_SWITCH_BACKUP_AT.any ?? 0;

@@ -92,11 +92,11 @@ describe("board-backup", () => {
     useStormBoardStore.getState().addElement("domainEvent", 10, 20);
     mockAttached.mockReturnValue(true);
     mockDirty.mockReturnValue(false);
-    expect(await backupBeforeSuspiciousSwitch("view")).toEqual({
+    expect(await backupBeforeSuspiciousSwitch("file")).toEqual({
       skipped: true,
       reason: "already_saved",
     });
-    expect(await backupBeforeSuspiciousSwitch("file")).toEqual({
+    expect(await backupBeforeSuspiciousSwitch("room")).toEqual({
       skipped: true,
       reason: "already_saved",
     });

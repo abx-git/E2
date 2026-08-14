@@ -3,7 +3,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Copy, Plus, Trash2, X } from "lucide-react";
-import { backupBeforeSuspiciousSwitch } from "@/lib/board-backup";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 export function BoardViewTabs() {
@@ -32,7 +31,6 @@ export function BoardViewTabs() {
 
   const switchView = (id: string) => {
     if (id === activeViewId) return;
-    backupBeforeSuspiciousSwitch("view");
     setActiveView(id);
   };
 

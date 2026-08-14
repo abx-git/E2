@@ -57,7 +57,6 @@ import { normalizeProgressMark } from "@/lib/progress-mark";
 
 const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
-import { backupBeforeSuspiciousSwitch } from "@/lib/board-backup";
 import { normalizeActionItem } from "@/lib/action-items";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
 import { createEmptyBoardView, normalizeBoardDocument } from "@/lib/storm-json";
@@ -1915,7 +1914,6 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return get().openBoundedContextView(bcId);
     }
 
-    backupBeforeSuspiciousSwitch("view");
     return get().openBoundedContextParentView(bcId);
   },
 
@@ -2030,7 +2028,6 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return get().openBuildingBlockView(elementId);
     }
 
-    backupBeforeSuspiciousSwitch("view");
     return get().openBuildingBlockParentView(elementId);
   },
 
