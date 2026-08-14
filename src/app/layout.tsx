@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans } from "next/font/google";
 
+import { AppProviders } from "@/components/app-providers";
+
 import "./globals.css";
 
 const plex = IBM_Plex_Sans({
@@ -38,8 +40,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={plex.variable}>
-      <body className={`${plex.className} min-h-screen antialiased`}>{children}</body>
+    <html lang="de" className={plex.variable} suppressHydrationWarning>
+      <body className={`${plex.className} min-h-screen antialiased`}>
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }

@@ -1,7 +1,7 @@
 {
   "format": "hierarchical-task-manager",
   "version": 1,
-  "exportedAt": "2026-08-12T04:30:48.712Z",
+  "exportedAt": "2026-08-14T05:12:35.326Z",
   "scope": "board",
   "roots": [
     {
@@ -30,29 +30,6 @@
               "dueDate": null,
               "reminderDate": null,
               "effort": 0,
-              "children": []
-            },
-            {
-              "id": "5DSZ-WMHQ",
-              "title": "Schreiben Amtsgericht Schlesig,",
-              "description": "",
-              "tags": [],
-              "dueDate": null,
-              "reminderDate": null,
-              "effort": 0,
-              "children": []
-            },
-            {
-              "id": "1X53-B8V2",
-              "title": "Prüfen Schufa-Eintrag",
-              "description": "",
-              "tags": [
-                "WICHTIG"
-              ],
-              "dueDate": "2026-07-31T12:23:00.000Z",
-              "reminderDate": null,
-              "effort": 0,
-              "cardColor": "rose",
               "children": []
             }
           ]
@@ -1900,7 +1877,8 @@
     "7MX8-0JZD",
     "W1HV-K851",
     "TVVM-9CG8",
-    "X4KR-2SZ3"
+    "X4KR-2SZ3",
+    "6MJQ-P6BK"
   ],
   "columnTitleOverrides": {
     "0": "E1",

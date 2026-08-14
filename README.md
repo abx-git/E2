@@ -27,6 +27,7 @@ Diese README beschreibt die **implementierten Funktionen** und stellt sie klassi
 | Unsicherheit | Hotspots inkl. Status/Priorität |
 | I/O | `.storm.json` + Schema, SVG/PNG, Markdown-Reports |
 | UX | Mehrfachauswahl, Ausrichten, Rechtsklick-Menüs, Farben |
+| UI-Sprache | Deutsch / English (clientseitig; Daten → Darstellung) |
 
 ---
 
@@ -421,7 +422,10 @@ Legende: ✅ vorhanden · 🟡 teilweise · ❌ fehlt / bewusst nicht
 4. Struktur: Canvas **Ansicht** / Swimlane / Bounded Context.  
 5. Feinschliff: Rechtsklick-Menü; Text/Schema/Invarianten in der rechten Leiste.  
 6. Optional unter **Session** Facilitator-Format einschalten (inkl. Phasen-Timer).  
-7. Export über **Daten**.
+7. Export über **Daten**.  
+8. UI-Sprache (**Deutsch** / **English**) unter **Daten → Darstellung** (oder `?lang=en` einmalig).
+
+Details zur i18n-Infrastruktur: [`docs/i18n.md`](docs/i18n.md).
 
 ---
 

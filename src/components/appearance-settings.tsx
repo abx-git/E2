@@ -1,17 +1,21 @@
 "use client";
 
 import { APPEARANCE_PRESETS, DEFAULT_APPEARANCE } from "@/lib/board-appearance";
+import { LanguageSwitcher, useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 export function AppearanceSettings() {
   const appearance = useStormBoardStore((s) => s.appearance);
   const setAppearance = useStormBoardStore((s) => s.setAppearance);
+  const t = useT();
 
   return (
     <div className="space-y-3">
+      <LanguageSwitcher />
+
       <div className="grid grid-cols-2 gap-3">
         <label className="block text-[0.72rem] font-medium text-[var(--muted)]">
-          Arbeitsbereich
+          {t("appearance.workspace")}
           <input
             type="color"
             className="dock-field mt-1 h-10 cursor-pointer p-1"
@@ -20,7 +24,7 @@ export function AppearanceSettings() {
           />
         </label>
         <label className="block text-[0.72rem] font-medium text-[var(--muted)]">
-          Seitenleisten
+          {t("appearance.sidebars")}
           <input
             type="color"
             className="dock-field mt-1 h-10 cursor-pointer p-1"
@@ -31,7 +35,7 @@ export function AppearanceSettings() {
       </div>
 
       <div>
-        <p className="group-label mb-2">Presets</p>
+        <p className="group-label mb-2">{t("appearance.presets")}</p>
         <div className="flex flex-wrap gap-1.5">
           {APPEARANCE_PRESETS.map((preset) => {
             const active =
@@ -61,7 +65,7 @@ export function AppearanceSettings() {
             onClick={() => setAppearance(DEFAULT_APPEARANCE)}
             className="dock-control rounded-lg px-2.5 py-1.5 text-xs"
           >
-            Zurücksetzen
+            {t("appearance.reset")}
           </button>
         </div>
       </div>

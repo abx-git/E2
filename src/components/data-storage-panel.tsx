@@ -26,6 +26,7 @@ import {
   type LocalBackupListItem,
 } from "@/lib/board-backup";
 import { listRecentWorkingFiles } from "@/lib/working-file";
+import { useI18n, useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ModelingMode } from "@/types/storm-element";
 import { MODELING_MODE_LABELS } from "@/types/storm-element";
@@ -192,9 +193,9 @@ function Disclosure({
 
 const BACKUP_LIST_PREVIEW = 3;
 
-function formatBackupWhen(createdAt: number): string {
+function formatBackupWhen(createdAt: number, locale = "de-DE"): string {
   try {
-    return new Date(createdAt).toLocaleString("de-DE", {
+    return new Date(createdAt).toLocaleString(locale, {
       day: "2-digit",
       month: "2-digit",
       year: "2-digit",
@@ -337,6 +338,8 @@ export function DataStoragePanel({
   onOpenCollab,
   busy,
 }: DataStoragePanelProps) {
+  const t = useT();
+  const { bcp47 } = useI18n();
   const modelingMode = useStormBoardStore((s) => s.modelingMode);
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const views = useStormBoardStore((s) => s.views);
@@ -483,9 +486,9 @@ export function DataStoragePanel({
   if (!open) return null;
 
   const tabs: Array<{ id: StorageTabId; label: string; icon: typeof FolderOpen }> = [
-    { id: "file", label: "Datei", icon: FolderOpen },
-    { id: "export", label: "Export", icon: Share2 },
-    { id: "appearance", label: "Darstellung", icon: Palette },
+    { id: "file", label: t("storage.tabFile"), icon: FolderOpen },
+    { id: "export", label: t("storage.tabExport"), icon: Share2 },
+    { id: "appearance", label: t("storage.tabAppearance"), icon: Palette },
   ];
 
   const layer = (
@@ -506,17 +509,17 @@ export function DataStoragePanel({
         <header className="flex shrink-0 items-start justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <div>
             <h2 id="storage-panel-title" className="text-base font-semibold tracking-tight">
-              Daten &amp; Darstellung
+              {t("storage.panelTitle")}
             </h2>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Arbeitsdatei, Export und Farben
+              {t("storage.panelHint")}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="dock-control rounded-lg p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
-            aria-label="Schließen"
+            aria-label={t("common.close")}
           >
             <X className="h-4 w-4" />
           </button>
@@ -525,7 +528,7 @@ export function DataStoragePanel({
         <div
           className="flex shrink-0 gap-1 border-b border-[var(--border)] px-3 py-2"
           role="tablist"
-          aria-label="Daten & Darstellung"
+          aria-label={t("storage.panelTitle")}
         >
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -664,7 +667,7 @@ export function DataStoragePanel({
               </Disclosure>
 
               <Disclosure
-                title="Backup"
+                title={t("backup.title")}
                 hint={
                   localBackups.length > 0
                     ? `${localBackups.length} · ${backupLastLabel}`
@@ -672,19 +675,19 @@ export function DataStoragePanel({
                 }
               >
                 <p className="text-[0.7rem] leading-snug text-[var(--muted)]">
-                  Nur bei ungespeichertem Stand. Öffnen überschreibt die Arbeitsdatei nicht.
+                  {t("backup.hintUnsaved")}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <ActionButton onClick={onBackupNow} disabled={busy}>
-                    <Save className="h-4 w-4" /> Jetzt sichern
+                    <Save className="h-4 w-4" /> {t("backup.saveNow")}
                   </ActionButton>
                   <ActionButton onClick={onRestoreBackupFile} disabled={busy}>
-                    <FolderOpen className="h-4 w-4" /> Datei öffnen
+                    <FolderOpen className="h-4 w-4" /> {t("backup.openFile")}
                   </ActionButton>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <label className="flex min-w-0 flex-col gap-1 text-xs text-[var(--text)]">
-                    <span className="text-[var(--muted)]">Historie</span>
+                    <span className="text-[var(--muted)]">{t("backup.history")}</span>
                     <select
                       className="dock-field"
                       value={backupHistoryMode}
@@ -692,12 +695,12 @@ export function DataStoragePanel({
                         onBackupHistoryModeChange(e.target.value as BackupHistoryMode)
                       }
                     >
-                      <option value="history">Mit Historie</option>
-                      <option value="rolling">Eine Datei</option>
+                      <option value="history">{t("backup.historyOn")}</option>
+                      <option value="rolling">{t("backup.historyRolling")}</option>
                     </select>
                   </label>
                   <label className="flex min-w-0 flex-col gap-1 text-xs text-[var(--text)]">
-                    <span className="text-[var(--muted)]">Automatisch</span>
+                    <span className="text-[var(--muted)]">{t("backup.automatic")}</span>
                     <select
                       className="dock-field"
                       value={backupIntervalMinutes}
@@ -707,7 +710,9 @@ export function DataStoragePanel({
                     >
                       {BACKUP_INTERVAL_OPTIONS_MINUTES.map((m) => (
                         <option key={m} value={m}>
-                          {m === 0 ? "Aus" : `${m} Min.`}
+                          {m === 0
+                            ? t("backup.automaticOff")
+                            : t("backup.automaticMinutes", { n: m })}
                         </option>
                       ))}
                     </select>
@@ -716,7 +721,7 @@ export function DataStoragePanel({
                 {localBackups.length > 0 ? (
                   <div className="space-y-1">
                     <p className="text-[0.65rem] font-medium text-[var(--muted)]">
-                      Zuletzt gesichert
+                      {t("backup.recent")}
                     </p>
                     <ul className="divide-y divide-[var(--border)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--panel-solid)]/40">
                       {(backupListExpanded
@@ -729,14 +734,14 @@ export function DataStoragePanel({
                             disabled={busy}
                             onClick={() => onOpenLocalBackup(entry.id)}
                             className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs hover:bg-[var(--control-hover)] disabled:opacity-50"
-                            title={new Date(entry.createdAt).toLocaleString("de-DE")}
+                            title={new Date(entry.createdAt).toLocaleString(bcp47)}
                           >
                             <Clock className="h-3 w-3 shrink-0 text-[var(--muted)]" aria-hidden />
                             <span className="min-w-0 flex-1 truncate font-medium">
                               {entry.filename}
                             </span>
                             <span className="shrink-0 tabular-nums text-[0.65rem] text-[var(--muted)]">
-                              {formatBackupWhen(entry.createdAt)}
+                              {formatBackupWhen(entry.createdAt, bcp47)}
                             </span>
                           </button>
                         </li>
@@ -749,8 +754,8 @@ export function DataStoragePanel({
                         onClick={() => setBackupListExpanded((v) => !v)}
                       >
                         {backupListExpanded
-                          ? "Weniger anzeigen"
-                          : `Alle ${localBackups.length} anzeigen`}
+                          ? t("backup.showLess")
+                          : t("backup.showAll", { n: localBackups.length })}
                       </button>
                     ) : null}
                   </div>

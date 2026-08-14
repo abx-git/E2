@@ -27,6 +27,7 @@ timestamp: "2026-08-06"
 | App shell (Next.js App Router) | `src/app/` | `page.tsx`, PWA `manifest.ts`, offline `~offline/` |
 | UI / board chrome | `src/components/` | Canvas, palette, facilitator, collab dialogs, data panel |
 | Domain / board logic | `src/lib/` | JSON I/O, export, regions, views, validators |
+| UI i18n (de / en) | `src/i18n/` | Client locales, catalogs, `I18nProvider` — see [i18n.md](i18n.md) |
 | Collaboration | `src/lib/collab/` | Yjs board sync, Supabase provider, rooms, session |
 | Client state | `src/store/storm-board-store.ts` | Zustand board store |
 | Types | `src/types/` | Elements, relations, annotations |
@@ -64,6 +65,7 @@ timestamp: "2026-08-06"
 | Runtime (arc42 §6) | [arc42/runtime.md](arc42/runtime.md) |
 | Risks and debt (arc42 §11) | [arc42/risks.md](arc42/risks.md) |
 | Feature / method coverage | [../README.md](../README.md) |
+| UI internationalization (de/en) | [i18n.md](i18n.md) |
 | Board snapshot schema (v2) | [../public/schemas/board-snapshot-v2.schema.json](../public/schemas/board-snapshot-v2.schema.json) |
 | Collab SQL / RLS | [../supabase/schema.sql](../supabase/schema.sql) |
 | Pages deploy workflow | [../.github/workflows/deploy-github-pages.yml](../.github/workflows/deploy-github-pages.yml) |
