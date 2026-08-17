@@ -126,9 +126,14 @@ export function WorkingFileSync({
   const mountedRef = useRef(true);
   const saveQueuedRef = useRef(false);
   const saveInFlightRef = useRef(false);
+  /** True when board changed while a write was in flight — flush again after. */
+  const persistAgainRef = useRef(false);
   const suspendAutoPersistRef = useRef(false);
   const conflictActiveRef = useRef(false);
   const lastPersistKeyRef = useRef<string | null>(null);
+  const persistDebounceTimerRef = useRef<number | null>(null);
+
+  const AUTOSAVE_DEBOUNCE_MS = 250;
 
   const syncFileLabel = () => {
     callbacksRef.current.onWorkingFileNameChange(getWorkingFileLabel());
@@ -190,6 +195,14 @@ export function WorkingFileSync({
     const externalListeners: Array<{ target: EventTarget; type: string; listener: () => void }> =
       [];
 
+    const clearPersistDebounce = () => {
+      if (persistDebounceTimerRef.current != null) {
+        window.clearTimeout(persistDebounceTimerRef.current);
+        persistDebounceTimerRef.current = null;
+      }
+      saveQueuedRef.current = false;
+    };
+
     const flushPersist = async (): Promise<boolean> => {
       if (
         !isWorkingFileAttached() ||
@@ -197,25 +210,31 @@ export function WorkingFileSync({
         isWorkingFileSwitchInProgress() ||
         isCollabMode() ||
         !isWorkingFileWriterLeader() ||
-        saveInFlightRef.current ||
         conflictActiveRef.current ||
         suspendAutoPersistRef.current
       ) {
         return false;
       }
+      if (saveInFlightRef.current) {
+        persistAgainRef.current = true;
+        return false;
+      }
       if (!isWorkingFileDirty()) {
+        persistAgainRef.current = false;
         syncDirty();
         return true;
       }
 
       saveInFlightRef.current = true;
       callbacksRef.current.onSavingChange?.(true);
+      let wroteOk = false;
       try {
         const result = await persistWorkingFileJson(boardJsonFromStoreState());
         if (!mountedRef.current) return false;
         if (result.ok) {
           lastPersistKeyRef.current = boardPersistKeyFromStoreState();
           syncDirty();
+          wroteOk = true;
           return true;
         }
         if (
@@ -224,27 +243,48 @@ export function WorkingFileSync({
           result.reason === "empty_over_nonempty" ||
           result.reason === "unknown_disk_baseline"
         ) {
-          // Disk moved under us — adopt external stand; keep editor copy if dirty.
+          const editorJson = boardJsonFromStoreState();
+          const diskJson = result.diskJson ?? null;
+          const localViewSwitchOnly =
+            editorJson.trim() &&
+            diskJson != null &&
+            boardStatesEquivalentExceptActiveView(editorJson, diskJson) &&
+            !boardStatesEquivalent(editorJson, diskJson);
+          if (localViewSwitchOnly) {
+            syncDirty();
+            return false;
+          }
+
+          // Retry once with CAS skipped — during rapid edits the conflict is often self-caused.
+          const retryResult = await persistWorkingFileJson(boardJsonFromStoreState(), {
+            skipCas: true,
+          });
+          if (retryResult.ok) {
+            lastPersistKeyRef.current = boardPersistKeyFromStoreState();
+            syncDirty();
+            wroteOk = true;
+            return true;
+          }
+
           const handle = getWorkingFileHandle();
           const snap = handle
             ? await readWorkingFileSnapshot(handle)
-            : result.diskJson != null
-              ? { text: result.diskJson, lastModified: Date.now() }
+            : diskJson != null
+              ? { text: diskJson, lastModified: Date.now() }
               : null;
           if (snap) {
-            const editorJson = boardJsonFromStoreState();
-            const localViewSwitchOnly =
-              editorJson.trim() &&
-              boardStatesEquivalentExceptActiveView(editorJson, snap.text) &&
-              !boardStatesEquivalent(editorJson, snap.text);
-            if (localViewSwitchOnly) {
-              // Sicht-Wechsel darf nicht durch Datei-Sync zurückgesetzt werden.
+            const retryEditorJson = boardJsonFromStoreState();
+            const retryViewSwitchOnly =
+              retryEditorJson.trim() &&
+              boardStatesEquivalentExceptActiveView(retryEditorJson, snap.text) &&
+              !boardStatesEquivalent(retryEditorJson, snap.text);
+            if (retryViewSwitchOnly) {
               syncDirty();
               return false;
             }
             if (isWorkingFileDirty()) {
-              if (editorJson.trim() && !boardStatesEquivalent(editorJson, snap.text)) {
-                downloadWorkingFileSafetyCopy(editorJson, "editor");
+              if (retryEditorJson.trim() && !boardStatesEquivalent(retryEditorJson, snap.text)) {
+                downloadWorkingFileSafetyCopy(retryEditorJson, "editor");
               }
             }
             suspendAutoPersistRef.current = true;
@@ -264,6 +304,13 @@ export function WorkingFileSync({
       } finally {
         saveInFlightRef.current = false;
         if (mountedRef.current) callbacksRef.current.onSavingChange?.(false);
+        if (
+          mountedRef.current &&
+          (persistAgainRef.current || (wroteOk && isWorkingFileDirty()))
+        ) {
+          persistAgainRef.current = false;
+          schedulePersistOnChange();
+        }
       }
     };
 
@@ -279,12 +326,25 @@ export function WorkingFileSync({
       ) {
         return;
       }
-      if (saveQueuedRef.current) return;
+      if (saveInFlightRef.current) {
+        persistAgainRef.current = true;
+        return;
+      }
+      if (persistDebounceTimerRef.current != null) {
+        window.clearTimeout(persistDebounceTimerRef.current);
+        persistDebounceTimerRef.current = null;
+      }
       saveQueuedRef.current = true;
-      queueMicrotask(() => {
+      persistDebounceTimerRef.current = window.setTimeout(() => {
+        persistDebounceTimerRef.current = null;
         saveQueuedRef.current = false;
         void flushPersist();
-      });
+      }, AUTOSAVE_DEBOUNCE_MS);
+    };
+
+    const flushPersistNow = () => {
+      clearPersistDebounce();
+      void flushPersist();
     };
 
     const onPersistedBoardChanged = () => {
@@ -293,9 +353,14 @@ export function WorkingFileSync({
         syncDirty();
         return;
       }
+      if (useStormBoardStore.getState().gestureActive) {
+        syncDirty();
+        return;
+      }
       const key = boardPersistKeyFromStoreState();
       if (key === lastPersistKeyRef.current) return;
-      lastPersistKeyRef.current = key;
+      // Do not mark the key as handled until a successful write — otherwise a
+      // skipped/failed flush leaves the board permanently "ungespeichert".
       syncDirty();
       schedulePersistOnChange();
     };
@@ -471,7 +536,7 @@ export function WorkingFileSync({
 
       const onPageHide = () => {
         if (conflictActiveRef.current || isWorkingFilePersistPaused() || isCollabMode()) return;
-        void flushPersist();
+        flushPersistNow();
       };
       window.addEventListener("pagehide", onPageHide);
       externalListeners.push({ target: window, type: "pagehide", listener: onPageHide });
@@ -496,6 +561,7 @@ export function WorkingFileSync({
     return () => {
       mountedRef.current = false;
       if (pollId != null) window.clearInterval(pollId);
+      clearPersistDebounce();
       storeUnsub?.();
       roleUnsub?.();
       stopWorkingFileWriter();
