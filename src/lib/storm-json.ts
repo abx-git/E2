@@ -470,7 +470,8 @@ function stableViewKey(view: BoardView): unknown {
   };
 }
 
-export function stableBoardStateKey(payload: BoardImportPayload): string {
+/** Document fingerprint ignoring the active Sicht tab (all view blobs are compared). */
+export function stableBoardDocumentContentKey(payload: BoardImportPayload): string {
   const doc = normalizeBoardDocument(payload);
   return JSON.stringify({
     title: doc.title,
@@ -479,11 +480,25 @@ export function stableBoardStateKey(payload: BoardImportPayload): string {
     bookmarks: [...(doc.bookmarks ?? [])].sort((a, b) => a.id.localeCompare(b.id)),
     appearance: doc.appearance,
     workshopMode: doc.workshopMode,
-    activeViewId: doc.activeViewId,
     views: [...doc.views]
       .sort((a, b) => a.id.localeCompare(b.id))
       .map(stableViewKey),
   });
+}
+
+export function stableBoardStateKey(payload: BoardImportPayload): string {
+  const doc = normalizeBoardDocument(payload);
+  return JSON.stringify({
+    ...JSON.parse(stableBoardDocumentContentKey(payload)) as Record<string, unknown>,
+    activeViewId: doc.activeViewId,
+  });
+}
+
+export function boardDocumentContentEquivalent(a: string, b: string): boolean {
+  const pa = boardImportPayloadFromExportText(a);
+  const pb = boardImportPayloadFromExportText(b);
+  if (!pa || !pb) return a.trim() === b.trim();
+  return stableBoardDocumentContentKey(pa) === stableBoardDocumentContentKey(pb);
 }
 
 export function boardExportTextsEquivalent(a: string, b: string): boolean {

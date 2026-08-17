@@ -1,4 +1,5 @@
 import {
+  boardDocumentContentEquivalent,
   boardExportTextsEquivalent,
   boardImportPayloadFromExportText,
   buildBoardSnapshot,
@@ -70,6 +71,11 @@ export function parseBoardSnapshotFromText(text: string): BoardSnapshot | null {
 
 export function boardStatesEquivalent(a: string, b: string): boolean {
   return boardExportTextsEquivalent(a, b);
+}
+
+/** True when only the active Sicht tab differs (or export metadata), not board content. */
+export function boardStatesEquivalentExceptActiveView(a: string, b: string): boolean {
+  return boardDocumentContentEquivalent(a, b);
 }
 
 export function boardPersistKeyFromStoreState(): string {

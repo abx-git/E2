@@ -11,6 +11,7 @@ import {
   boardJsonFromStoreState,
   boardPersistKeyFromStoreState,
   boardStatesEquivalent,
+  boardStatesEquivalentExceptActiveView,
 } from "@/lib/file-board-reconcile";
 import {
   downloadWorkingFileSafetyCopy,
@@ -29,6 +30,7 @@ import {
   isWorkingFileToStoreBlocked,
   markWorkingFileSessionHydrated,
   markWorkingFileSynced,
+  noteExternalFileRevision,
   peekWorkingFileLastModified,
   persistWorkingFileJson,
   readWorkingFileSnapshot,
@@ -230,8 +232,17 @@ export function WorkingFileSync({
               ? { text: result.diskJson, lastModified: Date.now() }
               : null;
           if (snap) {
+            const editorJson = boardJsonFromStoreState();
+            const localViewSwitchOnly =
+              editorJson.trim() &&
+              boardStatesEquivalentExceptActiveView(editorJson, snap.text) &&
+              !boardStatesEquivalent(editorJson, snap.text);
+            if (localViewSwitchOnly) {
+              // Sicht-Wechsel darf nicht durch Datei-Sync zurückgesetzt werden.
+              syncDirty();
+              return false;
+            }
             if (isWorkingFileDirty()) {
-              const editorJson = boardJsonFromStoreState();
               if (editorJson.trim() && !boardStatesEquivalent(editorJson, snap.text)) {
                 downloadWorkingFileSafetyCopy(editorJson, "editor");
               }
@@ -318,6 +329,17 @@ export function WorkingFileSync({
       if (boardStatesEquivalent(snap.text, localJson)) {
         markWorkingFileSynced(snap.text, snap.lastModified);
         syncDirty();
+        return;
+      }
+
+      if (
+        boardStatesEquivalentExceptActiveView(snap.text, localJson) &&
+        !boardStatesEquivalent(snap.text, localJson)
+      ) {
+        // Nur aktiver Sicht-Tab weicht ab — Editor behält Tab, schreibt nach.
+        noteExternalFileRevision(snap.lastModified);
+        syncDirty();
+        schedulePersistOnChange();
         return;
       }
 

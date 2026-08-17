@@ -4,6 +4,7 @@ import {
   BOARD_SNAPSHOT_SCHEMA_ID,
   EXPORT_VERSION,
   activeSliceFromDocument,
+  boardDocumentContentEquivalent,
   boardExportTextsEquivalent,
   boardSnapshotSchema,
   boardSnapshotToReplacePayload,
@@ -12,6 +13,7 @@ import {
   createEmptyBoardView,
   migrateV1ToDocument,
   stableBoardStateKey,
+  stringifyExportedDocument,
   type BoardImportPayload,
   type BoardSnapshotV1,
 } from "@/lib/storm-json";
@@ -108,6 +110,23 @@ describe("storm-json multi-view", () => {
     expect(restored.views).toHaveLength(2);
     expect(restored.workshopMode).toBe(true);
     expect(restored.activeViewId).toBe("b");
+  });
+
+  it("treats activeViewId as export metadata for document content equivalence", () => {
+    const viewA = createEmptyBoardView({ id: "a", name: "A" });
+    const viewB = createEmptyBoardView({
+      id: "b",
+      name: "B",
+      elements: [{ id: "x", type: "domainEvent", label: "X", x: 1, y: 2 }],
+    });
+    const onA = stringifyExportedDocument(
+      buildBoardSnapshot(emptyDoc({ activeViewId: "a", views: [viewA, viewB] })),
+    );
+    const onB = stringifyExportedDocument(
+      buildBoardSnapshot(emptyDoc({ activeViewId: "b", views: [viewA, viewB] })),
+    );
+    expect(boardExportTextsEquivalent(onA, onB)).toBe(false);
+    expect(boardDocumentContentEquivalent(onA, onB)).toBe(true);
   });
 
   it("stores bookmarks at document level and lifts legacy per-view bookmarks", () => {
