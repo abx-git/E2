@@ -133,6 +133,7 @@ const ELEMENT_HELP: Record<ElementType, HelpDialogModel> = {
     bullets: [
       "Extern: http(s)-URL (ohne Protokoll wird https ergänzt)",
       "Intern: eine bestehende Sicht auswählen — Icon zeigt Board-Symbol",
+      "Zusätzlich können alle Kartentypen eigene Web-Links in der Detailleiste tragen",
       "In der Palette unter Annotationen, abgesetzt von den Methoden-Elementen",
       "Relation „annotiert“ zu anderen Stickies möglich",
     ],

@@ -356,6 +356,20 @@ export function CanvasContextMenu({
               )
             }
           />
+          <Item
+            label="Web-Links"
+            active={Boolean(el.metadata?.showWebLinksOnCard)}
+            onClick={() =>
+              run(() =>
+                updateElement(el.id, {
+                  metadata: {
+                    ...el.metadata,
+                    showWebLinksOnCard: !el.metadata?.showWebLinksOnCard,
+                  },
+                }),
+              )
+            }
+          />
         </Submenu>
         <Item
           icon={HelpCircle}

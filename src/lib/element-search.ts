@@ -2,6 +2,7 @@ import {
   cardAttributeLines,
   cardMethodLines,
 } from "@/lib/card-preview";
+import { cardWebLinkLines } from "@/lib/card-web-links";
 import type { StormElement } from "@/types/storm-element";
 
 export interface ElementSearchHit {
@@ -10,6 +11,7 @@ export interface ElementSearchHit {
   inDescription: boolean;
   inAttributes: boolean;
   inMethods: boolean;
+  inWebLinks: boolean;
   /** Match outside the title — emphasize the card. */
   emphasizeCard: boolean;
 }
@@ -46,6 +48,7 @@ export function matchElementSearch(
       inDescription: false,
       inAttributes: false,
       inMethods: false,
+      inWebLinks: false,
       emphasizeCard: false,
     };
   }
@@ -57,7 +60,8 @@ export function matchElementSearch(
     needle,
   );
   const inMethods = anyLineIncludes(cardMethodLines(element), needle);
-  const match = inLabel || inDescription || inAttributes || inMethods;
+  const inWebLinks = anyLineIncludes(cardWebLinkLines(element), needle);
+  const match = inLabel || inDescription || inAttributes || inMethods || inWebLinks;
 
   return {
     match,
@@ -65,7 +69,8 @@ export function matchElementSearch(
     inDescription,
     inAttributes,
     inMethods,
-    emphasizeCard: match && (inDescription || inAttributes || inMethods),
+    inWebLinks,
+    emphasizeCard: match && (inDescription || inAttributes || inMethods || inWebLinks),
   };
 }
 

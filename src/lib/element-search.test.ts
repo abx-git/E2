@@ -69,6 +69,19 @@ describe("matchElementSearch", () => {
     expect(attr.emphasizeCard).toBe(true);
   });
 
+  it("matches web links", () => {
+    const hit = matchElementSearch(
+      el({
+        type: "command",
+        label: "Place Order",
+        metadata: { webLinks: [{ url: "https://jira.example/ORD-12", title: "Ticket ORD-12" }] },
+      }),
+      "ord-12",
+    );
+    expect(hit.inWebLinks).toBe(true);
+    expect(hit.emphasizeCard).toBe(true);
+  });
+
   it("returns no match for empty query", () => {
     expect(matchElementSearch(el({ type: "note", label: "Hi" }), "  ").match).toBe(false);
   });

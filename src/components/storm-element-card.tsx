@@ -13,6 +13,11 @@ import {
   cardMethodLines,
   cardShowsDetails,
 } from "@/lib/card-preview";
+import {
+  cardWebLinkHref,
+  cardWebLinkLabel,
+  elementWebLinks,
+} from "@/lib/card-web-links";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import {
   effectiveElementRotation,
@@ -162,6 +167,7 @@ export function StormElementCard({
     ? cardAttributeLines(element, { viewNameById })
     : [];
   const methodLines = element.metadata?.showMethodsOnCard ? cardMethodLines(element) : [];
+  const webLinks = element.metadata?.showWebLinksOnCard ? elementWebLinks(element) : [];
   const showDescription =
     Boolean(element.metadata?.showDescriptionOnCard) && Boolean(element.description?.trim());
   const isCoarsePointer = useIsCoarsePointer();
@@ -779,6 +785,46 @@ export function StormElementCard({
             ))}
             {methodLines.length > 8 && (
               <li className="opacity-60">+{methodLines.length - 8} weitere</li>
+            )}
+          </ul>
+        )}
+        {!editing && webLinks.length > 0 && (
+          <ul className="w-full min-w-0 list-none space-y-0.5 border-t border-current/15 pt-0.5 text-left text-[0.62rem] leading-snug">
+            {webLinks.slice(0, 8).map((link, i) => {
+              const href = cardWebLinkHref(link);
+              const label = cardWebLinkLabel(link);
+              const content =
+                searchActive && searchHit?.inWebLinks ? (
+                  <HighlightedText text={label} query={searchQuery} />
+                ) : (
+                  label
+                );
+              return (
+                <li key={`${i}-${link.url}`} className="min-w-0">
+                  {href ? (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={href}
+                      className="flex min-w-0 items-center gap-1 truncate underline decoration-current/30 underline-offset-2 hover:decoration-current"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="h-3 w-3 shrink-0 opacity-70" aria-hidden />
+                      <span className="min-w-0 truncate">{content}</span>
+                    </a>
+                  ) : (
+                    <span className="flex min-w-0 items-center gap-1 truncate opacity-60">
+                      <ExternalLink className="h-3 w-3 shrink-0" aria-hidden />
+                      <span className="min-w-0 truncate">{content}</span>
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+            {webLinks.length > 8 && (
+              <li className="opacity-60">+{webLinks.length - 8} weitere</li>
             )}
           </ul>
         )}

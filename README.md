@@ -119,7 +119,8 @@ Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der 
 ### Pro Element bearbeitbar
 
 - Label, Beschreibung  
-- **Auf der Karte anzeigen:** Beschreibung / Attribute / Methoden (Detailleiste oder Rechtsklick)  
+- **Auf der Karte anzeigen:** Beschreibung / Attribute / Methoden / Web-Links (Detailleiste oder Rechtsklick)  
+- **Web-Links:** beliebige http(s)-URLs mit optionalem Titel; optional auf der Karte als klickbare Liste  
 - Position und Größe (Ziehen, Anfasser, Zahlen in der rechten Leiste)  
 - Zuordnung zu Swimlane / Bounded Context (automatisch bei Umschließung; Rechtsklick weiter möglich)   
 - „Wiederkehrend“ (Rechtsklick)  

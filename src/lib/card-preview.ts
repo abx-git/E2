@@ -1,3 +1,4 @@
+import { cardWebLinkLines } from "@/lib/card-web-links";
 import type { StormElement } from "@/types/storm-element";
 
 /** Lines shown under „Attribute“ on the sticky (type-aware). */
@@ -88,6 +89,9 @@ export function cardMethodLines(el: StormElement): string[] {
 export function cardShowsDetails(el: StormElement): boolean {
   const m = el.metadata;
   return Boolean(
-    m?.showDescriptionOnCard || m?.showAttributesOnCard || m?.showMethodsOnCard,
+    m?.showDescriptionOnCard ||
+      m?.showAttributesOnCard ||
+      m?.showMethodsOnCard ||
+      (m?.showWebLinksOnCard && cardWebLinkLines(el).length > 0),
   );
 }

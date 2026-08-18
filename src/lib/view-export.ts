@@ -31,6 +31,7 @@ const AI_OMIT_METADATA_KEYS = new Set<keyof ElementMetadata>([
   "showDescriptionOnCard",
   "showAttributesOnCard",
   "showMethodsOnCard",
+  "showWebLinksOnCard",
   "arc42SectionNumber",
 ]);
 

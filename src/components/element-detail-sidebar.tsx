@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AlertCircle, ChevronDown, ExternalLink, HelpCircle, Trash2 } from "lucide-react";
 
 import { activateBoardLink } from "@/lib/board-link";
+import { normalizeCardWebLinks } from "@/lib/card-web-links";
 import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-panel";
 import { RegionAppearanceControls } from "@/components/region-appearance-controls";
 import { lineArrowHeadShortLabel } from "@/components/canvas-lines";
@@ -14,6 +15,7 @@ import { validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
 import type { RelationType } from "@/types/storm-relation";
 import type {
+  CardWebLink,
   DataCardinality,
   ElementType,
   GatewayKind,
@@ -80,6 +82,63 @@ function LinesTextarea({
         setDraft(null);
       }}
     />
+  );
+}
+
+function WebLinksEditor({
+  links,
+  onChange,
+}: {
+  links: CardWebLink[] | undefined;
+  onChange: (links: CardWebLink[]) => void;
+}) {
+  const rows = links && links.length > 0 ? links : [{ url: "" }];
+  const commit = (next: CardWebLink[]) => onChange(normalizeCardWebLinks(next));
+
+  const patchRow = (index: number, patch: Partial<CardWebLink>) => {
+    const next = rows.map((row, i) => (i === index ? { ...row, ...patch } : row));
+    onChange(next);
+  };
+
+  return (
+    <div className="space-y-2">
+      {rows.map((link, index) => (
+        <div key={index} className="flex items-start gap-1">
+          <div className="min-w-0 flex-1 space-y-1">
+            <input
+              className="dock-field"
+              type="url"
+              placeholder="https://…"
+              value={link.url}
+              onChange={(e) => patchRow(index, { url: e.target.value })}
+              onBlur={() => commit(rows)}
+            />
+            <input
+              className="dock-field"
+              placeholder="Titel (optional)"
+              value={link.title ?? ""}
+              onChange={(e) => patchRow(index, { title: e.target.value })}
+              onBlur={() => commit(rows)}
+            />
+          </div>
+          <button
+            type="button"
+            className="mt-1 rounded-md p-1 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)]"
+            aria-label="Link entfernen"
+            onClick={() => commit(rows.filter((_, i) => i !== index))}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="w-full rounded-md border border-dashed border-[var(--border)] px-2 py-1 text-[0.72rem] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
+        onClick={() => onChange([...rows, { url: "" }])}
+      >
+        Link hinzufügen
+      </button>
+    </div>
   );
 }
 
@@ -291,7 +350,8 @@ export function ElementDetailSidebar({
   const cardFlagsActive = Boolean(
     selectedElement.metadata?.showDescriptionOnCard ||
       selectedElement.metadata?.showAttributesOnCard ||
-      selectedElement.metadata?.showMethodsOnCard,
+      selectedElement.metadata?.showMethodsOnCard ||
+      selectedElement.metadata?.showWebLinksOnCard,
   );
 
   return (
@@ -326,6 +386,7 @@ export function ElementDetailSidebar({
               ["showDescriptionOnCard", "Beschreibung"],
               ["showAttributesOnCard", "Attribute"],
               ["showMethodsOnCard", "Methoden"],
+              ["showWebLinksOnCard", "Web-Links"],
             ] as const
           ).map(([key, label]) => (
             <label key={key} className="flex items-center gap-2">
@@ -446,6 +507,28 @@ export function ElementDetailSidebar({
             })()}
           </div>
         )}
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        title="Web-Links"
+        defaultOpen={Boolean(selectedElement.metadata?.webLinks?.length)}
+        hint={
+          selectedElement.metadata?.webLinks?.length
+            ? String(selectedElement.metadata.webLinks.length)
+            : undefined
+        }
+      >
+        <WebLinksEditor
+          links={selectedElement.metadata?.webLinks}
+          onChange={(webLinks) =>
+            updateElement(selectedElement.id, {
+              metadata: {
+                ...selectedElement.metadata,
+                webLinks: webLinks.length ? webLinks : undefined,
+              },
+            })
+          }
+        />
       </CollapsibleSection>
 
       <CollapsibleSection title="Position & Größe" defaultOpen={false}>

@@ -40,11 +40,16 @@ export function linkDestinationPreview(
     const raw = el.metadata?.linkUrl?.trim();
     return raw || null;
   }
+  return shortHttpUrlLabel(url);
+}
+
+/** Compact host + path for an absolute http(s) URL. */
+export function shortHttpUrlLabel(url: string, maxLen = 36): string {
   try {
     const parsed = new URL(url);
     const path = parsed.pathname === "/" ? "" : parsed.pathname;
     const hostPath = `${parsed.host}${path}`;
-    return hostPath.length > 36 ? `${hostPath.slice(0, 34)}…` : hostPath;
+    return hostPath.length > maxLen ? `${hostPath.slice(0, maxLen - 2)}…` : hostPath;
   } catch {
     return url;
   }

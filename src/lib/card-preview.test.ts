@@ -30,6 +30,25 @@ describe("card-preview", () => {
     expect(cardShowsDetails(entity)).toBe(true);
   });
 
+  it("treats visible web links as card details", () => {
+    const event = el({
+      type: "domainEvent",
+      metadata: {
+        showWebLinksOnCard: true,
+        webLinks: [{ url: "https://example.com", title: "Docs" }],
+      },
+    });
+    expect(cardShowsDetails(event)).toBe(true);
+    expect(
+      cardShowsDetails(
+        el({
+          type: "domainEvent",
+          metadata: { showWebLinksOnCard: true, webLinks: [] },
+        }),
+      ),
+    ).toBe(false);
+  });
+
   it("formats example GWT as attribute lines", () => {
     const example = el({
       type: "example",

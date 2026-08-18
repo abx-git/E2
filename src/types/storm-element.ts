@@ -84,6 +84,13 @@ export type GatewayKind = "xor" | "and" | "or";
 export type DataCardinality = "1:1" | "1:n" | "n:1" | "n:m";
 export type LinkKind = "external" | "view";
 
+/** Web link attached to any sticky (docs, tickets, specs, …). */
+export interface CardWebLink {
+  url: string;
+  /** Optional display title; falls back to host/path. */
+  title?: string;
+}
+
 /**
  * Element types that support C4-style zoom / arc42 Blackbox→Whitebox drill-down.
  * @see https://c4model.com/diagrams — Context → Container → Component
@@ -234,6 +241,8 @@ export interface ElementMetadata {
   linkUrl?: string;
   /** Link (view): ID einer Board-Sicht. */
   linkViewId?: string;
+  /** Optional web links on any sticky (docs, tickets, specs). */
+  webLinks?: CardWebLink[];
 
   /** C4 Container / Component: Technologie-Stack (z. B. Spring Boot, PostgreSQL). */
   c4Technology?: string;
@@ -248,6 +257,8 @@ export interface ElementMetadata {
   showAttributesOnCard?: boolean;
   /** Sticky: Methoden / Operationen auf der Karte anzeigen. */
   showMethodsOnCard?: boolean;
+  /** Sticky: Web-Links auf der Karte anzeigen. */
+  showWebLinksOnCard?: boolean;
 }
 
 export interface StormElement {

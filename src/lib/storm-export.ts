@@ -29,6 +29,7 @@ import {
   cardAttributeLines,
   cardMethodLines,
 } from "@/lib/card-preview";
+import { cardWebLinkLines } from "@/lib/card-web-links";
 import { effectiveElementRotation } from "@/lib/element-rotation";
 import {
   regionZOrderItems,
@@ -232,6 +233,11 @@ function mdMetaBlock(el: StormElement): string[] {
   if (methods.length) {
     lines.push("- Methoden / Operationen:");
     for (const m of methods) lines.push(`  - ${m}`);
+  }
+  const links = cardWebLinkLines(el);
+  if (links.length) {
+    lines.push("- Web-Links:");
+    for (const l of links) lines.push(`  - ${l}`);
   }
   return lines;
 }
@@ -994,7 +1000,12 @@ function wrapLabelLines(
   return lines.length > 0 ? lines : [raw];
 }
 
-function cardPreviewLines(el: StormElement): { description?: string; attrs: string[]; methods: string[] } {
+function cardPreviewLines(el: StormElement): {
+  description?: string;
+  attrs: string[];
+  methods: string[];
+  links: string[];
+} {
   return {
     description:
       el.metadata?.showDescriptionOnCard && el.description?.trim()
@@ -1002,6 +1013,7 @@ function cardPreviewLines(el: StormElement): { description?: string; attrs: stri
         : undefined,
     attrs: el.metadata?.showAttributesOnCard ? cardAttributeLines(el).slice(0, 8) : [],
     methods: el.metadata?.showMethodsOnCard ? cardMethodLines(el).slice(0, 8) : [],
+    links: el.metadata?.showWebLinksOnCard ? cardWebLinkLines(el).slice(0, 8) : [],
   };
 }
 
@@ -1058,6 +1070,9 @@ function mxElementHtml(
     parts.push(`<div style="font-size:${META_FONT_PX}px;font-weight:500">${mxHtmlText(line)}</div>`);
   }
   for (const line of preview.methods) {
+    parts.push(`<div style="font-size:${META_FONT_PX}px;font-weight:500">${mxHtmlText(line)}</div>`);
+  }
+  for (const line of preview.links) {
     parts.push(`<div style="font-size:${META_FONT_PX}px;font-weight:500">${mxHtmlText(line)}</div>`);
   }
   return parts.join("");
@@ -1477,7 +1492,8 @@ export function exportBoardSvg(): void {
       labelLines.length * lineH +
       descLines.length * metaH +
       preview.attrs.length * metaH +
-      preview.methods.length * metaH;
+      preview.methods.length * metaH +
+      preview.links.length * metaH;
     const centered = elementLabelIsCentered(el);
     let cursorY = y + CARD_PAD_Y + (badgeLines.length ? 9 : LABEL_FONT_PX);
     if (centered && blockH < r.h - CARD_PAD_Y * 2) {
@@ -1520,6 +1536,10 @@ export function exportBoardSvg(): void {
     if (preview.methods.length) {
       cursorY += 2;
       pushTextBlock(preview.methods, "meta", ink, metaH, true);
+    }
+    if (preview.links.length) {
+      cursorY += 2;
+      pushTextBlock(preview.links, "meta", ink, metaH, true);
     }
   }
 
@@ -1712,7 +1732,8 @@ export async function exportBoardPng(): Promise<void> {
       labelLines.length * lineH +
       descLines.length * metaH +
       preview.attrs.length * metaH +
-      preview.methods.length * metaH;
+      preview.methods.length * metaH +
+      preview.links.length * metaH;
 
     const centered = elementLabelIsCentered(el);
     let cursorY = y + CARD_PAD_Y + (hasBadge ? 9 : LABEL_FONT_PX);
@@ -1756,6 +1777,13 @@ export async function exportBoardPng(): Promise<void> {
       cursorY += metaH;
     }
     for (const line of preview.methods) {
+      cursorY += 1;
+      ctx.globalAlpha = 0.85;
+      ctx.fillText(line, metaX, cursorY, textW);
+      ctx.globalAlpha = 1;
+      cursorY += metaH;
+    }
+    for (const line of preview.links) {
       cursorY += 1;
       ctx.globalAlpha = 0.85;
       ctx.fillText(line, metaX, cursorY, textW);
