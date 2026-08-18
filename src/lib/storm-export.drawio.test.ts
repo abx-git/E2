@@ -12,6 +12,16 @@ const sample: BoardActiveSlice = {
   facilitatorPhase: 0,
   elements: [
     {
+      id: "agg-1",
+      type: "aggregate",
+      label: "Order",
+      x: 80,
+      y: 70,
+      width: 280,
+      height: 200,
+      zIndex: 0,
+    },
+    {
       id: "evt-1",
       type: "domainEvent",
       label: "Order Placed",
@@ -19,6 +29,7 @@ const sample: BoardActiveSlice = {
       y: 80,
       width: 160,
       height: 72,
+      zIndex: 1,
     },
     {
       id: "cmd-1",
@@ -28,6 +39,17 @@ const sample: BoardActiveSlice = {
       y: 200,
       width: 150,
       height: 68,
+      zIndex: 2,
+    },
+    {
+      id: "note-1",
+      type: "note",
+      label: "Check stock\nbefore packing",
+      x: 500,
+      y: 90,
+      width: 160,
+      height: 100,
+      zIndex: 3,
     },
   ],
   relations: [
@@ -36,9 +58,17 @@ const sample: BoardActiveSlice = {
       type: "triggers",
       sourceId: "cmd-1",
       targetId: "evt-1",
+      label: "after validation",
     },
   ],
-  contextRelations: [],
+  contextRelations: [
+    {
+      id: "ctx-1",
+      type: "customerSupplier",
+      sourceContextId: "bc-1",
+      targetContextId: "bc-1",
+    },
+  ],
   swimlanes: [
     {
       id: "lane-1",
@@ -61,7 +91,17 @@ const sample: BoardActiveSlice = {
       color: "#dbeafe",
     },
   ],
-  canvasLines: [],
+  canvasLines: [
+    {
+      id: "line-1",
+      x1: 40,
+      y1: 40,
+      x2: 200,
+      y2: 40,
+      arrowHead: "end",
+      label: "flow",
+    },
+  ],
   timeline: { ...DEFAULT_TIMELINE, y: 160, visible: true },
   viewport: { ...DEFAULT_VIEWPORT },
   glossary: [],
@@ -99,5 +139,39 @@ describe("buildDrawioMxFile", () => {
     expect(mx).toContain('id="timeline"');
     expect(mx).toContain("Order Placed");
     expect(mx).toMatch(/<diagram[^>]*>\s*<mxGraphModel/);
+  });
+
+  it("uses IBM Plex Sans and matches E2 paint order (edges under stickies)", () => {
+    const bounds = {
+      minX: 0,
+      minY: 0,
+      maxX: 800,
+      maxY: 400,
+      width: 960,
+      height: 560,
+      ox: 80,
+      oy: 80,
+    };
+    const mx = buildDrawioMxFile(sample, bounds);
+
+    expect(mx).toContain("fontFamily=IBM Plex Sans");
+    expect(mx).toContain("absoluteArcSize=1");
+    expect(mx).toContain("fillOpacity=38");
+    expect(mx).toContain("shape=partialRectangle");
+    expect(mx).toContain("strokeColor=#e9c46a");
+    expect(mx).toContain("id=\"line_line-1\"");
+    expect(mx).toContain("after validation");
+    expect(mx).not.toContain("löst aus");
+
+    const relAt = mx.indexOf('id="rel_rel-1"');
+    const evtAt = mx.indexOf('id="el_evt-1"');
+    const aggAt = mx.indexOf('id="el_agg-1"');
+    const cmdAt = mx.indexOf('id="el_cmd-1"');
+    expect(relAt).toBeGreaterThan(0);
+    expect(evtAt).toBeGreaterThan(relAt);
+    expect(aggAt).toBeGreaterThan(0);
+    expect(aggAt).toBeLessThan(evtAt);
+    expect(cmdAt).toBeGreaterThan(evtAt);
+    expect(mx).toContain("dashed=1");
   });
 });

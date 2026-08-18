@@ -1,4 +1,30 @@
-import { elementRect as geomElementRect, relationAnchors } from "@/lib/connector-geometry";
+import {
+  BC_LABEL_FILL,
+  BOARD_BACKGROUND,
+  CARD_PAD_X,
+  CARD_PAD_Y,
+  CONNECTOR_STROKE,
+  CONTEXT_MAP_EXPORT_STYLE,
+  EXPORT_FONT_FAMILY,
+  EXPORT_FONT_STACK,
+  LABEL_FONT_PX,
+  LABEL_FONT_WEIGHT,
+  META_FONT_PX,
+  PAD,
+  REGION_LABEL_FONT_PX,
+  SWIMLANE_LABEL_FILL,
+  TIMELINE_STROKE,
+  cssExportFont,
+  elementFillWithOpacity,
+  isBoundaryElement,
+  elementIsDashed,
+  elementLabelAlign,
+  elementLabelIsCentered,
+  elementStrokeWidth,
+  elementTypeBadgeLabel,
+  elementVerticalAlign,
+} from "@/lib/board-export-visual";
+import { elementRect as geomElementRect, relationAnchors, contextRelationAnchors } from "@/lib/connector-geometry";
 import {
   cardAttributeLines,
   cardMethodLines,
@@ -853,26 +879,8 @@ function escapeXml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-/** Matches Tailwind `text-xs font-semibold` on stickies. */
-const LABEL_FONT_PX = 12;
-const LABEL_FONT_WEIGHT = 600;
-/** Matches ~0.62rem meta lines on cards. */
-const META_FONT_PX = 10;
-const REGION_LABEL_FONT_PX = 12;
-const PAD = 80;
-const CARD_PAD_X = 8;
-const CARD_PAD_Y = 4;
-
-function boardFontFamily(): string {
-  if (typeof document !== "undefined") {
-    const family = getComputedStyle(document.body).fontFamily?.trim();
-    if (family) return family;
-  }
-  return '"IBM Plex Sans", "Segoe UI", system-ui, sans-serif';
-}
-
 function cssFont(weight: number, sizePx: number): string {
-  return `${weight} ${sizePx}px ${boardFontFamily()}`;
+  return cssExportFont(weight, sizePx);
 }
 
 function cornerRadius(el: StormElement, h: number): number {
@@ -928,6 +936,9 @@ function computeBoardBounds(state: ReturnType<typeof boardActiveSliceFromStore>)
   }
   for (const lane of state.swimlanes) {
     expand(lane.x ?? 0, lane.y, lane.width ?? 4000, lane.height);
+  }
+  for (const line of state.canvasLines) {
+    expand(Math.min(line.x1, line.x2), Math.min(line.y1, line.y2), Math.abs(line.x2 - line.x1), Math.abs(line.y2 - line.y1));
   }
   if (state.timeline.visible !== false) {
     expand(minX === Infinity ? 0 : minX, state.timeline.y - 1, 1, 2);
@@ -999,15 +1010,74 @@ function mxCellId(prefix: string, id: string): string {
   return `${prefix}_${id.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 }
 
-function mxLabelValue(text: string): string {
-  return escapeXml(text).replace(/\r\n|\n|\r/g, "&#xa;");
-}
-
 function mxStyle(parts: Record<string, string | number | boolean | undefined>): string {
   return Object.entries(parts)
     .filter(([, v]) => v !== undefined && v !== false)
     .map(([k, v]) => (v === true ? `${k}=1` : `${k}=${v}`))
     .join(";");
+}
+
+function mxHtmlText(text: string): string {
+  return escapeXml(text).replace(/\r\n|\n|\r/g, "<br/>");
+}
+
+function mxHtmlValue(html: string): string {
+  return escapeXml(html);
+}
+
+const MX_FONT = {
+  fontFamily: EXPORT_FONT_FAMILY,
+};
+
+/** draw.io `absoluteArcSize`: arcSize is divided by 2, so store diameter in px. */
+function mxAbsoluteArcSize(radiusPx: number): number {
+  return Math.max(0, Math.round(radiusPx * 2));
+}
+
+function mxElementHtml(
+  el: StormElement,
+  customCardTypes: CustomCardType[],
+): string {
+  const badge = elementTypeBadgeLabel(el, customCardTypes);
+  const preview = cardPreviewLines(el);
+  const parts: string[] = [];
+  if (badge) {
+    parts.push(
+      `<div style="font-size:9px;font-weight:700;letter-spacing:0.04em">${mxHtmlText(badge.toUpperCase())}</div>`,
+    );
+  }
+  parts.push(
+    `<div style="font-size:${LABEL_FONT_PX}px;font-weight:${LABEL_FONT_WEIGHT}">${mxHtmlText(el.label)}</div>`,
+  );
+  if (preview.description) {
+    parts.push(
+      `<div style="font-size:${META_FONT_PX}px;font-weight:500">${mxHtmlText(preview.description)}</div>`,
+    );
+  }
+  for (const line of preview.attrs) {
+    parts.push(`<div style="font-size:${META_FONT_PX}px;font-weight:500">${mxHtmlText(line)}</div>`);
+  }
+  for (const line of preview.methods) {
+    parts.push(`<div style="font-size:${META_FONT_PX}px;font-weight:500">${mxHtmlText(line)}</div>`);
+  }
+  return parts.join("");
+}
+
+function mxPushVertex(
+  cells: string[],
+  id: string,
+  valueHtml: string,
+  style: string,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
+  cells.push(
+    `<mxCell id="${id}" value="${mxHtmlValue(valueHtml)}" style="${style}" vertex="1" parent="1">`,
+    `<mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/>`,
+    `</mxCell>`,
+  );
 }
 
 /**
@@ -1032,54 +1102,62 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       const h = lane.height;
       const paint = resolveRegionPaint("swimlane", lane);
       const style = mxStyle({
-        rounded: 0,
+        shape: "partialRectangle",
+        top: 1,
+        bottom: 1,
+        left: 0,
+        right: 0,
         whiteSpace: "wrap",
         html: 1,
         align: "left",
         verticalAlign: "top",
         spacingLeft: 12,
+        spacingTop: 8,
+        fillColor: paint.fillHex,
+        fillOpacity: Math.round(paint.fillOpacity * 100),
+        strokeColor: paint.borderHex,
+        strokeOpacity: Math.round(paint.borderOpacity * 100),
+        strokeWidth: 2,
+        fontColor: SWIMLANE_LABEL_FILL,
+        fontSize: REGION_LABEL_FONT_PX,
+        fontStyle: 1,
+        ...MX_FONT,
+      });
+      mxPushVertex(cells, mxCellId("lane", lane.id), mxHtmlText(lane.label), style, x, y, w, h);
+    } else {
+      const bc = entry.region;
+      const paint = resolveRegionPaint("boundedContext", bc);
+      const style = mxStyle({
+        rounded: 1,
+        absoluteArcSize: 1,
+        arcSize: mxAbsoluteArcSize(8),
+        whiteSpace: "wrap",
+        html: 1,
+        align: "left",
+        verticalAlign: "top",
+        spacingLeft: 8,
         spacingTop: 4,
         fillColor: paint.fillHex,
         fillOpacity: Math.round(paint.fillOpacity * 100),
         strokeColor: paint.borderHex,
         strokeOpacity: Math.round(paint.borderOpacity * 100),
         strokeWidth: 2,
-        fontColor: "#475569",
-        fontStyle: 1,
+        fontColor: BC_LABEL_FILL,
         fontSize: REGION_LABEL_FONT_PX,
+        fontStyle: 1,
+        ...MX_FONT,
       });
-      cells.push(
-        `<mxCell id="${mxCellId("lane", lane.id)}" value="${mxLabelValue(lane.label)}" style="${style}" vertex="1" parent="1">`,
-        `<mxGeometry x="${x}" y="${y}" width="${w}" height="${h}" as="geometry"/>`,
-        `</mxCell>`,
+      mxPushVertex(
+        cells,
+        mxCellId("bc", bc.id),
+        mxHtmlText(bc.label),
+        style,
+        bc.x + ox,
+        bc.y + oy,
+        bc.width,
+        bc.height,
       );
-    } else {
-      const bc = entry.region;
-      const paint = resolveRegionPaint("boundedContext", bc);
-      const style = mxStyle({
-        rounded: 1,
-        arcSize: 8,
-      whiteSpace: "wrap",
-      html: 1,
-      align: "left",
-      verticalAlign: "top",
-      spacingLeft: 8,
-      spacingTop: 4,
-      fillColor: paint.fillHex,
-      fillOpacity: Math.round(paint.fillOpacity * 100),
-      strokeColor: paint.borderHex,
-      strokeOpacity: Math.round(paint.borderOpacity * 100),
-      strokeWidth: 2,
-      fontColor: "#1e40af",
-      fontStyle: 1,
-      fontSize: REGION_LABEL_FONT_PX,
-    });
-    cells.push(
-      `<mxCell id="${mxCellId("bc", bc.id)}" value="${mxLabelValue(bc.label)}" style="${style}" vertex="1" parent="1">`,
-      `<mxGeometry x="${bc.x + ox}" y="${bc.y + oy}" width="${bc.width}" height="${bc.height}" as="geometry"/>`,
-      `</mxCell>`,
-    );
-  }
+    }
   }
 
   if (state.timeline.visible !== false) {
@@ -1091,11 +1169,18 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       html: 1,
       dashed: 1,
       dashPattern: "8 4",
-      strokeColor: "#94a3b8",
+      strokeColor: TIMELINE_STROKE,
       strokeWidth: 2,
+      fontColor: TIMELINE_STROKE,
+      fontSize: 10,
+      fontStyle: 0,
+      ...MX_FONT,
     });
+    const timelineLabel = state.timeline.startLabel
+      ? `Timeline · ${state.timeline.startLabel} → ${state.timeline.endLabel ?? "Ende"}`
+      : "Timeline";
     cells.push(
-      `<mxCell id="timeline" style="${style}" edge="1" parent="1">`,
+      `<mxCell id="timeline" value="${mxHtmlValue(mxHtmlText(timelineLabel))}" style="${style}" edge="1" parent="1">`,
       `<mxGeometry relative="1" as="geometry">`,
       `<mxPoint x="${x1}" y="${ty}" as="sourcePoint"/>`,
       `<mxPoint x="${x2}" y="${ty}" as="targetPoint"/>`,
@@ -1104,32 +1189,58 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
     );
   }
 
-  for (const el of sortElementsByZOrder(state.elements)) {
-    const r = elementRect(el);
-    const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
-    const shape = ELEMENT_STYLES[el.type].shape;
+  for (const rel of state.contextRelations) {
+    const src = state.boundedContexts.find((b) => b.id === rel.sourceContextId);
+    const tgt = state.boundedContexts.find((b) => b.id === rel.targetContextId);
+    if (!src || !tgt) continue;
+    const pattern = CONTEXT_MAP_EXPORT_STYLE[rel.type];
     const style = mxStyle({
-      rounded: shape === "rectangle" ? 0 : 1,
-      arcSize: shape === "pill" ? 50 : shape === "wide" ? 6 : 8,
-      whiteSpace: "wrap",
+      endArrow: "block",
+      endFill: 1,
+      endSize: 6,
       html: 1,
-      align: "center",
-      verticalAlign: "middle",
-      fillColor: fill,
-      strokeColor: stroke,
-      strokeWidth: 1.5,
-      fontColor: ink,
-      fontStyle: 1,
-      fontSize: LABEL_FONT_PX,
-      dashed: el.type === "note" || el.type === "archWhitebox" ? 1 : undefined,
-      dashPattern: el.type === "note" || el.type === "archWhitebox" ? "4 3" : undefined,
-      rotation: elementExportRotation(el) || undefined,
+      rounded: 0,
+      strokeColor: pattern.stroke,
+      strokeWidth: pattern.width,
+      dashed: pattern.dash ? 1 : undefined,
+      dashPattern: pattern.dash?.replace(/\s+/g, " "),
+      fontColor: CONNECTOR_STROKE,
+      fontSize: META_FONT_PX,
+      fontStyle: 0,
+      ...MX_FONT,
     });
-    const exportLabel =
-      el.type === "instruction" ? `Instruction\n${el.label}` : el.label;
+    const label = rel.label?.trim() || CONTEXT_MAP_PATTERN_LABELS[rel.type];
     cells.push(
-      `<mxCell id="${mxCellId("el", el.id)}" value="${mxLabelValue(exportLabel)}" style="${style}" vertex="1" parent="1">`,
-      `<mxGeometry x="${r.x + ox}" y="${r.y + oy}" width="${r.w}" height="${r.h}" as="geometry"/>`,
+      `<mxCell id="${mxCellId("ctx", rel.id)}" value="${mxHtmlValue(mxHtmlText(label))}" style="${style}" edge="1" parent="1" source="${mxCellId("bc", rel.sourceContextId)}" target="${mxCellId("bc", rel.targetContextId)}">`,
+      `<mxGeometry relative="1" as="geometry"/>`,
+      `</mxCell>`,
+    );
+  }
+
+  for (const line of state.canvasLines) {
+    const arrow = line.arrowHead ?? "none";
+    const style = mxStyle({
+      startArrow: arrow === "start" || arrow === "both" ? "block" : "none",
+      endArrow: arrow === "end" || arrow === "both" ? "block" : "none",
+      startFill: 1,
+      endFill: 1,
+      startSize: 6,
+      endSize: 6,
+      html: 1,
+      rounded: 0,
+      strokeColor: line.color ?? CONNECTOR_STROKE,
+      strokeWidth: 2,
+      fontColor: CONNECTOR_STROKE,
+      fontSize: META_FONT_PX,
+      fontStyle: 0,
+      ...MX_FONT,
+    });
+    cells.push(
+      `<mxCell id="${mxCellId("line", line.id)}" value="${mxHtmlValue(mxHtmlText(line.label ?? ""))}" style="${style}" edge="1" parent="1">`,
+      `<mxGeometry relative="1" as="geometry">`,
+      `<mxPoint x="${line.x1 + ox}" y="${line.y1 + oy}" as="sourcePoint"/>`,
+      `<mxPoint x="${line.x2 + ox}" y="${line.y2 + oy}" as="targetPoint"/>`,
+      `</mxGeometry>`,
       `</mxCell>`,
     );
   }
@@ -1141,18 +1252,69 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
     const dashed = rel.type === "annotates" || rel.type === "informs";
     const style = mxStyle({
       endArrow: "block",
+      endFill: 1,
+      endSize: 6,
       html: 1,
       rounded: 0,
-      strokeColor: "#64748b",
+      strokeColor: CONNECTOR_STROKE,
       strokeWidth: 2,
       dashed: dashed ? 1 : undefined,
       dashPattern: dashed ? "6 4" : undefined,
+      fontColor: CONNECTOR_STROKE,
+      fontSize: META_FONT_PX,
+      fontStyle: 0,
+      ...MX_FONT,
     });
-    const label = RELATION_TYPE_LABELS[rel.type] ?? rel.type;
     cells.push(
-      `<mxCell id="${mxCellId("rel", rel.id)}" value="${mxLabelValue(label)}" style="${style}" edge="1" parent="1" source="${mxCellId("el", rel.sourceId)}" target="${mxCellId("el", rel.targetId)}">`,
+      `<mxCell id="${mxCellId("rel", rel.id)}" value="${mxHtmlValue(mxHtmlText(rel.label ?? ""))}" style="${style}" edge="1" parent="1" source="${mxCellId("el", rel.sourceId)}" target="${mxCellId("el", rel.targetId)}">`,
       `<mxGeometry relative="1" as="geometry"/>`,
       `</mxCell>`,
+    );
+  }
+
+  for (const el of sortElementsByZOrder(state.elements)) {
+    const r = elementRect(el);
+    const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
+    const shape = ELEMENT_STYLES[el.type].shape;
+    const radius = cornerRadius(el, r.h);
+    const circularPill = shape === "pill" && Math.abs(r.w - r.h) < 8;
+    const align = elementLabelAlign(el);
+    const vAlign = elementVerticalAlign(el);
+    const style = mxStyle({
+      rounded: circularPill || (shape === "rectangle" && radius <= 0) ? 0 : 1,
+      absoluteArcSize: circularPill ? undefined : 1,
+      arcSize: circularPill ? undefined : mxAbsoluteArcSize(radius),
+      ellipse: circularPill ? 1 : undefined,
+      shape: el.type === "instruction" ? "process" : undefined,
+      whiteSpace: "wrap",
+      html: 1,
+      align,
+      verticalAlign: vAlign,
+      spacingLeft: align === "left" ? CARD_PAD_X : 4,
+      spacingRight: align === "left" ? CARD_PAD_X : 4,
+      spacingTop: vAlign === "top" ? CARD_PAD_Y : 2,
+      spacingBottom: 2,
+      fillColor: fill,
+      fillOpacity: isBoundaryElement(el) ? 38 : undefined,
+      strokeColor: stroke,
+      strokeWidth: elementStrokeWidth(el),
+      fontColor: ink,
+      fontSize: LABEL_FONT_PX,
+      fontStyle: 0,
+      dashed: elementIsDashed(el) ? 1 : undefined,
+      dashPattern: elementIsDashed(el) ? "4 3" : undefined,
+      rotation: elementExportRotation(el) || undefined,
+      ...MX_FONT,
+    });
+    mxPushVertex(
+      cells,
+      mxCellId("el", el.id),
+      mxElementHtml(el, state.customCardTypes),
+      style,
+      r.x + ox,
+      r.y + oy,
+      r.w,
+      r.h,
     );
   }
 
@@ -1161,7 +1323,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
   return [
     `<mxfile host="app.diagrams.net" modified="${modified}" agent="E2" version="22.0.0" type="device">`,
     `<diagram id="board" name="${diagramName}">`,
-    `<mxGraphModel dx="${pageW}" dy="${pageH}" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${pageW}" pageHeight="${pageH}" math="0" shadow="0" background="#f4f5f7">`,
+    `<mxGraphModel dx="${pageW}" dy="${pageH}" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${pageW}" pageHeight="${pageH}" math="0" shadow="0" background="${BOARD_BACKGROUND}">`,
     `<root>`,
     ...cells,
     `</root>`,
@@ -1175,7 +1337,6 @@ export function exportBoardSvg(): void {
   const state = boardActiveSliceFromStore();
   const bounds = computeBoardBounds(state);
   const { width, height, ox, oy } = bounds;
-  const fontFamily = boardFontFamily();
   const mxfile = buildDrawioMxFile(state, bounds);
 
   // Measure with an offscreen canvas so wrapping matches PNG / UI metrics.
@@ -1190,13 +1351,16 @@ export function exportBoardSvg(): void {
   const parts: string[] = [
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="${width}px" height="${height}px" viewBox="0 0 ${width} ${height}" content="${escapeXml(mxfile)}">`,
-    `<rect width="100%" height="100%" fill="#f4f5f7"/>`,
+    `<rect width="100%" height="100%" fill="${BOARD_BACKGROUND}"/>`,
     `<defs>`,
-    `<marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#64748b"/></marker>`,
+    `<marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="${CONNECTOR_STROKE}"/></marker>`,
+    `<marker id="ctx-arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#457b9d"/></marker>`,
     `<style><![CDATA[
-      .label { font-family: ${fontFamily}; font-size: ${LABEL_FONT_PX}px; font-weight: ${LABEL_FONT_WEIGHT}; }
-      .meta { font-family: ${fontFamily}; font-size: ${META_FONT_PX}px; font-weight: 500; }
-      .region { font-family: ${fontFamily}; font-size: ${REGION_LABEL_FONT_PX}px; font-weight: ${LABEL_FONT_WEIGHT}; }
+      @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+      .label { font-family: ${EXPORT_FONT_STACK}; font-size: ${LABEL_FONT_PX}px; font-weight: ${LABEL_FONT_WEIGHT}; }
+      .meta { font-family: ${EXPORT_FONT_STACK}; font-size: ${META_FONT_PX}px; font-weight: 500; }
+      .badge { font-family: ${EXPORT_FONT_STACK}; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; }
+      .region { font-family: ${EXPORT_FONT_STACK}; font-size: ${REGION_LABEL_FONT_PX}px; font-weight: ${LABEL_FONT_WEIGHT}; }
     ]]></style>`,
     `</defs>`,
   ];
@@ -1211,14 +1375,14 @@ export function exportBoardSvg(): void {
       const paint = resolveRegionPaint("swimlane", lane);
       parts.push(
         `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${escapeXml(paint.backgroundColor)}" stroke="${escapeXml(paint.borderColor)}" stroke-width="2"/>`,
-        `<text class="region" x="${x + 12}" y="${y + 18}" fill="#475569">${escapeXml(lane.label)}</text>`,
+        `<text class="region" x="${x + 12}" y="${y + 18}" fill="${SWIMLANE_LABEL_FILL}">${escapeXml(lane.label)}</text>`,
       );
     } else {
       const bc = entry.region;
       const paint = resolveRegionPaint("boundedContext", bc);
       parts.push(
         `<rect x="${bc.x + ox}" y="${bc.y + oy}" width="${bc.width}" height="${bc.height}" fill="${escapeXml(paint.backgroundColor)}" stroke="${escapeXml(paint.borderColor)}" stroke-width="2" rx="8"/>`,
-        `<text class="region" x="${bc.x + ox + 8}" y="${bc.y + oy + 18}" fill="#1e40af">${escapeXml(bc.label)}</text>`,
+        `<text class="region" x="${bc.x + ox + 8}" y="${bc.y + oy + 18}" fill="${BC_LABEL_FILL}">${escapeXml(bc.label)}</text>`,
       );
     }
   }
@@ -1226,8 +1390,36 @@ export function exportBoardSvg(): void {
   if (state.timeline.visible !== false) {
     const ty = state.timeline.y + oy;
     parts.push(
-      `<line x1="${PAD / 2}" y1="${ty}" x2="${width - PAD / 2}" y2="${ty}" stroke="#94a3b8" stroke-width="2" stroke-dasharray="8 4"/>`,
+      `<line x1="${PAD / 2}" y1="${ty}" x2="${width - PAD / 2}" y2="${ty}" stroke="${TIMELINE_STROKE}" stroke-width="2" stroke-dasharray="8 4"/>`,
     );
+  }
+
+  for (const rel of state.contextRelations) {
+    const src = state.boundedContexts.find((b) => b.id === rel.sourceContextId);
+    const tgt = state.boundedContexts.find((b) => b.id === rel.targetContextId);
+    if (!src || !tgt) continue;
+    const { start, end } = contextRelationAnchors(src, tgt);
+    const pattern = CONTEXT_MAP_EXPORT_STYLE[rel.type];
+    const dash = pattern.dash ? ` stroke-dasharray="${pattern.dash}"` : "";
+    const label = rel.label?.trim() || CONTEXT_MAP_PATTERN_LABELS[rel.type];
+    parts.push(
+      `<line x1="${start.x + ox}" y1="${start.y + oy}" x2="${end.x + ox}" y2="${end.y + oy}" stroke="${pattern.stroke}" stroke-width="${pattern.width}" marker-end="url(#ctx-arrow)"${dash}/>`,
+      `<text class="meta" x="${(start.x + end.x) / 2 + ox}" y="${(start.y + end.y) / 2 + oy - 8}" text-anchor="middle" fill="${CONNECTOR_STROKE}">${escapeXml(label)}</text>`,
+    );
+  }
+
+  for (const line of state.canvasLines) {
+    const arrow = line.arrowHead ?? "none";
+    const markerEnd = arrow === "end" || arrow === "both" ? ` marker-end="url(#arrow)"` : "";
+    const markerStart = arrow === "start" || arrow === "both" ? ` marker-start="url(#arrow)"` : "";
+    parts.push(
+      `<line x1="${line.x1 + ox}" y1="${line.y1 + oy}" x2="${line.x2 + ox}" y2="${line.y2 + oy}" stroke="${escapeXml(line.color ?? CONNECTOR_STROKE)}" stroke-width="2"${markerEnd}${markerStart}/>`,
+    );
+    if (line.label?.trim()) {
+      parts.push(
+        `<text class="meta" x="${(line.x1 + line.x2) / 2 + ox}" y="${(line.y1 + line.y2) / 2 + oy - 6}" text-anchor="middle" fill="${CONNECTOR_STROKE}">${escapeXml(line.label)}</text>`,
+      );
+    }
   }
 
   for (const rel of state.relations) {
@@ -1237,8 +1429,13 @@ export function exportBoardSvg(): void {
     const { start, end } = relationAnchors(src, tgt);
     const dashed = rel.type === "annotates" || rel.type === "informs" ? ` stroke-dasharray="6 4"` : "";
     parts.push(
-      `<line x1="${start.x + ox}" y1="${start.y + oy}" x2="${end.x + ox}" y2="${end.y + oy}" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"${dashed}/>`,
+      `<line x1="${start.x + ox}" y1="${start.y + oy}" x2="${end.x + ox}" y2="${end.y + oy}" stroke="${CONNECTOR_STROKE}" stroke-width="2" marker-end="url(#arrow)"${dashed}/>`,
     );
+    if (rel.label?.trim()) {
+      parts.push(
+        `<text class="meta" x="${(start.x + end.x) / 2 + ox}" y="${(start.y + end.y) / 2 + oy - 8}" text-anchor="middle" fill="${CONNECTOR_STROKE}">${escapeXml(rel.label)}</text>`,
+      );
+    }
   }
 
   for (const el of sortElementsByZOrder(state.elements)) {
@@ -1251,10 +1448,10 @@ export function exportBoardSvg(): void {
     const rot = rotDeg
       ? ` transform="rotate(${rotDeg} ${x + r.w / 2} ${y + r.h / 2})"`
       : "";
-    const dash =
-      el.type === "note" || el.type === "archWhitebox" ? ` stroke-dasharray="4 3"` : "";
+    const dash = elementIsDashed(el) ? ` stroke-dasharray="4 3"` : "";
+    const paintFill = elementFillWithOpacity(fill, el);
     parts.push(
-      `<rect x="${x}" y="${y}" width="${r.w}" height="${r.h}" fill="${escapeXml(fill)}" stroke="${escapeXml(stroke)}" stroke-width="1.5" rx="${rx}"${dash}${rot}/>`,
+      `<rect x="${x}" y="${y}" width="${r.w}" height="${r.h}" fill="${escapeXml(paintFill)}" stroke="${escapeXml(stroke)}" stroke-width="${elementStrokeWidth(el)}" rx="${rx}"${dash}${rot}/>`,
     );
     if (el.type === "instruction") {
       parts.push(
@@ -1263,7 +1460,8 @@ export function exportBoardSvg(): void {
     }
 
     const textW = Math.max(20, r.w - CARD_PAD_X * 2);
-    const badgeLines = el.type === "instruction" ? ["INSTRUCTION"] : [];
+    const badge = elementTypeBadgeLabel(el, state.customCardTypes);
+    const badgeLines = badge ? [badge.toUpperCase()] : [];
     const labelLines = wrapLabelLines(el.label, textW, (s) =>
       measureAt(LABEL_FONT_PX, LABEL_FONT_WEIGHT, s),
     );
@@ -1273,16 +1471,17 @@ export function exportBoardSvg(): void {
       : [];
     const lineH = LABEL_FONT_PX * 1.25;
     const metaH = META_FONT_PX * 1.25;
-    const badgeH = badgeLines.length ? META_FONT_PX * 1.2 : 0;
+    const badgeH = badgeLines.length ? 9 * 1.2 : 0;
     const blockH =
       badgeH +
       labelLines.length * lineH +
       descLines.length * metaH +
       preview.attrs.length * metaH +
       preview.methods.length * metaH;
-    let cursorY = y + CARD_PAD_Y + (badgeLines.length ? META_FONT_PX : LABEL_FONT_PX);
-    if (blockH < r.h - CARD_PAD_Y * 2) {
-      cursorY = y + (r.h - blockH) / 2 + (badgeLines.length ? META_FONT_PX : LABEL_FONT_PX);
+    const centered = elementLabelIsCentered(el);
+    let cursorY = y + CARD_PAD_Y + (badgeLines.length ? 9 : LABEL_FONT_PX);
+    if (centered && blockH < r.h - CARD_PAD_Y * 2) {
+      cursorY = y + (r.h - blockH) / 2 + (badgeLines.length ? 9 : LABEL_FONT_PX);
     }
 
     const pushTextBlock = (
@@ -1290,12 +1489,10 @@ export function exportBoardSvg(): void {
       className: string,
       fillColor: string,
       step: number,
-      weightHint: "label" | "meta",
+      forceStart: boolean,
     ) => {
       if (lines.length === 0) return;
-      const anchor = weightHint === "label" && !preview.description && preview.attrs.length === 0 && preview.methods.length === 0 && badgeLines.length === 0
-        ? "middle"
-        : "start";
+      const anchor = centered && !forceStart ? "middle" : "start";
       const tx = anchor === "middle" ? x + r.w / 2 : x + CARD_PAD_X;
       parts.push(`<text class="${className}" fill="${escapeXml(fillColor)}" text-anchor="${anchor}"${rot}>`);
       for (const line of lines) {
@@ -1308,21 +1505,21 @@ export function exportBoardSvg(): void {
     };
 
     if (badgeLines.length) {
-      pushTextBlock(badgeLines, "meta", ink, META_FONT_PX * 1.2, "meta");
+      pushTextBlock(badgeLines, "badge", ink, 9 * 1.2, true);
       cursorY += 2;
     }
-    pushTextBlock(labelLines, "label", ink, lineH, "label");
+    pushTextBlock(labelLines, "label", ink, lineH, false);
     if (descLines.length) {
       cursorY += 2;
-      pushTextBlock(descLines, "meta", ink, metaH, "meta");
+      pushTextBlock(descLines, "meta", ink, metaH, true);
     }
     if (preview.attrs.length) {
       cursorY += 2;
-      pushTextBlock(preview.attrs, "meta", ink, metaH, "meta");
+      pushTextBlock(preview.attrs, "meta", ink, metaH, true);
     }
     if (preview.methods.length) {
       cursorY += 2;
-      pushTextBlock(preview.methods, "meta", ink, metaH, "meta");
+      pushTextBlock(preview.methods, "meta", ink, metaH, true);
     }
   }
 
@@ -1348,7 +1545,7 @@ export async function exportBoardPng(): Promise<void> {
   canvas.height = Math.ceil(height * scale);
   ctx.scale(scale, scale);
 
-  ctx.fillStyle = "#f4f5f7";
+  ctx.fillStyle = BOARD_BACKGROUND;
   ctx.fillRect(0, 0, width, height);
 
   for (const entry of sortedRegions(state)) {
@@ -1364,7 +1561,7 @@ export async function exportBoardPng(): Promise<void> {
       ctx.strokeStyle = paint.borderColor;
       ctx.lineWidth = 2;
       ctx.strokeRect(x, y, w, h);
-      ctx.fillStyle = "#475569";
+      ctx.fillStyle = SWIMLANE_LABEL_FILL;
       ctx.font = cssFont(LABEL_FONT_WEIGHT, REGION_LABEL_FONT_PX);
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic";
@@ -1381,7 +1578,7 @@ export async function exportBoardPng(): Promise<void> {
       ctx.lineWidth = 2;
       roundRect(ctx, x, y, bc.width, bc.height, 8);
       ctx.stroke();
-      ctx.fillStyle = "#1e40af";
+      ctx.fillStyle = BC_LABEL_FILL;
       ctx.font = cssFont(LABEL_FONT_WEIGHT, REGION_LABEL_FONT_PX);
       ctx.textAlign = "left";
       ctx.fillText(bc.label, x + 8, y + 18);
@@ -1389,7 +1586,7 @@ export async function exportBoardPng(): Promise<void> {
   }
 
   if (state.timeline.visible !== false) {
-    ctx.strokeStyle = "#94a3b8";
+    ctx.strokeStyle = TIMELINE_STROKE;
     ctx.lineWidth = 2;
     ctx.setLineDash([8, 4]);
     ctx.beginPath();
@@ -1400,12 +1597,57 @@ export async function exportBoardPng(): Promise<void> {
     ctx.setLineDash([]);
   }
 
+  for (const rel of state.contextRelations) {
+    const src = state.boundedContexts.find((b) => b.id === rel.sourceContextId);
+    const tgt = state.boundedContexts.find((b) => b.id === rel.targetContextId);
+    if (!src || !tgt) continue;
+    const { start, end } = contextRelationAnchors(src, tgt);
+    const pattern = CONTEXT_MAP_EXPORT_STYLE[rel.type];
+    ctx.strokeStyle = pattern.stroke;
+    ctx.lineWidth = pattern.width;
+    if (pattern.dash) ctx.setLineDash(pattern.dash.split(/\s+/).map(Number));
+    ctx.beginPath();
+    ctx.moveTo(start.x + ox, start.y + oy);
+    ctx.lineTo(end.x + ox, end.y + oy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    drawArrowHead(ctx, start.x + ox, start.y + oy, end.x + ox, end.y + oy, pattern.stroke);
+    const label = rel.label?.trim() || CONTEXT_MAP_PATTERN_LABELS[rel.type];
+    ctx.fillStyle = CONNECTOR_STROKE;
+    ctx.font = cssFont(500, META_FONT_PX);
+    ctx.textAlign = "center";
+    ctx.fillText(label, (start.x + end.x) / 2 + ox, (start.y + end.y) / 2 + oy - 8);
+  }
+
+  for (const line of state.canvasLines) {
+    const stroke = line.color ?? CONNECTOR_STROKE;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(line.x1 + ox, line.y1 + oy);
+    ctx.lineTo(line.x2 + ox, line.y2 + oy);
+    ctx.stroke();
+    const arrow = line.arrowHead ?? "none";
+    if (arrow === "end" || arrow === "both") {
+      drawArrowHead(ctx, line.x1 + ox, line.y1 + oy, line.x2 + ox, line.y2 + oy, stroke);
+    }
+    if (arrow === "start" || arrow === "both") {
+      drawArrowHead(ctx, line.x2 + ox, line.y2 + oy, line.x1 + ox, line.y1 + oy, stroke);
+    }
+    if (line.label?.trim()) {
+      ctx.fillStyle = CONNECTOR_STROKE;
+      ctx.font = cssFont(500, META_FONT_PX);
+      ctx.textAlign = "center";
+      ctx.fillText(line.label, (line.x1 + line.x2) / 2 + ox, (line.y1 + line.y2) / 2 + oy - 6);
+    }
+  }
+
   for (const rel of state.relations) {
     const src = state.elements.find((e) => e.id === rel.sourceId);
     const tgt = state.elements.find((e) => e.id === rel.targetId);
     if (!src || !tgt) continue;
     const { start, end } = relationAnchors(src, tgt);
-    ctx.strokeStyle = "#64748b";
+    ctx.strokeStyle = CONNECTOR_STROKE;
     ctx.lineWidth = 2;
     if (rel.type === "annotates" || rel.type === "informs") ctx.setLineDash([6, 4]);
     ctx.beginPath();
@@ -1413,7 +1655,13 @@ export async function exportBoardPng(): Promise<void> {
     ctx.lineTo(end.x + ox, end.y + oy);
     ctx.stroke();
     ctx.setLineDash([]);
-    drawArrowHead(ctx, start.x + ox, start.y + oy, end.x + ox, end.y + oy);
+    drawArrowHead(ctx, start.x + ox, start.y + oy, end.x + ox, end.y + oy, CONNECTOR_STROKE);
+    if (rel.label?.trim()) {
+      ctx.fillStyle = CONNECTOR_STROKE;
+      ctx.font = cssFont(500, META_FONT_PX);
+      ctx.textAlign = "center";
+      ctx.fillText(rel.label, (start.x + end.x) / 2 + ox, (start.y + end.y) / 2 + oy - 8);
+    }
   }
 
   for (const el of sortElementsByZOrder(state.elements)) {
@@ -1431,10 +1679,10 @@ export async function exportBoardPng(): Promise<void> {
       ctx.translate(-(x + r.w / 2), -(y + r.h / 2));
     }
 
-    ctx.fillStyle = fill;
+    ctx.fillStyle = elementFillWithOpacity(fill, el);
     ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1.5;
-    if (el.type === "note" || el.type === "archWhitebox") {
+    ctx.lineWidth = elementStrokeWidth(el);
+    if (elementIsDashed(el)) {
     ctx.setLineDash([4, 3]);
   }
     roundRect(ctx, x, y, r.w, r.h, rx);
@@ -1454,10 +1702,11 @@ export async function exportBoardPng(): Promise<void> {
     const descLines = preview.description
       ? wrapLabelLines(preview.description, textW, (s) => ctx.measureText(s).width).slice(0, 3)
       : [];
-    const hasBadge = el.type === "instruction";
+    const badge = elementTypeBadgeLabel(el, state.customCardTypes);
+    const hasBadge = Boolean(badge);
     const lineH = LABEL_FONT_PX * 1.25;
     const metaH = META_FONT_PX * 1.25;
-    const badgeH = hasBadge ? META_FONT_PX * 1.2 : 0;
+    const badgeH = hasBadge ? 9 * 1.2 : 0;
     const blockH =
       badgeH +
       labelLines.length * lineH +
@@ -1465,11 +1714,10 @@ export async function exportBoardPng(): Promise<void> {
       preview.attrs.length * metaH +
       preview.methods.length * metaH;
 
-    const centered =
-      !hasBadge && !preview.description && preview.attrs.length === 0 && preview.methods.length === 0;
-    let cursorY = y + CARD_PAD_Y + (hasBadge ? META_FONT_PX : LABEL_FONT_PX);
-    if (blockH < r.h - CARD_PAD_Y * 2) {
-      cursorY = y + (r.h - blockH) / 2 + (hasBadge ? META_FONT_PX : LABEL_FONT_PX);
+    const centered = elementLabelIsCentered(el);
+    let cursorY = y + CARD_PAD_Y + (hasBadge ? 9 : LABEL_FONT_PX);
+    if (centered && blockH < r.h - CARD_PAD_Y * 2) {
+      cursorY = y + (r.h - blockH) / 2 + (hasBadge ? 9 : LABEL_FONT_PX);
     }
 
     ctx.fillStyle = ink;
@@ -1477,11 +1725,11 @@ export async function exportBoardPng(): Promise<void> {
     ctx.textAlign = centered ? "center" : "left";
     const tx = centered ? x + r.w / 2 : x + CARD_PAD_X;
 
-    if (hasBadge) {
-      ctx.font = cssFont(700, META_FONT_PX);
+    if (hasBadge && badge) {
+      ctx.font = cssFont(700, 9);
       ctx.textAlign = "left";
-      ctx.fillText("INSTRUCTION", x + CARD_PAD_X, cursorY, textW);
-      cursorY += META_FONT_PX * 1.2 + 2;
+      ctx.fillText(badge.toUpperCase(), x + CARD_PAD_X, cursorY, textW);
+      cursorY += 9 * 1.2 + 2;
       ctx.textAlign = "left";
     }
 
@@ -1535,10 +1783,11 @@ function drawArrowHead(
   y1: number,
   x2: number,
   y2: number,
+  color: string = CONNECTOR_STROKE,
 ): void {
   const angle = Math.atan2(y2 - y1, x2 - x1);
   const size = 8;
-  ctx.fillStyle = "#64748b";
+  ctx.fillStyle = color;
   ctx.beginPath();
   ctx.moveTo(x2, y2);
   ctx.lineTo(x2 - size * Math.cos(angle - 0.4), y2 - size * Math.sin(angle - 0.4));
