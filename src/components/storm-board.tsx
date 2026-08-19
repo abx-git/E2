@@ -84,7 +84,11 @@ import {
   BOARD_SNAPSHOT_SCHEMA_FILENAME,
   stringifyBoardSnapshotSchema,
 } from "@/lib/storm-json";
-import { boardImportPayloadFromAnyExportText } from "@/lib/board-import-text";
+import {
+  boardImportPayloadFromAnyExportText,
+  boardImportPayloadFromJsonText,
+  looksLikeJsonText,
+} from "@/lib/board-import-text";
 import {
   AI_BOARD_CONTEXT_SCHEMA_FILENAME,
   aiContextExportFilename,
@@ -188,7 +192,10 @@ export function StormBoard() {
     proceed: () => void | Promise<void>;
   } | null>(null);
   const [unsavedBusy, setUnsavedBusy] = useState(false);
-  const [jsonPasteMode, setJsonPasteMode] = useState<"board" | "ai-view" | "diagram" | null>(null);
+  const [jsonPasteMode, setJsonPasteMode] = useState<
+    "board" | "ai-view" | "diagram" | "json-view" | null
+  >(null);
+  const [jsonPasteInitial, setJsonPasteInitial] = useState("");
   const [shareLinkOpen, setShareLinkOpen] = useState(false);
   const [remoteBoardUrl, setRemoteBoardUrl] = useState<string | null>(null);
   const [remoteBoardBusy, setRemoteBoardBusy] = useState(false);
@@ -861,6 +868,7 @@ export function StormBoard() {
       return;
     }
     void runWithUnsavedGuard("JSON einfügen", () => {
+      setJsonPasteInitial("");
       setJsonPasteMode("board");
     });
   };
@@ -881,9 +889,11 @@ export function StormBoard() {
           fileName: "Einfügen",
         });
         setJsonPasteMode(null);
+        setJsonPasteInitial("");
         return;
       }
       setJsonPasteMode(null);
+      setJsonPasteInitial("");
       setSetupOpen(false);
       setStorageOpen(false);
     } finally {
@@ -977,6 +987,16 @@ export function StormBoard() {
 
   const handleImportAsNewViews = () => importViewsInputRef.current?.click();
 
+  const collabBlocksPasteAsNewView = (action: string): boolean => {
+    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+      window.alert(
+        `Während der Kollaboration kann kein ${action} eingefügt werden. Bitte zuerst den Raum verlassen.`,
+      );
+      return true;
+    }
+    return false;
+  };
+
   const applyImportedFileAsNewViews = (text: string): boolean => {
     const payload = boardImportPayloadFromAnyExportText(text);
     if (!payload) {
@@ -994,30 +1014,68 @@ export function StormBoard() {
     return true;
   };
 
-  const handlePasteAiContextAsNewView = () => {
-    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-      window.alert(
-        "Während der Kollaboration kann kein KI-Kontext eingefügt werden. Bitte zuerst den Raum verlassen.",
-      );
-      return;
+  const applyImportedJsonAsNewViews = (text: string): boolean => {
+    const payload = boardImportPayloadFromJsonText(text);
+    if (!payload) {
+      window.alert("Ungültiges E2-JSON oder KI-Kontext-JSON.");
+      return false;
     }
+    const result = useStormBoardStore.getState().importDocumentAsNewViews(payload);
+    if (!result.ok) {
+      window.alert(result.error);
+      return false;
+    }
+    setStorageOpen(false);
+    return true;
+  };
+
+  const handlePasteJsonAsNewView = () => {
+    if (collabBlocksPasteAsNewView("JSON")) return;
+    void (async () => {
+      let clip = "";
+      try {
+        clip = (await navigator.clipboard.readText()).trim();
+      } catch {
+        clip = "";
+      }
+      if (clip && boardImportPayloadFromJsonText(clip)) {
+        applyImportedJsonAsNewViews(clip);
+        return;
+      }
+      setJsonPasteInitial(clip && looksLikeJsonText(clip) ? clip : "");
+      setJsonPasteMode("json-view");
+    })();
+  };
+
+  const handlePasteAiContextAsNewView = () => {
+    if (collabBlocksPasteAsNewView("KI-Kontext")) return;
+    setJsonPasteInitial("");
     setJsonPasteMode("ai-view");
   };
 
   const handlePasteDiagramAsNewView = () => {
-    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-      window.alert(
-        "Während der Kollaboration kann kein Diagramm eingefügt werden. Bitte zuerst den Raum verlassen.",
-      );
-      return;
-    }
+    if (collabBlocksPasteAsNewView("Diagramm")) return;
+    setJsonPasteInitial("");
     setJsonPasteMode("diagram");
   };
 
   const applyPastedAiOrViewJson = (raw: string) => {
     if (applyImportedFileAsNewViews(raw)) {
       setJsonPasteMode(null);
+      setJsonPasteInitial("");
     }
+  };
+
+  const applyPastedJsonAsNewView = (raw: string) => {
+    if (applyImportedJsonAsNewViews(raw)) {
+      setJsonPasteMode(null);
+      setJsonPasteInitial("");
+    }
+  };
+
+  const closeJsonPaste = () => {
+    setJsonPasteMode(null);
+    setJsonPasteInitial("");
   };
 
   return (
@@ -1043,6 +1101,7 @@ export function StormBoard() {
         workingFileSaving={workingFileSaving}
         onOpenCollab={() => setCollabOpen(true)}
         onOpenStorage={() => setStorageOpen(true)}
+        onPasteJsonAsNewView={handlePasteJsonAsNewView}
       />
 
       <CollabPresenceBanner onRequestLeave={() => setLeaveOpen(true)} />
@@ -1178,6 +1237,7 @@ export function StormBoard() {
           setShareLinkOpen(true);
         }}
         onImportAsNewViews={handleImportAsNewViews}
+        onPasteJsonAsNewView={handlePasteJsonAsNewView}
         onExportJson={downloadJson}
         onCopyJsonToClipboard={copyJsonToClipboard}
         onExportViewJson={downloadViewJson}
@@ -1284,8 +1344,20 @@ export function StormBoard() {
         placeholder='{ "format": "event-storming-tool", "version": 2, … }'
         confirmLabel="Board laden"
         busy={busy}
-        onClose={() => setJsonPasteMode(null)}
+        onClose={closeJsonPaste}
         onConfirm={(text) => void applyPastedBoardJson(text)}
+      />
+
+      <JsonPasteDialog
+        open={jsonPasteMode === "json-view"}
+        title="JSON als neue Sicht"
+        description="E2-JSON (.storm.json) oder KI-Kontext aus der Zwischenablage als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten."
+        placeholder='{ "format": "event-storming-tool", "version": 2, … }'
+        confirmLabel="Als Sicht importieren"
+        busy={busy}
+        initialText={jsonPasteInitial}
+        onClose={closeJsonPaste}
+        onConfirm={applyPastedJsonAsNewView}
       />
 
       <JsonPasteDialog
@@ -1295,7 +1367,7 @@ export function StormBoard() {
         placeholder='{ "format": "event-storming-tool-ai-context", "version": 1, … }'
         confirmLabel="Als Sicht importieren"
         busy={busy}
-        onClose={() => setJsonPasteMode(null)}
+        onClose={closeJsonPaste}
         onConfirm={applyPastedAiOrViewJson}
       />
 
@@ -1306,7 +1378,7 @@ export function StormBoard() {
         placeholder={"flowchart LR\n  A[Place Order] -->|löst aus| B[Order Placed]"}
         confirmLabel="Als Sicht importieren"
         busy={busy}
-        onClose={() => setJsonPasteMode(null)}
+        onClose={closeJsonPaste}
         onConfirm={applyPastedAiOrViewJson}
       />
 

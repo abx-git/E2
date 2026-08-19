@@ -25,6 +25,7 @@ export interface BoardAppBarProps {
   workingFileSaving: boolean;
   onOpenCollab: () => void;
   onOpenStorage: () => void;
+  onPasteJsonAsNewView?: () => void;
 }
 
 function formatOptionsForMode(mode: ModelingMode): { value: WorkshopFormat; label: string }[] {
@@ -70,6 +71,7 @@ export function BoardAppBar({
   workingFileSaving,
   onOpenCollab,
   onOpenStorage,
+  onPasteJsonAsNewView,
 }: BoardAppBarProps) {
   const title = useStormBoardStore((s) => s.title);
   const setTitle = useStormBoardStore((s) => s.setTitle);
@@ -251,7 +253,7 @@ export function BoardAppBar({
       </div>
 
       <div className="border-t border-[var(--border)] px-1">
-        <BoardViewTabs />
+        <BoardViewTabs onPasteJsonAsNewView={onPasteJsonAsNewView} />
       </div>
     </header>
   );

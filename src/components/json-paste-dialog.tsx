@@ -11,6 +11,8 @@ export interface JsonPasteDialogProps {
   placeholder?: string;
   confirmLabel?: string;
   busy?: boolean;
+  /** Prefill when the dialog opens (e.g. system clipboard). */
+  initialText?: string;
   onClose: () => void;
   onConfirm: (text: string) => void;
 }
@@ -22,6 +24,7 @@ export function JsonPasteDialog({
   placeholder = '{ "format": "…", … }',
   confirmLabel = "Einfügen",
   busy,
+  initialText = "",
   onClose,
   onConfirm,
 }: JsonPasteDialogProps) {
@@ -32,12 +35,12 @@ export function JsonPasteDialog({
 
   useEffect(() => {
     if (!open) return;
-    setText("");
+    setText(initialText);
     const id = window.requestAnimationFrame(() => {
       textareaRef.current?.focus();
     });
     return () => window.cancelAnimationFrame(id);
-  }, [open]);
+  }, [open, initialText]);
 
   useEffect(() => {
     if (!open) return;
@@ -92,6 +95,29 @@ export function JsonPasteDialog({
         />
 
         <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              void (async () => {
+                try {
+                  const clip = (await navigator.clipboard.readText()).trim();
+                  if (!clip) {
+                    window.alert("Die Zwischenablage ist leer.");
+                    return;
+                  }
+                  setText(clip);
+                } catch {
+                  window.alert(
+                    "Zwischenablage konnte nicht gelesen werden. Bitte ⌘V / Strg+V in das Feld.",
+                  );
+                }
+              })();
+            }}
+            className="mr-auto rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--control)] disabled:opacity-60"
+          >
+            Zwischenablage
+          </button>
           <button
             type="button"
             disabled={busy}

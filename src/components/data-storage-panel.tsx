@@ -68,6 +68,8 @@ export interface DataStoragePanelProps {
   onOpenBoardShareLink?: () => void;
   /** Import E2 file as new view tab(s); keeps open document appearance/globals. */
   onImportAsNewViews: () => void;
+  /** Paste E2/AI JSON from the system clipboard as new view tab(s). */
+  onPasteJsonAsNewView: () => void;
   onExportJson: () => void;
   /** Full board JSON into the OS clipboard (not the in-app sticky clipboard). */
   onCopyJsonToClipboard: () => boolean | Promise<boolean>;
@@ -307,6 +309,7 @@ export function DataStoragePanel({
   onRestoreBackupPaste,
   onOpenBoardShareLink,
   onImportAsNewViews,
+  onPasteJsonAsNewView,
   onExportJson,
   onCopyJsonToClipboard,
   onExportViewJson,
@@ -764,11 +767,14 @@ export function DataStoragePanel({
 
               <div className="space-y-2 border-t border-[var(--border)] pt-4">
                 <p className="text-xs text-[var(--muted)]">
-                  E2-Datei oder KI-Kontext als neue Sicht(en) — Farben bleiben aus der geöffneten
+                  E2-Datei oder JSON als neue Sicht(en) — Farben bleiben aus der geöffneten
                   Datei.
                 </p>
                 <ActionButton onClick={onImportAsNewViews} disabled={busy}>
                   <Upload className="h-4 w-4" /> Als neue Seite importieren
+                </ActionButton>
+                <ActionButton onClick={onPasteJsonAsNewView} disabled={busy}>
+                  <ClipboardPaste className="h-4 w-4" /> JSON als neue Sicht
                 </ActionButton>
                 {onOpenBoardShareLink && (
                   <ActionButton
@@ -879,6 +885,14 @@ export function DataStoragePanel({
                     detail="kompletter Extract"
                     icon={ClipboardCopy}
                     emphasize={viewJsonCopied}
+                  />
+                  <ExportTile
+                    onClick={onPasteJsonAsNewView}
+                    disabled={busy}
+                    label="JSON einfügen"
+                    detail="als neue Sicht"
+                    icon={ClipboardPaste}
+                    emphasize
                   />
                   <ExportTile
                     onClick={() => onExportViewAiContext(selectedExportViewId)}

@@ -2,10 +2,14 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Copy, Plus, Trash2, X } from "lucide-react";
+import { Copy, ClipboardPaste, Plus, Trash2, X } from "lucide-react";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
-export function BoardViewTabs() {
+export function BoardViewTabs({
+  onPasteJsonAsNewView,
+}: {
+  onPasteJsonAsNewView?: () => void;
+}) {
   const views = useStormBoardStore((s) => s.views);
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const setActiveView = useStormBoardStore((s) => s.setActiveView);
@@ -136,6 +140,19 @@ export function BoardViewTabs() {
         <Plus className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">Sicht</span>
       </button>
+
+      {onPasteJsonAsNewView ? (
+        <button
+          type="button"
+          onClick={onPasteJsonAsNewView}
+          className="dock-control flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[var(--muted)]"
+          title="JSON aus der Zwischenablage als neue Sicht"
+          aria-label="JSON aus der Zwischenablage als neue Sicht"
+        >
+          <ClipboardPaste className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">JSON</span>
+        </button>
+      ) : null}
 
       {menu && (
         <div
