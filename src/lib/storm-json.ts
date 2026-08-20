@@ -1,5 +1,6 @@
 import type {
   BoundedContext,
+  ElementType,
   GlossaryEntry,
   ModelingMode,
   StormElement,
@@ -41,16 +42,17 @@ function asFiniteNumber(value: unknown): number | undefined {
 /** Migrate legacy types and coerce unknown JSON stickies so canvas styles always resolve. */
 export function normalizeStormElement(raw: StormElement | Record<string, unknown>): StormElement {
   const source = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  const el = source as StormElement;
-  let type = typeof source.type === "string" ? source.type : "note";
+  const el = source as unknown as StormElement;
   const meta = { ...(el.metadata ?? {}) } as Record<string, unknown>;
 
-  if (type === "arc42Section") {
-    delete meta.arc42SectionNumber;
-    type = "archBlackbox";
-  }
-  if (!isKnownElementType(type)) {
-    type = "note";
+  let type: ElementType = "note";
+  if (typeof source.type === "string") {
+    if (source.type === "arc42Section") {
+      delete meta.arc42SectionNumber;
+      type = "archBlackbox";
+    } else if (isKnownElementType(source.type)) {
+      type = source.type;
+    }
   }
 
   const next: StormElement = {
@@ -275,9 +277,7 @@ export function normalizeBoardView(raw: Partial<BoardView> & { id?: string; name
     facilitatorPhase: Number(raw.facilitatorPhase) || 0,
     elements: Array.isArray(raw.elements)
       ? raw.elements
-          .filter((entry): entry is StormElement | Record<string, unknown> =>
-            Boolean(entry) && typeof entry === "object",
-          )
+          .filter((entry): entry is StormElement => Boolean(entry) && typeof entry === "object")
           .map(normalizeStormElement)
       : [],
     relations: Array.isArray(raw.relations) ? raw.relations : [],
