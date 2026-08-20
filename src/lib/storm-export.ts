@@ -1050,17 +1050,12 @@ function mxElementHtml(
   el: StormElement,
   customCardTypes: CustomCardType[],
 ): string {
-  const badge = elementTypeBadgeLabel(el, customCardTypes);
+  const caption = elementTypeBadgeLabel(el, customCardTypes);
   const preview = cardPreviewLines(el);
-  const parts: string[] = [];
-  if (badge) {
-    parts.push(
-      `<div style="font-size:9px;font-weight:700;letter-spacing:0.04em">${mxHtmlText(badge.toUpperCase())}</div>`,
-    );
-  }
-  parts.push(
+  const parts: string[] = [
+    `<div style="font-size:${META_FONT_PX}px;font-weight:500;letter-spacing:0.04em;opacity:0.7">${mxHtmlText(caption)}</div>`,
     `<div style="font-size:${LABEL_FONT_PX}px;font-weight:${LABEL_FONT_WEIGHT}">${mxHtmlText(el.label)}</div>`,
-  );
+  ];
   if (preview.description) {
     parts.push(
       `<div style="font-size:${META_FONT_PX}px;font-weight:500">${mxHtmlText(preview.description)}</div>`,
@@ -1374,7 +1369,7 @@ export function exportBoardSvg(): void {
       @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
       .label { font-family: ${EXPORT_FONT_STACK}; font-size: ${LABEL_FONT_PX}px; font-weight: ${LABEL_FONT_WEIGHT}; }
       .meta { font-family: ${EXPORT_FONT_STACK}; font-size: ${META_FONT_PX}px; font-weight: 500; }
-      .badge { font-family: ${EXPORT_FONT_STACK}; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; }
+      .badge { font-family: ${EXPORT_FONT_STACK}; font-size: ${META_FONT_PX}px; font-weight: 500; letter-spacing: 0.04em; opacity: 0.7; }
       .region { font-family: ${EXPORT_FONT_STACK}; font-size: ${REGION_LABEL_FONT_PX}px; font-weight: ${LABEL_FONT_WEIGHT}; }
     ]]></style>`,
     `</defs>`,
@@ -1475,8 +1470,8 @@ export function exportBoardSvg(): void {
     }
 
     const textW = Math.max(20, r.w - CARD_PAD_X * 2);
-    const badge = elementTypeBadgeLabel(el, state.customCardTypes);
-    const badgeLines = badge ? [badge.toUpperCase()] : [];
+    const caption = elementTypeBadgeLabel(el, state.customCardTypes);
+    const captionLines = [caption];
     const labelLines = wrapLabelLines(el.label, textW, (s) =>
       measureAt(LABEL_FONT_PX, LABEL_FONT_WEIGHT, s),
     );
@@ -1486,18 +1481,18 @@ export function exportBoardSvg(): void {
       : [];
     const lineH = LABEL_FONT_PX * 1.25;
     const metaH = META_FONT_PX * 1.25;
-    const badgeH = badgeLines.length ? 9 * 1.2 : 0;
+    const captionH = META_FONT_PX * 1.2;
     const blockH =
-      badgeH +
+      captionH +
       labelLines.length * lineH +
       descLines.length * metaH +
       preview.attrs.length * metaH +
       preview.methods.length * metaH +
       preview.links.length * metaH;
     const centered = elementLabelIsCentered(el);
-    let cursorY = y + CARD_PAD_Y + (badgeLines.length ? 9 : LABEL_FONT_PX);
+    let cursorY = y + CARD_PAD_Y + META_FONT_PX;
     if (centered && blockH < r.h - CARD_PAD_Y * 2) {
-      cursorY = y + (r.h - blockH) / 2 + (badgeLines.length ? 9 : LABEL_FONT_PX);
+      cursorY = y + (r.h - blockH) / 2 + META_FONT_PX;
     }
 
     const pushTextBlock = (
@@ -1520,8 +1515,8 @@ export function exportBoardSvg(): void {
       parts.push(`</text>`);
     };
 
-    if (badgeLines.length) {
-      pushTextBlock(badgeLines, "badge", ink, 9 * 1.2, true);
+    if (captionLines.length) {
+      pushTextBlock(captionLines, "badge", ink, captionH, false);
       cursorY += 2;
     }
     pushTextBlock(labelLines, "label", ink, lineH, false);
@@ -1722,13 +1717,12 @@ export async function exportBoardPng(): Promise<void> {
     const descLines = preview.description
       ? wrapLabelLines(preview.description, textW, (s) => ctx.measureText(s).width).slice(0, 3)
       : [];
-    const badge = elementTypeBadgeLabel(el, state.customCardTypes);
-    const hasBadge = Boolean(badge);
+    const caption = elementTypeBadgeLabel(el, state.customCardTypes);
     const lineH = LABEL_FONT_PX * 1.25;
     const metaH = META_FONT_PX * 1.25;
-    const badgeH = hasBadge ? 9 * 1.2 : 0;
+    const captionH = META_FONT_PX * 1.2;
     const blockH =
-      badgeH +
+      captionH +
       labelLines.length * lineH +
       descLines.length * metaH +
       preview.attrs.length * metaH +
@@ -1736,9 +1730,9 @@ export async function exportBoardPng(): Promise<void> {
       preview.links.length * metaH;
 
     const centered = elementLabelIsCentered(el);
-    let cursorY = y + CARD_PAD_Y + (hasBadge ? 9 : LABEL_FONT_PX);
+    let cursorY = y + CARD_PAD_Y + META_FONT_PX;
     if (centered && blockH < r.h - CARD_PAD_Y * 2) {
-      cursorY = y + (r.h - blockH) / 2 + (hasBadge ? 9 : LABEL_FONT_PX);
+      cursorY = y + (r.h - blockH) / 2 + META_FONT_PX;
     }
 
     ctx.fillStyle = ink;
@@ -1746,17 +1740,15 @@ export async function exportBoardPng(): Promise<void> {
     ctx.textAlign = centered ? "center" : "left";
     const tx = centered ? x + r.w / 2 : x + CARD_PAD_X;
 
-    if (hasBadge && badge) {
-      ctx.font = cssFont(700, 9);
-      ctx.textAlign = "left";
-      ctx.fillText(badge.toUpperCase(), x + CARD_PAD_X, cursorY, textW);
-      cursorY += 9 * 1.2 + 2;
-      ctx.textAlign = "left";
-    }
+    ctx.font = cssFont(500, META_FONT_PX);
+    ctx.globalAlpha = 0.7;
+    ctx.fillText(caption, tx, cursorY, textW);
+    ctx.globalAlpha = 1;
+    cursorY += captionH + 2;
 
     ctx.font = cssFont(LABEL_FONT_WEIGHT, LABEL_FONT_PX);
     for (const line of labelLines) {
-      ctx.fillText(line, hasBadge ? x + CARD_PAD_X : tx, cursorY, textW);
+      ctx.fillText(line, tx, cursorY, textW);
       cursorY += lineH;
     }
     ctx.font = cssFont(500, META_FONT_PX);

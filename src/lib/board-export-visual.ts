@@ -1,5 +1,5 @@
 import { cardShowsDetails } from "@/lib/card-preview";
-import { resolveElementStyle } from "@/lib/element-styles";
+import { cardTypeCaption } from "@/lib/element-styles";
 import { isStackingContainerType } from "@/lib/element-z-order";
 import { hexToRgba } from "@/lib/region-style";
 import type { CustomCardType } from "@/lib/custom-card-types";
@@ -32,12 +32,6 @@ export const CONNECTOR_STROKE = "#8b9aab";
 export const TIMELINE_STROKE = "#e9c46a";
 export const SWIMLANE_LABEL_FILL = "#475569";
 export const BC_LABEL_FILL = "#1e3a8a";
-
-const SUBDOMAIN_KIND_LABEL: Record<string, string> = {
-  core: "Core",
-  supporting: "Supporting",
-  generic: "Generic",
-};
 
 export const CONTEXT_MAP_EXPORT_STYLE: Record<
   ContextMapPattern,
@@ -90,18 +84,12 @@ export function elementHasTypeBadge(el: StormElement): boolean {
   );
 }
 
+/** Type line at the top of a sticky — same text as the canvas caption. */
 export function elementTypeBadgeLabel(
   el: StormElement,
   customCardTypes: CustomCardType[] = [],
-): string | null {
-  if (!elementHasTypeBadge(el)) return null;
-  if (el.type === "aggregate") return "Aggregate Root";
-  if (el.type === "subdomain") {
-    const kind = SUBDOMAIN_KIND_LABEL[el.metadata?.subdomainKind ?? "core"] ?? "Core";
-    return `Subdomain · ${kind}`;
-  }
-  if (el.type === "instruction") return "Instruction";
-  return resolveElementStyle(el, customCardTypes).shortLabel;
+): string {
+  return cardTypeCaption(el, customCardTypes);
 }
 
 /** Left/top like E2 cards with notes, details, badges, or boundary chrome. */

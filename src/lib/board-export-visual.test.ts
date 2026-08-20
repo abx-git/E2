@@ -24,8 +24,9 @@ describe("board export visual helpers", () => {
     expect(elementLabelIsCentered(el({ type: "c4Container", label: "A" }))).toBe(false);
   });
 
-  it("emits type badges matching the canvas chrome", () => {
-    expect(elementTypeBadgeLabel(el({ type: "domainEvent", label: "A" }))).toBeNull();
+  it("emits type captions matching the canvas", () => {
+    expect(elementTypeBadgeLabel(el({ type: "domainEvent", label: "A" }))).toBe("Domain Event");
+    expect(elementTypeBadgeLabel(el({ type: "command", label: "A" }))).toBe("Command");
     expect(elementTypeBadgeLabel(el({ type: "instruction", label: "A" }))).toBe("Instruction");
     expect(elementTypeBadgeLabel(el({ type: "aggregate", label: "A" }))).toBe("Aggregate Root");
     expect(

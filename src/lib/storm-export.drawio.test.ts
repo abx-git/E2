@@ -138,6 +138,10 @@ describe("buildDrawioMxFile", () => {
     expect(mx).toContain('id="bc_bc-1"');
     expect(mx).toContain('id="timeline"');
     expect(mx).toContain("Order Placed");
+    expect(mx).toContain("Domain Event");
+    expect(mx).toContain("Command");
+    expect(mx).toContain("Aggregate Root");
+    expect(mx).toContain("Notiz");
     expect(mx).toMatch(/<diagram[^>]*>\s*<mxGraphModel/);
   });
 
