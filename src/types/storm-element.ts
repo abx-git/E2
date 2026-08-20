@@ -603,6 +603,7 @@ export const ALL_ELEMENT_TYPES: ElementType[] = [
   "cloudIdentity",
   "cloudEdge",
   "cloudManagedService",
+  "customCard",
 ];
 
 export const ES_WORKSHOP_FORMATS: WorkshopFormat[] = [

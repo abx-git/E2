@@ -8,7 +8,7 @@ import { normalizeCardWebLinks } from "@/lib/card-web-links";
 import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-panel";
 import { RegionAppearanceControls } from "@/components/region-appearance-controls";
 import { lineArrowHeadShortLabel } from "@/components/canvas-lines";
-import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { resolveElementStyle } from "@/lib/element-styles";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { validateBoard } from "@/lib/relation-validation";
@@ -344,7 +344,7 @@ export function ElementDetailSidebar({
     return null;
   }
 
-  const style = ELEMENT_STYLES[selectedElement.type];
+  const style = resolveElementStyle(selectedElement, customCardTypes);
   const width = selectedElement.width ?? style.defaultWidth;
   const height = selectedElement.height ?? style.defaultHeight;
   const cardFlagsActive = Boolean(

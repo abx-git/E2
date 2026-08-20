@@ -38,7 +38,7 @@ import {
   effectiveElementRotation,
   normalizeRotationDegrees,
 } from "@/lib/element-rotation";
-import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { ELEMENT_STYLES, styleForElementType } from "@/lib/element-styles";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import {
   PROGRESS_MARKS,
@@ -175,7 +175,7 @@ export function CanvasContextMenu({
   if (target.kind === "element") {
     const el = elements.find((e) => e.id === target.id);
     if (!el) return null;
-    const style = ELEMENT_STYLES[el.type];
+    const style = styleForElementType(el.type);
     body = (
       <>
         <Header title={el.label || style.label} subtitle={style.label} />
@@ -383,7 +383,7 @@ export function CanvasContextMenu({
           label="45° drehen"
           onClick={() =>
             run(() => {
-              const current = effectiveElementRotation(el.rotation, ELEMENT_STYLES[el.type].rotation);
+              const current = effectiveElementRotation(el.rotation, style.rotation);
               updateElement(el.id, {
                 rotation: normalizeRotationDegrees(current + 45),
               });
@@ -395,7 +395,7 @@ export function CanvasContextMenu({
           label="−45° drehen"
           onClick={() =>
             run(() => {
-              const current = effectiveElementRotation(el.rotation, ELEMENT_STYLES[el.type].rotation);
+              const current = effectiveElementRotation(el.rotation, style.rotation);
               updateElement(el.id, {
                 rotation: normalizeRotationDegrees(current - 45),
               });
@@ -578,7 +578,7 @@ export function CanvasContextMenu({
                 selected.map((el) => ({
                   id: el.id,
                   rotation: normalizeRotationDegrees(
-                    effectiveElementRotation(el.rotation, ELEMENT_STYLES[el.type].rotation) + 45,
+                    effectiveElementRotation(el.rotation, styleForElementType(el.type).rotation) + 45,
                   ),
                 })),
               );
@@ -594,7 +594,7 @@ export function CanvasContextMenu({
                 selected.map((el) => ({
                   id: el.id,
                   rotation: normalizeRotationDegrees(
-                    effectiveElementRotation(el.rotation, ELEMENT_STYLES[el.type].rotation) - 45,
+                    effectiveElementRotation(el.rotation, styleForElementType(el.type).rotation) - 45,
                   ),
                 })),
               );

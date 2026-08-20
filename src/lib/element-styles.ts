@@ -678,13 +678,24 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
   },
 };
 
+/** True when `type` has a palette/canvas style (imported JSON may carry unknown types). */
+export function isKnownElementType(type: unknown): type is ElementType {
+  return typeof type === "string" && Object.prototype.hasOwnProperty.call(ELEMENT_STYLES, type);
+}
+
+/** Style lookup that never returns undefined — unknown types fall back to note. */
+export function styleForElementType(type: unknown): ElementStyle {
+  if (isKnownElementType(type)) return ELEMENT_STYLES[type];
+  return ELEMENT_STYLES.note;
+}
+
 export function elementDimensions(type: ElementType): { width: number; height: number } {
-  const s = ELEMENT_STYLES[type];
+  const s = styleForElementType(type);
   return { width: s.defaultWidth, height: s.defaultHeight };
 }
 
 export function defaultLabelForType(type: ElementType): string {
-  return ELEMENT_STYLES[type].label;
+  return styleForElementType(type).label;
 }
 
 /** Resolve palette/canvas colors — custom cards use their stereotype definition. */
@@ -692,7 +703,7 @@ export function resolveElementStyle(
   element: Pick<StormElement, "type" | "metadata">,
   customCardTypes: CustomCardType[] = [],
 ): ElementStyle {
-  const base = ELEMENT_STYLES[element.type];
+  const base = styleForElementType(element.type);
   if (element.type !== "customCard") return base;
   const def = findCustomCardType(customCardTypes, element.metadata?.customTypeId);
   if (!def) return base;

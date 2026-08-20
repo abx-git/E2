@@ -36,7 +36,7 @@ import {
   sortByZOrder,
   sortElementsByZOrder,
 } from "@/lib/element-z-order";
-import { ELEMENT_STYLES, resolveElementStyle } from "@/lib/element-styles";
+import { resolveElementStyle, styleForElementType } from "@/lib/element-styles";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { resolveRegionPaint } from "@/lib/region-style";
 import { boardActiveSliceFromStore } from "@/store/storm-board-store";
@@ -50,7 +50,7 @@ import {
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
 
 function elementExportRotation(el: StormElement): number {
-  return effectiveElementRotation(el.rotation, ELEMENT_STYLES[el.type].rotation);
+  return effectiveElementRotation(el.rotation, styleForElementType(el.type).rotation);
 }
 
 function sortedRegions(state: Pick<BoardActiveSlice, "swimlanes" | "boundedContexts">): Array<
@@ -161,7 +161,7 @@ export function exportContextMapMarkdown(): void {
     lines.push(`## ${bc.label}`);
     if (bc.purpose) lines.push(bc.purpose);
     lines.push("", "**Elemente:**");
-    for (const el of inside) lines.push(`- ${ELEMENT_STYLES[el.type].shortLabel}: ${el.label}`);
+    for (const el of inside) lines.push(`- ${styleForElementType(el.type).shortLabel}: ${el.label}`);
     lines.push("");
   }
 
@@ -271,7 +271,7 @@ export function exportDomainModelMarkdown(): void {
       if (inside.length) {
         lines.push("", "**Bausteine:**");
         for (const el of inside) {
-          lines.push(`- ${ELEMENT_STYLES[el.type].label}: ${el.label}`);
+          lines.push(`- ${styleForElementType(el.type).label}: ${el.label}`);
         }
       }
       lines.push("");
@@ -524,7 +524,7 @@ export function exportEventModelMarkdown(): void {
       if (inBand.length) {
         lines.push("", "**Bausteine in der Slice-Spalte:**");
         for (const el of inBand.sort((a, b) => a.y - b.y)) {
-          lines.push(`- ${ELEMENT_STYLES[el.type].label}: ${el.label}`);
+          lines.push(`- ${styleForElementType(el.type).label}: ${el.label}`);
         }
       }
       lines.push("");
@@ -557,7 +557,7 @@ export function exportEventModelMarkdown(): void {
       const inside = elements.filter((e) => e.swimlaneId === lane.id);
       lines.push(`### ${lane.label}`);
       if (inside.length === 0) lines.push("- _(leer)_");
-      else for (const el of inside) lines.push(`- ${ELEMENT_STYLES[el.type].shortLabel}: ${el.label}`);
+      else for (const el of inside) lines.push(`- ${styleForElementType(el.type).shortLabel}: ${el.label}`);
       lines.push("");
     }
   }
@@ -635,7 +635,7 @@ export function exportProcessMarkdown(): void {
       const inside = elements.filter((el) => el.swimlaneId === lane.id);
       lines.push(`### ${lane.label}`);
       if (inside.length === 0) lines.push("- _(leer)_");
-      else for (const el of inside) lines.push(`- ${ELEMENT_STYLES[el.type].shortLabel}: ${el.label}`);
+      else for (const el of inside) lines.push(`- ${styleForElementType(el.type).shortLabel}: ${el.label}`);
       lines.push("");
     }
   }
@@ -781,7 +781,7 @@ export function exportArchitectureDocumentationMarkdown(): void {
     const items = elements.filter((e) => e.type === type);
     if (items.length === 0) continue;
     hasC4 = true;
-    lines.push(`### ${ELEMENT_STYLES[type].label}`, "");
+    lines.push(`### ${styleForElementType(type).label}`, "");
     for (const el of items) {
       lines.push(`- **${el.label}**`);
       if (el.metadata?.c4Technology) lines.push(`  - Technologie: ${el.metadata.c4Technology}`);
@@ -807,7 +807,7 @@ export function exportArchitectureDocumentationMarkdown(): void {
     const items = elements.filter((e) => e.type === type);
     if (items.length === 0) continue;
     hasCloud = true;
-    lines.push(`### ${ELEMENT_STYLES[type].label}`, "");
+    lines.push(`### ${styleForElementType(type).label}`, "");
     for (const el of items) {
       lines.push(`- **${el.label}**${el.detailViewId ? " _(Detail-Sicht)_" : ""}`);
       if (el.metadata?.cloudProvider) lines.push(`  - Provider: ${el.metadata.cloudProvider}`);
@@ -854,7 +854,7 @@ export function exportArchitectureDocumentationMarkdown(): void {
       if (bc.detailViewId) lines.push("- Detail-Sicht verknüpft");
       if (inside.length) {
         lines.push("- Inhalte:");
-        for (const el of inside) lines.push(`  - ${ELEMENT_STYLES[el.type].shortLabel}: ${el.label}`);
+        for (const el of inside) lines.push(`  - ${styleForElementType(el.type).shortLabel}: ${el.label}`);
       }
       lines.push("");
     }
@@ -890,7 +890,7 @@ function cssFont(weight: number, sizePx: number): string {
 }
 
 function cornerRadius(el: StormElement, h: number): number {
-  const shape = ELEMENT_STYLES[el.type].shape;
+  const shape = styleForElementType(el.type).shape;
   if (shape === "pill") return h / 2;
   if (shape === "rectangle") return 2;
   if (shape === "wide") return 6;
@@ -1290,7 +1290,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
   for (const el of sortElementsByZOrder(state.elements)) {
     const r = elementRect(el);
     const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
-    const shape = ELEMENT_STYLES[el.type].shape;
+    const shape = styleForElementType(el.type).shape;
     const radius = cornerRadius(el, r.h);
     const circularPill = shape === "pill" && Math.abs(r.w - r.h) < 8;
     const align = elementLabelAlign(el);

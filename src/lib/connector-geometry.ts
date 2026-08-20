@@ -1,4 +1,4 @@
-import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { styleForElementType } from "@/lib/element-styles";
 import type { BoundedContext, StormElement } from "@/types/storm-element";
 
 export interface Point {
@@ -14,7 +14,7 @@ export interface ElementRect {
 }
 
 export function elementRect(el: StormElement): ElementRect {
-  const style = ELEMENT_STYLES[el.type];
+  const style = styleForElementType(el.type);
   return {
     x: el.x,
     y: el.y,

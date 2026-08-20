@@ -64,6 +64,21 @@ describe("selection-geometry", () => {
     expect(bounds.h).toBeGreaterThan(0);
   });
 
+  it("does not throw for unknown types without size (JSON paste)", () => {
+    const bounds = elementBounds(
+      el({
+        id: "a",
+        x: 10,
+        y: 20,
+        width: undefined,
+        height: undefined,
+        type: "mysteryCard" as never,
+      }),
+    );
+    expect(bounds.w).toBeGreaterThan(0);
+    expect(bounds.h).toBeGreaterThan(0);
+  });
+
   it("selects swimlanes overlapping a marquee", () => {
     const lanes = [
       lane({ id: "l1", y: 0, height: 100 }),
