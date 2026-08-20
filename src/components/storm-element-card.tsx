@@ -7,7 +7,7 @@ import { ProgressMarkBadge } from "@/components/progress-mark-badge";
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkDestinationPreview, linkHasTarget } from "@/lib/board-link";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
-import { ELEMENT_STYLES, resolveElementStyle } from "@/lib/element-styles";
+import { ELEMENT_STYLES, cardTypeCaption, resolveElementStyle } from "@/lib/element-styles";
 import {
   cardAttributeLines,
   cardMethodLines,
@@ -33,9 +33,6 @@ import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import {
   elementTypesForMode,
-  isArchBuildingBlockType,
-  isC4ElementType,
-  isCloudElementType,
   isNoteLike,
   supportsArchDrilldown,
   type StormElement,
@@ -48,12 +45,6 @@ const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_CANCEL_PX = 10;
 /** Semi-transparent boundary so nested stickies stay readable. */
 const BOUNDARY_FILL_OPACITY = 0.38;
-
-const SUBDOMAIN_KIND_LABEL: Record<string, string> = {
-  core: "Core",
-  supporting: "Supporting",
-  generic: "Generic",
-};
 
 type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
@@ -114,17 +105,13 @@ export function StormElementCard({
   const [draft, setDraft] = useState(element.label);
   const isNote = element.type === "note";
   const isInstruction = element.type === "instruction";
-  const isCustomCard = element.type === "customCard";
   const isLink = element.type === "link";
   const isAggregate = element.type === "aggregate";
   const isSubdomain = element.type === "subdomain";
   const isWhitebox = element.type === "archWhitebox";
   const isCloudBoundary = element.type === "cloudBoundary";
   const isBoundary = isAggregate || isSubdomain || isWhitebox || isCloudBoundary;
-  const showArchTypeBadge =
-    isC4ElementType(element.type) ||
-    isArchBuildingBlockType(element.type) ||
-    isCloudElementType(element.type);
+  const typeCaption = cardTypeCaption(element, customCardTypes);
   const noteLike = isNoteLike(element.type);
   const linkReady = isLink && linkHasTarget(element);
   const linkKind = element.metadata?.linkKind ?? "external";
@@ -343,6 +330,11 @@ export function StormElementCard({
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
   };
+
+  const typeCaptionClass = [
+    "w-full shrink-0 text-[0.62rem] font-medium leading-tight tracking-wide opacity-70",
+    showDetails || noteLike || isBoundary || isLink ? "text-left" : "text-center",
+  ].join(" ");
 
   const labelClass = [
     "text-xs font-semibold leading-tight",
@@ -625,7 +617,9 @@ export function StormElementCard({
           <ProgressMarkBadge mark={element.metadata.progressMark} />
         ) : null}
         {isLink && !editing ? (
-          <>
+          <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+            <span className={typeCaptionClass}>{typeCaption}</span>
+            <div className="mt-0.5 flex min-h-0 flex-1 flex-row items-center gap-2 overflow-hidden">
             <button
               type="button"
               title={linkReady ? "Link öffnen" : "Kein Ziel gesetzt"}
@@ -673,23 +667,11 @@ export function StormElementCard({
                 {linkPreview ?? (linkKind === "view" ? "Sicht wählen…" : "URL setzen…")}
               </span>
             </div>
-          </>
+            </div>
+          </div>
         ) : (
           <>
-        {(isInstruction || isBoundary || showArchTypeBadge || isCustomCard) && (
-          <span
-            className="mb-0.5 w-fit shrink-0 rounded px-1 py-px text-[0.58rem] font-bold uppercase tracking-wide"
-            style={{ backgroundColor: colors.border, color: colors.text }}
-          >
-            {isAggregate
-              ? "Aggregate Root"
-              : isSubdomain
-                ? `Subdomain · ${SUBDOMAIN_KIND_LABEL[element.metadata?.subdomainKind ?? "core"] ?? "Core"}`
-                : isInstruction
-                  ? "Instruction"
-                  : style.shortLabel}
-          </span>
-        )}
+        <span className={typeCaptionClass}>{typeCaption}</span>
         {editing ? (
           noteLike ? (
             <textarea

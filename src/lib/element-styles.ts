@@ -717,6 +717,25 @@ export function resolveElementStyle(
   };
 }
 
+const SUBDOMAIN_KIND_CAPTION: Record<string, string> = {
+  core: "Core",
+  supporting: "Supporting",
+  generic: "Generic",
+};
+
+/** Small type line shown at the top of a sticky. */
+export function cardTypeCaption(
+  element: Pick<StormElement, "type" | "metadata">,
+  customCardTypes: CustomCardType[] = [],
+): string {
+  if (element.type === "aggregate") return "Aggregate Root";
+  if (element.type === "subdomain") {
+    const kind = element.metadata?.subdomainKind ?? "core";
+    return `Subdomain · ${SUBDOMAIN_KIND_CAPTION[kind] ?? "Core"}`;
+  }
+  return resolveElementStyle(element, customCardTypes).label;
+}
+
 /** Style for a custom type row in the palette (before an element exists). */
 export function styleForCustomCardType(def: CustomCardType): ElementStyle {
   const base = ELEMENT_STYLES.customCard;

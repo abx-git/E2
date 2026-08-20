@@ -9,6 +9,7 @@ import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-p
 import { RegionAppearanceControls } from "@/components/region-appearance-controls";
 import { lineArrowHeadShortLabel } from "@/components/canvas-lines";
 import { resolveElementStyle } from "@/lib/element-styles";
+import { onCardDisplayFieldsForType } from "@/lib/card-preview";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { validateBoard } from "@/lib/relation-validation";
@@ -381,14 +382,7 @@ export function ElementDetailSidebar({
         hint={cardFlagsActive ? "aktiv" : undefined}
       >
         <div className="flex flex-col gap-1.5 text-xs text-[var(--text)]">
-          {(
-            [
-              ["showDescriptionOnCard", "Beschreibung"],
-              ["showAttributesOnCard", "Attribute"],
-              ["showMethodsOnCard", "Methoden"],
-              ["showWebLinksOnCard", "Web-Links"],
-            ] as const
-          ).map(([key, label]) => (
+          {onCardDisplayFieldsForType(selectedElement.type).map(({ key, label }) => (
             <label key={key} className="flex items-center gap-2">
               <input
                 type="checkbox"

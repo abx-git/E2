@@ -39,6 +39,7 @@ import {
   normalizeRotationDegrees,
 } from "@/lib/element-rotation";
 import { ELEMENT_STYLES, styleForElementType } from "@/lib/element-styles";
+import { onCardDisplayFieldsForType } from "@/lib/card-preview";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import {
   PROGRESS_MARKS,
@@ -314,62 +315,23 @@ export function CanvasContextMenu({
           }
         />
         <Submenu label="Auf Karte anzeigen">
-          <Item
-            label="Beschreibung"
-            active={Boolean(el.metadata?.showDescriptionOnCard)}
-            onClick={() =>
-              run(() =>
-                updateElement(el.id, {
-                  metadata: {
-                    ...el.metadata,
-                    showDescriptionOnCard: !el.metadata?.showDescriptionOnCard,
-                  },
-                }),
-              )
-            }
-          />
-          <Item
-            label="Attribute"
-            active={Boolean(el.metadata?.showAttributesOnCard)}
-            onClick={() =>
-              run(() =>
-                updateElement(el.id, {
-                  metadata: {
-                    ...el.metadata,
-                    showAttributesOnCard: !el.metadata?.showAttributesOnCard,
-                  },
-                }),
-              )
-            }
-          />
-          <Item
-            label="Methoden"
-            active={Boolean(el.metadata?.showMethodsOnCard)}
-            onClick={() =>
-              run(() =>
-                updateElement(el.id, {
-                  metadata: {
-                    ...el.metadata,
-                    showMethodsOnCard: !el.metadata?.showMethodsOnCard,
-                  },
-                }),
-              )
-            }
-          />
-          <Item
-            label="Web-Links"
-            active={Boolean(el.metadata?.showWebLinksOnCard)}
-            onClick={() =>
-              run(() =>
-                updateElement(el.id, {
-                  metadata: {
-                    ...el.metadata,
-                    showWebLinksOnCard: !el.metadata?.showWebLinksOnCard,
-                  },
-                }),
-              )
-            }
-          />
+          {onCardDisplayFieldsForType(el.type).map(({ key, label }) => (
+            <Item
+              key={key}
+              label={label}
+              active={Boolean(el.metadata?.[key])}
+              onClick={() =>
+                run(() =>
+                  updateElement(el.id, {
+                    metadata: {
+                      ...el.metadata,
+                      [key]: !el.metadata?.[key],
+                    },
+                  }),
+                )
+              }
+            />
+          ))}
         </Submenu>
         <Item
           icon={HelpCircle}

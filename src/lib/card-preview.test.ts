@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cardAttributeLines, cardMethodLines, cardShowsDetails } from "@/lib/card-preview";
+import { cardAttributeLines, cardMethodLines, cardShowsDetails, onCardDisplayFieldsForType } from "@/lib/card-preview";
 import type { StormElement } from "@/types/storm-element";
 
 function el(partial: Partial<StormElement> & Pick<StormElement, "type">): StormElement {
@@ -62,6 +62,28 @@ describe("card-preview", () => {
       "G: cart empty",
       "W: add item",
       "T: cart has 1",
+    ]);
+  });
+
+  it("offers only enterable on-card field types", () => {
+    expect(onCardDisplayFieldsForType("domainEvent").map((f) => f.key)).toEqual([
+      "showDescriptionOnCard",
+      "showWebLinksOnCard",
+    ]);
+    expect(onCardDisplayFieldsForType("entity").map((f) => f.key)).toEqual([
+      "showDescriptionOnCard",
+      "showAttributesOnCard",
+      "showMethodsOnCard",
+      "showWebLinksOnCard",
+    ]);
+    expect(onCardDisplayFieldsForType("valueObject").map((f) => f.key)).toEqual([
+      "showDescriptionOnCard",
+      "showAttributesOnCard",
+      "showWebLinksOnCard",
+    ]);
+    expect(onCardDisplayFieldsForType("note").map((f) => f.key)).toEqual([
+      "showDescriptionOnCard",
+      "showWebLinksOnCard",
     ]);
   });
 });

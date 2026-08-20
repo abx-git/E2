@@ -5,7 +5,7 @@ import {
   normalizeCustomCardTypes,
   stereotypeLabel,
 } from "@/lib/custom-card-types";
-import { resolveElementStyle, styleForCustomCardType } from "@/lib/element-styles";
+import { cardTypeCaption, resolveElementStyle, styleForCustomCardType } from "@/lib/element-styles";
 
 describe("custom-card-types", () => {
   it("builds stereotype labels", () => {
@@ -41,5 +41,16 @@ describe("custom-card-types", () => {
     expect(style.fill).toBe(iface.fill);
     expect(style.shortLabel).toBe("Interface");
     expect(styleForCustomCardType(iface).label).toBe("Interface");
+    expect(
+      cardTypeCaption({ type: "customCard", metadata: { customTypeId: iface.id } }, types),
+    ).toBe("Interface");
+  });
+
+  it("captions sticky types for the card header", () => {
+    expect(cardTypeCaption({ type: "domainEvent" })).toBe("Domain Event");
+    expect(cardTypeCaption({ type: "aggregate" })).toBe("Aggregate Root");
+    expect(cardTypeCaption({ type: "subdomain", metadata: { subdomainKind: "supporting" } })).toBe(
+      "Subdomain · Supporting",
+    );
   });
 });

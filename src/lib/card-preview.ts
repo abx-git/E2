@@ -1,5 +1,65 @@
 import { cardWebLinkLines } from "@/lib/card-web-links";
-import type { StormElement } from "@/types/storm-element";
+import { isCloudElementType, type ElementType, type StormElement } from "@/types/storm-element";
+
+export const ON_CARD_DISPLAY_FIELDS = [
+  { key: "showDescriptionOnCard", label: "Beschreibung" },
+  { key: "showAttributesOnCard", label: "Attribute" },
+  { key: "showMethodsOnCard", label: "Methoden" },
+  { key: "showWebLinksOnCard", label: "Web-Links" },
+] as const;
+
+export type OnCardDisplayKey = (typeof ON_CARD_DISPLAY_FIELDS)[number]["key"];
+
+/** Types with dedicated attribute/criteria editors that appear on the sticky. */
+const ATTRIBUTE_CARD_TYPES = new Set<ElementType>([
+  "aggregate",
+  "entity",
+  "valueObject",
+  "repository",
+  "factory",
+  "rule",
+  "example",
+  "userStory",
+  "release",
+  "slice",
+  "processActivity",
+  "processGateway",
+  "processStart",
+  "processEnd",
+  "dataEntity",
+  "dataAssociation",
+  "c4Container",
+  "c4Component",
+  "archComponent",
+]);
+
+/** Types with methods / operations / invariants editors. */
+const METHOD_CARD_TYPES = new Set<ElementType>([
+  "aggregate",
+  "entity",
+  "domainService",
+  "repository",
+  "factory",
+]);
+
+export function typeHasOnCardAttributes(type: ElementType): boolean {
+  return ATTRIBUTE_CARD_TYPES.has(type) || isCloudElementType(type);
+}
+
+export function typeHasOnCardMethods(type: ElementType): boolean {
+  return METHOD_CARD_TYPES.has(type);
+}
+
+/** Display toggles that can actually be filled for this sticky type. */
+export function onCardDisplayFieldsForType(
+  type: ElementType,
+): readonly (typeof ON_CARD_DISPLAY_FIELDS)[number][] {
+  return ON_CARD_DISPLAY_FIELDS.filter((field) => {
+    if (field.key === "showAttributesOnCard") return typeHasOnCardAttributes(type);
+    if (field.key === "showMethodsOnCard") return typeHasOnCardMethods(type);
+    return true;
+  });
+}
 
 /** Lines shown under „Attribute“ on the sticky (type-aware). */
 export function cardAttributeLines(
