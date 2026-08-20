@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { ClipboardList, ClipboardPaste, Trash2 } from "lucide-react";
 
 import { CLIPBOARD_DROP_ATTR, clipboardItemCount, isPointerOverStormCanvas } from "@/lib/board-clipboard";
-import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { styleForElementType } from "@/lib/element-styles";
 import { screenToWorld } from "@/lib/canvas-viewport";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
@@ -98,7 +98,7 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
     window.addEventListener("pointerup", onUp);
   };
 
-  const style = ghost ? ELEMENT_STYLES[ghost.el.type] : null;
+  const style = ghost ? styleForElementType(ghost.el.type) : null;
 
   const body = (
     <>
@@ -147,22 +147,25 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
               </div>
             </li>
           ))}
-          {clipboard!.elements.map((el) => (
-            <li key={el.id}>
-              <button
-                type="button"
-                className="w-full cursor-grab truncate rounded-md px-2 py-1 text-left text-xs active:cursor-grabbing"
-                style={{
-                  backgroundColor: ELEMENT_STYLES[el.type].fill,
-                  color: ELEMENT_STYLES[el.type].ink,
-                }}
-                title={`${ELEMENT_STYLES[el.type].label} — auf Canvas ziehen`}
-                onPointerDown={(e) => beginItemDrag(el, e)}
-              >
-                {el.label || ELEMENT_STYLES[el.type].shortLabel}
-              </button>
-            </li>
-          ))}
+          {clipboard!.elements.map((el) => {
+            const cardStyle = styleForElementType(el.type);
+            return (
+              <li key={el.id}>
+                <button
+                  type="button"
+                  className="w-full cursor-grab truncate rounded-md px-2 py-1 text-left text-xs active:cursor-grabbing"
+                  style={{
+                    backgroundColor: cardStyle.fill,
+                    color: cardStyle.ink,
+                  }}
+                  title={`${cardStyle.label} — auf Canvas ziehen`}
+                  onPointerDown={(e) => beginItemDrag(el, e)}
+                >
+                  {el.label || cardStyle.shortLabel}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
 

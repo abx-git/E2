@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { effectiveElementRotation } from "@/lib/element-rotation";
+import { resolveElementStyle } from "@/lib/element-styles";
 import {
   BOARD_SNAPSHOT_SCHEMA_ID,
   EXPORT_VERSION,
@@ -12,9 +14,11 @@ import {
   createDefaultBoardDocument,
   createEmptyBoardView,
   migrateV1ToDocument,
+  normalizeStormElement,
   stableBoardStateKey,
   stringifyExportedDocument,
   type BoardImportPayload,
+  type BoardSnapshotV2,
   type BoardSnapshotV1,
 } from "@/lib/storm-json";
 import { suggestPastTense, validateBoard } from "@/lib/relation-validation";
@@ -176,6 +180,59 @@ describe("storm-json multi-view", () => {
       name: "Alt",
       viewId: "view-a",
     });
+  });
+
+  it("migrates arc42Section stickies and maps unknown types to notes", () => {
+    expect(normalizeStormElement({ id: "a", type: "arc42Section", label: "S1", x: 1, y: 2 }).type).toBe(
+      "archBlackbox",
+    );
+    const unknown = normalizeStormElement({
+      id: "u",
+      type: "notARealType",
+      label: "Weird",
+      x: 8,
+      y: 9,
+      width: 160,
+      height: 72,
+    });
+    expect(unknown.type).toBe("note");
+    expect(unknown.width).toBe(160);
+    expect(unknown.height).toBe(72);
+  });
+
+  it("JSON paste of unknown sticky types does not throw on rotation", () => {
+    const snap: BoardSnapshotV2 = {
+      format: "event-storming-tool",
+      version: 2,
+      exportedAt: "2026-01-01T00:00:00.000Z",
+      title: "Paste",
+      glossary: [],
+      workshopMode: false,
+      activeViewId: "v1",
+      views: [
+        {
+          ...createEmptyBoardView({ id: "v1", name: "Board" }),
+          elements: [
+            {
+              id: "e1",
+              type: "mysteryCard" as never,
+              label: "Imported",
+              x: 40,
+              y: 50,
+              width: 160,
+              height: 72,
+            },
+          ],
+        },
+      ],
+      appearance: { ...DEFAULT_APPEARANCE },
+    };
+    const doc = boardSnapshotToReplacePayload(snap);
+    const el = doc.views[0]!.elements[0]!;
+    expect(el.type).toBe("note");
+    const style = resolveElementStyle(el);
+    expect(style).toBeDefined();
+    expect(() => effectiveElementRotation(el.rotation, style.rotation)).not.toThrow();
   });
 });
 

@@ -5,7 +5,7 @@ import {
 } from "@/lib/board-clipboard";
 import { createEmptyBoardView, type BoardView } from "@/lib/storm-json";
 import { generateStormId } from "@/lib/storm-id";
-import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { ELEMENT_STYLES, styleForElementType } from "@/lib/element-styles";
 import {
   supportsArchDrilldown,
   type ModelingMode,
@@ -180,8 +180,8 @@ export function buildBoardViewFromBuildingBlock(
 
   // Keep children inside the whitebox frame when possible.
   const paddedChildren = remapped.elements.map((el) => {
-    const w = el.width ?? ELEMENT_STYLES[el.type].defaultWidth;
-    const h = el.height ?? ELEMENT_STYLES[el.type].defaultHeight;
+    const w = el.width ?? styleForElementType(el.type).defaultWidth;
+    const h = el.height ?? styleForElementType(el.type).defaultHeight;
     const minX = whitebox.x + 24;
     const minY = whitebox.y + 40;
     const maxX = whitebox.x + (whitebox.width ?? WHITEBOX_WIDTH) - w - 24;

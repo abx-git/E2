@@ -1,4 +1,4 @@
-import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { styleForElementType } from "@/lib/element-styles";
 import { itemZIndex, sortByZOrder } from "@/lib/element-z-order";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 
@@ -10,7 +10,7 @@ export interface WorldRect {
 }
 
 export function elementBounds(el: StormElement): WorldRect {
-  const style = ELEMENT_STYLES[el.type];
+  const style = styleForElementType(el.type);
   return {
     x: el.x,
     y: el.y,

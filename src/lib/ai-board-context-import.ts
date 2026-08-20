@@ -1,5 +1,5 @@
 import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
-import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { isKnownElementType, styleForElementType } from "@/lib/element-styles";
 import { generateStormId } from "@/lib/storm-id";
 import {
   createEmptyBoardView,
@@ -37,7 +37,6 @@ import type {
   WorkshopFormat,
 } from "@/types/storm-element";
 import {
-  ALL_ELEMENT_TYPES,
   DEFAULT_TIMELINE,
   MODELING_MODES,
   normalizeModelingMode,
@@ -95,10 +94,7 @@ function asTrimmed(value: unknown): string | undefined {
 }
 
 function isElementType(value: unknown): value is ElementType {
-  return (
-    typeof value === "string" &&
-    ((ALL_ELEMENT_TYPES as string[]).includes(value) || value === "link")
-  );
+  return isKnownElementType(value);
 }
 
 function isRelationType(value: unknown): value is RelationType {
@@ -181,7 +177,7 @@ export function layoutYOffsetForType(type: ElementType): number {
 }
 
 function elementSize(type: ElementType): { width: number; height: number } {
-  const style = ELEMENT_STYLES[type];
+  const style = styleForElementType(type);
   return { width: style.defaultWidth, height: style.defaultHeight };
 }
 

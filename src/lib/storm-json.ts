@@ -31,21 +31,51 @@ import {
   createDefaultCustomCardTypes,
   normalizeCustomCardTypes,
 } from "@/lib/custom-card-types";
+import { isKnownElementType } from "@/lib/element-styles";
 import boardSnapshotV2Schema from "../../public/schemas/board-snapshot-v2.schema.json";
 
-/** Migrate legacy arc42 section stickies to Blackbox building blocks. */
+function asFiniteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+/** Migrate legacy types and coerce unknown JSON stickies so canvas styles always resolve. */
 export function normalizeStormElement(raw: StormElement | Record<string, unknown>): StormElement {
-  const el = raw as StormElement;
-  if ((el as { type: string }).type === "arc42Section") {
-    const meta = { ...(el.metadata ?? {}) } as Record<string, unknown>;
+  const source = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const el = source as StormElement;
+  let type = typeof source.type === "string" ? source.type : "note";
+  const meta = { ...(el.metadata ?? {}) } as Record<string, unknown>;
+
+  if (type === "arc42Section") {
     delete meta.arc42SectionNumber;
-    return {
-      ...el,
-      type: "archBlackbox",
-      metadata: Object.keys(meta).length ? (meta as StormElement["metadata"]) : undefined,
-    };
+    type = "archBlackbox";
   }
-  return el;
+  if (!isKnownElementType(type)) {
+    type = "note";
+  }
+
+  const next: StormElement = {
+    ...el,
+    id: typeof el.id === "string" && el.id.trim() ? el.id.trim() : generateStormId(),
+    type,
+    label: typeof el.label === "string" ? el.label : "",
+    x: asFiniteNumber(el.x) ?? 0,
+    y: asFiniteNumber(el.y) ?? 0,
+    metadata: Object.keys(meta).length ? (meta as StormElement["metadata"]) : undefined,
+  };
+
+  const rotation = asFiniteNumber(el.rotation);
+  if (rotation !== undefined) next.rotation = rotation;
+  else delete next.rotation;
+
+  const width = asFiniteNumber(el.width);
+  if (width !== undefined && width > 0) next.width = width;
+  else delete next.width;
+
+  const height = asFiniteNumber(el.height);
+  if (height !== undefined && height > 0) next.height = height;
+  else delete next.height;
+
+  return next;
 }
 
 export const EXPORT_FORMAT = "event-storming-tool" as const;
@@ -243,7 +273,13 @@ export function normalizeBoardView(raw: Partial<BoardView> & { id?: string; name
     workshopFormat,
     facilitatorEnabled: Boolean(raw.facilitatorEnabled),
     facilitatorPhase: Number(raw.facilitatorPhase) || 0,
-    elements: Array.isArray(raw.elements) ? raw.elements.map(normalizeStormElement) : [],
+    elements: Array.isArray(raw.elements)
+      ? raw.elements
+          .filter((entry): entry is StormElement | Record<string, unknown> =>
+            Boolean(entry) && typeof entry === "object",
+          )
+          .map(normalizeStormElement)
+      : [],
     relations: Array.isArray(raw.relations) ? raw.relations : [],
     contextRelations: Array.isArray(raw.contextRelations) ? raw.contextRelations : [],
     swimlanes: Array.isArray(raw.swimlanes) ? raw.swimlanes.map(normalizeSwimlane) : [],
