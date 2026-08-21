@@ -10,7 +10,7 @@ import { StormConnectors } from "@/components/storm-connectors";
 import { StormElementCard } from "@/components/storm-element-card";
 import { SwimlaneLayer } from "@/components/swimlane-layer";
 import { TimelineGuide } from "@/components/timeline-guide";
-import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint } from "@/lib/canvas-viewport";
+import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint, ZOOM_STEP } from "@/lib/canvas-viewport";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { elementsInMarquee, swimlanesInMarquee, boundedContextsInMarquee, type WorldRect } from "@/lib/selection-geometry";
 import { lineLength } from "@/lib/canvas-annotations";
@@ -19,7 +19,12 @@ import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MARQUEE_THRESHOLD_PX = 4;
+const PAN_MOVE_THRESHOLD_PX = 3;
 const MIN_LINE_LENGTH_WORLD = 8;
+
+function isCanvasChromeTarget(target: EventTarget | null): boolean {
+  return Boolean((target as Element | null)?.closest?.("[data-canvas-chrome]"));
+}
 
 function isTypingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
@@ -52,18 +57,12 @@ function wheelDeltaPixels(e: WheelEvent, fallbackLine = 16): { dx: number; dy: n
 export function StormCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [panning, setPanning] = useState(false);
-  const [spaceHeld, setSpaceHeld] = useState(false);
   const panStart = useRef({ x: 0, y: 0, vx: 0, vy: 0 });
   const spaceDown = useRef(false);
   const panningRef = useRef(false);
-  /** RMB down awaiting move threshold before becoming a pan (keeps element context menus on click). */
-  const rmbPanPending = useRef<{
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    pointerId: number;
-  } | null>(null);
+  const panMoved = useRef(false);
+  /** Empty-canvas left-drag vs Space/middle-mouse — only the former clears selection on click. */
+  const panFromEmptyClick = useRef(false);
   /** Touch on empty canvas: defer pan until move threshold; tap clears selection. */
   const touchPanPending = useRef<{
     x: number;
@@ -72,7 +71,6 @@ export function StormCanvas() {
     vy: number;
     pointerId: number;
   } | null>(null);
-  const suppressContextMenuRef = useRef(false);
   const isCoarsePointer = useIsCoarsePointer();
 
   const viewport = useStormBoardStore((s) => s.viewport);
@@ -245,11 +243,9 @@ export function StormCanvas() {
       }
       e.preventDefault();
       spaceDown.current = true;
-      setSpaceHeld(true);
     };
     const clearSpace = () => {
       spaceDown.current = false;
-      setSpaceHeld(false);
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.code === "Space") clearSpace();
@@ -264,7 +260,8 @@ export function StormCanvas() {
     };
   }, []);
 
-  // Trackpad: two-finger scroll pans; pinch (ctrlKey) / ⌘+scroll zooms.
+  // Trackpad: two-finger scroll pans. Mouse wheel pans; Ctrl/Cmd+wheel zooms
+  // (pinch = pixel deltas, mouse wheel = discrete steps like ET2).
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -274,7 +271,8 @@ export function StormCanvas() {
       const setVp = useStormBoardStore.getState().setViewport;
       if (e.ctrlKey || e.metaKey) {
         const { dy } = wheelDeltaPixels(e);
-        const zoomDelta = e.deltaMode === 0 ? -dy * 0.01 : dy > 0 ? -0.08 : 0.08;
+        const zoomDelta =
+          e.deltaMode === 0 ? -dy * 0.01 : dy > 0 ? -ZOOM_STEP : ZOOM_STEP;
         const rect = el.getBoundingClientRect();
         setVp(zoomAtPoint(vp, zoomDelta, e.clientX, e.clientY, rect));
         return;
@@ -286,26 +284,14 @@ export function StormCanvas() {
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
-  // After RMB pan-drag, block the following contextmenu (elements + browser).
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const onContextMenuCapture = (e: MouseEvent) => {
-      if (!suppressContextMenuRef.current) return;
-      e.preventDefault();
-      e.stopPropagation();
-      suppressContextMenuRef.current = false;
-    };
-    el.addEventListener("contextmenu", onContextMenuCapture, true);
-    return () => el.removeEventListener("contextmenu", onContextMenuCapture, true);
-  }, []);
-
   const beginPan = useCallback(
-    (e: React.PointerEvent) => {
+    (e: React.PointerEvent, fromEmptyClick = false) => {
       e.preventDefault();
       e.stopPropagation();
       const vp = useStormBoardStore.getState().viewport;
       panningRef.current = true;
+      panMoved.current = false;
+      panFromEmptyClick.current = fromEmptyClick;
       setPanning(true);
       panStart.current = { x: e.clientX, y: e.clientY, vx: vp.x, vy: vp.y };
       try {
@@ -320,7 +306,6 @@ export function StormCanvas() {
   const endPan = useCallback((e?: React.PointerEvent) => {
     panningRef.current = false;
     setPanning(false);
-    rmbPanPending.current = null;
     if (e && e.currentTarget instanceof HTMLElement && e.currentTarget.hasPointerCapture(e.pointerId)) {
       try {
         e.currentTarget.releasePointerCapture(e.pointerId);
@@ -328,25 +313,6 @@ export function StormCanvas() {
         /* ignore */
       }
     }
-  }, []);
-
-  const promoteRmbPan = useCallback((clientX: number, clientY: number, currentTarget: EventTarget) => {
-    const pending = rmbPanPending.current;
-    if (!pending) return false;
-    const dx = clientX - pending.x;
-    const dy = clientY - pending.y;
-    if (Math.hypot(dx, dy) < MARQUEE_THRESHOLD_PX) return false;
-    rmbPanPending.current = null;
-    suppressContextMenuRef.current = true;
-    panningRef.current = true;
-    setPanning(true);
-    panStart.current = { x: pending.x, y: pending.y, vx: pending.vx, vy: pending.vy };
-    try {
-      (currentTarget as HTMLElement).setPointerCapture(pending.pointerId);
-    } catch {
-      /* ignore */
-    }
-    return true;
   }, []);
 
   const promoteTouchPan = useCallback((clientX: number, clientY: number, currentTarget: EventTarget) => {
@@ -357,6 +323,8 @@ export function StormCanvas() {
     if (Math.hypot(dx, dy) < MARQUEE_THRESHOLD_PX) return false;
     touchPanPending.current = null;
     panningRef.current = true;
+    panMoved.current = true;
+    panFromEmptyClick.current = false;
     setPanning(true);
     panStart.current = { x: pending.x, y: pending.y, vx: pending.vx, vy: pending.vy };
     try {
@@ -368,6 +336,7 @@ export function StormCanvas() {
   }, []);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
+    if (isCanvasChromeTarget(e.target)) return;
     if (!containerRef.current || bcMode || relationMode || contextMapMode || lineDrawMode) return;
     const rect = containerRef.current.getBoundingClientRect();
     const world = screenToWorld(viewport, e.clientX, e.clientY, rect);
@@ -511,44 +480,35 @@ export function StormCanvas() {
       data-storm-canvas
       className={[
         "absolute inset-0 overflow-hidden bg-canvas outline-none touch-none",
-        spaceHeld || panning ? (panning ? "cursor-grabbing" : "cursor-grab") : "",
+        bcMode || lineDrawMode
+          ? "cursor-crosshair"
+          : panning
+            ? "cursor-grabbing"
+            : "cursor-grab",
       ].join(" ")}
       onContextMenu={(e) => {
-        // Chrome/UI chrome (bottom dock) keeps its own menu behavior.
-        if ((e.target as Element | null)?.closest?.("[data-canvas-chrome]")) return;
-        // Stickies / lanes / connectors call stopPropagation — empty canvas: no menu (RMB pans).
+        if (isCanvasChromeTarget(e.target)) return;
         e.preventDefault();
+        const world = worldFromClient(e.clientX, e.clientY);
+        if (!world) return;
+        useStormBoardStore.getState().openContextMenu(e.clientX, e.clientY, {
+          kind: "canvas",
+          worldX: world.x,
+          worldY: world.y,
+        });
       }}
       onPointerDownCapture={(e) => {
-        // Capture phase: pan works over stickies (children stopPropagation on bubble).
+        if (isCanvasChromeTarget(e.target)) return;
+        // Middle-mouse or Space+left = pan, including over stickies.
         if (e.button === 1 || (e.button === 0 && spaceDown.current)) {
           beginPan(e);
-          return;
-        }
-        // RMB: defer pan until move threshold so short clicks still open element menus.
-        if (e.button === 2) {
-          if ((e.target as Element | null)?.closest?.("[data-canvas-chrome]")) return;
-          const vp = useStormBoardStore.getState().viewport;
-          rmbPanPending.current = {
-            x: e.clientX,
-            y: e.clientY,
-            vx: vp.x,
-            vy: vp.y,
-            pointerId: e.pointerId,
-          };
-          suppressContextMenuRef.current = false;
-          try {
-            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-          } catch {
-            /* ignore */
-          }
         }
       }}
       onPointerDown={(e) => {
         useStormBoardStore.getState().closeContextMenu();
+        if (isCanvasChromeTarget(e.target)) return;
         if (
           panningRef.current ||
-          rmbPanPending.current ||
           touchPanPending.current ||
           e.button === 1 ||
           e.button === 2 ||
@@ -571,7 +531,6 @@ export function StormCanvas() {
           setBcDraft({ x: world.x, y: world.y, w: 0, h: 0 });
           return;
         }
-        // Empty surface (interactive children stopPropagation): marquee or touch-pan.
         if (relationMode) setRelationDraftSource(null);
         if (contextMapMode) setContextMapDraftSource(null);
         if (e.pointerType === "touch" || isCoarsePointer) {
@@ -590,18 +549,21 @@ export function StormCanvas() {
           }
           return;
         }
-        startMarquee(e.clientX, e.clientY, e.shiftKey);
+        // Shift+drag on empty area = lasso (like ET2). Otherwise pan the workspace.
+        if (e.shiftKey) {
+          startMarquee(e.clientX, e.clientY, false);
+          return;
+        }
+        beginPan(e, true);
       }}
       onPointerMove={(e) => {
         if (touchPanPending.current) {
           promoteTouchPan(e.clientX, e.clientY, e.currentTarget);
         }
-        if (rmbPanPending.current) {
-          promoteRmbPan(e.clientX, e.clientY, e.currentTarget);
-        }
         if (panningRef.current) {
           const dx = e.clientX - panStart.current.x;
           const dy = e.clientY - panStart.current.y;
+          if (Math.abs(dx) + Math.abs(dy) > PAN_MOVE_THRESHOLD_PX) panMoved.current = true;
           setViewport({
             ...useStormBoardStore.getState().viewport,
             x: panStart.current.vx + dx,
@@ -633,7 +595,7 @@ export function StormCanvas() {
           touchPanPending.current = null;
           if (!panningRef.current) clearSelection();
         }
-        rmbPanPending.current = null;
+        const emptyClick = panningRef.current && !panMoved.current && panFromEmptyClick.current;
         if (panningRef.current) endPan(e);
         else if (e.currentTarget instanceof HTMLElement && e.currentTarget.hasPointerCapture(e.pointerId)) {
           try {
@@ -642,6 +604,7 @@ export function StormCanvas() {
             /* ignore */
           }
         }
+        if (emptyClick) clearSelection();
         if (bcMode && bcDraft && bcDraft.w > 40 && bcDraft.h > 40) {
           addBoundedContext(bcDraft.x, bcDraft.y, bcDraft.w, bcDraft.h);
         }
@@ -661,7 +624,6 @@ export function StormCanvas() {
       }}
       onPointerCancel={(e) => {
         touchPanPending.current = null;
-        rmbPanPending.current = null;
         if (panningRef.current) endPan(e);
         else if (e.currentTarget instanceof HTMLElement && e.currentTarget.hasPointerCapture(e.pointerId)) {
           try {

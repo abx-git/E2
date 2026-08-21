@@ -40,8 +40,12 @@ import {
 } from "@/lib/element-z-order";
 import { resolveElementStyle, styleForElementType } from "@/lib/element-styles";
 import { resolveNoteColor } from "@/lib/note-colors";
+import { exportBoardAsPrompt } from "@/lib/prompt-export";
+import { downloadCanvasAsPdf } from "@/lib/canvas-pdf-export";
 import { resolveRegionPaint } from "@/lib/region-style";
-import { boardActiveSliceFromStore } from "@/store/storm-board-store";
+import { writeClipboardText, writeClipboardXml } from "@/lib/system-clipboard";
+import { slugForExportFilename } from "@/lib/view-export";
+import { boardActiveSliceFromStore, useStormBoardStore } from "@/store/storm-board-store";
 import type { BoardActiveSlice } from "@/lib/storm-json";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 import type { CustomCardType } from "@/lib/custom-card-types";
@@ -1548,12 +1552,21 @@ export function exportBoardSvg(): void {
   );
 }
 
-export async function exportBoardPng(): Promise<void> {
+function boardExportBasename(title: string): string {
+  return slugForExportFilename(title);
+}
+
+function renderActiveViewRaster(): {
+  canvas: HTMLCanvasElement;
+  width: number;
+  height: number;
+  title: string;
+} | null {
   const state = boardActiveSliceFromStore();
   const { width, height, ox, oy } = computeBoardBounds(state);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+  if (!ctx) return null;
 
   // Crisp export on retina displays.
   const scale = Math.min(2, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1);
@@ -1787,15 +1800,55 @@ export async function exportBoardPng(): Promise<void> {
     ctx.restore();
   }
 
-  canvas.toBlob((blob) => {
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${state.title.replace(/\s+/g, "-").toLowerCase()}.png`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, "image/png");
+  return { canvas, width, height, title: state.title };
+}
+
+export async function exportBoardPng(): Promise<void> {
+  const rendered = renderActiveViewRaster();
+  if (!rendered) return;
+  const blob = await new Promise<Blob | null>((resolve) =>
+    rendered.canvas.toBlob(resolve, "image/png"),
+  );
+  if (!blob) return;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${boardExportBasename(rendered.title)}.png`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Active view as a one-page PDF (same raster as PNG). */
+export function exportBoardPdf(): void {
+  const rendered = renderActiveViewRaster();
+  if (!rendered) return;
+  downloadCanvasAsPdf(
+    rendered.canvas,
+    rendered.width,
+    rendered.height,
+    `${boardExportBasename(rendered.title)}.pdf`,
+  );
+}
+
+export function exportActiveViewAsPrompt(): string {
+  const s = useStormBoardStore.getState();
+  const view = s.views.find((v) => v.id === s.activeViewId);
+  const slice = boardActiveSliceFromStore();
+  const contextTitle = view?.name?.trim()
+    ? `${slice.title} — ${view.name.trim()}`
+    : slice.title;
+  return exportBoardAsPrompt(slice, { contextTitle });
+}
+
+export async function copyBoardPromptToClipboard(): Promise<boolean> {
+  return writeClipboardText(exportActiveViewAsPrompt());
+}
+
+/** mxfile XML for diagrams.net (Ctrl/Cmd+V). */
+export async function copyBoardDrawioToClipboard(): Promise<boolean> {
+  const state = boardActiveSliceFromStore();
+  const bounds = computeBoardBounds(state);
+  return writeClipboardXml(buildDrawioMxFile(state, bounds));
 }
 
 function drawArrowHead(

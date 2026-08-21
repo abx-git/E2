@@ -74,6 +74,9 @@ import {
   stripBoardUrlParamFromLocation,
 } from "@/lib/board-remote-url";
 import {
+  copyBoardDrawioToClipboard,
+  copyBoardPromptToClipboard,
+  exportBoardPdf,
   exportBoardPng,
   exportBoardSvg,
   exportContextMapMarkdown,
@@ -1278,7 +1281,7 @@ export function StormBoard() {
               )}
         </span>
         <span className="hidden sm:inline">
-          Rechtsklick · Pan · E2 · © A. Bergmann
+          Ziehen · Shift-Lasso · Rechtsklick · E2 · © A. Bergmann
         </span>
         <span className="sm:hidden">Wischen · Panel · © A. Bergmann</span>
       </footer>
@@ -1360,6 +1363,9 @@ export function StormBoard() {
         onExportJsonSchema={downloadJsonSchema}
         onExportSvg={exportBoardSvg}
         onExportPng={() => void exportBoardPng()}
+        onExportPdf={exportBoardPdf}
+        onCopyPromptToClipboard={copyBoardPromptToClipboard}
+        onCopyDrawioToClipboard={copyBoardDrawioToClipboard}
         onExportHotspots={exportHotspotReportMarkdown}
         onExportActionItems={exportActionItemsMarkdown}
         onExportGlossary={exportGlossaryMarkdown}

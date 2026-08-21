@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   BoxSelect,
+  ClipboardCopy,
+  Download,
+  FileText,
+  Image,
   Layers,
   Link2,
   Minus,
@@ -17,6 +21,13 @@ import {
 import { lineArrowHeadShortLabel } from "@/components/canvas-lines";
 import { clampZoom } from "@/lib/canvas-viewport";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
+import {
+  copyBoardDrawioToClipboard,
+  copyBoardPromptToClipboard,
+  exportBoardPdf,
+  exportBoardPng,
+  exportBoardSvg,
+} from "@/lib/storm-export";
 import { LINE_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -134,6 +145,161 @@ function ViewMenu({
   );
 }
 
+type SceneExportKind = "png" | "pdf" | null;
+type ClipboardExportKind = "prompt" | "drawio" | null;
+
+function ExportMenu({
+  open,
+  onClose,
+  anchorRef,
+}: {
+  open: boolean;
+  onClose: () => void;
+  anchorRef: React.RefObject<HTMLElement | null>;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [busy, setBusy] = useState<SceneExportKind>(null);
+  const [copied, setCopied] = useState<ClipboardExportKind>(null);
+  const copiedTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (panelRef.current?.contains(t) || anchorRef.current?.contains(t)) return;
+      onClose();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("pointerdown", onPointer);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose, anchorRef]);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
+    };
+  }, []);
+
+  if (!open) return null;
+
+  const markCopied = (kind: ClipboardExportKind) => {
+    setCopied(kind);
+    if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
+    copiedTimer.current = window.setTimeout(() => setCopied(null), 1400);
+  };
+
+  const runRaster = async (kind: "png" | "pdf") => {
+    if (busy) return;
+    setBusy(kind);
+    try {
+      if (kind === "png") await exportBoardPng();
+      else exportBoardPdf();
+    } catch (err) {
+      console.error(`Canvas-${kind.toUpperCase()}-Export fehlgeschlagen`, err);
+      window.alert(`${kind.toUpperCase()}-Export fehlgeschlagen. Bitte erneut versuchen.`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const runCopy = async (kind: "prompt" | "drawio") => {
+    const ok =
+      kind === "prompt"
+        ? await copyBoardPromptToClipboard()
+        : await copyBoardDrawioToClipboard();
+    if (ok) markCopied(kind);
+    else window.alert("Kopieren in die Zwischenablage ist fehlgeschlagen.");
+  };
+
+  return (
+    <div
+      ref={panelRef}
+      className="dock-surface absolute right-0 top-[calc(100%+0.4rem)] z-50 min-w-[16.5rem] rounded-xl p-2 shadow-dock"
+      role="menu"
+    >
+      <p className="group-label px-2 pb-1.5 pt-1">Aktive Sicht</p>
+      <ExportMenuItem
+        icon={FileText}
+        label={copied === "prompt" ? "Kopiert" : "Prompt"}
+        detail="Text für KI-Chat"
+        disabled={busy !== null}
+        onClick={() => void runCopy("prompt")}
+      />
+      <ExportMenuItem
+        icon={Image}
+        label={busy === "png" ? "PNG…" : "PNG"}
+        detail="Rasterbild"
+        disabled={busy !== null}
+        onClick={() => void runRaster("png")}
+      />
+      <ExportMenuItem
+        icon={Download}
+        label="SVG"
+        detail="Draw.io-Datei"
+        disabled={busy !== null}
+        onClick={() => {
+          try {
+            exportBoardSvg();
+          } catch (err) {
+            console.error("Canvas-SVG-Export fehlgeschlagen", err);
+            window.alert("SVG-Export fehlgeschlagen. Bitte erneut versuchen.");
+          }
+        }}
+      />
+      <ExportMenuItem
+        icon={Download}
+        label={busy === "pdf" ? "PDF…" : "PDF"}
+        detail="Eine Seite, wie PNG"
+        disabled={busy !== null}
+        onClick={() => void runRaster("pdf")}
+      />
+      <ExportMenuItem
+        icon={ClipboardCopy}
+        label={copied === "drawio" ? "Kopiert" : "Draw.io kopieren"}
+        detail="In diagrams.net einfügen"
+        disabled={busy !== null}
+        onClick={() => void runCopy("drawio")}
+      />
+    </div>
+  );
+}
+
+function ExportMenuItem({
+  icon: Icon,
+  label,
+  detail,
+  disabled,
+  onClick,
+}: {
+  icon: typeof Download;
+  label: string;
+  detail: string;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      disabled={disabled}
+      onClick={onClick}
+      className="flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-[var(--control)] disabled:opacity-50"
+    >
+      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted)]" aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="block leading-tight text-[var(--text)]">{label}</span>
+        <span className="block text-[0.65rem] leading-snug text-[var(--muted)]">{detail}</span>
+      </span>
+    </button>
+  );
+}
+
 export interface CanvasBoardChromeProps {
   bcMode: boolean;
   onToggleBcMode: () => void;
@@ -166,7 +332,9 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const views = useStormBoardStore((s) => s.views);
 
   const [viewOpen, setViewOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const viewBtnRef = useRef<HTMLButtonElement>(null);
+  const exportBtnRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const activeTool: CanvasTool = lineDrawMode
@@ -235,7 +403,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   return (
     <>
       <div
-        className="absolute right-3 top-3 z-30 flex max-w-[min(100%-1.5rem,18rem)] items-center gap-1.5"
+        className="absolute right-3 top-3 z-30 flex max-w-[min(100%-1.5rem,22rem)] items-start gap-1.5"
         data-canvas-chrome
       >
         <label className="dock-surface flex min-w-0 flex-1 items-center gap-1.5 rounded-xl px-2 py-1 shadow-dock">
@@ -277,6 +445,29 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
             </button>
           ) : null}
         </label>
+        <div className="relative shrink-0">
+          <button
+            ref={exportBtnRef}
+            type="button"
+            onClick={() => setExportOpen((v) => !v)}
+            title="Sicht exportieren"
+            aria-label="Sicht exportieren"
+            aria-expanded={exportOpen}
+            className={[
+              "dock-surface flex h-8 w-8 items-center justify-center rounded-xl shadow-dock transition",
+              exportOpen
+                ? "dock-control-active"
+                : "text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)]",
+            ].join(" ")}
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+          <ExportMenu
+            open={exportOpen}
+            onClose={() => setExportOpen(false)}
+            anchorRef={exportBtnRef}
+          />
+        </div>
       </div>
 
       {status && (

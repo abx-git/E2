@@ -9,6 +9,7 @@ import {
   ClipboardPaste,
   Download,
   FilePlus,
+  FileText,
   FolderOpen,
   Library,
   Loader2,
@@ -107,6 +108,9 @@ export interface DataStoragePanelProps {
   onExportJsonSchema: () => void;
   onExportSvg: () => void;
   onExportPng: () => void;
+  onExportPdf: () => void;
+  onCopyPromptToClipboard: () => boolean | Promise<boolean>;
+  onCopyDrawioToClipboard: () => boolean | Promise<boolean>;
   onExportHotspots: () => void;
   onExportActionItems: () => void;
   onExportGlossary: () => void;
@@ -345,6 +349,9 @@ export function DataStoragePanel({
   onExportJsonSchema,
   onExportSvg,
   onExportPng,
+  onExportPdf,
+  onCopyPromptToClipboard,
+  onCopyDrawioToClipboard,
   onExportHotspots,
   onExportActionItems,
   onExportGlossary,
@@ -376,6 +383,8 @@ export function DataStoragePanel({
     typeof getFileLibraryPermissionState
   >>("none");
   const [jsonCopied, setJsonCopied] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
+  const [drawioCopied, setDrawioCopied] = useState(false);
   const [viewJsonCopied, setViewJsonCopied] = useState(false);
   const [aiContextCopied, setAiContextCopied] = useState(false);
   const [mermaidCopied, setMermaidCopied] = useState(false);
@@ -975,6 +984,7 @@ export function DataStoragePanel({
             <div className="space-y-3">
               <p className="text-xs text-[var(--muted)]">
                 {MODELING_MODE_LABELS[modelingMode]} — passende Formate sind hervorgehoben.
+                Bild und Prompt der aktiven Sicht auch über das Download-Symbol am Canvas.
               </p>
 
               <ExportGroup title="Board" hint="Alle Sichten">
@@ -1004,17 +1014,54 @@ export function DataStoragePanel({
                   label="Schema"
                   detail="JSON Schema"
                 />
+              </ExportGroup>
+
+              <ExportGroup title="Aktive Sicht" hint="Canvas · Bild & Text">
                 <ExportTile
-                  onClick={onExportSvg}
+                  onClick={() => {
+                    void Promise.resolve(onCopyPromptToClipboard()).then((ok) => {
+                      if (!ok) return;
+                      setPromptCopied(true);
+                      window.setTimeout(() => setPromptCopied(false), 2000);
+                    });
+                  }}
                   disabled={busy}
-                  label="SVG"
-                  detail="Draw.io (aktive Sicht)"
+                  label={promptCopied ? "Kopiert" : "Prompt"}
+                  detail="Text für KI-Chat"
+                  icon={FileText}
+                  emphasize={promptCopied}
                 />
                 <ExportTile
                   onClick={onExportPng}
                   disabled={busy}
                   label="PNG"
-                  detail="Rasterbild (aktive Sicht)"
+                  detail="Rasterbild"
+                />
+                <ExportTile
+                  onClick={onExportSvg}
+                  disabled={busy}
+                  label="SVG"
+                  detail="Draw.io-Datei"
+                />
+                <ExportTile
+                  onClick={onExportPdf}
+                  disabled={busy}
+                  label="PDF"
+                  detail="Eine Seite, wie PNG"
+                />
+                <ExportTile
+                  onClick={() => {
+                    void Promise.resolve(onCopyDrawioToClipboard()).then((ok) => {
+                      if (!ok) return;
+                      setDrawioCopied(true);
+                      window.setTimeout(() => setDrawioCopied(false), 2000);
+                    });
+                  }}
+                  disabled={busy}
+                  label={drawioCopied ? "Kopiert" : "Draw.io"}
+                  detail="In diagrams.net einfügen"
+                  icon={ClipboardCopy}
+                  emphasize={drawioCopied}
                 />
               </ExportGroup>
 
