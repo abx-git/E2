@@ -10,6 +10,7 @@ import {
   Download,
   FilePlus,
   FolderOpen,
+  Library,
   Loader2,
   Palette,
   Save,
@@ -25,6 +26,16 @@ import {
   type BackupIntervalMinutes,
   type LocalBackupListItem,
 } from "@/lib/board-backup";
+import {
+  FILE_LIBRARY_BACKUP_DIR,
+  FILE_LIBRARY_CHANGED_EVENT,
+  STANDARD_LIBRARY_FILENAME,
+  getFileLibraryEntries,
+  getFileLibraryFolderName,
+  getFileLibraryPermissionState,
+  isFileLibrarySupported,
+  type FileLibraryEntry,
+} from "@/lib/file-library";
 import { listRecentWorkingFiles } from "@/lib/working-file";
 import { useI18n, useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -61,6 +72,10 @@ export interface DataStoragePanelProps {
   onCloseWorkingFile?: () => void;
   onRenameWorkingFile?: () => void;
   onOpenRecentWorkingFile: (handle: FileSystemFileHandle) => void;
+  onPickFileLibrary?: () => void;
+  onGrantFileLibrary?: () => void;
+  onDetachFileLibrary?: () => void;
+  onOpenFileLibraryEntry?: (entry: FileLibraryEntry) => void;
   onOpenLocalBackup: (backupId: string) => void;
   onRestoreBackupFile: () => void;
   onRestoreBackupPaste: () => void;
@@ -304,6 +319,10 @@ export function DataStoragePanel({
   onCloseWorkingFile,
   onRenameWorkingFile,
   onOpenRecentWorkingFile,
+  onPickFileLibrary,
+  onGrantFileLibrary,
+  onDetachFileLibrary,
+  onOpenFileLibraryEntry,
   onOpenLocalBackup,
   onRestoreBackupFile,
   onRestoreBackupPaste,
@@ -351,6 +370,11 @@ export function DataStoragePanel({
   >([]);
   const [localBackups, setLocalBackups] = useState<LocalBackupListItem[]>([]);
   const [backupListExpanded, setBackupListExpanded] = useState(false);
+  const [libraryEntries, setLibraryEntries] = useState<FileLibraryEntry[]>([]);
+  const [libraryFolderName, setLibraryFolderName] = useState<string | null>(null);
+  const [libraryPermission, setLibraryPermission] = useState<ReturnType<
+    typeof getFileLibraryPermissionState
+  >>("none");
   const [jsonCopied, setJsonCopied] = useState(false);
   const [viewJsonCopied, setViewJsonCopied] = useState(false);
   const [aiContextCopied, setAiContextCopied] = useState(false);
@@ -388,12 +412,26 @@ export function DataStoragePanel({
     void listLocalBackups().then((entries) => {
       if (!cancelled) setLocalBackups(entries);
     });
+    setLibraryEntries(getFileLibraryEntries());
+    setLibraryFolderName(getFileLibraryFolderName());
+    setLibraryPermission(getFileLibraryPermissionState());
     return () => {
       cancelled = true;
     };
     // Prefer Datei only when the sheet opens while unsaved — not on every dirty flip.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- open gate
   }, [open, fsAccessSupported, workingFileLabel, busy, backupLastLabel]);
+
+  useEffect(() => {
+    if (!open) return;
+    const refreshLibrary = () => {
+      setLibraryEntries(getFileLibraryEntries());
+      setLibraryFolderName(getFileLibraryFolderName());
+      setLibraryPermission(getFileLibraryPermissionState());
+    };
+    window.addEventListener(FILE_LIBRARY_CHANGED_EVENT, refreshLibrary);
+    return () => window.removeEventListener(FILE_LIBRARY_CHANGED_EVENT, refreshLibrary);
+  }, [open]);
 
   const selectTab = (id: StorageTabId) => {
     setPreferredTab(id);
@@ -486,6 +524,11 @@ export function DataStoragePanel({
           : "gespeichert"
     : null;
 
+  const libraryReady = libraryPermission === "granted";
+  const libraryBoards = libraryEntries.filter((e) => e.kind === "board");
+  const libraryBackups = libraryEntries.filter((e) => e.kind === "backup");
+  const librarySupported = isFileLibrarySupported();
+
   if (!open) return null;
 
   const tabs: Array<{ id: StorageTabId; label: string; icon: typeof FolderOpen }> = [
@@ -560,6 +603,93 @@ export function DataStoragePanel({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4" role="tabpanel">
           {activeTab === "file" && (
             <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-[var(--text)]">{t("storage.libraryTitle")}</p>
+                {libraryReady ? (
+                  <p className="text-[0.7rem] leading-snug text-[var(--muted)]">
+                    {t("storage.libraryHint", {
+                      file: libraryFolderName
+                        ? `${libraryFolderName}/${STANDARD_LIBRARY_FILENAME}`
+                        : STANDARD_LIBRARY_FILENAME,
+                    })}
+                  </p>
+                ) : libraryPermission === "prompt" ? (
+                  <p className="text-[0.7rem] leading-snug text-[var(--muted)]">
+                    {libraryFolderName
+                      ? `${libraryFolderName}/${STANDARD_LIBRARY_FILENAME}`
+                      : STANDARD_LIBRARY_FILENAME}
+                  </p>
+                ) : (
+                  <p className="text-[0.7rem] leading-snug text-[var(--muted)]">
+                    {librarySupported ? t("storage.libraryNeedFolder") : t("storage.libraryUnsupported")}
+                  </p>
+                )}
+                {libraryReady && libraryBoards.length === 0 ? (
+                  <p className="text-[0.7rem] text-[var(--muted)]">{t("storage.libraryEmpty")}</p>
+                ) : null}
+                {libraryReady && libraryBoards.length > 0 ? (
+                  <ul className="divide-y divide-[var(--border)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--panel-solid)]/40">
+                    {libraryBoards.map((entry) => {
+                      const isCurrent =
+                        Boolean(workingFileLabel) &&
+                        (workingFileLabel === entry.path.split("/").pop() ||
+                          workingFileLabel === entry.path);
+                      return (
+                        <li key={entry.id}>
+                          <button
+                            type="button"
+                            disabled={busy || !onOpenFileLibraryEntry}
+                            onClick={() => onOpenFileLibraryEntry?.(entry)}
+                            className="flex w-full items-start gap-2 px-2.5 py-2 text-left hover:bg-[var(--control-hover)] disabled:opacity-50"
+                            title={entry.path}
+                          >
+                            <Library
+                              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted)]"
+                              aria-hidden
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="flex items-center gap-1.5">
+                                <span className="block truncate text-sm font-medium text-[var(--text)]">
+                                  {entry.title}
+                                </span>
+                                {isCurrent ? (
+                                  <span className="shrink-0 text-[0.6rem] uppercase tracking-wide text-[var(--accent)]">
+                                    {t("storage.libraryCurrent")}
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="block truncate text-[0.65rem] text-[var(--muted)]">
+                                {entry.path}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+                <div className="grid grid-cols-2 gap-2">
+                  {librarySupported && libraryPermission === "prompt" && onGrantFileLibrary ? (
+                    <ActionButton onClick={onGrantFileLibrary} disabled={busy} emphasize>
+                      {t("storage.libraryGrant")}
+                    </ActionButton>
+                  ) : null}
+                  {librarySupported && onPickFileLibrary ? (
+                    <ActionButton onClick={onPickFileLibrary} disabled={busy}>
+                      <FolderOpen className="h-4 w-4" />
+                      {libraryPermission === "none"
+                        ? t("storage.libraryPick")
+                        : t("storage.libraryChange")}
+                    </ActionButton>
+                  ) : null}
+                  {libraryPermission !== "none" && onDetachFileLibrary ? (
+                    <ActionButton onClick={onDetachFileLibrary} disabled={busy}>
+                      {t("storage.libraryDetach")}
+                    </ActionButton>
+                  ) : null}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 {workingFileAttached ? (
                   <p className="text-xs text-[var(--muted)]">
@@ -639,7 +769,7 @@ export function DataStoragePanel({
                 >
                   JSON einfügen
                 </ActionButton>
-                {fsAccessSupported && recentFiles.length > 0 && (
+                {fsAccessSupported && !libraryReady && recentFiles.length > 0 && (
                   <div className="space-y-1.5">
                     <p className="text-[0.7rem] font-medium text-[var(--muted)]">
                       Zuletzt verwendet
@@ -672,13 +802,17 @@ export function DataStoragePanel({
               <Disclosure
                 title={t("backup.title")}
                 hint={
-                  localBackups.length > 0
-                    ? `${localBackups.length} · ${backupLastLabel}`
-                    : backupLastLabel
+                  libraryReady && libraryBackups.length > 0
+                    ? `${libraryBackups.length} · ${backupLastLabel}`
+                    : localBackups.length > 0
+                      ? `${localBackups.length} · ${backupLastLabel}`
+                      : backupLastLabel
                 }
               >
                 <p className="text-[0.7rem] leading-snug text-[var(--muted)]">
-                  {t("backup.hintUnsaved")}
+                  {libraryReady
+                    ? t("backup.hintLibrary", { dir: FILE_LIBRARY_BACKUP_DIR })
+                    : t("backup.hintUnsaved")}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <ActionButton onClick={onBackupNow} disabled={busy}>
@@ -721,7 +855,51 @@ export function DataStoragePanel({
                     </select>
                   </label>
                 </div>
-                {localBackups.length > 0 ? (
+                {libraryReady && libraryBackups.length > 0 ? (
+                  <div className="space-y-1">
+                    <p className="text-[0.65rem] font-medium text-[var(--muted)]">
+                      {t("backup.recent")}
+                    </p>
+                    <ul className="divide-y divide-[var(--border)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--panel-solid)]/40">
+                      {(backupListExpanded
+                        ? libraryBackups
+                        : libraryBackups.slice(0, BACKUP_LIST_PREVIEW)
+                      ).map((entry) => (
+                        <li key={entry.id}>
+                          <button
+                            type="button"
+                            disabled={busy || !onOpenFileLibraryEntry}
+                            onClick={() => onOpenFileLibraryEntry?.(entry)}
+                            className="flex w-full items-start gap-2 px-2.5 py-1.5 text-left hover:bg-[var(--control-hover)] disabled:opacity-50"
+                            title={entry.path}
+                          >
+                            <Clock className="mt-0.5 h-3 w-3 shrink-0 text-[var(--muted)]" aria-hidden />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-xs font-medium">{entry.title}</span>
+                              <span className="block truncate text-[0.65rem] text-[var(--muted)]">
+                                {entry.path}
+                              </span>
+                            </span>
+                            <span className="shrink-0 tabular-nums text-[0.65rem] text-[var(--muted)]">
+                              {formatBackupWhen(entry.updatedAt, bcp47)}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    {libraryBackups.length > BACKUP_LIST_PREVIEW ? (
+                      <button
+                        type="button"
+                        className="text-[0.65rem] font-medium text-[var(--muted)] underline-offset-2 hover:text-[var(--text)] hover:underline"
+                        onClick={() => setBackupListExpanded((v) => !v)}
+                      >
+                        {backupListExpanded
+                          ? t("backup.showLess")
+                          : t("backup.showAll", { n: libraryBackups.length })}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : localBackups.length > 0 ? (
                   <div className="space-y-1">
                     <p className="text-[0.65rem] font-medium text-[var(--muted)]">
                       {t("backup.recent")}

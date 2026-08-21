@@ -60,6 +60,15 @@ import {
 } from "@/lib/collab/pre-collab-stash";
 import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
 import {
+  detachFileLibrary,
+  grantFileLibraryPermission,
+  isFileLibraryAttached,
+  pickFileLibraryFolder,
+  resolveLibraryFileHandle,
+  restoreFileLibraryFromIdb,
+  type FileLibraryEntry,
+} from "@/lib/file-library";
+import {
   fetchAndValidateRemoteBoard,
   readBoardUrlFromSearch,
   stripBoardUrlParamFromLocation,
@@ -168,6 +177,7 @@ export function StormBoard() {
   useEffect(() => {
     setBackupIntervalMinutes(readBackupIntervalMinutes());
     setBackupHistoryMode(readBackupHistoryMode());
+    void restoreFileLibraryFromIdb();
   }, []);
 
   const [helpOpen, setHelpOpen] = useState(false);
@@ -831,6 +841,98 @@ export function StormBoard() {
     });
   };
 
+  const handlePickFileLibrary = async () => {
+    setBusy(true);
+    try {
+      const ok = await pickFileLibraryFolder();
+      if (!ok) return;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGrantFileLibrary = async () => {
+    setBusy(true);
+    try {
+      await grantFileLibraryPermission();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDetachFileLibrary = async () => {
+    await detachFileLibrary();
+  };
+
+  const handleOpenFileLibraryEntry = (entry: FileLibraryEntry) => {
+    if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
+      window.alert(
+        "Während der Kollaboration kann keine andere Datei in den Editor geladen werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
+      );
+      return;
+    }
+    const actionLabel = entry.kind === "backup" ? "Backup öffnen" : "Öffnen";
+    void runWithUnsavedGuard(actionLabel, async () => {
+      setBusy(true);
+      try {
+        const handle = await resolveLibraryFileHandle(entry.path);
+        if (!handle) {
+          window.alert(
+            "Datei wurde im Übersichtsordner nicht gefunden. Bitte „Öffnen…“ nutzen oder den Ordner neu wählen.",
+          );
+          return;
+        }
+        if (entry.kind === "backup") {
+          const file = await handle.getFile();
+          const json = await file.text();
+          if (!json.trim()) {
+            window.alert("Backup wurde nicht gefunden oder ist leer.");
+            return;
+          }
+          backupBeforeSuspiciousSwitch("file");
+          if (!loadForeignBoardIntoEditor(json, { reason: "backup" })) {
+            window.alert("Backup konnte nicht geladen werden.");
+            return;
+          }
+          setWorkingFileName(getWorkingFileLabel());
+          setPersistPaused(true);
+          setStorageOpen(false);
+          return;
+        }
+        const permitted = await requestWorkingFilePermission(handle);
+        if (!permitted) {
+          window.alert(
+            "Datei konnte nicht geöffnet werden. Bitte Berechtigung erteilen oder die Datei erneut über „Öffnen…“ wählen.",
+          );
+          return;
+        }
+        backupBeforeSuspiciousSwitch("file");
+        const result = await openRecentWorkingFile(handle, { skipPermission: true });
+        if (!result) {
+          window.alert(
+            "Datei konnte nicht geöffnet werden. Bitte die Datei erneut über „Öffnen…“ wählen.",
+          );
+          return;
+        }
+        if (result.hydrate.status === "conflict") {
+          setImportConflict({
+            fileText: result.hydrate.fileText,
+            fileLastModified: result.hydrate.fileLastModified,
+            fileName: result.handle.name || entry.title,
+          });
+          return;
+        }
+        setPersistPaused(false);
+        setWorkingFileDirty(false);
+        syncWorkingFileUrlContext();
+        setSetupOpen(false);
+        setStorageOpen(false);
+      } finally {
+        setBusy(false);
+      }
+    });
+  };
+
   const handleOpenLocalBackup = (backupId: string) => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
       window.alert(
@@ -1214,7 +1316,7 @@ export function StormBoard() {
         onBackupHistoryModeChange={(mode) => {
           writeBackupHistoryMode(mode);
           setBackupHistoryMode(mode);
-          if (mode === "rolling" && isWorkingFileSupported()) {
+          if (mode === "rolling" && isWorkingFileSupported() && !isFileLibraryAttached()) {
             const title =
               useStormBoardStore.getState().title?.trim() || "board";
             const suggested = buildBackupFilename(title, new Date(), "rolling");
@@ -1229,6 +1331,10 @@ export function StormBoard() {
         onCloseWorkingFile={() => void handleCloseWorkingFile()}
         onRenameWorkingFile={() => void handleRenameWorkingFile()}
         onOpenRecentWorkingFile={(handle) => void handleOpenRecentWorkingFile(handle)}
+        onPickFileLibrary={() => void handlePickFileLibrary()}
+        onGrantFileLibrary={() => void handleGrantFileLibrary()}
+        onDetachFileLibrary={() => void handleDetachFileLibrary()}
+        onOpenFileLibraryEntry={(entry) => void handleOpenFileLibraryEntry(entry)}
         onOpenLocalBackup={(id) => void handleOpenLocalBackup(id)}
         onRestoreBackupFile={handleRestoreBackupFilePick}
         onRestoreBackupPaste={() => void handlePasteJson()}

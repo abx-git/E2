@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cardAttributeLines, cardMethodLines, cardShowsDetails, onCardDisplayFieldsForType } from "@/lib/card-preview";
+import { cardAttributeLines, cardMethodLines, cardShowsDescription, cardShowsDetails, isOnCardFieldEnabled, onCardDisplayFieldsForType } from "@/lib/card-preview";
 import type { StormElement } from "@/types/storm-element";
 
 function el(partial: Partial<StormElement> & Pick<StormElement, "type">): StormElement {
@@ -45,6 +45,30 @@ describe("card-preview", () => {
           type: "domainEvent",
           metadata: { showWebLinksOnCard: true, webLinks: [] },
         }),
+      ),
+    ).toBe(false);
+  });
+
+  it("shows a description on the card unless explicitly hidden", () => {
+    const withText = el({ type: "domainEvent", description: "Wichtig" });
+    expect(cardShowsDescription(withText)).toBe(true);
+    expect(cardShowsDetails(withText)).toBe(true);
+    expect(isOnCardFieldEnabled(withText, "showDescriptionOnCard")).toBe(true);
+
+    expect(cardShowsDescription(el({ type: "domainEvent" }))).toBe(false);
+    expect(
+      cardShowsDescription(
+        el({
+          type: "domainEvent",
+          description: "Versteckt",
+          metadata: { showDescriptionOnCard: false },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isOnCardFieldEnabled(
+        el({ type: "domainEvent", metadata: { showDescriptionOnCard: false } }),
+        "showDescriptionOnCard",
       ),
     ).toBe(false);
   });

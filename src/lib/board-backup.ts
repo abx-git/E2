@@ -7,6 +7,12 @@ import { boardJsonFromStoreState, boardPersistKeyFromStoreState } from "@/lib/fi
 import { documentHasContent } from "@/lib/storm-json";
 import { isWorkingFileAttached, isWorkingFileDirty } from "@/lib/working-file";
 import { boardImportPayloadFromStore } from "@/store/storm-board-store";
+import {
+  isFileLibraryAttached,
+  libraryBackupRelativePath,
+  rememberFileInLibrary,
+  writeLibraryRelativeFile,
+} from "@/lib/file-library";
 
 export const BACKUP_INTERVAL_OPTIONS_MINUTES = [0, 5, 10, 15, 30] as const;
 export type BackupIntervalMinutes = (typeof BACKUP_INTERVAL_OPTIONS_MINUTES)[number];
@@ -323,6 +329,17 @@ export async function downloadBoardBackup(
 ): Promise<string> {
   const mode = options?.mode ?? readBackupHistoryMode();
   const filename = buildBackupFilename(title, date, mode);
+
+  if (isFileLibraryAttached()) {
+    const relative = libraryBackupRelativePath(filename);
+    const handle = await writeLibraryRelativeFile(relative, json);
+    if (handle) {
+      rememberLastBackupAt(date.getTime());
+      void rememberLocalBackup(filename, json, date.getTime(), mode);
+      void rememberFileInLibrary(handle, { title, kind: "backup", json });
+      return filename;
+    }
+  }
 
   if (mode === "rolling" && isFileSystemAccessAvailable()) {
     const handle = await ensureRollingBackupHandle(filename, {

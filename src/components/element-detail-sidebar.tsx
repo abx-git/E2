@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { AlertCircle, ChevronDown, ExternalLink, HelpCircle, Trash2 } from "lucide-react";
+import { AlertCircle, ChevronDown, ExternalLink, HelpCircle, Pencil, Trash2 } from "lucide-react";
 
 import { activateBoardLink } from "@/lib/board-link";
 import { normalizeCardWebLinks } from "@/lib/card-web-links";
@@ -9,11 +9,13 @@ import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-p
 import { RegionAppearanceControls } from "@/components/region-appearance-controls";
 import { lineArrowHeadShortLabel } from "@/components/canvas-lines";
 import { resolveElementStyle } from "@/lib/element-styles";
-import { onCardDisplayFieldsForType } from "@/lib/card-preview";
+import { cardShowsDetails, isOnCardFieldEnabled, onCardDisplayFieldsForType } from "@/lib/card-preview";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
+import { DescriptionMarkdownContent } from "@/components/description-markdown-content";
+import { DescriptionEditorDialog } from "@/components/description-editor-dialog";
 import type { RelationType } from "@/types/storm-relation";
 import type {
   CardWebLink,
@@ -182,6 +184,12 @@ export function ElementDetailSidebar({
   const selectedBoundedContext = boundedContexts.find((bc) => bc.id === selectedBoundedContextId);
   const selectedSwimlane = swimlanes.find((lane) => lane.id === selectedSwimlaneId);
   const multiCount = selectedElementIds.length;
+  const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
+  const selectedElementId = selectedElement?.id ?? null;
+
+  useEffect(() => {
+    setDescriptionEditorOpen(false);
+  }, [selectedElementId]);
 
   const issues = useMemo(
     () =>
@@ -348,12 +356,7 @@ export function ElementDetailSidebar({
   const style = resolveElementStyle(selectedElement, customCardTypes);
   const width = selectedElement.width ?? style.defaultWidth;
   const height = selectedElement.height ?? style.defaultHeight;
-  const cardFlagsActive = Boolean(
-    selectedElement.metadata?.showDescriptionOnCard ||
-      selectedElement.metadata?.showAttributesOnCard ||
-      selectedElement.metadata?.showMethodsOnCard ||
-      selectedElement.metadata?.showWebLinksOnCard,
-  );
+  const cardFlagsActive = cardShowsDetails(selectedElement);
 
   return (
     <DockPanel
@@ -367,14 +370,32 @@ export function ElementDetailSidebar({
           onChange={(e) => updateElement(selectedElement.id, { label: e.target.value })}
         />
       </Field>
-      <Field label="Beschreibung">
-        <textarea
-          className="dock-field min-h-[4.5rem]"
-          rows={3}
-          value={selectedElement.description ?? ""}
-          onChange={(e) => updateElement(selectedElement.id, { description: e.target.value })}
+      <div className="space-y-1">
+        <p className="text-[0.72rem] font-medium text-[var(--muted)]">Beschreibung</p>
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--control)] px-2.5 py-2 text-xs text-[var(--text)]">
+          {selectedElement.description?.trim() ? (
+            <DescriptionMarkdownContent markdown={selectedElement.description} compact />
+          ) : (
+            <p className="italic text-[var(--muted)]">Keine Beschreibung</p>
+          )}
+        </div>
+        <button
+          type="button"
+          className="dock-control flex w-full items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium"
+          onClick={() => setDescriptionEditorOpen(true)}
+        >
+          <Pencil className="h-3.5 w-3.5" aria-hidden />
+          WYSIWYG-Editor öffnen
+        </button>
+        <DescriptionEditorDialog
+          open={descriptionEditorOpen}
+          elementId={selectedElement.id}
+          elementLabel={selectedElement.label}
+          markdown={selectedElement.description ?? ""}
+          onClose={() => setDescriptionEditorOpen(false)}
+          onSave={(md) => updateElement(selectedElement.id, { description: md })}
         />
-      </Field>
+      </div>
 
       <CollapsibleSection
         title="Auf der Karte"
@@ -386,7 +407,7 @@ export function ElementDetailSidebar({
             <label key={key} className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={Boolean(selectedElement.metadata?.[key])}
+                checked={isOnCardFieldEnabled(selectedElement, key)}
                 onChange={(e) =>
                   updateElement(selectedElement.id, {
                     metadata: {

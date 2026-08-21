@@ -251,7 +251,7 @@ export interface ElementMetadata {
   /** @deprecated Migrated from old arc42Section stickies; ignored by UI. */
   arc42SectionNumber?: number;
 
-  /** Sticky: Beschreibung auf der Karte anzeigen. */
+  /** Sticky: Beschreibung auf der Karte. Default an, wenn Text vorhanden; `false` blendet aus. */
   showDescriptionOnCard?: boolean;
   /** Sticky: Attribute / Kriterien auf der Karte anzeigen. */
   showAttributesOnCard?: boolean;

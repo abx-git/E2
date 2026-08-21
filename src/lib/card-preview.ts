@@ -50,6 +50,30 @@ export function typeHasOnCardMethods(type: ElementType): boolean {
   return METHOD_CARD_TYPES.has(type);
 }
 
+/** Description is on the card by default; `showDescriptionOnCard: false` hides it. */
+export function cardShowsDescription(el: StormElement): boolean {
+  if (!el.description?.trim()) return false;
+  return el.metadata?.showDescriptionOnCard !== false;
+}
+
+/** Checkbox/menu state for an on-card field (description defaults to on). */
+export function isOnCardFieldEnabled(el: StormElement, key: OnCardDisplayKey): boolean {
+  if (key === "showDescriptionOnCard") {
+    return el.metadata?.showDescriptionOnCard !== false;
+  }
+  return Boolean(el.metadata?.[key]);
+}
+
+export function cardShowsDetails(el: StormElement): boolean {
+  const m = el.metadata;
+  return Boolean(
+    cardShowsDescription(el) ||
+      m?.showAttributesOnCard ||
+      m?.showMethodsOnCard ||
+      (m?.showWebLinksOnCard && cardWebLinkLines(el).length > 0),
+  );
+}
+
 /** Display toggles that can actually be filled for this sticky type. */
 export function onCardDisplayFieldsForType(
   type: ElementType,
@@ -144,14 +168,4 @@ export function cardMethodLines(el: StormElement): string[] {
     lines.push(...m.aggregateInvariants.map((i) => `◇ ${i}`));
   }
   return lines;
-}
-
-export function cardShowsDetails(el: StormElement): boolean {
-  const m = el.metadata;
-  return Boolean(
-    m?.showDescriptionOnCard ||
-      m?.showAttributesOnCard ||
-      m?.showMethodsOnCard ||
-      (m?.showWebLinksOnCard && cardWebLinkLines(el).length > 0),
-  );
 }

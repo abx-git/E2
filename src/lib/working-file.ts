@@ -32,6 +32,12 @@ import {
   supportsWorkingFileWebLocks,
 } from "@/lib/working-file-writer";
 import { downloadTextFile } from "@/lib/diagram-io";
+import {
+  getFileLibraryDirectoryHandle,
+  rememberFileInLibrary,
+  rememberLibraryTitleIfChanged,
+  rememberRenamedFileInLibrary,
+} from "@/lib/file-library";
 
 export const STANDARD_WORKING_FILENAME = "board.storm.json";
 
@@ -808,6 +814,17 @@ const SAVE_FILE_PICKER_OPTIONS_BASE: Omit<SaveFilePickerOptions, "suggestedName"
   types: JSON_PICKER_TYPES,
 };
 
+function workingFilePickerStartIn(): FileSystemHandle | undefined {
+  return getFileLibraryDirectoryHandle() ?? undefined;
+}
+
+function syncHandleIntoFileLibrary(
+  handle: FileSystemFileHandle,
+  json?: string,
+): void {
+  void rememberFileInLibrary(handle, json ? { json, kind: "board" } : { kind: "board" });
+}
+
 export async function readWorkingFileSnapshot(
   handle: FileSystemFileHandle = memoryHandle!,
 ): Promise<{ text: string; lastModified: number } | null> {
@@ -1042,13 +1059,17 @@ async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
   } catch {
     /* ignore */
   }
+  syncHandleIntoFileLibrary(handle);
   notifyWorkingFileAttached();
 }
 
 export async function attachWorkingFileOpen(): Promise<FileSystemFileHandle | null> {
   if (!isWorkingFileSupported() || !window.showOpenFilePicker) return null;
   try {
-    const [handle] = await window.showOpenFilePicker(OPEN_FILE_PICKER_OPTIONS);
+    const [handle] = await window.showOpenFilePicker({
+      ...OPEN_FILE_PICKER_OPTIONS,
+      startIn: workingFilePickerStartIn(),
+    });
     await rememberHandle(handle);
     return handle;
   } catch (e) {
@@ -1083,6 +1104,7 @@ export async function attachWorkingFileCreate(
     const handle = await window.showSaveFilePicker({
       ...SAVE_FILE_PICKER_OPTIONS_BASE,
       suggestedName: suggestedWorkingFileName(suggestedName),
+      startIn: workingFilePickerStartIn(),
     });
     await rememberHandle(handle);
     return handle;
@@ -1119,6 +1141,7 @@ export async function hydrateStoreFromWorkingFile(
     const syncedJson = getLastSyncedBoardJson() ?? snap.text;
     const fileName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
     await rememberMobileCopy(syncedJson, fileName, snap.lastModified);
+    syncHandleIntoFileLibrary(handle, syncedJson);
     endWorkingFileSwitch();
     return result;
   } catch (e) {
@@ -1278,11 +1301,15 @@ export async function persistWorkingFileJson(
 
   if (memoryHandle) {
     // Never disable CAS merely because lastKnown is 0 — writeWorkingFileJson reads disk + content fence.
-    return writeWorkingFileJson(json, memoryHandle, {
+    const result = await writeWorkingFileJson(json, memoryHandle, {
       skipCas: options?.skipCas,
       expectedLastModified:
         options?.skipCas || lastKnownFileModified <= 0 ? undefined : lastKnownFileModified,
     });
+    if (result.ok) {
+      void rememberLibraryTitleIfChanged(memoryHandle, json);
+    }
+    return result;
   }
   if (!mobileWorkingFileName) return { ok: false, reason: "no_handle" };
   try {
@@ -1335,6 +1362,7 @@ export async function createAndAttachWorkingFile(
   setWorkingFilePersistPaused(false);
   endWorkingFileSwitch();
   markWorkingFileSessionHydrated();
+  syncHandleIntoFileLibrary(handle, initialJson);
   // After write: sync state is clean — refresh listeners (dirty/label).
   notifyWorkingFileAttached();
   return handle;
@@ -1514,6 +1542,7 @@ export async function renameWorkingFile(
       /* ignore index errors */
     }
     notifyWorkingFileAttached();
+    void rememberRenamedFileInLibrary(handle, oldName);
     return { ok: true, name: fileName };
   } catch (e) {
     console.error("Arbeitsdatei umbenennen:", e);

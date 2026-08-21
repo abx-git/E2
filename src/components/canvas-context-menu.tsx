@@ -39,7 +39,7 @@ import {
   normalizeRotationDegrees,
 } from "@/lib/element-rotation";
 import { ELEMENT_STYLES, styleForElementType } from "@/lib/element-styles";
-import { onCardDisplayFieldsForType } from "@/lib/card-preview";
+import { isOnCardFieldEnabled, onCardDisplayFieldsForType } from "@/lib/card-preview";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import {
   PROGRESS_MARKS,
@@ -319,13 +319,13 @@ export function CanvasContextMenu({
             <Item
               key={key}
               label={label}
-              active={Boolean(el.metadata?.[key])}
+              active={isOnCardFieldEnabled(el, key)}
               onClick={() =>
                 run(() =>
                   updateElement(el.id, {
                     metadata: {
                       ...el.metadata,
-                      [key]: !el.metadata?.[key],
+                      [key]: !isOnCardFieldEnabled(el, key),
                     },
                   }),
                 )

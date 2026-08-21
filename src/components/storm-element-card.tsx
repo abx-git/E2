@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Clock, ExternalLink, LayoutDashboard, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
 
 import { ProgressMarkBadge } from "@/components/progress-mark-badge";
+import { DescriptionMarkdownContent } from "@/components/description-markdown-content";
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkDestinationPreview, linkHasTarget } from "@/lib/board-link";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
@@ -11,6 +12,7 @@ import { ELEMENT_STYLES, cardTypeCaption, resolveElementStyle } from "@/lib/elem
 import {
   cardAttributeLines,
   cardMethodLines,
+  cardShowsDescription,
   cardShowsDetails,
 } from "@/lib/card-preview";
 import {
@@ -155,8 +157,7 @@ export function StormElementCard({
     : [];
   const methodLines = element.metadata?.showMethodsOnCard ? cardMethodLines(element) : [];
   const webLinks = element.metadata?.showWebLinksOnCard ? elementWebLinks(element) : [];
-  const showDescription =
-    Boolean(element.metadata?.showDescriptionOnCard) && Boolean(element.description?.trim());
+  const showDescription = cardShowsDescription(element);
   const isCoarsePointer = useIsCoarsePointer();
 
   const shapeClass =
@@ -730,13 +731,10 @@ export function StormElementCard({
           </span>
         )}
         {!editing && showDescription && (
-          <p className="w-full whitespace-pre-wrap break-words text-left text-[0.65rem] leading-snug opacity-80">
-            {searchActive && searchHit?.inDescription ? (
-              <HighlightedText text={element.description!} query={searchQuery} />
-            ) : (
-              element.description
-            )}
-          </p>
+          <DescriptionMarkdownContent
+            markdown={element.description}
+            className="w-full text-left text-[0.65rem] leading-snug opacity-80"
+          />
         )}
         {!editing && attrLines.length > 0 && (
           <ul className="w-full min-w-0 list-none space-y-0.5 text-left text-[0.62rem] leading-snug opacity-85">

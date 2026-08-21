@@ -28,7 +28,9 @@ import { elementRect as geomElementRect, relationAnchors, contextRelationAnchors
 import {
   cardAttributeLines,
   cardMethodLines,
+  cardShowsDescription,
 } from "@/lib/card-preview";
+import { markdownToPlainText } from "@/lib/description-markdown";
 import { cardWebLinkLines } from "@/lib/card-web-links";
 import { effectiveElementRotation } from "@/lib/element-rotation";
 import {
@@ -1007,10 +1009,9 @@ function cardPreviewLines(el: StormElement): {
   links: string[];
 } {
   return {
-    description:
-      el.metadata?.showDescriptionOnCard && el.description?.trim()
-        ? el.description.trim()
-        : undefined,
+    description: cardShowsDescription(el)
+      ? markdownToPlainText(el.description ?? "") || undefined
+      : undefined,
     attrs: el.metadata?.showAttributesOnCard ? cardAttributeLines(el).slice(0, 8) : [],
     methods: el.metadata?.showMethodsOnCard ? cardMethodLines(el).slice(0, 8) : [],
     links: el.metadata?.showWebLinksOnCard ? cardWebLinkLines(el).slice(0, 8) : [],
