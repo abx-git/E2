@@ -540,6 +540,14 @@
         },
         "label": {
           "type": "string"
+        },
+        "labelMode": {
+          "type": "string",
+          "enum": ["type", "custom"]
+        },
+        "strokeStyle": {
+          "type": "string",
+          "enum": ["solid", "dashed", "dotted"]
         }
       }
     },
@@ -713,7 +721,11 @@
         "y2": { "type": "number" },
         "arrowHead": { "$ref": "#/$defs/lineArrowHead" },
         "label": { "type": "string" },
-        "color": { "type": "string" }
+        "color": { "type": "string" },
+        "strokeStyle": {
+          "type": "string",
+          "enum": ["solid", "dashed", "dotted"]
+        }
       }
     },
     "viewBookmark": {

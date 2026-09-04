@@ -1,4 +1,5 @@
 import { generateStormId } from "@/lib/storm-id";
+import { isConnectorStrokeStyle } from "@/lib/connector-style";
 import {
   LINE_ARROW_HEADS,
   type CanvasLine,
@@ -19,6 +20,7 @@ export function normalizeCanvasLine(raw: Partial<CanvasLine>): CanvasLine | null
   const arrowHead = LINE_ARROW_HEADS.includes(raw.arrowHead as LineArrowHead)
     ? (raw.arrowHead as LineArrowHead)
     : "none";
+  const strokeStyle = isConnectorStrokeStyle(raw.strokeStyle) ? raw.strokeStyle : undefined;
   return {
     id: raw.id?.trim() || generateStormId(),
     x1: raw.x1,
@@ -28,6 +30,7 @@ export function normalizeCanvasLine(raw: Partial<CanvasLine>): CanvasLine | null
     arrowHead,
     label: raw.label?.trim() || undefined,
     color: raw.color?.trim() || undefined,
+    ...(strokeStyle ? { strokeStyle } : {}),
   };
 }
 

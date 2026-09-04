@@ -4,6 +4,11 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
+import {
+  connectorHitStrokeWidth,
+  connectorStrokeDasharray,
+  isConnectorStrokeStyle,
+} from "@/lib/connector-style";
 
 export interface CanvasLinesProps {
   selectedLineId: string | null;
@@ -30,6 +35,7 @@ export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasL
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const updateCanvasLine = useStormBoardStore((s) => s.updateCanvasLine);
   const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
+  const hitWidth = connectorHitStrokeWidth(zoom);
 
   const startEndpointDrag = (
     lineId: string,
@@ -150,6 +156,7 @@ export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasL
         const stroke = line.color ?? (selected ? "#2a9d8f" : "#64748b");
         const arrow = line.arrowHead ?? "none";
         const r = handleRadius(selected);
+        const strokeStyle = isConnectorStrokeStyle(line.strokeStyle) ? line.strokeStyle : "solid";
         return (
           <g key={line.id}>
             <line
@@ -158,7 +165,8 @@ export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasL
               x2={line.x2}
               y2={line.y2}
               stroke="transparent"
-              strokeWidth={14}
+              strokeWidth={hitWidth}
+              strokeLinecap="round"
               className={[
                 "pointer-events-auto",
                 lineDrawMode ? "cursor-pointer" : "cursor-move",
@@ -176,6 +184,8 @@ export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasL
               y2={line.y2}
               stroke={stroke}
               strokeWidth={selected ? 3 : 2}
+              strokeDasharray={connectorStrokeDasharray(strokeStyle)}
+              strokeLinecap={strokeStyle === "dotted" ? "round" : undefined}
               markerEnd={
                 arrow === "end" || arrow === "both"
                   ? `url(#${markerEndId(selected)})`

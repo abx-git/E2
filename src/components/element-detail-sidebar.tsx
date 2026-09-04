@@ -16,7 +16,14 @@ import { validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
 import { DescriptionMarkdownContent } from "@/components/description-markdown-content";
 import { DescriptionEditorDialog } from "@/components/description-editor-dialog";
-import type { RelationType } from "@/types/storm-relation";
+import {
+  CONNECTOR_STROKE_STYLES,
+  CONNECTOR_STROKE_STYLE_LABELS,
+  isConnectorStrokeStyle,
+  resolveRelationStrokeStyle,
+  type ConnectorStrokeStyle,
+} from "@/lib/connector-style";
+import { RELATION_TYPE_LABELS, RELATION_TYPES, type RelationType } from "@/types/storm-relation";
 import type {
   CardWebLink,
   DataCardinality,
@@ -167,6 +174,7 @@ export function ElementDetailSidebar({
   const updateCustomCardType = useStormBoardStore((s) => s.updateCustomCardType);
   const customCardTypes = useStormBoardStore((s) => s.customCardTypes);
   const updateRelation = useStormBoardStore((s) => s.updateRelation);
+  const deleteRelation = useStormBoardStore((s) => s.deleteRelation);
   const updateCanvasLine = useStormBoardStore((s) => s.updateCanvasLine);
   const deleteCanvasLine = useStormBoardStore((s) => s.deleteCanvasLine);
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
@@ -201,6 +209,9 @@ export function ElementDetailSidebar({
 
   if (selectedCanvasLine) {
     const arrowHead = selectedCanvasLine.arrowHead ?? "none";
+    const strokeStyle = isConnectorStrokeStyle(selectedCanvasLine.strokeStyle)
+      ? selectedCanvasLine.strokeStyle
+      : "solid";
     return (
       <DockPanel title="Freie Linie">
         <Field label="Label">
@@ -209,6 +220,12 @@ export function ElementDetailSidebar({
             value={selectedCanvasLine.label ?? ""}
             onChange={(e) => updateCanvasLine(selectedCanvasLine.id, { label: e.target.value })}
             placeholder="Optional"
+          />
+        </Field>
+        <Field label="Linie">
+          <StrokeStyleButtons
+            value={strokeStyle}
+            onChange={(next) => updateCanvasLine(selectedCanvasLine.id, { strokeStyle: next })}
           />
         </Field>
         <Field label="Pfeil">
@@ -254,20 +271,93 @@ export function ElementDetailSidebar({
   }
 
   if (selectedRelation) {
+    const strokeStyle = resolveRelationStrokeStyle(selectedRelation);
+    const typeCaption = RELATION_TYPE_LABELS[selectedRelation.type];
+    const labelMode = selectedRelation.labelMode;
+    const typeLabelSelected = labelMode === "type";
+    const customLabelSelected =
+      labelMode === "custom" || (!labelMode && Boolean(selectedRelation.label?.trim()));
     return (
       <DockPanel
         title="Relation"
         onHelp={() => onRequestHelpRelationType?.(selectedRelation.type)}
       >
-        <Field label="Label">
-          <input
+        <Field label="Art">
+          <select
             className="dock-field"
-            value={selectedRelation.label ?? ""}
-            onChange={(e) => updateRelation(selectedRelation.id, { label: e.target.value })}
-            placeholder="Optional"
+            value={selectedRelation.type}
+            onChange={(e) =>
+              updateRelation(selectedRelation.id, { type: e.target.value as RelationType })
+            }
+          >
+            {RELATION_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {RELATION_TYPE_LABELS[type]}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Linie">
+          <StrokeStyleButtons
+            value={strokeStyle}
+            onChange={(next) => updateRelation(selectedRelation.id, { strokeStyle: next })}
           />
         </Field>
-        <p className="text-[0.7rem] text-[var(--muted)]">Typ und Löschen: Rechtsklick</p>
+        <Field label="Beschriftung">
+          <div className="flex gap-1" role="group" aria-label="Beschriftung">
+            <button
+              type="button"
+              aria-pressed={typeLabelSelected}
+              className={[
+                "flex h-8 flex-1 items-center justify-center rounded-md px-2 text-[0.72rem] font-medium transition",
+                typeLabelSelected
+                  ? "dock-control-active"
+                  : "dock-control hover:bg-[var(--control-hover)]",
+              ].join(" ")}
+              onClick={() => updateRelation(selectedRelation.id, { labelMode: "type" })}
+            >
+              Art
+            </button>
+            <button
+              type="button"
+              aria-pressed={customLabelSelected}
+              className={[
+                "flex h-8 flex-1 items-center justify-center rounded-md px-2 text-[0.72rem] font-medium transition",
+                customLabelSelected
+                  ? "dock-control-active"
+                  : "dock-control hover:bg-[var(--control-hover)]",
+              ].join(" ")}
+              onClick={() => updateRelation(selectedRelation.id, { labelMode: "custom" })}
+            >
+              Freier Text
+            </button>
+          </div>
+        </Field>
+        {typeLabelSelected ? (
+          <p className="text-[0.72rem] text-[var(--muted)]">Am Verbinder: {typeCaption}</p>
+        ) : (
+          <Field label="Text">
+            <input
+              className="dock-field"
+              value={selectedRelation.label ?? ""}
+              onChange={(e) =>
+                updateRelation(selectedRelation.id, {
+                  label: e.target.value,
+                  labelMode: "custom",
+                })
+              }
+              placeholder="Optional"
+            />
+          </Field>
+        )}
+        <button
+          type="button"
+          className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--control)] px-2 py-1.5 text-xs font-medium text-[#f0a8a0] hover:border-[#f0a8a0]"
+          onClick={() => deleteRelation(selectedRelation.id)}
+        >
+          <Trash2 className="size-3.5" aria-hidden />
+          Löschen
+        </button>
       </DockPanel>
     );
   }
@@ -1590,6 +1680,40 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       {label}
       <div className="mt-1">{children}</div>
     </label>
+  );
+}
+
+function StrokeStyleButtons({
+  value,
+  onChange,
+}: {
+  value: ConnectorStrokeStyle;
+  onChange: (style: ConnectorStrokeStyle) => void;
+}) {
+  return (
+    <div className="flex gap-1" role="group" aria-label="Linienstil">
+      {CONNECTOR_STROKE_STYLES.map((style) => (
+        <button
+          key={style}
+          type="button"
+          title={CONNECTOR_STROKE_STYLE_LABELS[style]}
+          aria-label={CONNECTOR_STROKE_STYLE_LABELS[style]}
+          aria-pressed={value === style}
+          className={[
+            "flex h-8 flex-1 items-center justify-center rounded-md px-1.5 transition",
+            value === style ? "dock-control-active" : "dock-control hover:bg-[var(--control-hover)]",
+          ].join(" ")}
+          onClick={() => onChange(style)}
+        >
+          <span
+            className="block w-full border-t-2 border-current"
+            style={{
+              borderStyle: style === "solid" ? "solid" : style === "dashed" ? "dashed" : "dotted",
+            }}
+          />
+        </button>
+      ))}
+    </div>
   );
 }
 

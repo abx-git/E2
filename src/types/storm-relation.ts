@@ -16,9 +16,24 @@ export interface StormRelation {
   sourceId: string;
   targetId: string;
   label?: string;
+  /** Caption source: relation type name, or `label` as free text. */
+  labelMode?: "type" | "custom";
+  /** Line appearance. Unset keeps the type default (informs/annotates dashed). */
+  strokeStyle?: "solid" | "dashed" | "dotted";
   /** Optional progress mark (Ctrl+1 OK / Ctrl+2 ! / Ctrl+3 …). */
   progressMark?: ProgressMark;
 }
+
+export const RELATION_TYPES = [
+  "triggers",
+  "reactsWith",
+  "informs",
+  "executedBy",
+  "invokes",
+  "causal",
+  "contains",
+  "annotates",
+] as const satisfies readonly RelationType[];
 
 export const RELATION_TYPE_LABELS: Record<RelationType, string> = {
   triggers: "löst aus",

@@ -26,6 +26,14 @@ import {
 } from "@/lib/board-export-visual";
 import { elementRect as geomElementRect, relationAnchors, contextRelationAnchors } from "@/lib/connector-geometry";
 import {
+  connectorCanvasLineDash,
+  connectorMxDash,
+  connectorStrokeDasharray,
+  isConnectorStrokeStyle,
+  relationCanvasCaption,
+  resolveRelationStrokeStyle,
+} from "@/lib/connector-style";
+import {
   cardAttributeLines,
   cardMethodLines,
   cardShowsDescription,
@@ -1234,6 +1242,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
 
   for (const line of state.canvasLines) {
     const arrow = line.arrowHead ?? "none";
+    const lineStroke = isConnectorStrokeStyle(line.strokeStyle) ? line.strokeStyle : "solid";
     const style = mxStyle({
       startArrow: arrow === "start" || arrow === "both" ? "block" : "none",
       endArrow: arrow === "end" || arrow === "both" ? "block" : "none",
@@ -1245,6 +1254,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       rounded: 0,
       strokeColor: line.color ?? CONNECTOR_STROKE,
       strokeWidth: 2,
+      ...connectorMxDash(lineStroke),
       fontColor: CONNECTOR_STROKE,
       fontSize: META_FONT_PX,
       fontStyle: 0,
@@ -1264,7 +1274,8 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
     const src = state.elements.find((e) => e.id === rel.sourceId);
     const tgt = state.elements.find((e) => e.id === rel.targetId);
     if (!src || !tgt) continue;
-    const dashed = rel.type === "annotates" || rel.type === "informs";
+    const dash = connectorMxDash(resolveRelationStrokeStyle(rel));
+    const caption = relationCanvasCaption(rel);
     const style = mxStyle({
       endArrow: "block",
       endFill: 1,
@@ -1273,15 +1284,14 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
       rounded: 0,
       strokeColor: CONNECTOR_STROKE,
       strokeWidth: 2,
-      dashed: dashed ? 1 : undefined,
-      dashPattern: dashed ? "6 4" : undefined,
+      ...dash,
       fontColor: CONNECTOR_STROKE,
       fontSize: META_FONT_PX,
       fontStyle: 0,
       ...MX_FONT,
     });
     cells.push(
-      `<mxCell id="${mxCellId("rel", rel.id)}" value="${mxHtmlValue(mxHtmlText(rel.label ?? ""))}" style="${style}" edge="1" parent="1" source="${mxCellId("el", rel.sourceId)}" target="${mxCellId("el", rel.targetId)}">`,
+      `<mxCell id="${mxCellId("rel", rel.id)}" value="${mxHtmlValue(mxHtmlText(caption))}" style="${style}" edge="1" parent="1" source="${mxCellId("el", rel.sourceId)}" target="${mxCellId("el", rel.targetId)}">`,
       `<mxGeometry relative="1" as="geometry"/>`,
       `</mxCell>`,
     );
@@ -1427,8 +1437,11 @@ export function exportBoardSvg(): void {
     const arrow = line.arrowHead ?? "none";
     const markerEnd = arrow === "end" || arrow === "both" ? ` marker-end="url(#arrow)"` : "";
     const markerStart = arrow === "start" || arrow === "both" ? ` marker-start="url(#arrow)"` : "";
+    const lineStroke = isConnectorStrokeStyle(line.strokeStyle) ? line.strokeStyle : "solid";
+    const dash = connectorStrokeDasharray(lineStroke);
+    const dashAttr = dash ? ` stroke-dasharray="${dash}"` : "";
     parts.push(
-      `<line x1="${line.x1 + ox}" y1="${line.y1 + oy}" x2="${line.x2 + ox}" y2="${line.y2 + oy}" stroke="${escapeXml(line.color ?? CONNECTOR_STROKE)}" stroke-width="2"${markerEnd}${markerStart}/>`,
+      `<line x1="${line.x1 + ox}" y1="${line.y1 + oy}" x2="${line.x2 + ox}" y2="${line.y2 + oy}" stroke="${escapeXml(line.color ?? CONNECTOR_STROKE)}" stroke-width="2"${dashAttr}${markerEnd}${markerStart}/>`,
     );
     if (line.label?.trim()) {
       parts.push(
@@ -1442,13 +1455,15 @@ export function exportBoardSvg(): void {
     const tgt = state.elements.find((e) => e.id === rel.targetId);
     if (!src || !tgt) continue;
     const { start, end } = relationAnchors(src, tgt);
-    const dashed = rel.type === "annotates" || rel.type === "informs" ? ` stroke-dasharray="6 4"` : "";
+    const dash = connectorStrokeDasharray(resolveRelationStrokeStyle(rel));
+    const dashAttr = dash ? ` stroke-dasharray="${dash}"` : "";
+    const caption = relationCanvasCaption(rel);
     parts.push(
-      `<line x1="${start.x + ox}" y1="${start.y + oy}" x2="${end.x + ox}" y2="${end.y + oy}" stroke="${CONNECTOR_STROKE}" stroke-width="2" marker-end="url(#arrow)"${dashed}/>`,
+      `<line x1="${start.x + ox}" y1="${start.y + oy}" x2="${end.x + ox}" y2="${end.y + oy}" stroke="${CONNECTOR_STROKE}" stroke-width="2" marker-end="url(#arrow)"${dashAttr}/>`,
     );
-    if (rel.label?.trim()) {
+    if (caption) {
       parts.push(
-        `<text class="meta" x="${(start.x + end.x) / 2 + ox}" y="${(start.y + end.y) / 2 + oy - 8}" text-anchor="middle" fill="${CONNECTOR_STROKE}">${escapeXml(rel.label)}</text>`,
+        `<text class="meta" x="${(start.x + end.x) / 2 + ox}" y="${(start.y + end.y) / 2 + oy - 8}" text-anchor="middle" fill="${CONNECTOR_STROKE}">${escapeXml(caption)}</text>`,
       );
     }
   }
@@ -1650,12 +1665,15 @@ function renderActiveViewRaster(): {
 
   for (const line of state.canvasLines) {
     const stroke = line.color ?? CONNECTOR_STROKE;
+    const lineStroke = isConnectorStrokeStyle(line.strokeStyle) ? line.strokeStyle : "solid";
     ctx.strokeStyle = stroke;
     ctx.lineWidth = 2;
+    ctx.setLineDash(connectorCanvasLineDash(lineStroke));
     ctx.beginPath();
     ctx.moveTo(line.x1 + ox, line.y1 + oy);
     ctx.lineTo(line.x2 + ox, line.y2 + oy);
     ctx.stroke();
+    ctx.setLineDash([]);
     const arrow = line.arrowHead ?? "none";
     if (arrow === "end" || arrow === "both") {
       drawArrowHead(ctx, line.x1 + ox, line.y1 + oy, line.x2 + ox, line.y2 + oy, stroke);
@@ -1676,20 +1694,21 @@ function renderActiveViewRaster(): {
     const tgt = state.elements.find((e) => e.id === rel.targetId);
     if (!src || !tgt) continue;
     const { start, end } = relationAnchors(src, tgt);
+    const caption = relationCanvasCaption(rel);
     ctx.strokeStyle = CONNECTOR_STROKE;
     ctx.lineWidth = 2;
-    if (rel.type === "annotates" || rel.type === "informs") ctx.setLineDash([6, 4]);
+    ctx.setLineDash(connectorCanvasLineDash(resolveRelationStrokeStyle(rel)));
     ctx.beginPath();
     ctx.moveTo(start.x + ox, start.y + oy);
     ctx.lineTo(end.x + ox, end.y + oy);
     ctx.stroke();
     ctx.setLineDash([]);
     drawArrowHead(ctx, start.x + ox, start.y + oy, end.x + ox, end.y + oy, CONNECTOR_STROKE);
-    if (rel.label?.trim()) {
+    if (caption) {
       ctx.fillStyle = CONNECTOR_STROKE;
       ctx.font = cssFont(500, META_FONT_PX);
       ctx.textAlign = "center";
-      ctx.fillText(rel.label, (start.x + end.x) / 2 + ox, (start.y + end.y) / 2 + oy - 8);
+      ctx.fillText(caption, (start.x + end.x) / 2 + ox, (start.y + end.y) / 2 + oy - 8);
     }
   }
 

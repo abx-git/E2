@@ -11,6 +11,7 @@ export interface CanvasLine {
   arrowHead?: LineArrowHead;
   label?: string;
   color?: string;
+  strokeStyle?: "solid" | "dashed" | "dotted";
 }
 
 export const LINE_ARROW_HEADS: LineArrowHead[] = ["none", "end", "start", "both"];

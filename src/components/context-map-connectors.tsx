@@ -1,6 +1,7 @@
 "use client";
 
 import { contextRelationAnchors, boundedContextCenter } from "@/lib/connector-geometry";
+import { connectorHitStrokeWidth } from "@/lib/connector-style";
 import { CONTEXT_MAP_PATTERN_LABELS, type ContextMapPattern, type ContextRelation } from "@/types/storm-relation";
 import type { BoundedContext } from "@/types/storm-element";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -36,6 +37,8 @@ export function ContextMapConnectors({
 }: ContextMapConnectorsProps) {
   const byId = new Map(boundedContexts.map((b) => [b.id, b]));
   const draftSource = contextMapDraftSourceId ? byId.get(contextMapDraftSourceId) : undefined;
+  const zoom = useStormBoardStore((s) => s.viewport.zoom);
+  const hitWidth = connectorHitStrokeWidth(zoom);
 
   return (
     <svg className="pointer-events-none absolute inset-0 overflow-visible" style={{ zIndex: 5 }}>
@@ -71,9 +74,19 @@ export function ContextMapConnectors({
               x2={end.x}
               y2={end.y}
               stroke="transparent"
-              strokeWidth={14}
+              strokeWidth={hitWidth}
+              strokeLinecap="round"
               className="pointer-events-auto cursor-pointer"
-              onClick={() => onSelectContextRelation(rel.id)}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                if (e.button !== 0) return;
+                e.preventDefault();
+                onSelectContextRelation(rel.id);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectContextRelation(rel.id);
+              }}
               onContextMenu={(e) => {
                 e.preventDefault();
                 e.stopPropagation();

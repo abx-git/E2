@@ -178,10 +178,20 @@ export function StormCanvas() {
       }
 
       if (e.key === "Delete" || e.key === "Backspace") {
-        const lineId = useStormBoardStore.getState().selectedCanvasLineId;
-        if (lineId) {
+        const s = useStormBoardStore.getState();
+        if (s.selectedCanvasLineId) {
           e.preventDefault();
-          deleteCanvasLine(lineId);
+          deleteCanvasLine(s.selectedCanvasLineId);
+          return;
+        }
+        if (s.selectedRelationId) {
+          e.preventDefault();
+          s.deleteRelation(s.selectedRelationId);
+          return;
+        }
+        if (s.selectedContextRelationId) {
+          e.preventDefault();
+          s.deleteContextRelation(s.selectedContextRelationId);
         }
         return;
       }

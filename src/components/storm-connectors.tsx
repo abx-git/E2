@@ -1,6 +1,14 @@
 "use client";
 
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
+
 import { elementCenter, relationAnchors } from "@/lib/connector-geometry";
+import {
+  connectorHitStrokeWidth,
+  connectorStrokeDasharray,
+  relationCanvasCaption,
+  resolveRelationStrokeStyle,
+} from "@/lib/connector-style";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { ProgressMarkConnectorBadge } from "@/components/progress-mark-badge";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -15,6 +23,10 @@ export interface StormConnectorsProps {
   onSelectRelation: (id: string | null) => void;
 }
 
+function stopCanvasPan(e: ReactPointerEvent | ReactMouseEvent) {
+  e.stopPropagation();
+}
+
 export function StormConnectors({
   elements,
   relations,
@@ -27,6 +39,7 @@ export function StormConnectors({
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
+  const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const views = useStormBoardStore((s) => s.views);
   const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
   const searchActive = Boolean(normalizeSearchQuery(searchQuery));
@@ -37,6 +50,7 @@ export function StormConnectors({
           .map((el) => el.id),
       )
     : null;
+  const hitWidth = connectorHitStrokeWidth(zoom);
 
   return (
     <svg className="pointer-events-none absolute inset-0 overflow-visible" style={{ zIndex: 10 }}>
@@ -66,7 +80,7 @@ export function StormConnectors({
         const badgeOffset = 14;
         const badgeX = midX + (-dy / len) * badgeOffset;
         const badgeY = midY + (dx / len) * badgeOffset;
-        const dashed = rel.type === "informs" || rel.type === "annotates";
+        const strokeStyle = resolveRelationStrokeStyle(rel);
         const selected = rel.id === selectedRelationId;
         const involvesFocusType =
           src.type === paletteType || tgt.type === paletteType;
@@ -75,6 +89,17 @@ export function StormConnectors({
           searchHitIds !== null && !searchHitIds.has(src.id) && !searchHitIds.has(tgt.id);
         const dimmed = dimForFocus || dimForSearch;
         const mark = rel.progressMark;
+        const caption = relationCanvasCaption(rel);
+
+        const selectThis = (e: ReactPointerEvent | ReactMouseEvent) => {
+          stopCanvasPan(e);
+          if (e.type === "pointerdown") {
+            if ("button" in e && e.button !== 0) return;
+            e.preventDefault();
+          }
+          onSelectRelation(rel.id);
+        };
+
         return (
           <g key={rel.id} opacity={dimmed ? 0.22 : 1}>
             {/* Wide invisible stroke for hit-testing without stealing the line bbox. */}
@@ -84,9 +109,11 @@ export function StormConnectors({
               x2={end.x}
               y2={end.y}
               stroke="transparent"
-              strokeWidth={14}
+              strokeWidth={hitWidth}
+              strokeLinecap="round"
               className="pointer-events-auto cursor-pointer"
-              onClick={() => onSelectRelation(rel.id)}
+              onPointerDown={selectThis}
+              onClick={selectThis}
               onContextMenu={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -102,20 +129,23 @@ export function StormConnectors({
               y2={end.y}
               stroke={selected ? "#2a9d8f" : "#8b9aab"}
               strokeWidth={selected ? 3 : 2}
-              strokeDasharray={dashed ? "6 4" : undefined}
+              strokeDasharray={connectorStrokeDasharray(strokeStyle)}
+              strokeLinecap={strokeStyle === "dotted" ? "round" : undefined}
               markerEnd={selected ? "url(#storm-arrowhead-selected)" : "url(#storm-arrowhead)"}
               className="pointer-events-none"
             />
-            {rel.label && (
+            {caption ? (
               <text
                 x={midX}
                 y={midY - 8}
                 textAnchor="middle"
-                className="pointer-events-none fill-[var(--muted)] text-[10px]"
+                className="pointer-events-auto cursor-pointer fill-[var(--muted)] text-[10px]"
+                onPointerDown={selectThis}
+                onClick={selectThis}
               >
-                {rel.label}
+                {caption}
               </text>
-            )}
+            ) : null}
             {mark && (
               <g transform={`translate(${badgeX}, ${badgeY})`}>
                 <ProgressMarkConnectorBadge mark={mark} />

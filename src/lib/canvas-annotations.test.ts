@@ -26,6 +26,15 @@ describe("canvas-annotations", () => {
       arrowHead: "end",
       label: "Hinweis",
     });
+    expect(
+      normalizeCanvasLine({
+        x1: 0,
+        y1: 0,
+        x2: 10,
+        y2: 10,
+        strokeStyle: "dotted",
+      })?.strokeStyle,
+    ).toBe("dotted");
     expect(line?.id).toBeTruthy();
   });
 

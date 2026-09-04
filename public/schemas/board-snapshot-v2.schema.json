@@ -611,6 +611,14 @@
         "label": {
           "type": "string"
         },
+        "labelMode": {
+          "type": "string",
+          "enum": ["type", "custom"],
+          "description": "Beschriftung am Verbinder: Relationsart oder Freitext."
+        },
+        "strokeStyle": {
+          "$ref": "#/$defs/connectorStrokeStyle"
+        },
         "progressMark": {
           "$ref": "#/$defs/progressMark"
         }
@@ -1032,6 +1040,10 @@
       "type": "string",
       "enum": ["none", "start", "end", "both"]
     },
+    "connectorStrokeStyle": {
+      "type": "string",
+      "enum": ["solid", "dashed", "dotted"]
+    },
     "canvasLine": {
       "type": "object",
       "additionalProperties": false,
@@ -1049,7 +1061,10 @@
           "$ref": "#/$defs/lineArrowHead"
         },
         "label": { "type": "string" },
-        "color": { "type": "string" }
+        "color": { "type": "string" },
+        "strokeStyle": {
+          "$ref": "#/$defs/connectorStrokeStyle"
+        }
       }
     },
     "viewBookmark": {

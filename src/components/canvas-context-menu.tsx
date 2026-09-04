@@ -52,7 +52,12 @@ import {
 import { ProgressMarkGlyph } from "@/components/progress-mark-badge";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { supportsArchDrilldown, type NoteColorId } from "@/types/storm-element";
-import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
+import { RELATION_TYPE_LABELS, RELATION_TYPES, CONTEXT_MAP_PATTERN_LABELS, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
+import {
+  CONNECTOR_STROKE_STYLES,
+  CONNECTOR_STROKE_STYLE_LABELS,
+  resolveRelationStrokeStyle,
+} from "@/lib/connector-style";
 
 function clipboardSelectionFromStore() {
   const s = useStormBoardStore.getState();
@@ -63,7 +68,6 @@ function clipboardSelectionFromStore() {
   };
 }
 
-const RELATION_TYPES = Object.keys(RELATION_TYPE_LABELS) as RelationType[];
 const CONTEXT_PATTERNS = CONTEXT_MAP_PATTERNS;
 
 const ALIGN_ROW: { mode: AlignMode; label: string; icon: typeof AlignStartHorizontal }[] = [
@@ -673,6 +677,34 @@ export function CanvasContextMenu({
           icon={HelpCircle}
           label="Hilfe"
           onClick={() => run(() => onRequestHelpRelationType?.(rel.type))}
+        />
+        <Separator />
+        <Section label="Linie" />
+        {CONNECTOR_STROKE_STYLES.map((style) => (
+          <Item
+            key={style}
+            label={CONNECTOR_STROKE_STYLE_LABELS[style]}
+            active={resolveRelationStrokeStyle(rel) === style}
+            onClick={() => run(() => updateRelation(rel.id, { strokeStyle: style }))}
+          />
+        ))}
+        <Separator />
+        <Section label="Beschriftung" />
+        <Item
+          label={`Art (${RELATION_TYPE_LABELS[rel.type]})`}
+          active={rel.labelMode === "type"}
+          onClick={() => run(() => updateRelation(rel.id, { labelMode: "type" }))}
+        />
+        <Item
+          label="Freier Text…"
+          active={rel.labelMode === "custom"}
+          onClick={() =>
+            run(() => {
+              const next = window.prompt("Text am Verbinder", rel.label ?? "");
+              if (next === null) return;
+              updateRelation(rel.id, { label: next, labelMode: "custom" });
+            })
+          }
         />
         <Separator />
         <Section label="Bearbeitungsstand" />
