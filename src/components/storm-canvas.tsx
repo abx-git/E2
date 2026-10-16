@@ -93,6 +93,7 @@ export function StormCanvas() {
   const selectedRelationId = useStormBoardStore((s) => s.selectedRelationId);
   const selectedContextRelationId = useStormBoardStore((s) => s.selectedContextRelationId);
   const relationMode = useStormBoardStore((s) => s.relationMode);
+  const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
   const relationDraftSourceId = useStormBoardStore((s) => s.relationDraftSourceId);
   const contextMapDraftSourceId = useStormBoardStore((s) => s.contextMapDraftSourceId);
   const lineArrowHead = useStormBoardStore((s) => s.lineArrowHead);
@@ -342,6 +343,7 @@ export function StormCanvas() {
   };
 
   const connectorTool = relationMode;
+  const freeLineTool = relationMode && lineDrawMode;
 
   const handleStartConnect = (id: string, approach?: ConnectorApproach) => {
     const source = withConnectorApproach({ attach: "element" as const, id }, approach);
@@ -486,7 +488,7 @@ export function StormCanvas() {
       data-storm-canvas
       className={[
         "absolute inset-0 overflow-hidden bg-canvas outline-none touch-none",
-        bcMode || connectorTool
+        bcMode || freeLineTool || connectorTool
           ? "cursor-crosshair"
           : panning
             ? "cursor-grabbing"
@@ -508,6 +510,20 @@ export function StormCanvas() {
         // Middle-mouse or Space+left = pan, including over stickies.
         if (e.button === 1 || (e.button === 0 && spaceDown.current)) {
           beginPan(e);
+          return;
+        }
+        if (e.button === 0 && freeLineTool) {
+          const world = worldFromClient(e.clientX, e.clientY);
+          if (!world) return;
+          e.stopPropagation();
+          e.preventDefault();
+          lineStart.current = { x: world.x, y: world.y };
+          setLineDraft({ x1: world.x, y1: world.y, x2: world.x, y2: world.y });
+          try {
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+          } catch {
+            /* ignore */
+          }
         }
       }}
       onPointerDown={(e) => {
@@ -532,6 +548,7 @@ export function StormCanvas() {
         }
         if (
           connectorTool &&
+          !lineDrawMode &&
           (e.shiftKey ||
             e.target === e.currentTarget ||
             (e.target as HTMLElement).dataset?.stormCanvas !== undefined)
@@ -757,17 +774,26 @@ export function StormCanvas() {
                   setContextMapDraftSource(null);
                 },
               }
-            : connectorTool
+            : freeLineTool
               ? {
                   message:
-                    "Klicken: Verbindung zwischen Objekten · Shift+Ziehen: freie Linie (Endpunkte snappen am Ziel) · Enden am Verbinder umhängen",
+                    "Linie ziehen: Start halten, loslassen — Endpunkte snappen an Elementen, BCs und Swimlanes",
                   onCancel: () => {
+                    useStormBoardStore.getState().setLineDrawMode(false);
                     useStormBoardStore.getState().setRelationMode(false);
-                    setConnectorDraftSource(null);
-                    setRelationDraftSource(null);
-                    setContextMapDraftSource(null);
                   },
                 }
+              : connectorTool
+                ? {
+                    message:
+                      "Zwei Objekte anklicken (Element, BC, Swimlane) · Shift+Ziehen: kurz freie Linie · Enden am Verbinder umhängen",
+                    onCancel: () => {
+                      useStormBoardStore.getState().setRelationMode(false);
+                      setConnectorDraftSource(null);
+                      setRelationDraftSource(null);
+                      setContextMapDraftSource(null);
+                    },
+                  }
               : bcMode
                 ? {
                     message: "Rechteck ziehen · Esc beendet",

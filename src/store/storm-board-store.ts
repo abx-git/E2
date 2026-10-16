@@ -1741,8 +1741,19 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   setContextMapDraftSource: (contextMapDraftSourceId) => set({ contextMapDraftSourceId }),
 
   setLineDrawMode: (lineDrawMode) => {
-    if (lineDrawMode) get().setRelationMode(true);
-    else if (get().relationMode) get().setRelationMode(false);
+    if (lineDrawMode) {
+      set({
+        relationMode: true,
+        lineDrawMode: true,
+        contextMapMode: false,
+        connectorDraftSource: null,
+        relationDraftSourceId: null,
+        contextMapDraftSourceId: null,
+        selectedCanvasLineId: null,
+      });
+      return;
+    }
+    set({ lineDrawMode: false });
   },
 
   setLineArrowHead: (lineArrowHead) => set({ lineArrowHead }),

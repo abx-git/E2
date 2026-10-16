@@ -100,7 +100,7 @@ export function BoundedContextLayer() {
     }
 
     const store = useStormBoardStore.getState();
-    if (store.relationMode && e.shiftKey) return;
+    if (store.relationMode && (store.lineDrawMode || e.shiftKey)) return;
 
     e.stopPropagation();
     e.preventDefault();
