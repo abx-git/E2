@@ -1,8 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 
+import {
+  beginConnectorEndpointDrag,
+  connectorEndpointHandleRadius,
+  type ConnectorEndpoint,
+} from "@/lib/connector-endpoint-drag";
 import { elementCenter, relationAnchors } from "@/lib/connector-geometry";
+import { ConnectorSnapTargetHighlight } from "@/components/connector-snap-highlight";
+import {
+  connectorEndpointDragPreview,
+  type ConnectorAttachTarget,
+} from "@/lib/connector-target-pick";
 import {
   connectorHitStrokeWidth,
   connectorStrokeDasharray,
@@ -51,6 +62,79 @@ export function StormConnectors({
       )
     : null;
   const hitWidth = connectorHitStrokeWidth(zoom);
+  const viewport = useStormBoardStore((s) => s.viewport);
+  const elementsForHighlight = useStormBoardStore((s) => s.elements);
+  const swimlanesForHighlight = useStormBoardStore((s) => s.swimlanes);
+  const boundedContextsForHighlight = useStormBoardStore((s) => s.boundedContexts);
+  const [endpointDrag, setEndpointDrag] = useState<{
+    relationId: string;
+    endpoint: ConnectorEndpoint;
+    lineEnd: { x: number; y: number };
+    target: ConnectorAttachTarget | null;
+    valid: boolean;
+  } | null>(null);
+
+  const canvasContainerRect = () =>
+    document.querySelector("[data-storm-canvas]")?.getBoundingClientRect() ?? null;
+
+  const startEndpointDrag = (
+    relationId: string,
+    endpoint: ConnectorEndpoint,
+    fixed: { x: number; y: number },
+    e: ReactPointerEvent,
+  ) => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    e.preventDefault();
+    onSelectRelation(relationId);
+    const store = useStormBoardStore.getState();
+    store.beginGesture();
+    setEndpointDrag({
+      relationId,
+      endpoint,
+      lineEnd: fixed,
+      target: null,
+      valid: false,
+    });
+
+    beginConnectorEndpointDrag({
+      zoom,
+      viewport,
+      getContainerRect: canvasContainerRect,
+      onMove: (world) => {
+        const live = useStormBoardStore.getState();
+        const preview = connectorEndpointDragPreview(
+          world,
+          fixed,
+          live.elements,
+          live.swimlanes,
+          live.boundedContexts,
+          "element",
+        );
+        setEndpointDrag({ relationId, endpoint, ...preview });
+      },
+      onCommit: (world) => {
+        const live = useStormBoardStore.getState();
+        const preview = connectorEndpointDragPreview(
+          world,
+          fixed,
+          live.elements,
+          live.swimlanes,
+          live.boundedContexts,
+          "element",
+        );
+        if (preview.valid && preview.target?.kind === "element") {
+          live.reconnectRelation(relationId, endpoint, preview.target.id);
+        }
+        setEndpointDrag(null);
+        live.endGesture();
+      },
+      onCancel: () => {
+        setEndpointDrag(null);
+        useStormBoardStore.getState().endGesture();
+      },
+    });
+  };
 
   return (
     <svg className="pointer-events-none absolute inset-0 overflow-visible" style={{ zIndex: 10 }}>
@@ -90,6 +174,13 @@ export function StormConnectors({
         const dimmed = dimForFocus || dimForSearch;
         const mark = rel.progressMark;
         const caption = relationCanvasCaption(rel);
+        const handleR = connectorEndpointHandleRadius(selected);
+        const draggingThis = endpointDrag?.relationId === rel.id;
+        const displayStart =
+          draggingThis && endpointDrag.endpoint === "source" ? endpointDrag.lineEnd : start;
+        const displayEnd =
+          draggingThis && endpointDrag.endpoint === "target" ? endpointDrag.lineEnd : end;
+        const dragSnapActive = draggingThis && endpointDrag.valid;
 
         const selectThis = (e: ReactPointerEvent | ReactMouseEvent) => {
           stopCanvasPan(e);
@@ -104,10 +195,10 @@ export function StormConnectors({
           <g key={rel.id} opacity={dimmed ? 0.22 : 1}>
             {/* Wide invisible stroke for hit-testing without stealing the line bbox. */}
             <line
-              x1={start.x}
-              y1={start.y}
-              x2={end.x}
-              y2={end.y}
+              x1={displayStart.x}
+              y1={displayStart.y}
+              x2={displayEnd.x}
+              y2={displayEnd.y}
               stroke="transparent"
               strokeWidth={hitWidth}
               strokeLinecap="round"
@@ -123,13 +214,15 @@ export function StormConnectors({
               }}
             />
             <line
-              x1={start.x}
-              y1={start.y}
-              x2={end.x}
-              y2={end.y}
-              stroke={selected ? "#2a9d8f" : "#8b9aab"}
-              strokeWidth={selected ? 3 : 2}
-              strokeDasharray={connectorStrokeDasharray(strokeStyle)}
+              x1={displayStart.x}
+              y1={displayStart.y}
+              x2={displayEnd.x}
+              y2={displayEnd.y}
+              stroke={draggingThis && !dragSnapActive ? "#e9c46a" : selected ? "#2a9d8f" : "#8b9aab"}
+              strokeWidth={selected || draggingThis ? 3 : 2}
+              strokeDasharray={
+                draggingThis && !dragSnapActive ? "6 4" : connectorStrokeDasharray(strokeStyle)
+              }
               strokeLinecap={strokeStyle === "dotted" ? "round" : undefined}
               markerEnd={selected ? "url(#storm-arrowhead-selected)" : "url(#storm-arrowhead)"}
               className="pointer-events-none"
@@ -151,9 +244,43 @@ export function StormConnectors({
                 <ProgressMarkConnectorBadge mark={mark} />
               </g>
             )}
+            {selected && handleR > 0 && (
+              <>
+                <circle
+                  cx={start.x}
+                  cy={start.y}
+                  r={handleR}
+                  fill="#fff"
+                  stroke="#2a9d8f"
+                  strokeWidth={2}
+                  className="pointer-events-auto cursor-grab"
+                  onPointerDown={(e) => startEndpointDrag(rel.id, "source", end, e)}
+                />
+                <circle
+                  cx={end.x}
+                  cy={end.y}
+                  r={handleR}
+                  fill="#fff"
+                  stroke="#2a9d8f"
+                  strokeWidth={2}
+                  className="pointer-events-auto cursor-grab"
+                  onPointerDown={(e) => startEndpointDrag(rel.id, "target", start, e)}
+                />
+              </>
+            )}
           </g>
         );
       })}
+
+      {endpointDrag?.target && (
+        <ConnectorSnapTargetHighlight
+          target={endpointDrag.target}
+          valid={endpointDrag.valid}
+          elements={elementsForHighlight}
+          swimlanes={swimlanesForHighlight}
+          boundedContexts={boundedContextsForHighlight}
+        />
+      )}
 
       {draftSource &&
         elements

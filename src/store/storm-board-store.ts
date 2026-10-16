@@ -269,6 +269,11 @@ export interface StormBoardState {
   setRelationMode: (enabled: boolean) => void;
   setRelationDraftSource: (id: string | null) => void;
   connectElements: (sourceId: string, targetId: string) => string | null;
+  reconnectRelation: (
+    relationId: string,
+    endpoint: "source" | "target",
+    elementId: string,
+  ) => boolean;
 
   addContextRelation: (
     sourceContextId: string,
@@ -281,6 +286,11 @@ export interface StormBoardState {
   setContextMapMode: (enabled: boolean) => void;
   setContextMapDraftSource: (id: string | null) => void;
   connectBoundedContexts: (sourceContextId: string, targetContextId: string) => string | null;
+  reconnectContextRelation: (
+    relationId: string,
+    endpoint: "source" | "target",
+    boundedContextId: string,
+  ) => boolean;
 
   setLineDrawMode: (enabled: boolean) => void;
   setLineArrowHead: (head: LineArrowHead) => void;
@@ -1498,6 +1508,35 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     return get().addRelation(sourceId, targetId, defaultRelationType(src, tgt));
   },
 
+  reconnectRelation: (relationId, endpoint, elementId) => {
+    const state = get();
+    const rel = state.relations.find((r) => r.id === relationId);
+    if (!rel) return false;
+    const sourceId = endpoint === "source" ? elementId : rel.sourceId;
+    const targetId = endpoint === "target" ? elementId : rel.targetId;
+    if (sourceId === targetId) return false;
+    const src = state.elements.find((e) => e.id === sourceId);
+    const tgt = state.elements.find((e) => e.id === targetId);
+    if (!src || !tgt) return false;
+    const duplicate = state.relations.some(
+      (r) => r.id !== relationId && r.sourceId === sourceId && r.targetId === targetId,
+    );
+    if (duplicate) return false;
+    commit(set, get, (s) => ({
+      relations: s.relations.map((r) =>
+        r.id === relationId
+          ? {
+              ...r,
+              sourceId,
+              targetId,
+              type: defaultRelationType(src, tgt),
+            }
+          : r,
+      ),
+    }));
+    return true;
+  },
+
   addContextRelation: (sourceContextId, targetContextId, type, label) => {
     if (sourceContextId === targetContextId) return null;
     const exists = get().contextRelations.some(
@@ -1653,6 +1692,33 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     const tgt = get().boundedContexts.find((b) => b.id === targetContextId);
     if (!src || !tgt) return null;
     return get().addContextRelation(sourceContextId, targetContextId, "customerSupplier");
+  },
+
+  reconnectContextRelation: (relationId, endpoint, boundedContextId) => {
+    const state = get();
+    const rel = state.contextRelations.find((r) => r.id === relationId);
+    if (!rel) return false;
+    const sourceContextId =
+      endpoint === "source" ? boundedContextId : rel.sourceContextId;
+    const targetContextId =
+      endpoint === "target" ? boundedContextId : rel.targetContextId;
+    if (sourceContextId === targetContextId) return false;
+    const src = state.boundedContexts.find((b) => b.id === sourceContextId);
+    const tgt = state.boundedContexts.find((b) => b.id === targetContextId);
+    if (!src || !tgt) return false;
+    const duplicate = state.contextRelations.some(
+      (r) =>
+        r.id !== relationId &&
+        ((r.sourceContextId === sourceContextId && r.targetContextId === targetContextId) ||
+          (r.sourceContextId === targetContextId && r.targetContextId === sourceContextId)),
+    );
+    if (duplicate) return false;
+    commit(set, get, (s) => ({
+      contextRelations: s.contextRelations.map((r) =>
+        r.id === relationId ? { ...r, sourceContextId, targetContextId } : r,
+      ),
+    }));
+    return true;
   },
 
   addSwimlane: (label) => {

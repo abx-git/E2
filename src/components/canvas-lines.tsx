@@ -1,7 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
+import { ConnectorSnapTargetHighlight } from "@/components/connector-snap-highlight";
+import {
+  connectorEndpointDragPreview,
+  type ConnectorAttachTarget,
+} from "@/lib/connector-target-pick";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
 import {
@@ -30,12 +36,21 @@ function handleRadius(selected: boolean): number {
   return selected ? 6 : 0;
 }
 
+const CANVAS_LINE_SNAP_TARGETS = ["element", "boundedContext", "swimlane"] as const;
+
 export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasLinesProps) {
   const canvasLines = useStormBoardStore((s) => s.canvasLines);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const updateCanvasLine = useStormBoardStore((s) => s.updateCanvasLine);
   const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
+  const elements = useStormBoardStore((s) => s.elements);
+  const swimlanes = useStormBoardStore((s) => s.swimlanes);
+  const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const hitWidth = connectorHitStrokeWidth(zoom);
+  const [endpointSnap, setEndpointSnap] = useState<{
+    target: ConnectorAttachTarget;
+    valid: boolean;
+  } | null>(null);
 
   const startEndpointDrag = (
     lineId: string,
@@ -56,19 +71,54 @@ export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasL
     const startY = e.clientY;
     const orig = { x1: line.x1, y1: line.y1, x2: line.x2, y2: line.y2 };
 
+    const toward =
+      endpoint === "start" ? { x: orig.x2, y: orig.y2 } : { x: orig.x1, y: orig.y1 };
+
+    const snapEndpoint = (worldX: number, worldY: number) => {
+      const live = useStormBoardStore.getState();
+      const preview = connectorEndpointDragPreview(
+        { x: worldX, y: worldY },
+        toward,
+        live.elements,
+        live.swimlanes,
+        live.boundedContexts,
+        CANVAS_LINE_SNAP_TARGETS,
+      );
+      if (preview.target) {
+        setEndpointSnap({ target: preview.target, valid: preview.valid });
+      } else {
+        setEndpointSnap(null);
+      }
+      return preview.lineEnd;
+    };
+
     const onMove = (ev: PointerEvent) => {
       const dx = (ev.clientX - startX) / zoom;
       const dy = (ev.clientY - startY) / zoom;
+      const rawX = endpoint === "start" ? orig.x1 + dx : orig.x2 + dx;
+      const rawY = endpoint === "start" ? orig.y1 + dy : orig.y2 + dy;
+      const snapped = snapEndpoint(rawX, rawY);
       if (endpoint === "start") {
-        updateCanvasLine(lineId, { x1: orig.x1 + dx, y1: orig.y1 + dy });
+        updateCanvasLine(lineId, { x1: snapped.x, y1: snapped.y });
       } else {
-        updateCanvasLine(lineId, { x2: orig.x2 + dx, y2: orig.y2 + dy });
+        updateCanvasLine(lineId, { x2: snapped.x, y2: snapped.y });
       }
     };
 
-    const onUp = () => {
+    const onUp = (ev: PointerEvent) => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      const dx = (ev.clientX - startX) / zoom;
+      const dy = (ev.clientY - startY) / zoom;
+      const rawX = endpoint === "start" ? orig.x1 + dx : orig.x2 + dx;
+      const rawY = endpoint === "start" ? orig.y1 + dy : orig.y2 + dy;
+      const snapped = snapEndpoint(rawX, rawY);
+      if (endpoint === "start") {
+        updateCanvasLine(lineId, { x1: snapped.x, y1: snapped.y });
+      } else {
+        updateCanvasLine(lineId, { x2: snapped.x, y2: snapped.y });
+      }
+      setEndpointSnap(null);
       useStormBoardStore.getState().endGesture();
     };
 
@@ -150,6 +200,16 @@ export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasL
           <path d="M8,0 L0,3 L8,6 Z" fill="#2a9d8f" />
         </marker>
       </defs>
+
+      {endpointSnap && (
+        <ConnectorSnapTargetHighlight
+          target={endpointSnap.target}
+          valid={endpointSnap.valid}
+          elements={elements}
+          swimlanes={swimlanes}
+          boundedContexts={boundedContexts}
+        />
+      )}
 
       {canvasLines.map((line) => {
         const selected = line.id === selectedLineId;

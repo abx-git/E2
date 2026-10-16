@@ -36,6 +36,16 @@ export function boundedContextCenter(bc: BoundedContext): Point {
   return { x: bc.x + bc.width / 2, y: bc.y + bc.height / 2 };
 }
 
+export function rectCenter(rect: ElementRect): Point {
+  return { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 };
+}
+
+/** Edge point on `rect` facing `toward` (connector attachment). */
+export function rectAnchorToward(rect: ElementRect, toward: Point): Point {
+  const center = rectCenter(rect);
+  return rectEdgePoint(rect, center, toward);
+}
+
 /** Intersection of the ray from `from` toward `toward` with the rectangle edge. */
 export function rectEdgePoint(rect: ElementRect, from: Point, toward: Point): Point {
   const dx = toward.x - from.x;
