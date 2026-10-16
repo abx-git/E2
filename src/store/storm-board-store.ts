@@ -62,6 +62,7 @@ import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
 import { createEmptyBoardView, normalizeBoardDocument } from "@/lib/storm-json";
 import {
   applyViewToFlatPatch,
+  CLEAR_CONNECTOR_FOCUS_PATCH,
   CLEAR_SELECTION_PATCH,
   createInitialViewDocument,
   flushActiveViewIntoViews,
@@ -927,8 +928,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       if (!id) {
         return {
           selectedElementIds: [],
-          selectedRelationId: null,
-          selectedCanvasLineId: null,
+          ...CLEAR_CONNECTOR_FOCUS_PATCH,
           editingElementId: null,
         };
       }
@@ -939,11 +939,9 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           : [...s.selectedElementIds, id];
         return {
           selectedElementIds,
-          selectedRelationId: null,
-          selectedContextRelationId: null,
+          ...CLEAR_CONNECTOR_FOCUS_PATCH,
           selectedBoundedContextIds: [],
           selectedSwimlaneIds: [],
-          selectedCanvasLineId: null,
           editingElementId:
             s.editingElementId && selectedElementIds.includes(s.editingElementId)
               ? s.editingElementId
@@ -952,11 +950,9 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       }
       return {
         selectedElementIds: [id],
-        selectedRelationId: null,
-        selectedContextRelationId: null,
+        ...CLEAR_CONNECTOR_FOCUS_PATCH,
         selectedBoundedContextIds: [],
         selectedSwimlaneIds: [],
-        selectedCanvasLineId: null,
         editingElementId: s.editingElementId === id ? s.editingElementId : null,
       };
     }),
@@ -968,11 +964,9 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         : ids;
       return {
         selectedElementIds: next,
-        selectedRelationId: null,
-        selectedContextRelationId: null,
+        ...CLEAR_CONNECTOR_FOCUS_PATCH,
         selectedBoundedContextIds: [],
         selectedSwimlaneIds: [],
-        selectedCanvasLineId: null,
         editingElementId:
           s.editingElementId && next.includes(s.editingElementId)
             ? s.editingElementId
@@ -992,9 +986,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           selectedBoundedContextIds: Array.from(
             new Set([...s.selectedBoundedContextIds, ...boundedContextIds]),
           ),
-          selectedRelationId: null,
-          selectedContextRelationId: null,
-          selectedCanvasLineId: null,
+          ...CLEAR_CONNECTOR_FOCUS_PATCH,
           editingElementId: null,
         };
       }
@@ -1002,18 +994,16 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedElementIds: elementIds,
         selectedSwimlaneIds: swimlaneIds,
         selectedBoundedContextIds: boundedContextIds,
-        selectedRelationId: null,
-        selectedContextRelationId: null,
-        selectedCanvasLineId: null,
+        ...CLEAR_CONNECTOR_FOCUS_PATCH,
         editingElementId: null,
       };
     }),
 
   selectRelation: (id) =>
     set({
+      ...CLEAR_CONNECTOR_FOCUS_PATCH,
       selectedRelationId: id,
-      selectedContextRelationId: null,
-      selectedCanvasLineId: null,
+      selectedConnectorId: id,
       selectedElementIds: id ? [] : get().selectedElementIds,
       selectedBoundedContextIds: [],
       selectedSwimlaneIds: [],
@@ -1021,9 +1011,9 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
 
   selectContextRelation: (id) =>
     set({
+      ...CLEAR_CONNECTOR_FOCUS_PATCH,
       selectedContextRelationId: id,
-      selectedRelationId: null,
-      selectedCanvasLineId: null,
+      selectedConnectorId: id,
       selectedElementIds: id ? [] : get().selectedElementIds,
       selectedBoundedContextIds: [],
       selectedSwimlaneIds: [],
@@ -1041,19 +1031,15 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
             ? s.selectedBoundedContextIds.filter((x) => x !== id)
             : [...s.selectedBoundedContextIds, id],
           selectedElementIds: [],
-          selectedRelationId: null,
-          selectedContextRelationId: null,
+          ...CLEAR_CONNECTOR_FOCUS_PATCH,
           selectedSwimlaneIds: [],
-          selectedCanvasLineId: null,
         };
       }
       return {
         selectedBoundedContextIds: [id],
         selectedElementIds: [],
-        selectedRelationId: null,
-        selectedContextRelationId: null,
+        ...CLEAR_CONNECTOR_FOCUS_PATCH,
         selectedSwimlaneIds: [],
-        selectedCanvasLineId: null,
       };
     }),
 
@@ -1069,30 +1055,24 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
             ? s.selectedSwimlaneIds.filter((x) => x !== id)
             : [...s.selectedSwimlaneIds, id],
           selectedElementIds: [],
-          selectedRelationId: null,
-          selectedContextRelationId: null,
+          ...CLEAR_CONNECTOR_FOCUS_PATCH,
           selectedBoundedContextIds: [],
-          selectedCanvasLineId: null,
         };
       }
       return {
         selectedSwimlaneIds: [id],
         selectedElementIds: [],
-        selectedRelationId: null,
-        selectedContextRelationId: null,
+        ...CLEAR_CONNECTOR_FOCUS_PATCH,
         selectedBoundedContextIds: [],
-        selectedCanvasLineId: null,
       };
     }),
 
   clearSelection: () =>
     set({
       selectedElementIds: [],
-      selectedRelationId: null,
-      selectedContextRelationId: null,
+      ...CLEAR_CONNECTOR_FOCUS_PATCH,
       selectedBoundedContextIds: [],
       selectedSwimlaneIds: [],
-      selectedCanvasLineId: null,
       editingElementId: null,
     }),
 
@@ -1135,8 +1115,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       gestureActive: false,
       gestureSnapshotTaken: false,
       selectedElementIds: [],
-      selectedRelationId: null,
-      selectedContextRelationId: null,
+      ...CLEAR_CONNECTOR_FOCUS_PATCH,
       selectedBoundedContextIds: [],
       selectedSwimlaneIds: [],
       editingElementId: null,
@@ -1154,8 +1133,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       gestureActive: false,
       gestureSnapshotTaken: false,
       selectedElementIds: [],
-      selectedRelationId: null,
-      selectedContextRelationId: null,
+      ...CLEAR_CONNECTOR_FOCUS_PATCH,
       selectedBoundedContextIds: [],
       selectedSwimlaneIds: [],
       editingElementId: null,

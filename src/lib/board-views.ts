@@ -126,11 +126,17 @@ export function createInitialViewDocument(title: string): {
   };
 }
 
-export const CLEAR_SELECTION_PATCH = {
-  selectedElementIds: [] as string[],
+/** Clear connector/relation focus (endpoint handles, inspector). */
+export const CLEAR_CONNECTOR_FOCUS_PATCH = {
   selectedConnectorId: null as string | null,
   selectedRelationId: null as string | null,
   selectedContextRelationId: null as string | null,
+  selectedCanvasLineId: null as string | null,
+};
+
+export const CLEAR_SELECTION_PATCH = {
+  selectedElementIds: [] as string[],
+  ...CLEAR_CONNECTOR_FOCUS_PATCH,
   connectorDraftSource: null,
   selectedBoundedContextIds: [] as string[],
   selectedSwimlaneIds: [] as string[],
@@ -140,7 +146,6 @@ export const CLEAR_SELECTION_PATCH = {
   contextMapDraftSourceId: null as string | null,
   lineDrawMode: false,
   lineArrowHead: "end" as LineArrowHead,
-  selectedCanvasLineId: null as string | null,
   contextMenu: null,
   /** Ephemeral: request label edit on a newly created element. */
   editingElementId: null as string | null,
