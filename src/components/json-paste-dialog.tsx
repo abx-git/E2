@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useT } from "@/i18n";
+
 export interface JsonPasteDialogProps {
   open: boolean;
   title: string;
@@ -22,13 +24,15 @@ export function JsonPasteDialog({
   title,
   description,
   placeholder = '{ "format": "…", … }',
-  confirmLabel = "Einfügen",
+  confirmLabel,
   busy,
   initialText = "",
   onClose,
   onConfirm,
 }: JsonPasteDialogProps) {
+  const t = useT();
   const titleId = useId();
+  const confirm = confirmLabel ?? t("dialogs.jsonPasteConfirm");
   const areaId = useId();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState("");
@@ -81,7 +85,7 @@ export function JsonPasteDialog({
         ) : null}
 
         <label htmlFor={areaId} className="sr-only">
-          JSON
+          {t("dialogs.jsonPasteJsonLabel")}
         </label>
         <textarea
           id={areaId}
@@ -103,20 +107,18 @@ export function JsonPasteDialog({
                 try {
                   const clip = (await navigator.clipboard.readText()).trim();
                   if (!clip) {
-                    window.alert("Die Zwischenablage ist leer.");
+                    window.alert(t("dialogs.jsonPasteClipboardEmpty"));
                     return;
                   }
                   setText(clip);
                 } catch {
-                  window.alert(
-                    "Zwischenablage konnte nicht gelesen werden. Bitte ⌘V / Strg+V in das Feld.",
-                  );
+                  window.alert(t("dialogs.jsonPasteClipboardFailed"));
                 }
               })();
             }}
             className="mr-auto rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--control)] disabled:opacity-60"
           >
-            Zwischenablage
+            {t("dialogs.jsonPasteClipboardButton")}
           </button>
           <button
             type="button"
@@ -124,7 +126,7 @@ export function JsonPasteDialog({
             onClick={onClose}
             className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--control)] disabled:opacity-60"
           >
-            Abbrechen
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -132,7 +134,7 @@ export function JsonPasteDialog({
             onClick={() => onConfirm(text)}
             className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/15 px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--accent)]/25 disabled:opacity-60"
           >
-            {confirmLabel}
+            {confirm}
           </button>
         </div>
       </div>

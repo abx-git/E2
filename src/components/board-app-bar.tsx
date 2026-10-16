@@ -16,10 +16,13 @@ import { getFacilitatorFormatsForMode } from "@/lib/facilitator-phases";
 import { useCollabStore } from "@/lib/collab/session";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ModelingMode, WorkshopFormat } from "@/types/storm-element";
+import { MODELING_MODES } from "@/types/storm-element";
 import {
-  MODELING_MODES,
-  MODELING_MODE_LABELS,
-} from "@/types/storm-element";
+  modelingModeLabel,
+  useT,
+  workshopFormatLabel,
+} from "@/i18n";
+import type { TranslateFn } from "@/i18n/translate";
 
 export interface BoardAppBarProps {
   workingFileSaving: boolean;
@@ -28,10 +31,16 @@ export interface BoardAppBarProps {
   onPasteJsonAsNewView?: () => void;
 }
 
-function formatOptionsForMode(mode: ModelingMode): { value: WorkshopFormat; label: string }[] {
+function formatOptionsForMode(
+  t: TranslateFn,
+  mode: ModelingMode,
+): { value: WorkshopFormat; label: string }[] {
   return [
-    { value: "free", label: "Frei" },
-    ...getFacilitatorFormatsForMode(mode).map((f) => ({ value: f.format, label: f.label })),
+    { value: "free", label: workshopFormatLabel(t, "free") },
+    ...getFacilitatorFormatsForMode(mode).map((f) => ({
+      value: f.format,
+      label: workshopFormatLabel(t, f.format),
+    })),
   ];
 }
 
@@ -73,6 +82,7 @@ export function BoardAppBar({
   onOpenStorage,
   onPasteJsonAsNewView,
 }: BoardAppBarProps) {
+  const t = useT();
   const title = useStormBoardStore((s) => s.title);
   const setTitle = useStormBoardStore((s) => s.setTitle);
   const modelingMode = useStormBoardStore((s) => s.modelingMode);
@@ -97,8 +107,8 @@ export function BoardAppBar({
   useEffect(() => {
     if (!sessionOpen) return;
     const onPointer = (e: PointerEvent) => {
-      const t = e.target as Node;
-      if (sessionPanelRef.current?.contains(t) || sessionBtnRef.current?.contains(t)) return;
+      const target = e.target as Node;
+      if (sessionPanelRef.current?.contains(target) || sessionBtnRef.current?.contains(target)) return;
       setSessionOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -112,13 +122,14 @@ export function BoardAppBar({
     };
   }, [sessionOpen]);
 
+  const formatOptions = formatOptionsForMode(t, modelingMode);
+
   const sessionSummary =
     workshopFormat === "free"
-      ? "Frei"
+      ? workshopFormatLabel(t, "free")
       : facilitatorEnabled
-        ? "Facilitator"
-        : (formatOptionsForMode(modelingMode).find((o) => o.value === workshopFormat)?.label ??
-          "Workshop");
+        ? t("appBar.facilitator")
+        : (formatOptions.find((o) => o.value === workshopFormat)?.label ?? t("appBar.workshop"));
 
   return (
     <header className="dock-surface relative z-40 mx-3 mt-3 shrink-0 rounded-dock">
@@ -129,12 +140,12 @@ export function BoardAppBar({
           onChange={(e) => setTitle(e.target.value)}
           onFocus={() => useStormBoardStore.getState().beginGesture()}
           onBlur={() => useStormBoardStore.getState().endGesture()}
-          aria-label="Board-Titel"
-          placeholder="Unbenanntes Board"
+          aria-label={t("appBar.boardTitle")}
+          placeholder={t("common.unnamedBoard")}
         />
 
         <label className="sr-only" htmlFor="modeling-mode">
-          Modellierungsmethode
+          {t("appBar.modelingMode")}
         </label>
         <select
           id="modeling-mode"
@@ -144,7 +155,7 @@ export function BoardAppBar({
         >
           {MODELING_MODES.map((mode) => (
             <option key={mode} value={mode}>
-              {MODELING_MODE_LABELS[mode]}
+              {modelingModeLabel(t, mode)}
             </option>
           ))}
         </select>
@@ -162,7 +173,7 @@ export function BoardAppBar({
                 ? "dock-control-active"
                 : "dock-control",
             ].join(" ")}
-            title="Workshop & Facilitator"
+            title={t("appBar.workshopFacilitator")}
           >
             <Presentation className="h-3.5 w-3.5" />
             <span className="hidden max-w-[6.5rem] truncate sm:inline">{sessionSummary}</span>
@@ -173,11 +184,11 @@ export function BoardAppBar({
               ref={sessionPanelRef}
               className="dock-surface absolute right-0 top-[calc(100%+0.4rem)] z-50 min-w-[16rem] rounded-xl p-3 shadow-dock"
               role="dialog"
-              aria-label="Session-Einstellungen"
+              aria-label={t("appBar.sessionSettings")}
             >
-              <p className="group-label mb-2">Session</p>
+              <p className="group-label mb-2">{t("appBar.session")}</p>
               <label className="mb-1 block text-[0.7rem] text-[var(--muted)]" htmlFor="workshop-format">
-                Format
+                {t("appBar.sessionFormat")}
               </label>
               <select
                 id="workshop-format"
@@ -185,7 +196,7 @@ export function BoardAppBar({
                 value={workshopFormat}
                 onChange={(e) => setWorkshopFormat(e.target.value as WorkshopFormat)}
               >
-                {formatOptionsForMode(modelingMode).map((o) => (
+                {formatOptions.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
                   </option>
@@ -198,56 +209,52 @@ export function BoardAppBar({
                   disabled={workshopFormat === "free"}
                   onChange={(e) => setFacilitatorEnabled(e.target.checked)}
                 />
-                Facilitator-Phasen
+                {t("appBar.facilitatorPhases")}
               </label>
               <label
                 className="flex cursor-pointer items-center gap-2 text-sm"
-                title="In Kollaboration den aktiven Tab für alle synchronisieren"
+                title={t("appBar.syncActiveTabTitle")}
               >
                 <input
                   type="checkbox"
                   checked={workshopMode}
                   onChange={(e) => setWorkshopMode(e.target.checked)}
                 />
-                Tab für alle syncen
+                {t("appBar.syncActiveTabShort")}
               </label>
             </div>
           )}
         </div>
 
         <div className="ml-auto flex items-center gap-0.5">
-          <IconButton
-            onClick={() => undo()}
-            disabled={pastLen === 0}
-            title="Rückgängig (⌘Z / Ctrl+Z)"
-          >
+          <IconButton onClick={() => undo()} disabled={pastLen === 0} title={t("appBar.undo")}>
             <Undo2 className="h-4 w-4" />
           </IconButton>
-          <IconButton
-            onClick={() => redo()}
-            disabled={futureLen === 0}
-            title="Wiederholen (⌘⇧Z / Ctrl+Y)"
-          >
+          <IconButton onClick={() => redo()} disabled={futureLen === 0} title={t("appBar.redo")}>
             <Redo2 className="h-4 w-4" />
           </IconButton>
 
           <span className="mx-1 hidden h-5 w-px bg-[var(--border)] sm:block" aria-hidden />
 
-          <IconButton onClick={onOpenCollab} title="Kollaborations-Raum" active={collabActive}>
+          <IconButton
+            onClick={onOpenCollab}
+            title={t("appBar.collabRoom")}
+            active={collabActive}
+          >
             <Users className="h-4 w-4" />
           </IconButton>
           <button
             type="button"
             onClick={onOpenStorage}
             className="dock-control ml-0.5 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium"
-            title="Daten, Darstellung, Export"
+            title={t("appBar.dataPanel")}
           >
             {workingFileSaving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Database className="h-4 w-4" />
             )}
-            <span className="hidden sm:inline">Daten</span>
+            <span className="hidden sm:inline">{t("appBar.data")}</span>
           </button>
         </div>
       </div>

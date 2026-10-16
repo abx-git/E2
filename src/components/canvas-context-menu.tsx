@@ -50,6 +50,7 @@ import {
   normalizeProgressMark,
 } from "@/lib/progress-mark";
 import { ProgressMarkGlyph } from "@/components/progress-mark-badge";
+import { contextMapPatternLabel, lineArrowHeadLabel, relationTypeLabel, useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { supportsArchDrilldown, type NoteColorId } from "@/types/storm-element";
 import { RELATION_TYPE_LABELS, RELATION_TYPES, CONTEXT_MAP_PATTERN_LABELS, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
@@ -75,14 +76,7 @@ function clipboardSelectionFromStore() {
 
 const CONTEXT_PATTERNS = CONTEXT_MAP_PATTERNS;
 
-const ALIGN_ROW: { mode: AlignMode; label: string; icon: typeof AlignStartHorizontal }[] = [
-  { mode: "left", label: "Links", icon: AlignStartVertical },
-  { mode: "centerX", label: "Mitte H", icon: AlignCenterVertical },
-  { mode: "right", label: "Rechts", icon: AlignEndVertical },
-  { mode: "top", label: "Oben", icon: AlignStartHorizontal },
-  { mode: "centerY", label: "Mitte V", icon: AlignCenterHorizontal },
-  { mode: "bottom", label: "Unten", icon: AlignEndHorizontal },
-];
+
 
 export interface CanvasContextMenuProps {
   onRequestHelpElementType?: (type: string) => void;
@@ -95,6 +89,15 @@ export function CanvasContextMenu({
   onRequestHelpRelationType,
   onRequestHelpContextMap,
 }: CanvasContextMenuProps) {
+  const t = useT();
+  const alignRow = [
+    { mode: "left" as const, label: t("contextMenu.alignLeft"), icon: AlignStartVertical },
+    { mode: "centerX" as const, label: t("contextMenu.alignCenterX"), icon: AlignCenterVertical },
+    { mode: "right" as const, label: t("contextMenu.alignRight"), icon: AlignEndVertical },
+    { mode: "top" as const, label: t("contextMenu.alignTop"), icon: AlignStartHorizontal },
+    { mode: "centerY" as const, label: t("contextMenu.alignCenterY"), icon: AlignCenterHorizontal },
+    { mode: "bottom" as const, label: t("contextMenu.alignBottom"), icon: AlignEndHorizontal },
+  ];
   const menu = useStormBoardStore((s) => s.contextMenu);
   const closeContextMenu = useStormBoardStore((s) => s.closeContextMenu);
   const elements = useStormBoardStore((s) => s.elements);
@@ -216,7 +219,7 @@ export function CanvasContextMenu({
         )}
         <Item
           icon={Link2}
-          label="Relation starten"
+          label={t("contextMenu.startRelation")}
           onClick={() =>
             run(() => {
               setRelationMode(true);
@@ -225,9 +228,9 @@ export function CanvasContextMenu({
           }
         />
         {swimlanes.length > 0 && (
-          <Submenu label="Swimlane">
+          <Submenu label={t("contextMenu.swimlane")}>
             <Item
-              label="Keine"
+              label={t("common.none")}
               onClick={() => run(() => updateElement(el.id, { swimlaneId: undefined }))}
             />
             {swimlanes.map((lane) => (
@@ -241,9 +244,9 @@ export function CanvasContextMenu({
           </Submenu>
         )}
         {boundedContexts.length > 0 && (
-          <Submenu label="Bounded Context">
+          <Submenu label={t("contextMenu.boundedContext")}>
             <Item
-              label="Keiner"
+              label={t("common.noneContext")}
               onClick={() => run(() => updateElement(el.id, { boundedContextId: undefined }))}
             />
             {boundedContexts.map((bc) => (
@@ -290,7 +293,7 @@ export function CanvasContextMenu({
               }
             />
             <Item
-              label="Status: Gelöst"
+              label={t("contextMenu.statusResolved")}
               active={el.metadata?.hotspotStatus === "resolved"}
               onClick={() =>
                 run(() =>
@@ -347,7 +350,7 @@ export function CanvasContextMenu({
         </Submenu>
         <Item
           icon={HelpCircle}
-          label="Hilfe"
+          label={t("contextMenu.help")}
           onClick={() => run(() => onRequestHelpElementType?.(el.type))}
         />
         <Separator />
@@ -382,7 +385,7 @@ export function CanvasContextMenu({
         />
         {el.type === "hotspot" && (
           <Item
-            label="Hotspot-Schräge (45°)"
+            label={t("contextMenu.hotspotSlant")}
             onClick={() => run(() => updateElement(el.id, { rotation: 45 }))}
           />
         )}
@@ -448,7 +451,7 @@ export function CanvasContextMenu({
         <Separator />
         <Item
           icon={Copy}
-          label="Duplizieren"
+          label={t("contextMenu.duplicate")}
           hint="⌘D / Ctrl+D"
           onClick={() => run(() => duplicateElements([el.id]))}
         />
@@ -464,7 +467,7 @@ export function CanvasContextMenu({
         />
         <Item
           icon={Trash2}
-          label="Löschen"
+          label={t("contextMenu.delete")}
           danger
           onClick={() =>
             run(() => {
@@ -482,7 +485,7 @@ export function CanvasContextMenu({
         <Header title={`${selected.length} Elemente`} subtitle="Ausrichten & bearbeiten" />
         <Section label="Ausrichten" />
         <div className="grid grid-cols-3 gap-1 px-2 pb-1">
-          {ALIGN_ROW.map(({ mode, label, icon: Icon }) => (
+          {alignRow.map(({ mode, label, icon: Icon }) => (
             <button
               key={mode}
               type="button"
@@ -501,7 +504,7 @@ export function CanvasContextMenu({
         </div>
         <Item
           icon={AlignHorizontalSpaceBetween}
-          label="Horizontal verteilen"
+          label={t("contextMenu.distributeH")}
           disabled={selected.length < 3}
           onClick={() =>
             run(() => {
@@ -512,7 +515,7 @@ export function CanvasContextMenu({
         />
         <Item
           icon={AlignVerticalSpaceBetween}
-          label="Vertikal verteilen"
+          label={t("contextMenu.distributeV")}
           disabled={selected.length < 3}
           onClick={() =>
             run(() => {
@@ -523,7 +526,7 @@ export function CanvasContextMenu({
         />
         <Item
           icon={StretchHorizontal}
-          label="Gleiche Breite"
+          label={t("contextMenu.sameWidth")}
           onClick={() =>
             run(() => {
               const patches = computeAlignPatches(selected, "sameWidth", target.ids[0]);
@@ -533,7 +536,7 @@ export function CanvasContextMenu({
         />
         <Item
           icon={StretchVertical}
-          label="Gleiche Höhe"
+          label={t("contextMenu.sameHeight")}
           onClick={() =>
             run(() => {
               const patches = computeAlignPatches(selected, "sameHeight", target.ids[0]);
@@ -639,7 +642,7 @@ export function CanvasContextMenu({
         <Separator />
         <Item
           icon={Copy}
-          label="Duplizieren"
+          label={t("contextMenu.duplicate")}
           hint="⌘D / Ctrl+D"
           onClick={() => run(() => duplicateElements(target.ids))}
         />
@@ -655,7 +658,7 @@ export function CanvasContextMenu({
         />
         <Item
           icon={Trash2}
-          label="Alle löschen"
+          label={t("contextMenu.deleteAll")}
           danger
           onClick={() =>
             run(() => {
@@ -686,20 +689,23 @@ export function CanvasContextMenu({
     if (c.contextMapPattern) {
       body = (
         <>
-          <Header title="Context Map" subtitle={CONTEXT_MAP_PATTERN_LABELS[c.contextMapPattern]} />
+          <Header
+            title="Context Map"
+            subtitle={contextMapPatternLabel(t, c.contextMapPattern)}
+          />
           <Section label="Muster" />
-          {CONTEXT_PATTERNS.map((t) => (
+          {CONTEXT_PATTERNS.map((pattern) => (
             <Item
-              key={t}
-              label={CONTEXT_MAP_PATTERN_LABELS[t]}
-              active={c.contextMapPattern === t}
-              onClick={() => run(() => patch({ contextMapPattern: t }))}
+              key={pattern}
+              label={contextMapPatternLabel(t, pattern)}
+              active={c.contextMapPattern === pattern}
+              onClick={() => run(() => patch({ contextMapPattern: pattern }))}
             />
           ))}
           <Separator />
           <Item
             icon={Trash2}
-            label="Löschen"
+            label={t("contextMenu.delete")}
             danger
             onClick={() =>
               run(() => {
@@ -713,19 +719,19 @@ export function CanvasContextMenu({
     } else if (relType) {
       body = (
         <>
-          <Header title="Verbinder" subtitle={RELATION_TYPE_LABELS[relType]} />
+          <Header title="Verbinder" subtitle={relationTypeLabel(t, relType)} />
           <Section label="Typ" />
-          {RELATION_TYPES.map((t) => (
+          {RELATION_TYPES.map((rel) => (
             <Item
-              key={t}
-              label={RELATION_TYPE_LABELS[t]}
-              active={relType === t}
-              onClick={() => run(() => patch({ relationType: t, labelMode: "type" }))}
+              key={rel}
+              label={relationTypeLabel(t, rel)}
+              active={relType === rel}
+              onClick={() => run(() => patch({ relationType: rel, labelMode: "type" }))}
             />
           ))}
           <Item
             icon={HelpCircle}
-            label="Hilfe"
+            label={t("contextMenu.help")}
             onClick={() => run(() => onRequestHelpRelationType?.(relType))}
           />
           <Separator />
@@ -778,7 +784,7 @@ export function CanvasContextMenu({
           <Separator />
           <Item
             icon={Trash2}
-            label="Löschen"
+            label={t("contextMenu.delete")}
             danger
             onClick={() =>
               run(() => {
@@ -814,10 +820,10 @@ export function CanvasContextMenu({
           ))}
           <Separator />
           <Item
-            label="Beschriftung ändern…"
+            label={t("contextMenu.editConnectorLabel")}
             onClick={() =>
               run(() => {
-                const next = window.prompt("Text am Verbinder", c.label ?? "");
+                const next = window.prompt(t("contextMenu.connectorLabelPrompt"), c.label ?? "");
                 if (next !== null) patch({ label: next, labelMode: "custom" });
               })
             }
@@ -825,7 +831,7 @@ export function CanvasContextMenu({
           <Separator />
           <Item
             icon={Trash2}
-            label="Löschen"
+            label={t("contextMenu.delete")}
             danger
             onClick={() =>
               run(() => {
@@ -842,19 +848,19 @@ export function CanvasContextMenu({
     if (!rel) return null;
     body = (
       <>
-        <Header title="Relation" subtitle={RELATION_TYPE_LABELS[rel.type]} />
+        <Header title="Relation" subtitle={relationTypeLabel(t, rel.type)} />
         <Section label="Typ" />
-        {RELATION_TYPES.map((t) => (
+        {RELATION_TYPES.map((rt) => (
           <Item
-            key={t}
-            label={RELATION_TYPE_LABELS[t]}
-            active={rel.type === t}
-            onClick={() => run(() => updateRelation(rel.id, { type: t }))}
+            key={rt}
+            label={relationTypeLabel(t, rt)}
+            active={rel.type === rt}
+            onClick={() => run(() => updateRelation(rel.id, { type: rt }))}
           />
         ))}
         <Item
           icon={HelpCircle}
-          label="Hilfe"
+          label={t("contextMenu.help")}
           onClick={() => run(() => onRequestHelpRelationType?.(rel.type))}
         />
         <Separator />
@@ -879,7 +885,7 @@ export function CanvasContextMenu({
           active={rel.labelMode === "custom"}
           onClick={() =>
             run(() => {
-              const next = window.prompt("Text am Verbinder", rel.label ?? "");
+              const next = window.prompt(t("contextMenu.connectorLabelPrompt"), rel.label ?? "");
               if (next === null) return;
               updateRelation(rel.id, { label: next, labelMode: "custom" });
             })
@@ -927,7 +933,7 @@ export function CanvasContextMenu({
         <Separator />
         <Item
           icon={Trash2}
-          label="Löschen"
+          label={t("contextMenu.delete")}
           danger
           onClick={() =>
             run(() => {
@@ -943,34 +949,34 @@ export function CanvasContextMenu({
     if (!rel) return null;
     body = (
       <>
-        <Header title="Context Map" subtitle={CONTEXT_MAP_PATTERN_LABELS[rel.type]} />
+        <Header title="Context Map" subtitle={contextMapPatternLabel(t, rel.type)} />
         <Section label="Muster" />
-        {CONTEXT_PATTERNS.map((t) => (
+        {CONTEXT_PATTERNS.map((pattern) => (
           <Item
-            key={t}
-            label={CONTEXT_MAP_PATTERN_LABELS[t]}
-            active={rel.type === t}
-            onClick={() => run(() => updateContextRelation(rel.id, { type: t }))}
+            key={pattern}
+            label={contextMapPatternLabel(t, pattern)}
+            active={rel.type === pattern}
+            onClick={() => run(() => updateContextRelation(rel.id, { type: pattern }))}
           />
         ))}
         <Item
-          label="Label ändern…"
+          label={t("contextMenu.editLabel")}
           onClick={() =>
             run(() => {
-              const next = window.prompt("Label", rel.label ?? "");
+              const next = window.prompt(t("contextMenu.labelPrompt"), rel.label ?? "");
               if (next !== null) updateContextRelation(rel.id, { label: next || undefined });
             })
           }
         />
         <Item
           icon={HelpCircle}
-          label="Hilfe"
+          label={t("contextMenu.help")}
           onClick={() => run(() => onRequestHelpContextMap?.(rel.type))}
         />
         <Separator />
         <Item
           icon={Trash2}
-          label="Löschen"
+          label={t("contextMenu.delete")}
           danger
           onClick={() =>
             run(() => {
@@ -1025,7 +1031,7 @@ export function CanvasContextMenu({
         />
         <Item
           icon={Trash2}
-          label="Löschen"
+          label={t("contextMenu.delete")}
           danger
           onClick={() =>
             run(() => {
@@ -1097,7 +1103,7 @@ export function CanvasContextMenu({
         />
         <Item
           icon={Trash2}
-          label="Löschen"
+          label={t("contextMenu.delete")}
           danger
           onClick={() =>
             run(() => {
@@ -1113,19 +1119,19 @@ export function CanvasContextMenu({
       <>
         <Header title="Timeline" subtitle="Position & Beschriftung" />
         <Item
-          label="Start-Label ändern…"
+          label={t("contextMenu.editStartLabel")}
           onClick={() =>
             run(() => {
-              const next = window.prompt("Start-Label", timeline.startLabel ?? "Start");
+              const next = window.prompt(t("contextMenu.startLabelPrompt"), timeline.startLabel ?? t("contextMenu.startDefault"));
               if (next !== null) setTimeline({ startLabel: next });
             })
           }
         />
         <Item
-          label="Ende-Label ändern…"
+          label={t("contextMenu.editEndLabel")}
           onClick={() =>
             run(() => {
-              const next = window.prompt("Ende-Label", timeline.endLabel ?? "Ende");
+              const next = window.prompt(t("contextMenu.endLabelPrompt"), timeline.endLabel ?? t("contextMenu.endDefault"));
               if (next !== null) setTimeline({ endLabel: next });
             })
           }

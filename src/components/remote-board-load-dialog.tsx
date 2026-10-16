@@ -4,6 +4,8 @@ import { useId } from "react";
 import { createPortal } from "react-dom";
 import { Loader2 } from "lucide-react";
 
+import { useT } from "@/i18n";
+
 export interface RemoteBoardLoadDialogProps {
   open: boolean;
   sourceUrl: string;
@@ -23,6 +25,7 @@ export function RemoteBoardLoadDialog({
   onCancel,
   onConfirm,
 }: RemoteBoardLoadDialogProps) {
+  const t = useT();
   const titleId = useId();
   if (!open) return null;
 
@@ -39,23 +42,17 @@ export function RemoteBoardLoadDialog({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-base font-semibold text-slate-900">
-          Remote-Board laden?
+          {t("dialogs.remoteBoardLoadQuestion")}
         </h2>
         <div className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
-          <p>
-            Es wird eine <strong className="font-semibold text-slate-800">.storm.json</strong> von
-            dieser URL geladen und in den Editor übernommen:
-          </p>
+          <p>{t("dialogs.remoteBoardStormFromUrl")}</p>
           <p className="break-all rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 font-mono text-[0.7rem] text-slate-700">
             {sourceUrl}
           </p>
           {boardHasContent ? (
-            <p>
-              Der aktuelle Editor-Inhalt wird ersetzt. Danach kannst du lokal weiterarbeiten
-              („Speichern unter…“).
-            </p>
+            <p>{t("dialogs.remoteBoardReplaceContent")}</p>
           ) : (
-            <p>Danach kannst du lokal weiterarbeiten („Speichern unter…“).</p>
+            <p>{t("dialogs.remoteBoardSaveAsHint")}</p>
           )}
           {error ? (
             <p className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-2 text-sm text-red-800" role="alert">
@@ -70,7 +67,7 @@ export function RemoteBoardLoadDialog({
             onClick={onCancel}
             className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
           >
-            Abbrechen
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -79,7 +76,7 @@ export function RemoteBoardLoadDialog({
             className="inline-flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-            Laden
+            {t("dialogs.remoteBoardLoadButton")}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@
 
 import { EyeOff, Wifi, WifiOff } from "lucide-react";
 
+import { useT } from "@/i18n";
 import { useCollabStore } from "@/lib/collab/session";
 import { isWorkingFileAttached, isWorkingFileDirty } from "@/lib/working-file";
 
@@ -11,6 +12,7 @@ export interface CollabPresenceBannerProps {
 
 /** Live presence strip when a collab room is active. */
 export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerProps) {
+  const t = useT();
   const active = useCollabStore((s) => s.active);
   const status = useCollabStore((s) => s.status);
   const room = useCollabStore((s) => s.room);
@@ -27,6 +29,14 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
   const disconnected = status === "disconnected" || status === "error";
   const isFollower = tabWriterRole === "follower";
   const hasConflict = syncConflict !== null;
+
+  const statusLabel = hasConflict
+    ? t("collab.syncConflict")
+    : isFollower
+      ? t("collab.passiveTab")
+      : disconnected
+        ? t("collab.broadcastDisconnected")
+        : t("collab.live");
 
   return (
     <div
@@ -47,46 +57,31 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
         <Wifi className="h-3.5 w-3.5 shrink-0 text-[var(--accent)]" />
       )}
       <span className="font-medium">
-        {hasConflict
-          ? "Sync-Konflikt"
-          : isFollower
-            ? "Passiver Tab"
-            : disconnected
-              ? "Broadcast getrennt"
-              : "Live"}
+        {statusLabel}
         {" · "}
         {room.code}
-        {isHost ? " · Host" : ""}
+        {isHost ? ` · ${t("collab.host")}` : ""}
       </span>
       {hasConflict && (
-        <span className="text-[var(--accent-2)]">
-          Server und dieser Tab weichen ab — bitte Dialog wählen
-        </span>
+        <span className="text-[var(--accent-2)]">{t("panels.collabPresenceConflict")}</span>
       )}
       {isFollower && !hasConflict && (
-        <span
-          className="text-[var(--accent-2)]"
-          title="Nur der aktive Browser-Tab schreibt in den Raum."
-        >
-          schreibt nicht · Fokus hier prüft Server-Stand
+        <span className="text-[var(--accent-2)]" title={t("collab.notWritingTitle")}>
+          {t("panels.collabNotWriting")}
         </span>
       )}
       {disconnected && !isFollower && !hasConflict && (
-        <span className="text-[var(--muted)]" title="Postgres-Snapshot-Sync läuft weiter">
-          Snapshot-Sync aktiv
+        <span className="text-[var(--muted)]" title={t("panels.collabSnapshotSync")}>
+          {t("collab.snapshotActive")}
         </span>
       )}
-      <span className="text-[var(--muted)]">{peers.length} online</span>
+      <span className="text-[var(--muted)]">{t("collab.online", { n: peers.length })}</span>
       {fileAttached && (
         <span
           className={fileDirty ? "text-[var(--accent-2)]" : "text-[var(--muted)]"}
-          title={
-            fileDirty
-              ? "Editor weicht von der lokalen Datei ab (während Collab nicht automatisch geschrieben)"
-              : "Arbeitsdatei während Collab nicht gespiegelt — danach Speichern unter…"
-          }
+          title={fileDirty ? t("panels.collabEditorDrift") : t("panels.collabNoMirror")}
         >
-          {fileDirty ? "Lokal abweichend" : "Datei nicht gespiegelt"}
+          {fileDirty ? t("collab.localDrift") : t("collab.fileNotMirrored")}
         </span>
       )}
       <div className="flex -space-x-1">
@@ -107,7 +102,7 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
         className="ml-auto rounded px-2 py-0.5 text-[var(--muted)] hover:bg-[var(--control-hover)] hover:text-[var(--text)]"
         onClick={onRequestLeave}
       >
-        Verlassen
+        {t("collab.leave")}
       </button>
     </div>
   );

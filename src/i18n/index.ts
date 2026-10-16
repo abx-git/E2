@@ -31,3 +31,14 @@ export {
 } from "@/i18n/provider";
 
 export { LanguageSwitcher } from "@/i18n/language-switcher";
+
+export {
+  modelingModeLabel,
+  modelingModeShortLabel,
+  relationTypeLabel,
+  contextMapPatternLabel,
+  lineArrowHeadLabel,
+  actionItemStatusLabel,
+  actionItemAreaLabel,
+  workshopFormatLabel,
+} from "@/i18n/domain-labels";

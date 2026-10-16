@@ -160,8 +160,10 @@ import {
   UnsavedChangesDialog,
   type UnsavedChangesChoice,
 } from "@/components/unsaved-changes-dialog";
+import { useT } from "@/i18n";
 
 export function StormBoard() {
+  const t = useT();
   const [storageOpen, setStorageOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [newFileOpen, setNewFileOpen] = useState(false);
@@ -252,7 +254,7 @@ export function StormBoard() {
     if (shouldConfirmCollabEnter()) {
       setUrlJoinConfirm(true);
     } else {
-      const name = useCollabStore.getState().displayName || "Gast";
+      const name = useCollabStore.getState().displayName || t("common.guest");
       backupBeforeSuspiciousSwitch("room");
       capturePreCollabStash();
       void joinRoom(room, name);
@@ -288,7 +290,7 @@ export function StormBoard() {
       }
       backupBeforeSuspiciousSwitch("file");
       if (!loadForeignBoardIntoEditor(outcome.rawText, { reason: "remote_board" })) {
-        setRemoteBoardError("Board konnte nicht geladen werden.");
+        setRemoteBoardError(t("alerts.boardLoadFailed"));
         return;
       }
       setRemoteBoardUrl(null);
@@ -356,9 +358,7 @@ export function StormBoard() {
       await navigator.clipboard.writeText(json);
       return true;
     } catch {
-      window.alert(
-        "JSON konnte nicht in die System-Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen oder JSON herunterladen.",
-      );
+      window.alert(t("alerts.jsonClipboardFailed"));
       return false;
     }
   }, []);
@@ -368,7 +368,7 @@ export function StormBoard() {
     const json = stringifySingleViewExport(payload, viewId);
     const view = payload.views.find((v) => v.id === viewId);
     if (!json || !view) {
-      window.alert("Sicht konnte nicht exportiert werden.");
+      window.alert(t("alerts.viewExportFailed"));
       return;
     }
     const blob = new Blob([json], { type: "application/json" });
@@ -383,16 +383,14 @@ export function StormBoard() {
   const copyViewJsonToClipboard = useCallback(async (viewId: string): Promise<boolean> => {
     const json = stringifySingleViewExport(boardImportPayloadFromStore(), viewId);
     if (!json) {
-      window.alert("Sicht konnte nicht exportiert werden.");
+      window.alert(t("alerts.viewExportFailed"));
       return false;
     }
     try {
       await navigator.clipboard.writeText(json);
       return true;
     } catch {
-      window.alert(
-        "JSON konnte nicht in die System-Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen oder JSON herunterladen.",
-      );
+      window.alert(t("alerts.jsonClipboardFailed"));
       return false;
     }
   }, []);
@@ -402,7 +400,7 @@ export function StormBoard() {
     const json = stringifyAiBoardContext(payload, viewId);
     const view = payload.views.find((v) => v.id === viewId);
     if (!json || !view) {
-      window.alert("KI-Kontext konnte nicht exportiert werden.");
+      window.alert(t("alerts.aiContextExportFailed"));
       return;
     }
     const blob = new Blob([json], { type: "application/json" });
@@ -417,16 +415,14 @@ export function StormBoard() {
   const copyViewAiContextToClipboard = useCallback(async (viewId: string): Promise<boolean> => {
     const json = stringifyAiBoardContext(boardImportPayloadFromStore(), viewId);
     if (!json) {
-      window.alert("KI-Kontext konnte nicht exportiert werden.");
+      window.alert(t("alerts.aiContextExportFailed"));
       return false;
     }
     try {
       await navigator.clipboard.writeText(json);
       return true;
     } catch {
-      window.alert(
-        "KI-Kontext konnte nicht in die System-Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen oder herunterladen.",
-      );
+      window.alert(t("alerts.aiContextClipboardFailed"));
       return false;
     }
   }, []);
@@ -458,7 +454,7 @@ export function StormBoard() {
     const payload = boardImportPayloadFromStore();
     const view = payload.views.find((v) => v.id === viewId);
     if (!text || !view) {
-      window.alert("Mermaid konnte nicht exportiert werden.");
+      window.alert(t("alerts.mermaidExportFailed"));
       return;
     }
     downloadTextFile(
@@ -471,16 +467,14 @@ export function StormBoard() {
   const copyViewMermaidToClipboard = useCallback(async (viewId: string): Promise<boolean> => {
     const text = mermaidFromViewId(viewId);
     if (!text) {
-      window.alert("Mermaid konnte nicht exportiert werden.");
+      window.alert(t("alerts.mermaidExportFailed"));
       return false;
     }
     try {
       await navigator.clipboard.writeText(text);
       return true;
     } catch {
-      window.alert(
-        "Mermaid konnte nicht in die Zwischenablage kopiert werden. Bitte herunterladen.",
-      );
+      window.alert(t("alerts.mermaidClipboardFailed"));
       return false;
     }
   }, []);
@@ -490,7 +484,7 @@ export function StormBoard() {
     const payload = boardImportPayloadFromStore();
     const view = payload.views.find((v) => v.id === viewId);
     if (!text || !view) {
-      window.alert("PlantUML konnte nicht exportiert werden.");
+      window.alert(t("alerts.plantUmlExportFailed"));
       return;
     }
     downloadTextFile(
@@ -503,16 +497,14 @@ export function StormBoard() {
   const copyViewPlantUmlToClipboard = useCallback(async (viewId: string): Promise<boolean> => {
     const text = plantUmlFromViewId(viewId);
     if (!text) {
-      window.alert("PlantUML konnte nicht exportiert werden.");
+      window.alert(t("alerts.plantUmlExportFailed"));
       return false;
     }
     try {
       await navigator.clipboard.writeText(text);
       return true;
     } catch {
-      window.alert(
-        "PlantUML konnte nicht in die Zwischenablage kopiert werden. Bitte herunterladen.",
-      );
+      window.alert(t("alerts.plantUmlClipboardFailed"));
       return false;
     }
   }, []);
@@ -546,9 +538,7 @@ export function StormBoard() {
     setBusy(true);
     try {
       if (!isWorkingFileSupported()) {
-        window.alert(
-          "Speichern unter… braucht die File-System-API (Chrome, Edge oder Brave). Alternativ JSON exportieren.",
-        );
+        window.alert(t("alerts.saveAsNeedsFsApi"));
         return;
       }
       const suggested = suggestedWorkingFileName(
@@ -581,14 +571,14 @@ export function StormBoard() {
         }
         window.alert(
           result.reason === "conflict" || result.reason === "content_cas_mismatch"
-            ? "Die Datei wurde zwischenzeitlich geändert und wurde nicht überschrieben. Eine Kopie des Dateistands wurde heruntergeladen — bitte „Speichern unter…“ nutzen oder die Datei neu öffnen."
+            ? t("alerts.saveConflictDownloaded")
             : result.reason === "empty_over_nonempty"
-              ? "Leerer Stand wird nicht über die Arbeitsdatei geschrieben."
+              ? t("alerts.saveEmptyOverNonempty")
               : result.reason === "persist_paused"
-                ? "Speichern ist pausiert — bitte „Speichern unter…“ nutzen."
+                ? t("alerts.savePaused")
                 : result.reason === "not_writer"
-                  ? "Ein anderer Tab speichert diese Datei gerade. Bitte den sichtbaren Tab nutzen."
-                  : result.message ?? "Speichern fehlgeschlagen — Datei nicht überschrieben.",
+                  ? t("alerts.saveNotWriter")
+                  : result.message ?? t("alerts.saveFailed"),
         );
         return;
       }
@@ -642,7 +632,7 @@ export function StormBoard() {
       } else {
         const result = await persistWorkingFileJson(boardJsonFromStoreState());
         if (!result.ok) {
-          window.alert(result.message ?? "Speichern fehlgeschlagen.");
+          window.alert(result.message ?? t("alerts.saveFailedShort"));
           return;
         }
         setWorkingFileDirty(false);
@@ -656,12 +646,10 @@ export function StormBoard() {
 
   const handleNewWorkingFile = () => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-      window.alert(
-        "Während der Kollaboration kann keine neue Datei angelegt werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
-      );
+      window.alert(t("alerts.collabNoNewFile"));
       return;
     }
-    void runWithUnsavedGuard("Neu", () => {
+    void runWithUnsavedGuard(t("alerts.actionNew"), () => {
       setNewFileOpen(true);
     });
   };
@@ -727,7 +715,7 @@ export function StormBoard() {
         setImportConflict({
           fileText: hydrate.fileText,
           fileLastModified: hydrate.fileLastModified,
-          fileName: handle.name || "Arbeitsdatei",
+          fileName: handle.name || t("common.defaultWorkingFile"),
         });
         return;
       }
@@ -743,22 +731,18 @@ export function StormBoard() {
 
   const handleOpenWorkingFile = () => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-      window.alert(
-        "Während der Kollaboration kann keine andere Datei in den Editor geladen werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
-      );
+      window.alert(t("alerts.collabNoOpenFile"));
       return;
     }
-    void runWithUnsavedGuard("Öffnen", () => openWorkingFileNow());
+    void runWithUnsavedGuard(t("alerts.actionOpen"), () => openWorkingFileNow());
   };
 
   const handleCloseWorkingFile = () => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-      window.alert(
-        "Während der Kollaboration kann die Datei nicht geschlossen werden. Bitte zuerst den Raum verlassen.",
-      );
+      window.alert(t("alerts.collabNoCloseFile"));
       return;
     }
-    void runWithUnsavedGuard("Schließen", async () => {
+    void runWithUnsavedGuard(t("alerts.actionClose"), async () => {
       setBusy(true);
       try {
         backupBeforeSuspiciousSwitch("file");
@@ -778,11 +762,11 @@ export function StormBoard() {
 
   const handleRenameWorkingFile = async () => {
     if (!isWorkingFileAttached()) {
-      window.alert("Keine Arbeitsdatei verknüpft — zuerst Speichern unter…");
+      window.alert(t("alerts.noWorkingFileLinked"));
       return;
     }
     const current = getWorkingFileLabel() || "board.storm.json";
-    const next = window.prompt("Neuer Dateiname:", current);
+    const next = window.prompt(t("alerts.renamePrompt"), current);
     if (next == null) return;
     const trimmed = next.trim();
     if (!trimmed) return;
@@ -802,34 +786,28 @@ export function StormBoard() {
 
   const handleOpenRecentWorkingFile = (handle: FileSystemFileHandle) => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-      window.alert(
-        "Während der Kollaboration kann keine andere Datei in den Editor geladen werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
-      );
+      window.alert(t("alerts.collabNoOpenFile"));
       return;
     }
-    void runWithUnsavedGuard("Öffnen", async () => {
+    void runWithUnsavedGuard(t("alerts.actionOpen"), async () => {
       setBusy(true);
       try {
         const permitted = await requestWorkingFilePermission(handle);
         if (!permitted) {
-          window.alert(
-            "Datei konnte nicht geöffnet werden. Bitte Berechtigung erteilen oder die Datei erneut über „Datei öffnen“ wählen.",
-          );
+          window.alert(t("alerts.openFileFailedPermission"));
           return;
         }
         backupBeforeSuspiciousSwitch("file");
         const result = await openRecentWorkingFile(handle, { skipPermission: true });
         if (!result) {
-          window.alert(
-            "Datei konnte nicht geöffnet werden. Bitte die Datei erneut über „Datei öffnen“ wählen.",
-          );
+          window.alert(t("alerts.openFileFailedRetry"));
           return;
         }
         if (result.hydrate.status === "conflict") {
           setImportConflict({
             fileText: result.hydrate.fileText,
             fileLastModified: result.hydrate.fileLastModified,
-            fileName: result.handle.name || "Arbeitsdatei",
+            fileName: result.handle.name || t("common.defaultWorkingFile"),
           });
           return;
         }
@@ -869,32 +847,28 @@ export function StormBoard() {
 
   const handleOpenFileLibraryEntry = (entry: FileLibraryEntry) => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-      window.alert(
-        "Während der Kollaboration kann keine andere Datei in den Editor geladen werden — das würde den Raum überschreiben. Bitte zuerst den Raum verlassen.",
-      );
+      window.alert(t("alerts.collabNoOpenFile"));
       return;
     }
-    const actionLabel = entry.kind === "backup" ? "Backup öffnen" : "Öffnen";
+    const actionLabel = entry.kind === "backup" ? t("alerts.actionOpenBackup") : t("alerts.actionOpen");
     void runWithUnsavedGuard(actionLabel, async () => {
       setBusy(true);
       try {
         const handle = await resolveLibraryFileHandle(entry.path);
         if (!handle) {
-          window.alert(
-            "Datei wurde im Übersichtsordner nicht gefunden. Bitte „Öffnen…“ nutzen oder den Ordner neu wählen.",
-          );
+          window.alert(t("alerts.libraryEntryMissing"));
           return;
         }
         if (entry.kind === "backup") {
           const file = await handle.getFile();
           const json = await file.text();
           if (!json.trim()) {
-            window.alert("Backup wurde nicht gefunden oder ist leer.");
+            window.alert(t("alerts.backupOpenEmpty"));
             return;
           }
           backupBeforeSuspiciousSwitch("file");
           if (!loadForeignBoardIntoEditor(json, { reason: "backup" })) {
-            window.alert("Backup konnte nicht geladen werden.");
+            window.alert(t("alerts.backupLoadFailed"));
             return;
           }
           setWorkingFileName(getWorkingFileLabel());
@@ -904,17 +878,13 @@ export function StormBoard() {
         }
         const permitted = await requestWorkingFilePermission(handle);
         if (!permitted) {
-          window.alert(
-            "Datei konnte nicht geöffnet werden. Bitte Berechtigung erteilen oder die Datei erneut über „Öffnen…“ wählen.",
-          );
+          window.alert(t("alerts.openFileFailedOpenDialog"));
           return;
         }
         backupBeforeSuspiciousSwitch("file");
         const result = await openRecentWorkingFile(handle, { skipPermission: true });
         if (!result) {
-          window.alert(
-            "Datei konnte nicht geöffnet werden. Bitte die Datei erneut über „Öffnen…“ wählen.",
-          );
+          window.alert(t("alerts.openFileFailedOpenDialog"));
           return;
         }
         if (result.hydrate.status === "conflict") {
@@ -938,22 +908,20 @@ export function StormBoard() {
 
   const handleOpenLocalBackup = (backupId: string) => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-      window.alert(
-        "Während der Kollaboration kann kein Backup in den Editor geladen werden. Bitte zuerst den Raum verlassen.",
-      );
+      window.alert(t("alerts.collabNoBackupLoad"));
       return;
     }
-    void runWithUnsavedGuard("Backup öffnen", async () => {
+    void runWithUnsavedGuard(t("alerts.actionOpenBackup"), async () => {
       setBusy(true);
       try {
         const record = await getLocalBackup(backupId);
         if (!record?.json?.trim()) {
-          window.alert("Backup wurde nicht gefunden oder ist leer.");
+          window.alert(t("alerts.backupOpenEmpty"));
           return;
         }
         backupBeforeSuspiciousSwitch("file");
         if (!loadForeignBoardIntoEditor(record.json, { reason: "backup" })) {
-          window.alert("Backup konnte nicht geladen werden.");
+          window.alert(t("alerts.backupLoadFailed"));
           return;
         }
         setWorkingFileName(getWorkingFileLabel());
@@ -967,12 +935,10 @@ export function StormBoard() {
 
   const handlePasteJson = () => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-      window.alert(
-        "Während der Kollaboration kann kein JSON in den Editor geladen werden. Bitte zuerst den Raum verlassen.",
-      );
+      window.alert(t("alerts.collabNoJsonLoad"));
       return;
     }
-    void runWithUnsavedGuard("JSON einfügen", () => {
+    void runWithUnsavedGuard(t("alerts.actionPasteJson"), () => {
       setJsonPasteInitial("");
       setJsonPasteMode("board");
     });
@@ -991,7 +957,7 @@ export function StormBoard() {
         setImportConflict({
           fileText: result.fileText,
           fileLastModified: result.fileLastModified,
-          fileName: "Einfügen",
+          fileName: t("alerts.pasteFileName"),
         });
         setJsonPasteMode(null);
         setJsonPasteInitial("");
@@ -1007,7 +973,7 @@ export function StormBoard() {
   };
 
   const handleRestoreBackupFilePick = () => {
-    void runWithUnsavedGuard("Öffnen", () => {
+    void runWithUnsavedGuard(t("alerts.actionOpen"), () => {
       fileInputRef.current?.click();
     });
   };
@@ -1025,9 +991,7 @@ export function StormBoard() {
       setImportConflict(null);
       if (choice === "keep_local") {
         setPersistPaused(true);
-        window.alert(
-          "Editor behalten — die geöffnete Datei wurde nicht überschrieben. Nutze „Speichern unter…“, wenn du speichern willst.",
-        );
+        window.alert(t("alerts.keepEditorAfterConflict"));
       } else {
         setPersistPaused(false);
       }
@@ -1041,9 +1005,7 @@ export function StormBoard() {
     setLeaveBusy(true);
     try {
       if (choice === "restore_pre_collab") {
-        const ok = window.confirm(
-          "Stand vor dem Raum wiederherstellen?\n\nDer aktuelle Board-Inhalt (Raum-Stand) wird im Editor durch die ältere lokale Kopie ersetzt. Die Arbeitsdatei wird dabei nicht überschrieben.\n\nWähle Abbrechen und danach „Raum verlassen“, wenn du den Remote-Stand behalten willst.",
-        );
+        const ok = window.confirm(t("alerts.restorePreCollabConfirm"));
         if (!ok) return;
         backupBeforeSuspiciousSwitch("room");
       }
@@ -1055,12 +1017,10 @@ export function StormBoard() {
         const stash = getPreCollabStash();
         if (stash?.json.trim()) {
           if (!loadForeignBoardIntoEditor(stash.json, { reason: "pre_collab_restore" })) {
-            window.alert("Vorheriger Stand konnte nicht wiederhergestellt werden.");
+            window.alert(t("alerts.restorePreCollabFailed"));
           } else {
             setPersistPaused(true);
-            window.alert(
-              "Stand vor dem Raum wiederhergestellt. Die Arbeitsdatei wurde nicht überschrieben — nutze „Speichern unter…“, wenn du speichern willst.",
-            );
+            window.alert(t("alerts.restorePreCollabDone"));
           }
         }
       }
@@ -1079,7 +1039,7 @@ export function StormBoard() {
     if (choice === "save_and_proceed" && isWorkingFileAttached()) {
       const result = await persistWorkingFileJson(boardJsonFromStoreState());
       if (!result.ok) {
-        window.alert("Speichern in die Arbeitsdatei fehlgeschlagen.");
+        window.alert(t("dialogs.collabSaveFailed"));
         return;
       }
     }
@@ -1094,9 +1054,7 @@ export function StormBoard() {
 
   const collabBlocksPasteAsNewView = (action: string): boolean => {
     if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-      window.alert(
-        `Während der Kollaboration kann kein ${action} eingefügt werden. Bitte zuerst den Raum verlassen.`,
-      );
+      window.alert(t("alerts.collabNoPaste", { kind: action }));
       return true;
     }
     return false;
@@ -1105,9 +1063,7 @@ export function StormBoard() {
   const applyImportedFileAsNewViews = (text: string): boolean => {
     const payload = boardImportPayloadFromAnyExportText(text);
     if (!payload) {
-      window.alert(
-        'Ungültiges E2-JSON, KI-Kontext oder Diagramm (Mermaid / PlantUML).',
-      );
+      window.alert(t("alerts.invalidImportFormat"));
       return false;
     }
     const result = useStormBoardStore.getState().importDocumentAsNewViews(payload);
@@ -1122,7 +1078,7 @@ export function StormBoard() {
   const applyImportedJsonAsNewViews = (text: string): boolean => {
     const payload = boardImportPayloadFromJsonText(text);
     if (!payload) {
-      window.alert("Ungültiges E2-JSON oder KI-Kontext-JSON.");
+      window.alert(t("alerts.invalidImportJson"));
       return false;
     }
     const result = useStormBoardStore.getState().importDocumentAsNewViews(payload);
@@ -1244,46 +1200,50 @@ export function StormBoard() {
       <footer className="flex shrink-0 items-center justify-between px-4 pb-2 text-[0.72rem] text-[var(--muted)]">
         <span>
           {multiTabUnsafe ? (
-            <span className="mr-2 text-[var(--accent-2)]">
-              Mehrere Tabs ohne Lock — nur der sichtbare Tab speichert.{" "}
-            </span>
+            <span className="mr-2 text-[var(--accent-2)]">{t("footer.multiTabUnsafe")} </span>
           ) : null}
           {persistPaused ? (
             <span className="text-[var(--accent-2)]">
-              Nicht in Arbeitsdatei speichern — „Speichern unter…“
-              {workingFileName ? ` · ${workingFileName}` : ""}
+              {t("footer.persistPaused", {
+                file: workingFileName ? ` · ${workingFileName}` : "",
+              })}
             </span>
           ) : workingFileName ? (
-            `Arbeitsdatei: ${workingFileName}${workingFileDirty ? " · ungespeichert" : workingFileSaving ? " · speichert …" : " · gespeichert"}`
+            t("footer.workingFileLine", {
+              name: workingFileName,
+              status: workingFileDirty
+                ? t("footer.statusUnsaved")
+                : workingFileSaving
+                  ? t("footer.statusSaving")
+                  : t("footer.statusSaved"),
+            })
           ) : isWorkingFileAttached() ? (
-            "Arbeitsdatei verknüpft"
+            t("footer.workingFileLinked")
           ) : (
-                <>
-                  Keine Arbeitsdatei —{" "}
-                  {isWorkingFileUiAvailable() ? (
-                    <button
-                      type="button"
-                      className="underline decoration-dotted underline-offset-2 hover:text-[var(--text)]"
-                      onClick={() => void handleSaveWorkingFileAs()}
-                    >
-                      Speichern unter…
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="underline decoration-dotted underline-offset-2 hover:text-[var(--text)]"
-                      onClick={() => setStorageOpen(true)}
-                    >
-                      Speicherort wählen
-                    </button>
-                  )}
-                </>
+            <>
+              {t("footer.noWorkingFile")}{" "}
+              {isWorkingFileUiAvailable() ? (
+                <button
+                  type="button"
+                  className="underline decoration-dotted underline-offset-2 hover:text-[var(--text)]"
+                  onClick={() => void handleSaveWorkingFileAs()}
+                >
+                  {t("storage.saveAs")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="underline decoration-dotted underline-offset-2 hover:text-[var(--text)]"
+                  onClick={() => setStorageOpen(true)}
+                >
+                  {t("footer.pickSaveLocation")}
+                </button>
               )}
+            </>
+          )}
         </span>
-        <span className="hidden sm:inline">
-          Ziehen · Shift-Lasso · Rechtsklick · E2 · © A. Bergmann
-        </span>
-        <span className="sm:hidden">Wischen · Panel · © A. Bergmann</span>
+        <span className="hidden sm:inline">{t("footer.hintsDesktop")}</span>
+        <span className="sm:hidden">{t("footer.hintsMobile")}</span>
       </footer>
 
       <BoundedContextMobileSheet
@@ -1421,7 +1381,7 @@ export function StormBoard() {
             }
             return;
           }
-          const name = useCollabStore.getState().displayName || "Gast";
+          const name = useCollabStore.getState().displayName || t("common.guest");
           const code = pendingRoomCode;
           void beginCollabEnter(choice, async () => {
             await joinRoom(code, name);
@@ -1442,19 +1402,19 @@ export function StormBoard() {
         open={importConflict !== null}
         fileName={importConflict?.fileName ?? null}
         busy={importConflictBusy}
-        title="Datei öffnen"
-        description="Die gewählte Datei konnte nicht als E2-Board geladen werden, oder der Inhalt ist ungültig. Der Editor behält deinen aktuellen Stand — die Datei wird nicht überschrieben."
-        keepLocalLabel="Editor behalten (Datei nicht überschreiben)"
-        loadFileLabel="Datei trotzdem versuchen"
+        title={t("dialogs.importOpenTitle")}
+        description={t("dialogs.importOpenBody")}
+        keepLocalLabel={t("dialogs.importKeepEditor")}
+        loadFileLabel={t("dialogs.importTryLoad")}
         onChoose={(choice) => void handleImportConflict(choice)}
       />
 
       <JsonPasteDialog
         open={jsonPasteMode === "board"}
-        title="JSON einfügen"
-        description="Vollständiges Board (.storm.json) oder KI-Kontext einfügen. Ersetzt den aktuellen Board-Stand."
+        title={t("dialogs.jsonPasteBoardTitle")}
+        description={t("dialogs.jsonPasteBoardBody")}
         placeholder='{ "format": "event-storming-tool", "version": 2, … }'
-        confirmLabel="Board laden"
+        confirmLabel={t("dialogs.jsonPasteBoardConfirm")}
         busy={busy}
         onClose={closeJsonPaste}
         onConfirm={(text) => void applyPastedBoardJson(text)}
@@ -1462,10 +1422,10 @@ export function StormBoard() {
 
       <JsonPasteDialog
         open={jsonPasteMode === "json-view"}
-        title="JSON als neue Sicht"
-        description="E2-JSON (.storm.json) oder KI-Kontext aus der Zwischenablage als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten."
+        title={t("dialogs.jsonPasteViewTitle")}
+        description={t("dialogs.jsonPasteViewBody")}
         placeholder='{ "format": "event-storming-tool", "version": 2, … }'
-        confirmLabel="Als Sicht importieren"
+        confirmLabel={t("dialogs.jsonPasteViewConfirm")}
         busy={busy}
         initialText={jsonPasteInitial}
         onClose={closeJsonPaste}
@@ -1474,10 +1434,10 @@ export function StormBoard() {
 
       <JsonPasteDialog
         open={jsonPasteMode === "ai-view"}
-        title="KI-Kontext einfügen"
-        description="Reduziertes KI-JSON (oder .storm.json) als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten; Elemente werden automatisch arrangiert."
+        title={t("dialogs.jsonPasteAiTitle")}
+        description={t("dialogs.jsonPasteAiBody")}
         placeholder='{ "format": "event-storming-tool-ai-context", "version": 1, … }'
-        confirmLabel="Als Sicht importieren"
+        confirmLabel={t("dialogs.jsonPasteViewConfirm")}
         busy={busy}
         onClose={closeJsonPaste}
         onConfirm={applyPastedAiOrViewJson}
@@ -1485,10 +1445,10 @@ export function StormBoard() {
 
       <JsonPasteDialog
         open={jsonPasteMode === "diagram"}
-        title="Diagramm einfügen"
-        description="Mermaid- oder PlantUML-Text als neue Sicht importieren. Elemente werden automatisch arrangiert."
-        placeholder={"flowchart LR\n  A[Place Order] -->|löst aus| B[Order Placed]"}
-        confirmLabel="Als Sicht importieren"
+        title={t("dialogs.jsonPasteDiagramTitle")}
+        description={t("dialogs.jsonPasteDiagramBody")}
+        placeholder={"flowchart LR\n  A[Place Order] -->|triggers| B[Order Placed]"}
+        confirmLabel={t("dialogs.jsonPasteViewConfirm")}
         busy={busy}
         onClose={closeJsonPaste}
         onConfirm={applyPastedAiOrViewJson}
@@ -1524,8 +1484,8 @@ export function StormBoard() {
         canSave={isWorkingFileSupported() || isWorkingFileAttached()}
         saveLabel={
           isWorkingFileAttached() && !isWorkingFilePersistPaused()
-            ? "Speichern"
-            : "Speichern unter…"
+            ? t("common.save")
+            : t("storage.saveAs")
         }
         onChoose={(choice) => void handleUnsavedChoice(choice)}
       />
@@ -1550,9 +1510,7 @@ export function StormBoard() {
           e.target.value = "";
           if (!file) return;
           if (useCollabStore.getState().active || useCollabStore.getState().connecting) {
-            window.alert(
-              "Während der Kollaboration kann keine Datei in den Editor geladen werden. Bitte zuerst den Raum verlassen.",
-            );
+            window.alert(t("alerts.collabNoOpenFile"));
             return;
           }
           setBusy(true);
@@ -1596,7 +1554,7 @@ export function StormBoard() {
               applyImportedFileAsNewViews(text);
             })
             .catch(() => {
-              window.alert("Datei konnte nicht gelesen werden.");
+              window.alert(t("alerts.fileReadFailed"));
             })
             .finally(() => setBusy(false));
         }}

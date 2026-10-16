@@ -18,10 +18,7 @@ import {
   Maximize2,
 } from "lucide-react";
 
-import {
-  ConnectorArrowHeadIcon,
-  connectorArrowHeadLabel,
-} from "@/lib/connector-arrow-head";
+import { ConnectorArrowHeadIcon } from "@/lib/connector-arrow-head";
 import { computeCanvasContentBounds } from "@/lib/canvas-content-bounds";
 import { clampZoom, viewportFitContent } from "@/lib/canvas-viewport";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
@@ -32,6 +29,7 @@ import {
   exportBoardPng,
   exportBoardSvg,
 } from "@/lib/storm-export";
+import { lineArrowHeadLabel, useT } from "@/i18n";
 import { CONNECTOR_ARROW_HEADS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -85,6 +83,7 @@ function ViewMenu({
   const setSnapToGrid = useStormBoardStore((s) => s.setSnapToGrid);
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const setFocusMode = useStormBoardStore((s) => s.setFocusMode);
+  const t = useT();
 
   useEffect(() => {
     if (!open) return;
@@ -112,14 +111,14 @@ function ViewMenu({
       className="dock-surface absolute bottom-[calc(100%+0.4rem)] left-0 z-50 min-w-[14rem] rounded-xl p-2 shadow-dock"
       role="menu"
     >
-      <p className="group-label px-2 pb-1.5 pt-1">Ansicht</p>
+      <p className="group-label px-2 pb-1.5 pt-1">{t("chrome.viewSection")}</p>
       <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-[var(--control)]">
         <input
           type="checkbox"
           checked={timeline.visible !== false}
           onChange={(e) => setTimeline({ visible: e.target.checked })}
         />
-        Timeline anzeigen
+        {t("chrome.showTimeline")}
       </label>
       <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-[var(--control)]">
         <input
@@ -127,7 +126,7 @@ function ViewMenu({
           checked={snapToTimeline}
           onChange={(e) => setSnapToTimeline(e.target.checked)}
         />
-        An Timeline einrasten
+        {t("chrome.snapToTimeline")}
       </label>
       <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-[var(--control)]">
         <input
@@ -135,7 +134,7 @@ function ViewMenu({
           checked={snapToGrid}
           onChange={(e) => setSnapToGrid(e.target.checked)}
         />
-        Raster
+        {t("chrome.grid")}
       </label>
       <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-[var(--control)]">
         <input
@@ -143,7 +142,7 @@ function ViewMenu({
           checked={focusMode}
           onChange={(e) => setFocusMode(e.target.checked)}
         />
-        Fokus (nur Palette-Typ)
+        {t("chrome.focusPaletteOnly")}
       </label>
     </div>
   );
@@ -165,6 +164,7 @@ function ExportMenu({
   const [busy, setBusy] = useState<SceneExportKind>(null);
   const [copied, setCopied] = useState<ClipboardExportKind>(null);
   const copiedTimer = useRef<number | null>(null);
+  const t = useT();
 
   useEffect(() => {
     if (!open) return;
@@ -206,7 +206,7 @@ function ExportMenu({
       else exportBoardPdf();
     } catch (err) {
       console.error(`Canvas-${kind.toUpperCase()}-Export fehlgeschlagen`, err);
-      window.alert(`${kind.toUpperCase()}-Export fehlgeschlagen. Bitte erneut versuchen.`);
+      window.alert(t("chrome.exportFailed", { kind: kind.toUpperCase() }));
     } finally {
       setBusy(null);
     }
@@ -218,7 +218,7 @@ function ExportMenu({
         ? await copyBoardPromptToClipboard()
         : await copyBoardDrawioToClipboard();
     if (ok) markCopied(kind);
-    else window.alert("Kopieren in die Zwischenablage ist fehlgeschlagen.");
+    else window.alert(t("chrome.clipboardCopyFailed"));
   };
 
   return (
@@ -227,46 +227,46 @@ function ExportMenu({
       className="dock-surface absolute right-0 top-[calc(100%+0.4rem)] z-50 min-w-[16.5rem] rounded-xl p-2 shadow-dock"
       role="menu"
     >
-      <p className="group-label px-2 pb-1.5 pt-1">Aktive Sicht</p>
+      <p className="group-label px-2 pb-1.5 pt-1">{t("chrome.activeView")}</p>
       <ExportMenuItem
         icon={FileText}
-        label={copied === "prompt" ? "Kopiert" : "Prompt"}
-        detail="Text für KI-Chat"
+        label={copied === "prompt" ? t("common.copied") : t("chrome.prompt")}
+        detail={t("chrome.promptDetail")}
         disabled={busy !== null}
         onClick={() => void runCopy("prompt")}
       />
       <ExportMenuItem
         icon={Image}
         label={busy === "png" ? "PNG…" : "PNG"}
-        detail="Rasterbild"
+        detail={t("chrome.rasterImage")}
         disabled={busy !== null}
         onClick={() => void runRaster("png")}
       />
       <ExportMenuItem
         icon={Download}
         label="SVG"
-        detail="Draw.io-Datei"
+        detail={t("chrome.drawioFile")}
         disabled={busy !== null}
         onClick={() => {
           try {
             exportBoardSvg();
           } catch (err) {
             console.error("Canvas-SVG-Export fehlgeschlagen", err);
-            window.alert("SVG-Export fehlgeschlagen. Bitte erneut versuchen.");
+            window.alert(t("chrome.svgExportFailed"));
           }
         }}
       />
       <ExportMenuItem
         icon={Download}
         label={busy === "pdf" ? "PDF…" : "PDF"}
-        detail="Eine Seite, wie PNG"
+        detail={t("chrome.pdfDetail")}
         disabled={busy !== null}
         onClick={() => void runRaster("pdf")}
       />
       <ExportMenuItem
         icon={ClipboardCopy}
-        label={copied === "drawio" ? "Kopiert" : "Draw.io kopieren"}
-        detail="In diagrams.net einfügen"
+        label={copied === "drawio" ? t("common.copied") : t("chrome.copyDrawio")}
+        detail={t("chrome.pasteDrawio")}
         disabled={busy !== null}
         onClick={() => void runCopy("drawio")}
       />
@@ -342,6 +342,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const viewBtnRef = useRef<HTMLButtonElement>(null);
   const exportBtnRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const t = useT();
 
   const activeTool: CanvasTool = bcMode ? "bc" : relationMode ? "connect" : "select";
 
@@ -430,8 +431,8 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
                 else (e.target as HTMLInputElement).blur();
               }
             }}
-            placeholder="Suchen…"
-            aria-label="Elemente suchen"
+            placeholder={t("chrome.searchPlaceholder")}
+            aria-label={t("chrome.searchElements")}
             className="min-w-0 flex-1 bg-transparent text-xs text-[var(--text)] outline-none placeholder:text-[var(--muted)]"
           />
           {searchActive && (
@@ -443,8 +444,8 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
             <button
               type="button"
               className="rounded p-0.5 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)]"
-              title="Suche leeren"
-              aria-label="Suche leeren"
+              title={t("chrome.clearSearch")}
+              aria-label={t("chrome.clearSearch")}
               onClick={() => {
                 setSearchQuery("");
                 searchInputRef.current?.focus();
@@ -459,8 +460,8 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
             ref={exportBtnRef}
             type="button"
             onClick={() => setExportOpen((v) => !v)}
-            title="Sicht exportieren"
-            aria-label="Sicht exportieren"
+            title={t("chrome.exportView")}
+            aria-label={t("chrome.exportView")}
             aria-expanded={exportOpen}
             className={[
               "dock-surface flex h-8 w-8 items-center justify-center rounded-xl shadow-dock transition",
@@ -490,8 +491,8 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
               type="button"
               onClick={status.onCancel}
               className="shrink-0 rounded p-0.5 hover:bg-[var(--control-hover)]"
-              title="Beenden (Esc)"
-              aria-label="Werkzeug beenden"
+              title={t("chrome.endTool")}
+              aria-label={t("chrome.endToolAria")}
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -506,18 +507,18 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
         <div
           className="dock-surface flex items-center gap-0.5 rounded-xl p-0.5 shadow-dock"
           role="toolbar"
-          aria-label="Canvas-Werkzeuge"
+          aria-label={t("chrome.canvasTools")}
         >
           <ToolIconButton
             active={activeTool === "select"}
-            title="Auswählen und verschieben"
+            title={t("chrome.toolSelect")}
             onClick={() => setTool("select")}
           >
             <MousePointer2 className="h-3.5 w-3.5" />
           </ToolIconButton>
           <ToolIconButton
             active={activeTool === "connect"}
-            title="Verbinder: Elemente verbinden, Shift+Ziehen für freie Linie, Enden umhängen"
+            title={t("chrome.toolConnect")}
             onClick={() => setTool("connect")}
           >
             <Link2 className="h-3.5 w-3.5" />
@@ -525,8 +526,8 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
           {relationMode && (
             <button
               type="button"
-              title={`Pfeiltyp: ${connectorArrowHeadLabel(lineArrowHead)} (Klick zum Wechseln)`}
-              aria-label={`Pfeiltyp: ${connectorArrowHeadLabel(lineArrowHead)}`}
+              title={t("chrome.arrowHeadTitle", { label: lineArrowHeadLabel(t, lineArrowHead) })}
+              aria-label={t("chrome.arrowHeadTitle", { label: lineArrowHeadLabel(t, lineArrowHead) })}
               onClick={() => {
                 const current = CONNECTOR_ARROW_HEADS.includes(lineArrowHead) ? lineArrowHead : "end";
                 const index = CONNECTOR_ARROW_HEADS.indexOf(current);
@@ -540,7 +541,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
           )}
           <ToolIconButton
             active={activeTool === "bc"}
-            title="Bounded Context zeichnen"
+            title={t("chrome.toolBoundedContext")}
             onClick={() => setTool("bc")}
           >
             <SquareDashed className="h-3.5 w-3.5" />
@@ -548,7 +549,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
 
           <span className="mx-0.5 h-4 w-px bg-[var(--border)]" aria-hidden />
 
-          <ToolIconButton title="Swimlane hinzufügen" onClick={() => addSwimlane()}>
+          <ToolIconButton title={t("chrome.addSwimlane")} onClick={() => addSwimlane()}>
             <Layers className="h-3.5 w-3.5" />
           </ToolIconButton>
 
@@ -557,8 +558,8 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
               ref={viewBtnRef}
               type="button"
               onClick={() => setViewOpen((v) => !v)}
-              title="Ansichtsoptionen"
-              aria-label="Ansichtsoptionen"
+              title={t("chrome.viewOptions")}
+              aria-label={t("chrome.viewOptions")}
               aria-expanded={viewOpen}
               className={[
                 "flex h-8 w-8 items-center justify-center rounded-lg transition",
@@ -581,7 +582,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
         <button
           type="button"
           className="rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)] max-lg:p-2.5 touch-manipulation"
-          title="Verkleinern"
+          title={t("chrome.zoomOut")}
           onClick={() => setViewport({ ...viewport, zoom: clampZoom(viewport.zoom - 0.1) })}
         >
           <ZoomOut className="h-4 w-4" />
@@ -592,7 +593,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
         <button
           type="button"
           className="rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)] max-lg:p-2.5 touch-manipulation"
-          title="Vergrößern"
+          title={t("chrome.zoomIn")}
           onClick={() => setViewport({ ...viewport, zoom: clampZoom(viewport.zoom + 0.1) })}
         >
           <ZoomIn className="h-4 w-4" />
@@ -600,8 +601,8 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
         <button
           type="button"
           className="rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)] max-lg:p-2.5 touch-manipulation"
-          title="Alles einpassen"
-          aria-label="Alles einpassen"
+          title={t("chrome.fitAll")}
+          aria-label={t("chrome.fitAll")}
           onClick={fitAllInView}
         >
           <Maximize2 className="h-4 w-4" />

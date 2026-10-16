@@ -8,6 +8,7 @@ import {
   fetchAndValidateRemoteBoard,
   type RemoteBoardValidateOk,
 } from "@/lib/board-remote-url";
+import { useT } from "@/i18n";
 
 export interface BoardShareLinkDialogProps {
   open: boolean;
@@ -15,6 +16,7 @@ export interface BoardShareLinkDialogProps {
 }
 
 export function BoardShareLinkDialog({ open, onClose }: BoardShareLinkDialogProps) {
+  const t = useT();
   const titleId = useId();
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -88,7 +90,7 @@ export function BoardShareLinkDialog({ open, onClose }: BoardShareLinkDialogProp
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError("Link konnte nicht in die Zwischenablage kopiert werden.");
+      setError(t("dialogs.shareLinkCopyFailed"));
     }
   };
 
@@ -113,13 +115,9 @@ export function BoardShareLinkDialog({ open, onClose }: BoardShareLinkDialogProp
           </div>
           <div className="min-w-0 flex-1">
             <h2 id={titleId} className="text-base font-semibold text-[var(--text)]">
-              Board-Link teilen
+              {t("dialogs.shareLinkTitle")}
             </h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              Öffentliche URL zu einer{" "}
-              <code className="rounded bg-[var(--control)] px-1 text-[0.75rem]">.storm.json</code>{" "}
-              prüfen. Passt das Schema, erhältst du einen E2-Link zum Teilen.
-            </p>
+            <p className="mt-1 text-sm text-[var(--muted)]">{t("dialogs.shareLinkHint")}</p>
           </div>
         </div>
 
@@ -157,7 +155,7 @@ export function BoardShareLinkDialog({ open, onClose }: BoardShareLinkDialogProp
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/15 px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--accent)]/25 disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-            Prüfen
+            {t("dialogs.shareLinkCheck")}
           </button>
         </div>
 
@@ -195,15 +193,14 @@ export function BoardShareLinkDialog({ open, onClose }: BoardShareLinkDialogProp
                 className="mt-2 inline-flex items-center gap-2 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-sm font-medium text-emerald-900 hover:bg-emerald-50"
               >
                 {copied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
-                {copied ? "Kopiert" : "Link kopieren"}
+                {copied ? t("common.copied") : t("collab.copyLink")}
               </button>
             </div>
           </div>
         ) : null}
 
         <p className="mt-3 text-[0.7rem] leading-relaxed text-[var(--muted)]">
-          Die Quelle muss CORS für die E2-Origin erlauben. Wer den Link öffnet, lädt das Board nach
-          Bestätigung und arbeitet danach lokal weiter.
+          {t("dialogs.shareLinkCors")}
         </p>
 
         <div className="mt-4 flex justify-end">
@@ -213,7 +210,7 @@ export function BoardShareLinkDialog({ open, onClose }: BoardShareLinkDialogProp
             onClick={onClose}
             className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text)] hover:bg-[var(--control)] disabled:opacity-60"
           >
-            Schließen
+            {t("common.close")}
           </button>
         </div>
       </div>

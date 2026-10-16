@@ -21,7 +21,7 @@ import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { isPointerOverStormCanvas } from "@/lib/board-clipboard";
 import { screenToWorld, snapToGrid, snapToTimeline } from "@/lib/canvas-viewport";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { MODELING_MODE_LABELS } from "@/types/storm-element";
+import { modelingModeLabel, useT } from "@/i18n";
 
 const DRAG_THRESHOLD_PX = 5;
 
@@ -230,6 +230,7 @@ function CustomCardTypeEditDialog({
   );
 }
 export function ElementPalette({ onSelectType, onRequestHelp }: ElementPaletteProps) {
+  const t = useT();
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const setPaletteType = useStormBoardStore((s) => s.setPaletteType);
   const paletteCustomTypeId = useStormBoardStore((s) => s.paletteCustomTypeId);
@@ -262,7 +263,7 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
   );
   const { modeling, annotations } = partitionPaletteTypes(allowed);
   const fixedModeling = modeling.filter((t) => t !== "customCard");
-  const modeLabel = MODELING_MODE_LABELS[modelingMode];
+  const modeLabel = modelingModeLabel(t, modelingMode);
   const editingType = editingTypeId
     ? customCardTypes.find((t) => t.id === editingTypeId) ?? null
     : null;
@@ -515,9 +516,9 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
   return (
     <aside className="flex w-48 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel-solid)]">
       <div className="border-b border-[var(--border)] px-3 py-3">
-        <h2 className="group-label">Elemente</h2>
+        <h2 className="group-label">{t("panels.paletteTitle")}</h2>
         <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
-          {modeLabel} · auf die Karte ziehen
+          {t("panels.paletteDragHint", { mode: modeLabel })}
         </p>
       </div>
       <div className="flex flex-col gap-1.5 overflow-y-auto p-2">
@@ -526,7 +527,7 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
             <p className="px-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
               Kartentypen
             </p>
-            {customCardTypes.map((t) => renderCustomTypeRow(t))}
+            {customCardTypes.map((ct) => renderCustomTypeRow(ct))}
             <button
               type="button"
               className="dock-control mt-0.5 flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-medium"

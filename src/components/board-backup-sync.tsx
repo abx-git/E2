@@ -10,6 +10,7 @@ import {
   readLastBackupAt,
   rememberBackupBaselineFromStore,
 } from "@/lib/board-backup";
+import { translate, readStoredLocale, DEFAULT_LOCALE } from "@/i18n";
 
 export interface BoardBackupSyncProps {
   intervalMinutes: BackupIntervalMinutes;
@@ -53,7 +54,8 @@ export async function runManualBoardBackup(onDone?: (label: string) => void): Pr
     allowPickRollingFile: true,
   });
   if (result.skipped) {
-    window.alert("Kein Board-Inhalt zum Sichern.");
+    const locale = readStoredLocale() ?? DEFAULT_LOCALE;
+    window.alert(translate(locale, "alerts.noBoardToBackup"));
     return;
   }
   onDone?.(formatLastBackupLabel(readLastBackupAt()));

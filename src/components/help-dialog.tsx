@@ -4,6 +4,7 @@ import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 
 import type { HelpDialogModel } from "@/lib/storm-help";
+import { useT } from "@/i18n";
 
 export interface HelpDialogProps {
   open: boolean;
@@ -12,6 +13,7 @@ export interface HelpDialogProps {
 }
 
 export function HelpDialog({ open, model, onClose }: HelpDialogProps) {
+  const t = useT();
   const closeRef = useRef<HTMLButtonElement>(null);
   const titleId = useId();
 
@@ -60,7 +62,7 @@ export function HelpDialog({ open, model, onClose }: HelpDialogProps) {
             type="button"
             onClick={onClose}
             className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
-            aria-label="Schließen"
+            aria-label={t("common.close")}
           >
             ✕
           </button>

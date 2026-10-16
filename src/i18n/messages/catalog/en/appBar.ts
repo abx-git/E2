@@ -1,0 +1,23 @@
+export const appBarEn = {
+  appBar: {
+    boardTitle: "Board title",
+    modelingMode: "Modeling mode",
+    workshopFacilitator: "Workshop & facilitator",
+    sessionSettings: "Session settings",
+    session: "Session",
+    workshopFormat: "Workshop format",
+    facilitatorMode: "Facilitator mode",
+    syncActiveTab: "Sync active tab for everyone",
+    syncActiveTabTitle: "In collaboration, sync the active tab for all participants",
+    undo: "Undo (⌘Z / Ctrl+Z)",
+    redo: "Redo (⌘⇧Z / Ctrl+Y)",
+    collabRoom: "Collaboration room",
+    dataPanel: "Data, appearance, export",
+    data: "Data",
+    facilitator: "Facilitator",
+    workshop: "Workshop",
+    facilitatorPhases: "Facilitator phases",
+    syncActiveTabShort: "Sync tab for all",
+    sessionFormat: "Format",
+  },
+} as const;

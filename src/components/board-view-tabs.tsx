@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Copy, ClipboardPaste, Plus, Trash2, X } from "lucide-react";
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 export function BoardViewTabs({
@@ -10,6 +11,7 @@ export function BoardViewTabs({
 }: {
   onPasteJsonAsNewView?: () => void;
 }) {
+  const t = useT();
   const views = useStormBoardStore((s) => s.views);
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const setActiveView = useStormBoardStore((s) => s.setActiveView);
@@ -71,7 +73,7 @@ export function BoardViewTabs({
                 ref={inputRef}
                 className="dock-control h-7 w-36 rounded-md px-2 text-xs outline-none ring-1 ring-[var(--accent)]"
                 value={draft}
-                aria-label="Sicht umbenennen"
+                aria-label={t("dialogs.renameViewAria")}
                 onChange={(e) => setDraft(e.target.value)}
                 onBlur={commitRename}
                 onKeyDown={(e) => {
@@ -104,7 +106,7 @@ export function BoardViewTabs({
                     "min-w-0 flex-1 truncate px-2.5 text-left text-xs font-medium",
                     canDelete ? "pr-1" : "",
                   ].join(" ")}
-                  title={`${view.name} — Doppelklick: umbenennen, Rechtsklick: Menü`}
+                  title={t("dialogs.viewTabTitle", { name: view.name })}
                 >
                   {view.name}
                 </button>
@@ -115,8 +117,8 @@ export function BoardViewTabs({
                       "mr-0.5 rounded p-0.5 text-[var(--muted)] hover:bg-[var(--control-hover)] hover:text-[var(--text)]",
                       active ? "opacity-80" : "opacity-0 group-hover:opacity-70 focus:opacity-70",
                     ].join(" ")}
-                    title={`Sicht „${view.name}“ löschen`}
-                    aria-label={`Sicht „${view.name}“ löschen`}
+                    title={t("dialogs.deleteViewAria", { name: view.name })}
+                    aria-label={t("dialogs.deleteViewAria", { name: view.name })}
                     onClick={(e) => {
                       e.stopPropagation();
                       requestDelete(view.id);
@@ -135,10 +137,10 @@ export function BoardViewTabs({
         type="button"
         onClick={() => addView()}
         className="dock-control flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[var(--muted)]"
-        title="Neue Sicht"
+        title={t("dialogs.newViewTitle")}
       >
         <Plus className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">Sicht</span>
+        <span className="hidden sm:inline">{t("dialogs.addViewTab")}</span>
       </button>
 
       {onPasteJsonAsNewView ? (
@@ -146,8 +148,8 @@ export function BoardViewTabs({
           type="button"
           onClick={onPasteJsonAsNewView}
           className="dock-control flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[var(--muted)]"
-          title="JSON aus der Zwischenablage als neue Sicht"
-          aria-label="JSON aus der Zwischenablage als neue Sicht"
+          title={t("dialogs.pasteJsonNewViewTitle")}
+          aria-label={t("dialogs.pasteJsonNewViewTitle")}
         >
           <ClipboardPaste className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">JSON</span>
@@ -174,7 +176,7 @@ export function BoardViewTabs({
                 if (v) beginRename(v.id, v.name);
               }}
             >
-              Umbenennen
+              {t("dialogs.renameView")}
             </button>
             <button
               type="button"
@@ -184,7 +186,7 @@ export function BoardViewTabs({
                 setMenu(null);
               }}
             >
-              <Copy className="h-3.5 w-3.5" /> Duplizieren
+              <Copy className="h-3.5 w-3.5" /> {t("dialogs.duplicateView")}
             </button>
             <button
               type="button"
@@ -192,14 +194,14 @@ export function BoardViewTabs({
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-red-400 hover:bg-[var(--control)] disabled:opacity-40"
               onClick={() => requestDelete(menu.id)}
             >
-              <Trash2 className="h-3.5 w-3.5" /> Löschen…
+              <Trash2 className="h-3.5 w-3.5" /> {t("dialogs.deleteView")}
             </button>
             <button
               type="button"
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[var(--muted)] hover:bg-[var(--control)]"
               onClick={() => setMenu(null)}
             >
-              <X className="h-3.5 w-3.5" /> Schließen
+              <X className="h-3.5 w-3.5" /> {t("common.close")}
             </button>
           </div>
         </div>
@@ -223,6 +225,7 @@ function DeleteViewDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const t = useT();
   const titleId = useId();
   const confirmRef = useRef<HTMLButtonElement>(null);
 
@@ -254,10 +257,10 @@ function DeleteViewDialog({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-base font-semibold text-[var(--text)]">
-          Sicht löschen?
+          {t("dialogs.deleteViewTitle")}
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-          „{pending.name}“ und der gesamte Inhalt dieser Sicht werden entfernt.
+          {t("dialogs.deleteViewBody", { name: pending.name })}
         </p>
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
@@ -265,7 +268,7 @@ function DeleteViewDialog({
             onClick={onCancel}
             className="dock-control rounded-lg px-4 py-2.5 text-sm font-medium"
           >
-            Abbrechen
+            {t("common.cancel")}
           </button>
           <button
             ref={confirmRef}
@@ -273,7 +276,7 @@ function DeleteViewDialog({
             onClick={onConfirm}
             className="rounded-lg border border-red-500/40 bg-red-500/15 px-4 py-2.5 text-sm font-medium text-red-300 hover:bg-red-500/25"
           >
-            Sicht löschen
+            {t("dialogs.deleteViewConfirm")}
           </button>
         </div>
       </div>

@@ -3,6 +3,8 @@
 import { useId, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useT } from "@/i18n";
+
 export type CollabLeaveChoice = "leave" | "restore_pre_collab";
 
 export interface CollabLeaveDialogProps {
@@ -22,13 +24,14 @@ export function CollabLeaveDialog({
   onChoose,
   onCancel,
 }: CollabLeaveDialogProps) {
+  const t = useT();
   const titleId = useId();
   const [pending, setPending] = useState<CollabLeaveChoice | null>(null);
   if (!open) return null;
 
   const stashLabel = preCollabFileLabel?.trim()
-    ? `Stand vor dem Raum (${preCollabFileLabel.trim()})`
-    : "Stand vor dem Raum";
+    ? t("collab.restorePreCollabNamed", { file: preCollabFileLabel.trim() })
+    : t("collab.restorePreCollab");
 
   const choose = (choice: CollabLeaveChoice) => {
     setPending(choice);
@@ -48,13 +51,9 @@ export function CollabLeaveDialog({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-base font-semibold text-slate-900">
-          Raum verlassen
+          {t("collab.leaveTitle")}
         </h2>
-        <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          Die Live-Verbindung endet. Der aktuelle Board-Stand bleibt im Editor. Die Arbeitsdatei
-          wurde während des Raums <strong className="font-semibold text-slate-800">nicht</strong>{" "}
-          überschrieben — speichere bei Bedarf mit „Speichern unter…“.
-        </p>
+        <p className="mt-3 text-sm leading-relaxed text-slate-600">{t("collab.leaveBody")}</p>
         <div className="mt-5 flex flex-col gap-2">
           <button
             type="button"
@@ -62,9 +61,9 @@ export function CollabLeaveDialog({
             onClick={() => choose("leave")}
             className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-left text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
           >
-            <span className="block">Raum verlassen</span>
+            <span className="block">{t("collab.leaveConfirm")}</span>
             <span className="mt-0.5 block text-[0.72rem] font-normal text-sky-900/70">
-              Board behalten und Solo weiterarbeiten
+              {t("collab.leaveConfirmHint")}
             </span>
           </button>
           {hasPreCollabStash && (
@@ -74,10 +73,9 @@ export function CollabLeaveDialog({
               onClick={() => choose("restore_pre_collab")}
               className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-left text-sm font-medium text-amber-950 hover:bg-amber-100 disabled:opacity-60"
             >
-              <span className="block">{stashLabel} wiederherstellen</span>
+              <span className="block">{stashLabel}</span>
               <span className="mt-0.5 block text-[0.72rem] font-normal text-amber-900/70">
-                Achtung: ersetzt den aktuellen Editor-Stand (Raum-Inhalt) lokal — nicht den
-                Default, wenn du den Remote-Stand behalten willst
+                {t("collab.restorePreCollabHint")}
               </span>
             </button>
           )}
@@ -87,11 +85,11 @@ export function CollabLeaveDialog({
             onClick={onCancel}
             className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
           >
-            Abbrechen
+            {t("common.cancel")}
           </button>
         </div>
         {busy && pending && (
-          <p className="mt-3 text-[0.72rem] text-slate-500">Bitte warten…</p>
+          <p className="mt-3 text-[0.72rem] text-slate-500">{t("common.pleaseWait")}</p>
         )}
       </div>
     </div>

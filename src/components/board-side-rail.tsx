@@ -20,6 +20,7 @@ import { GlossaryPanel } from "@/components/glossary-panel";
 import { HotspotList } from "@/components/hotspot-list";
 import { clipboardItemCount } from "@/lib/board-clipboard";
 import type { FacilitatorPhase } from "@/lib/facilitator-phases";
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ElementType, WorkshopFormat } from "@/types/storm-element";
 import type { RelationType } from "@/types/storm-relation";
@@ -88,6 +89,7 @@ export function BoardSideRailContent({
   onRequestHelpPhase,
   touchFriendly = false,
 }: BoardSideRailContentProps) {
+  const t = useT();
   const clipboard = useStormBoardStore((s) => s.clipboard);
   const actionItems = useStormBoardStore((s) => s.actionItems);
   const elements = useStormBoardStore((s) => s.elements);
@@ -117,48 +119,49 @@ export function BoardSideRailContent({
     const defs: TabDef[] = [
       {
         id: "clipboard",
-        label: "Zwischenablage",
+        label: t("sideRail.clipboard"),
         icon: ClipboardList,
         badge: clipboardCount > 0 ? clipboardCount : undefined,
         available: true,
       },
       {
         id: "todos",
-        label: "To-dos",
+        label: t("sideRail.todos"),
         icon: CheckSquare,
         badge: openTodoCount > 0 ? openTodoCount : undefined,
         available: true,
       },
       {
         id: "hotspots",
-        label: "Hotspots",
+        label: t("sideRail.hotspots"),
         icon: Flame,
         badge: hotspotCount > 0 ? hotspotCount : undefined,
         available: hotspotCount > 0,
       },
       {
         id: "glossary",
-        label: "Glossary",
+        label: t("sideRail.glossary"),
         icon: BookOpen,
         badge: glossary.length > 0 ? glossary.length : undefined,
         available: true,
       },
       {
         id: "bookmarks",
-        label: "Lesezeichen",
+        label: t("sideRail.bookmarks"),
         icon: Bookmark,
         badge: bookmarks.length > 0 ? bookmarks.length : undefined,
         available: true,
       },
       {
         id: "facilitator",
-        label: "Facilitator",
+        label: t("sideRail.facilitator"),
         icon: Timer,
         available: facilitatorActive,
       },
     ];
-    return defs.filter((t) => t.available);
+    return defs.filter((tab) => tab.available);
   }, [
+    t,
     clipboardCount,
     openTodoCount,
     hotspotCount,
@@ -207,7 +210,7 @@ export function BoardSideRailContent({
         <div
           className="flex shrink-0 items-center gap-0.5 border-b border-[var(--border)] px-1.5 py-1"
           role="tablist"
-          aria-label="Board-Werkzeuge"
+          aria-label={t("sideRail.tools")}
         >
           {tabs.map((tab) => {
             const Icon = tab.icon;

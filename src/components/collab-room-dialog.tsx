@@ -21,6 +21,7 @@ import {
 import { capturePreCollabStash } from "@/lib/collab/pre-collab-stash";
 import { getCollabShareUrl, useCollabStore } from "@/lib/collab/session";
 import { resetSupabaseClient } from "@/lib/collab/supabase";
+import { useT } from "@/i18n";
 import { backupBeforeSuspiciousSwitch } from "@/lib/board-backup";
 import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
 import {
@@ -45,6 +46,7 @@ export function CollabRoomDialog({
   onExportJson,
   onRequestLeave,
 }: CollabRoomDialogProps) {
+  const t = useT();
   const configured = useCollabStore((s) => s.configured);
   const connectionSource = useCollabStore((s) => s.connectionSource);
   const refreshConfigured = useCollabStore((s) => s.refreshConfigured);
@@ -99,15 +101,15 @@ export function CollabRoomDialog({
   const shareUrl = room ? getCollabShareUrl(room.code) : "";
   const sourceLabel =
     connectionSource === "env"
-      ? "aus .env / Build"
+      ? t("collab.connectionFromEnv")
       : connectionSource === "local"
-        ? "lokal im Browser"
+        ? t("collab.connectionLocal")
         : null;
 
   const saveConnection = () => {
     setLocalError(null);
     if (envLocked) {
-      setLocalError("Verbindung kommt aus der Umgebung (.env) und kann hier nicht überschrieben werden.");
+      setLocalError(t("dialogs.collabEnvLocked"));
       return;
     }
     const result = saveLocalSupabaseConnection({ url: supabaseUrl, key: supabaseKey });
@@ -139,7 +141,7 @@ export function CollabRoomDialog({
     if (options?.saveFirst && isWorkingFileAttached()) {
       const result = await persistWorkingFileJson(boardJsonFromStoreState());
       if (!result.ok) {
-        setLocalError("Speichern in die Arbeitsdatei fehlgeschlagen.");
+        setLocalError(t("dialogs.collabSaveFailed"));
         return;
       }
     }
@@ -157,7 +159,7 @@ export function CollabRoomDialog({
   const requestEnter = (mode: "create" | "join") => {
     setLocalError(null);
     if (mode === "create" && !canCreateCollabRoom()) {
-      setLocalError(createRoomBlockedHint() || "Bitte zuerst speichern.");
+      setLocalError(createRoomBlockedHint() || t("dialogs.collabSaveFirst"));
       setTab("create");
       return;
     }
@@ -186,10 +188,10 @@ export function CollabRoomDialog({
           >
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h2 className="text-sm font-semibold text-[var(--text)]">Kollaboration</h2>
+                <h2 className="text-sm font-semibold text-[var(--text)]">{t("dialogs.collabRoomTitle")}</h2>
                 <p className="mt-1 text-[0.72rem] text-[var(--muted)]">
-                  Geteilter Raum über Supabase Free Tier
-                  {sourceLabel ? ` · Verbindung ${sourceLabel}` : ""}
+                  {t("dialogs.collabRoomSupabase")}
+                  {sourceLabel ? ` · ${t("collab.connectionSource", { source: sourceLabel })}` : ""}
                 </p>
               </div>
               <div className="flex gap-1">
@@ -197,8 +199,8 @@ export function CollabRoomDialog({
                   <button
                     type="button"
                     className="dock-control rounded-md p-1.5"
-                    title="Supabase-Verbindung"
-                    aria-label="Supabase-Verbindung"
+                    title={t("collab.supabaseConnection")}
+                    aria-label={t("collab.supabaseConnection")}
                     onClick={() => setShowConnection((v) => !v)}
                   >
                     <Settings2 className="h-4 w-4" />
@@ -208,7 +210,7 @@ export function CollabRoomDialog({
                   type="button"
                   className="dock-control rounded-md p-1.5"
                   onClick={onClose}
-                  aria-label="Schließen"
+                  aria-label={t("common.close")}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -219,8 +221,8 @@ export function CollabRoomDialog({
               <div className="mt-4 space-y-2 rounded-lg border border-[var(--border)] bg-[var(--control)] p-3">
                 <p className="text-[0.72rem] text-[var(--muted)]">
                   {envLocked
-                    ? "Verbindung ist per Build/.env vorgegeben."
-                    : "Ohne .env: Project-URL und Publishable/Anon-Key hier speichern (nur in diesem Browser)."}
+                    ? t("collab.connectionEnvHint")
+                    : t("collab.connectionLocalHint")}
                 </p>
                 <label className="block text-[0.72rem] text-[var(--muted)]">
                   Project URL
@@ -283,17 +285,17 @@ export function CollabRoomDialog({
             ) : active && room ? (
               <div className="mt-4 space-y-3">
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--control)] p-3">
-                  <p className="text-[0.72rem] text-[var(--muted)]">Raum-Code</p>
+                  <p className="text-[0.72rem] text-[var(--muted)]">{t("collab.roomCodeLabel")}</p>
                   <p className="mt-1 font-mono text-lg tracking-widest text-[var(--text)]">{room.code}</p>
                   {isHost && (
-                    <p className="mt-1 text-[0.68rem] text-[var(--accent)]">Du bist Host dieses Raums</p>
+                    <p className="mt-1 text-[0.68rem] text-[var(--accent)]">{t("collab.youAreHost")}</p>
                   )}
                   <p className="mt-2 text-[0.68rem] text-[var(--muted)]">
                     Gültig bis {new Date(room.expiresAt).toLocaleString()}
                   </p>
                   {isWorkingFileAttached() && (
                     <p className="mt-2 text-[0.68rem] text-[var(--accent-2)]">
-                      Arbeitsdatei wird während des Raums nicht überschrieben
+                      {t("dialogs.collabFileNotOverwritten")}
                     </p>
                   )}
                 </div>
@@ -308,7 +310,7 @@ export function CollabRoomDialog({
                     }}
                   >
                     <Copy className="h-4 w-4" />
-                    {copied ? "Kopiert" : "Link kopieren"}
+                    {copied ? t("common.copied") : t("collab.copyLink")}
                   </button>
                   <button
                     type="button"
@@ -337,14 +339,14 @@ export function CollabRoomDialog({
                     ].join(" ")}
                     onClick={() => {
                       if (!createAllowed) {
-                        setLocalError(createBlockedHint || "Bitte zuerst speichern.");
+                        setLocalError(createBlockedHint || t("dialogs.collabSaveFirst"));
                         return;
                       }
                       setLocalError(null);
                       setTab("create");
                     }}
                   >
-                    Raum erstellen
+                    {t("collab.createTab")}
                   </button>
                   <button
                     type="button"
@@ -357,7 +359,7 @@ export function CollabRoomDialog({
                       setTab("join");
                     }}
                   >
-                    Beitreten
+                    {t("collab.joinTab")}
                   </button>
                 </div>
 
@@ -373,14 +375,14 @@ export function CollabRoomDialog({
                     className="dock-field mt-1"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Dein Name"
+                    placeholder={t("collab.yourName")}
                     maxLength={40}
                   />
                 </label>
 
                 {tab === "join" && (
                   <label className="mt-3 block text-[0.72rem] text-[var(--muted)]">
-                    Raum-Code
+                    {t("collab.roomCodeLabel")}
                     <input
                       className="dock-field mt-1 font-mono uppercase tracking-wider"
                       value={code}
@@ -407,7 +409,7 @@ export function CollabRoomDialog({
                   onClick={() => requestEnter(tab)}
                 >
                   {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
-                  {tab === "create" ? "Raum starten" : "Beitreten"}
+                  {tab === "create" ? t("collab.startOrJoin") : t("collab.join")}
                 </button>
               </>
             ) : (

@@ -453,62 +453,63 @@ export function DataStoragePanel({
     () => [
       {
         id: "event-catalog",
-        label: "Event Catalog",
-        detail: "Event Storming",
+        label: t("exportPanel.eventCatalog"),
+        detail: t("exportPanel.eventCatalogDetail"),
         modes: ["eventStorming", "eventModeling"],
         onClick: onExportEventCatalog,
       },
       {
         id: "domain-model",
-        label: "Domain Model",
-        detail: "DDD",
+        label: t("exportPanel.domainModel"),
+        detail: t("exportPanel.domainModelDetail"),
         modes: ["domainDrivenDesign"],
         onClick: onExportDomainModel,
       },
       {
         id: "example-mapping",
-        label: "Example Mapping",
-        detail: "BDD",
+        label: t("exportPanel.exampleMapping"),
+        detail: t("exportPanel.exampleMappingDetail"),
         modes: ["bdd"],
         onClick: onExportExampleMapping,
       },
       {
         id: "story-map",
-        label: "Story Map",
-        detail: "USM",
+        label: t("exportPanel.storyMap"),
+        detail: t("exportPanel.storyMapDetail"),
         modes: ["userStoryMapping"],
         onClick: onExportStoryMap,
       },
       {
         id: "event-model",
-        label: "Event Model",
-        detail: "Slices",
+        label: t("exportPanel.eventModel"),
+        detail: t("exportPanel.eventModelDetail"),
         modes: ["eventModeling"],
         onClick: onExportEventModel,
       },
       {
         id: "process",
-        label: "Prozess",
-        detail: "Ablauf",
+        label: t("exportPanel.process"),
+        detail: t("exportPanel.processDetail"),
         modes: ["processFlow"],
         onClick: onExportProcess,
       },
       {
         id: "data-model",
-        label: "Datenmodell",
-        detail: "Entitäten",
+        label: t("exportPanel.dataModel"),
+        detail: t("exportPanel.dataModelDetail"),
         modes: ["dataModel"],
         onClick: onExportDataModel,
       },
       {
         id: "architecture",
-        label: "Architektur",
-        detail: "C4 · arc42 · Cloud",
+        label: t("exportPanel.architecture"),
+        detail: t("exportPanel.architectureDetail"),
         modes: ["c4", "arc42", "cloud"],
         onClick: onExportArchitectureDocumentation,
       },
     ],
     [
+      t,
       onExportEventCatalog,
       onExportDomainModel,
       onExportExampleMapping,
@@ -525,12 +526,12 @@ export function DataStoragePanel({
 
   const syncStatus = workingFileAttached
     ? workingFilePersistPaused
-      ? "Autosave pausiert"
+      ? t("storage.statusAutosavePaused")
       : workingFileDirty
-        ? "ungespeichert"
+        ? t("storage.statusUnsaved")
         : workingFileSaving
-          ? "speichert …"
-          : "gespeichert"
+          ? t("storage.statusSaving")
+          : t("storage.statusSaved")
     : null;
 
   const libraryReady = libraryPermission === "granted";
@@ -703,38 +704,36 @@ export function DataStoragePanel({
                 {workingFileAttached ? (
                   <p className="text-xs text-[var(--muted)]">
                     <span className="font-medium text-[var(--text)]">
-                      {workingFileLabel ?? "Arbeitsdatei"}
+                      {workingFileLabel ?? t("common.defaultWorkingFile")}
                     </span>
                     {syncStatus ? ` · ${syncStatus}` : null}
                   </p>
                 ) : (
                   <p className="text-xs text-[var(--muted)]">
-                    Kein Sync-Ziel — „Speichern unter…“ verknüpft eine Arbeitsdatei.
+                    {t("storage.noSyncTarget")}
                   </p>
                 )}
                 {workingFilePersistPaused && (
                   <p className="rounded-lg border border-[var(--accent-2)]/40 bg-[rgba(233,196,106,0.12)] px-2.5 py-2 text-xs text-[var(--accent-2)]">
-                    Autosave pausiert — die verknüpfte Datei wird nicht überschrieben. Nutze
-                    „Speichern unter…“.
+                    {t("storage.autosavePausedHint")}
                   </p>
                 )}
                 {hasUnsavedDocument && (
                   <p className="rounded-lg border border-[var(--accent-2)]/40 bg-[rgba(233,196,106,0.12)] px-2.5 py-2 text-xs text-[var(--accent-2)]">
-                    Ungespeicherte Änderungen — bei Neu / Öffnen / Schließen kannst du speichern oder
-                    verwerfen.
+                    {t("storage.unsavedHint")}
                   </p>
                 )}
                 <div className="grid grid-cols-2 gap-2">
                   <ActionButton onClick={onNewWorkingFile} disabled={busy}>
-                    <FilePlus className="h-4 w-4" /> Neu
+                    <FilePlus className="h-4 w-4" /> {t("common.new")}
                   </ActionButton>
                   {fsAccessSupported ? (
                     <ActionButton onClick={onOpenWorkingFile} disabled={busy}>
-                      <FolderOpen className="h-4 w-4" /> Öffnen…
+                      <FolderOpen className="h-4 w-4" /> {t("common.open")}
                     </ActionButton>
                   ) : (
                     <ActionButton onClick={onRestoreBackupFile} disabled={busy}>
-                      <FolderOpen className="h-4 w-4" /> Öffnen…
+                      <FolderOpen className="h-4 w-4" /> {t("common.open")}
                     </ActionButton>
                   )}
                   {workingFileAttached ? (
@@ -743,7 +742,7 @@ export function DataStoragePanel({
                       disabled={busy || (!workingFileDirty && !workingFilePersistPaused)}
                       emphasize={workingFileDirty || Boolean(hasUnsavedDocument)}
                     >
-                      <Save className="h-4 w-4" /> Speichern
+                      <Save className="h-4 w-4" /> {t("common.save")}
                     </ActionButton>
                   ) : null}
                   <ActionButton
@@ -751,37 +750,37 @@ export function DataStoragePanel({
                     disabled={busy}
                     emphasize={!workingFileAttached && Boolean(hasUnsavedDocument)}
                   >
-                    <Save className="h-4 w-4" /> Speichern unter…
+                    <Save className="h-4 w-4" /> {t("storage.saveAs")}
                   </ActionButton>
                   {workingFileAttached && onCloseWorkingFile ? (
                     <ActionButton onClick={onCloseWorkingFile} disabled={busy}>
-                      <X className="h-4 w-4" /> Schließen
+                      <X className="h-4 w-4" /> {t("common.close")}
                     </ActionButton>
                   ) : null}
                   {workingFileAttached && onRenameWorkingFile ? (
                     <ActionButton onClick={onRenameWorkingFile} disabled={busy}>
-                      Umbenennen…
+                      {t("common.rename")}
                     </ActionButton>
                   ) : null}
                 </div>
                 {busy && (
                   <p className="flex items-center gap-2 text-xs text-[var(--muted)]">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Bitte warten …
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t("common.loading")}
                   </p>
                 )}
               </div>
 
-              <Disclosure title="Weitere Aktionen">
+              <Disclosure title={t("storage.moreActions")}>
                 <ActionButton
                   onClick={onRestoreBackupPaste}
                   disabled={busy}
                 >
-                  JSON einfügen
+                  {t("storage.pasteJson")}
                 </ActionButton>
                 {fsAccessSupported && !libraryReady && recentFiles.length > 0 && (
                   <div className="space-y-1.5">
                     <p className="text-[0.7rem] font-medium text-[var(--muted)]">
-                      Zuletzt verwendet
+                      {t("storage.recentFiles")}
                     </p>
                     <ul className="space-y-1">
                       {recentFiles.map((entry) => (
@@ -791,13 +790,13 @@ export function DataStoragePanel({
                             disabled={busy}
                             onClick={() => onOpenRecentWorkingFile(entry.handle)}
                             className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
-                            title={new Date(entry.openedAt).toLocaleString("de-DE")}
+                            title={new Date(entry.openedAt).toLocaleString(bcp47)}
                           >
                             <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
                             <span className="min-w-0 flex-1">
                               <span className="block truncate font-medium">{entry.name}</span>
                               <span className="block text-[0.65rem] text-[var(--muted)]">
-                                {new Date(entry.openedAt).toLocaleString("de-DE")}
+                                {new Date(entry.openedAt).toLocaleString(bcp47)}
                               </span>
                             </span>
                           </button>

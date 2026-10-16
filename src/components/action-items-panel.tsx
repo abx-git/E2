@@ -3,12 +3,16 @@
 import { useMemo, useState } from "react";
 import { Link2, Plus, Trash2 } from "lucide-react";
 
+import {
+  actionItemAreaLabel,
+  actionItemStatusLabel,
+  useI18n,
+  useT,
+} from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import {
-  ACTION_ITEM_AREA_LABELS,
   ACTION_ITEM_AREAS,
   ACTION_ITEM_STATUS_COLORS,
-  ACTION_ITEM_STATUS_LABELS,
   ACTION_ITEM_STATUSES,
   type ActionItemArea,
   type ActionItemStatus,
@@ -17,6 +21,8 @@ import {
 type StatusFilter = "all" | ActionItemStatus;
 
 export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
+  const t = useT();
+  const { bcp47 } = useI18n();
   const actionItems = useStormBoardStore((s) => s.actionItems);
   const elements = useStormBoardStore((s) => s.elements);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
@@ -36,10 +42,10 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    const list = [...actionItems].sort((a, b) => a.title.localeCompare(b.title, "de"));
+    const list = [...actionItems].sort((a, b) => a.title.localeCompare(b.title, bcp47));
     if (statusFilter === "all") return list;
     return list.filter((item) => item.status === statusFilter);
-  }, [actionItems, statusFilter]);
+  }, [actionItems, statusFilter, bcp47]);
 
   const openCount = actionItems.filter((i) => i.status !== "done").length;
 
@@ -74,15 +80,15 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
       {!embedded && (
         <>
           <div className="flex items-center justify-between gap-2">
-            <h3 className="group-label">To-dos & Problemfelder</h3>
+            <h3 className="group-label">{t("panels.actionItemsTitle")}</h3>
             {openCount > 0 && (
               <span className="rounded-full bg-[var(--control)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted)]">
-                {openCount} offen
+                {t("panels.actionItemsOpenCount", { n: openCount })}
               </span>
             )}
           </div>
           <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
-            Action-Item-Register: Status, Notizen und Problemfelder (Workshop & Architektur).
+            {t("panels.actionItemsHint")}
           </p>
         </>
       )}
@@ -100,7 +106,7 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
             ].join(" ")}
             onClick={() => setStatusFilter(key)}
           >
-            {key === "all" ? "Alle" : ACTION_ITEM_STATUS_LABELS[key]}
+            {key === "all" ? t("panels.filterAll") : actionItemStatusLabel(t, key)}
           </button>
         ))}
       </div>
@@ -112,7 +118,7 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
         ].join(" ")}
       >
         {filtered.length === 0 ? (
-          <li className="text-xs text-[var(--muted)]">Noch keine Einträge.</li>
+          <li className="text-xs text-[var(--muted)]">{t("panels.actionItemsEmpty")}</li>
         ) : (
           filtered.map((item) => {
             const expanded = expandedId === item.id;
@@ -130,7 +136,7 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
                   <span
                     className="mt-1.5 size-2 shrink-0 rounded-full"
                     style={{ backgroundColor: ACTION_ITEM_STATUS_COLORS[item.status] }}
-                    title={ACTION_ITEM_STATUS_LABELS[item.status]}
+                    title={actionItemStatusLabel(t, item.status)}
                     aria-hidden
                   />
                   <button
@@ -149,15 +155,15 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
                       {item.title}
                     </span>
                     <span className="mt-0.5 block text-[10px] text-[var(--muted)]">
-                      {ACTION_ITEM_AREA_LABELS[item.area]}
+                      {actionItemAreaLabel(t, item.area)}
                     </span>
                   </button>
                   {hasLink && (
                     <button
                       type="button"
                       className="shrink-0 rounded p-1 text-[var(--muted)] hover:text-[var(--accent)]"
-                      title="Verknüpfung auf dem Board anzeigen"
-                      aria-label="Verknüpfung auf dem Board anzeigen"
+                      title={t("panels.showLinkOnBoard")}
+                      aria-label={t("panels.showLinkOnBoard")}
                       onClick={() => jumpToLink(item)}
                     >
                       <Link2 className="size-3.5" />
@@ -166,7 +172,7 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
                   <button
                     type="button"
                     className="shrink-0 rounded p-1 text-[var(--muted)] hover:text-[#f0a8a0]"
-                    aria-label="Eintrag löschen"
+                    aria-label={t("panels.deleteEntry")}
                     onClick={() => deleteActionItem(item.id)}
                   >
                     <Trash2 className="size-3.5" />
@@ -176,7 +182,7 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
                 {expanded && (
                   <div className="space-y-2 border-t border-[var(--border)] px-2 py-2">
                     <label className="block text-[10px] font-medium text-[var(--muted)]">
-                      Status
+                      {t("panels.statusLabel")}
                       <select
                         className="dock-field mt-0.5 text-xs"
                         value={item.status}
@@ -188,13 +194,13 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
                       >
                         {ACTION_ITEM_STATUSES.map((s) => (
                           <option key={s} value={s}>
-                            {ACTION_ITEM_STATUS_LABELS[s]}
+                            {actionItemStatusLabel(t, s)}
                           </option>
                         ))}
                       </select>
                     </label>
                     <label className="block text-[10px] font-medium text-[var(--muted)]">
-                      Bereich
+                      {t("panels.areaLabel")}
                       <select
                         className="dock-field mt-0.5 text-xs"
                         value={item.area}
@@ -204,13 +210,13 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
                       >
                         {ACTION_ITEM_AREAS.map((a) => (
                           <option key={a} value={a}>
-                            {ACTION_ITEM_AREA_LABELS[a]}
+                            {actionItemAreaLabel(t, a)}
                           </option>
                         ))}
                       </select>
                     </label>
                     <label className="block text-[10px] font-medium text-[var(--muted)]">
-                      Notizen
+                      {t("panels.notesLabel")}
                       <textarea
                         className="dock-field mt-0.5 min-h-[3rem] text-xs"
                         rows={2}
@@ -231,7 +237,7 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
       <div className="mt-2 flex flex-col gap-1.5">
         <input
           className="dock-field text-xs"
-          placeholder="Titel / Aufgabe"
+          placeholder={t("panels.titlePlaceholder")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => {
@@ -244,7 +250,7 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
         <textarea
           className="dock-field min-h-[2.5rem] text-xs"
           rows={2}
-          placeholder="Notizen (optional)"
+          placeholder={t("panels.notesPlaceholder")}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />
@@ -253,11 +259,11 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
             className="dock-field text-xs"
             value={status}
             onChange={(e) => setStatus(e.target.value as ActionItemStatus)}
-            aria-label="Status"
+            aria-label={t("panels.statusLabel")}
           >
             {ACTION_ITEM_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {ACTION_ITEM_STATUS_LABELS[s]}
+                {actionItemStatusLabel(t, s)}
               </option>
             ))}
           </select>
@@ -265,17 +271,17 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
             className="dock-field text-xs"
             value={area}
             onChange={(e) => setArea(e.target.value as ActionItemArea)}
-            aria-label="Bereich"
+            aria-label={t("panels.areaLabel")}
           >
             {ACTION_ITEM_AREAS.map((a) => (
               <option key={a} value={a}>
-                {ACTION_ITEM_AREA_LABELS[a]}
+                {actionItemAreaLabel(t, a)}
               </option>
             ))}
           </select>
         </div>
         {(selectedElementIds[0] || selectedBoundedContextIds[0]) && (
-          <p className="text-[10px] text-[var(--muted)]">Verknüpft mit aktueller Auswahl.</p>
+          <p className="text-[10px] text-[var(--muted)]">{t("panels.linkedToSelection")}</p>
         )}
         <button
           type="button"
@@ -283,7 +289,7 @@ export function ActionItemsPanel({ embedded = false }: { embedded?: boolean }) {
           onClick={addItem}
           className="dock-control flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs disabled:opacity-50"
         >
-          <Plus className="size-3.5" /> Hinzufügen
+          <Plus className="size-3.5" /> {t("panels.add")}
         </button>
       </div>
     </>

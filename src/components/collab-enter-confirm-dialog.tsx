@@ -4,6 +4,8 @@ import { useId } from "react";
 import { createPortal } from "react-dom";
 import { Download } from "lucide-react";
 
+import { useT } from "@/i18n";
+
 export type CollabEnterChoice = "proceed" | "save_and_proceed" | "cancel";
 
 export interface CollabEnterConfirmDialogProps {
@@ -27,14 +29,13 @@ export function CollabEnterConfirmDialog({
   onExportJson,
   onChoose,
 }: CollabEnterConfirmDialogProps) {
+  const t = useT();
   const titleId = useId();
   if (!open) return null;
 
   const isJoin = mode === "join";
   const showSaveAndProceed = workingFileAttached && workingFileDirty;
-  // Create requires a sync target + clean board; dirty → only via Speichern first.
-  const showProceed =
-    isJoin || (workingFileAttached && !workingFileDirty);
+  const showProceed = isJoin || (workingFileAttached && !workingFileDirty);
 
   const layer = (
     <div
@@ -49,32 +50,21 @@ export function CollabEnterConfirmDialog({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-base font-semibold text-slate-900">
-          {isJoin ? "Raum beitreten?" : "Raum erstellen?"}
+          {isJoin ? t("collab.enterJoinTitle") : t("collab.enterCreateTitle")}
         </h2>
         <div className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
-          {isJoin && boardHasContent && (
-            <p>
-              Der Editor wird durch den <strong className="font-semibold text-slate-800">Raum-Stand</strong>{" "}
-              ersetzt. Alle Teilnehmer arbeiten danach live am selben Board — ohne weitere Nachfragen.
-            </p>
-          )}
-          {!isJoin && boardHasContent && (
-            <p>Dein aktuelles Board wird als Startinhalt in den neuen Raum übernommen.</p>
-          )}
+          {isJoin && boardHasContent && <p>{t("dialogs.collabEnterJoinReplace")}</p>}
+          {!isJoin && boardHasContent && <p>{t("dialogs.collabEnterBoardAdopted")}</p>}
           {workingFileAttached ? (
-            <p>
-              Deine verknüpfte Datei bleibt erhalten und wird während des Raums{" "}
-              <strong className="font-semibold text-slate-800">nicht überschrieben</strong>. Neu/Öffnen
-              ist im Raum nicht möglich — erst nach dem Verlassen.
-            </p>
+            <p>{t("dialogs.collabEnterFileSafe")}</p>
           ) : (
             !isJoin && (
               <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-950">
-                Zuerst „Speichern unter…“ — der Raum braucht eine Datei als lokales Backup.
+                {t("dialogs.collabEnterDirty")}
               </p>
             )
           )}
-          <p className="text-slate-500">Optional: JSON exportieren als zusätzliche Kopie.</p>
+          <p className="text-slate-500">{t("dialogs.collabEnterExportOptional")}</p>
         </div>
         <div className="mt-5 flex flex-col gap-2">
           <button
@@ -84,7 +74,7 @@ export function CollabEnterConfirmDialog({
             className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
           >
             <Download className="h-4 w-4" />
-            JSON exportieren
+            {t("dialogs.exportJsonButton")}
           </button>
           {showSaveAndProceed && (
             <button
@@ -93,7 +83,7 @@ export function CollabEnterConfirmDialog({
               onClick={() => onChoose("save_and_proceed")}
               className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-950 hover:bg-emerald-100 disabled:opacity-60"
             >
-              {isJoin ? "Speichern & Raum laden" : "Speichern & Raum starten"}
+              {isJoin ? t("collab.saveAndJoin") : t("collab.saveAndCreate")}
             </button>
           )}
           {showProceed && (
@@ -103,7 +93,7 @@ export function CollabEnterConfirmDialog({
               onClick={() => onChoose("proceed")}
               className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
             >
-              {isJoin ? "Raum laden" : "Raum starten"}
+              {isJoin ? t("collab.joinRoom") : t("collab.createRoom")}
             </button>
           )}
           <button
@@ -112,7 +102,7 @@ export function CollabEnterConfirmDialog({
             onClick={() => onChoose("cancel")}
             className="rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
           >
-            Abbrechen
+            {t("common.cancel")}
           </button>
         </div>
       </div>

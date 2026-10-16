@@ -3,6 +3,8 @@
 import { useId } from "react";
 import { createPortal } from "react-dom";
 
+import { useT } from "@/i18n";
+
 export type FileConflictChoice = "keep_local" | "load_file";
 
 export interface FileConflictDialogProps {
@@ -30,10 +32,11 @@ export function FileConflictDialog({
   loadFileLabel,
   allowLoadFile = true,
 }: FileConflictDialogProps) {
+  const t = useT();
   const titleId = useId();
   if (!open) return null;
 
-  const label = fileName?.trim() ? `„${fileName.trim()}"` : "Ihre Datei";
+  const label = fileName?.trim() ? `„${fileName.trim()}"` : t("dialogs.fileConflictYourFile");
 
   const layer = (
     <div
@@ -48,11 +51,10 @@ export function FileConflictDialog({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-base font-semibold text-slate-900">
-          {title ?? "Datei und E2 wurden gleichzeitig geändert"}
+          {title ?? t("dialogs.fileConflictTitle")}
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          {description ??
-            `${label} wurde extern geändert, während Sie in E2 ungespeicherte Änderungen haben.`}
+          {description ?? t("dialogs.fileConflictBody", { file: label })}
         </p>
         <div className="mt-5 flex flex-col gap-2">
           <button
@@ -61,7 +63,7 @@ export function FileConflictDialog({
             onClick={() => onChoose("keep_local")}
             className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-left text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
           >
-            {keepLocalLabel ?? "E2-Stand in die Datei schreiben"}
+            {keepLocalLabel ?? t("dialogs.fileConflictKeepLocal")}
           </button>
           {allowLoadFile && (
             <button
@@ -70,7 +72,7 @@ export function FileConflictDialog({
               onClick={() => onChoose("load_file")}
               className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
             >
-              {loadFileLabel ?? "Datei in E2 laden"}
+              {loadFileLabel ?? t("dialogs.fileConflictLoadFile")}
             </button>
           )}
         </div>

@@ -15,7 +15,8 @@ import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { placeElementAtViewportCenter } from "@/lib/place-element-on-canvas";
 import { useIsMobileLayout } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { MODELING_MODE_LABELS, partitionPaletteTypes, type ElementType } from "@/types/storm-element";
+import { modelingModeLabel, useT } from "@/i18n";
+import { partitionPaletteTypes, type ElementType } from "@/types/storm-element";
 import type { FacilitatorPhase } from "@/lib/facilitator-phases";
 import type { WorkshopFormat } from "@/types/storm-element";
 import type { RelationType } from "@/types/storm-relation";
@@ -34,6 +35,7 @@ export function MobileBoardBar({
   onRequestHelpRelationType,
   onRequestHelpPhase,
 }: MobileBoardBarProps) {
+  const t = useT();
   const isMobile = useIsMobileLayout();
   const [openSheet, setOpenSheet] = useState<MobileSheet>(null);
   const activityBadge = useSideRailActivityBadge();
@@ -59,17 +61,17 @@ export function MobileBoardBar({
         <div
           className="pointer-events-auto dock-surface flex items-center gap-1 rounded-xl p-1 shadow-dock"
           role="toolbar"
-          aria-label="Mobile-Werkzeuge"
+          aria-label={t("mobile.tools")}
         >
           <MobileBarButton
-            label="Elemente"
+            label={t("mobile.elements")}
             active={openSheet === "palette"}
             onClick={() => setOpenSheet((s) => (s === "palette" ? null : "palette"))}
           >
             <LayoutGrid className="size-5" aria-hidden />
           </MobileBarButton>
           <MobileBarButton
-            label="Panel"
+            label={t("mobile.panel")}
             active={openSheet === "panel"}
             badge={activityBadge > 0 ? activityBadge : hasInspector ? undefined : undefined}
             highlight={hasInspector && activityBadge === 0}
@@ -99,14 +101,14 @@ export function MobileBoardBar({
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                  Werkzeuge
+                  {t("mobile.toolsSection")}
                 </p>
-                <h2 className="text-base font-semibold text-[var(--text)]">Panel</h2>
+                <h2 className="text-base font-semibold text-[var(--text)]">{t("mobile.panel")}</h2>
               </div>
               <button
                 type="button"
                 className="dock-control shrink-0 rounded-md p-2"
-                aria-label="Schließen"
+                aria-label={t("common.close")}
                 onClick={() => setOpenSheet(null)}
               >
                 <X className="size-4" />
@@ -178,6 +180,7 @@ function MobilePaletteSheet({
   onClose: () => void;
   onRequestHelp?: (type: ElementType) => void;
 }) {
+  const t = useT();
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const setPaletteType = useStormBoardStore((s) => s.setPaletteType);
   const paletteCustomTypeId = useStormBoardStore((s) => s.paletteCustomTypeId);
@@ -198,7 +201,7 @@ function MobilePaletteSheet({
   );
   const { modeling, annotations } = partitionPaletteTypes(allowed);
   const fixedModeling = modeling.filter((t) => t !== "customCard");
-  const modeLabel = MODELING_MODE_LABELS[modelingMode];
+  const modeLabel = modelingModeLabel(t, modelingMode);
 
   const placeType = (type: ElementType, customTypeId?: string) => {
     setPaletteType(type);
@@ -233,8 +236,8 @@ function MobilePaletteSheet({
           <button
             type="button"
             className="dock-control shrink-0 self-center rounded-md p-2 touch-manipulation"
-            title="Hilfe"
-            aria-label={`Hilfe für ${type}`}
+            title={t("mobile.help")}
+            aria-label={t("mobile.helpFor", { type })}
             onClick={(e) => {
               e.stopPropagation();
               onRequestHelp(type);
@@ -252,17 +255,17 @@ function MobilePaletteSheet({
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-            Elemente
+            {t("mobile.elements")}
           </p>
-          <h2 className="text-base font-semibold text-[var(--text)]">Palette</h2>
+          <h2 className="text-base font-semibold text-[var(--text)]">{t("mobile.palette")}</h2>
           <p className="mt-1 text-xs text-[var(--muted)]">
-            {modeLabel} · Tippen zum Einfügen in der Bildmitte
+            {t("panels.mobileInsertHint", { mode: modeLabel })}
           </p>
         </div>
         <button
           type="button"
           className="dock-control shrink-0 rounded-md p-2"
-          aria-label="Schließen"
+          aria-label={t("common.close")}
           onClick={onClose}
         >
           <X className="size-4" />
@@ -304,7 +307,7 @@ function MobilePaletteSheet({
               placeType("customCard", id);
             }}
           >
-            + Typ
+            {t("mobile.addType")}
           </button>
         </div>
       ) : (
@@ -315,7 +318,7 @@ function MobilePaletteSheet({
       {annotations.length > 0 && (
         <div className="mt-4 border-t border-dashed border-[var(--border)] pt-3">
           <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Annotationen
+            {t("mobile.annotations")}
           </p>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {annotations.map(renderTypeButton)}

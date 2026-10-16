@@ -3,6 +3,8 @@
 import { useId } from "react";
 import { createPortal } from "react-dom";
 
+import { useT } from "@/i18n";
+
 export type UnsavedChangesChoice = "save" | "discard" | "cancel";
 
 export interface UnsavedChangesDialogProps {
@@ -27,13 +29,15 @@ export function UnsavedChangesDialog({
   fileName,
   busy,
   canSave = true,
-  saveLabel = "Speichern",
+  saveLabel,
   onChoose,
 }: UnsavedChangesDialogProps) {
+  const t = useT();
   const titleId = useId();
   if (!open) return null;
 
-  const label = fileName?.trim() ? `„${fileName.trim()}“` : "dieses Board";
+  const label = fileName?.trim() ? `„${fileName.trim()}“` : t("dialogs.unsavedThisBoard");
+  const save = saveLabel ?? t("common.save");
 
   const layer = (
     <div
@@ -48,10 +52,10 @@ export function UnsavedChangesDialog({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-base font-semibold text-slate-900">
-          Änderungen speichern?
+          {t("dialogs.unsavedTitle")}
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          {label} wurde geändert. Möchtest du speichern, bevor du „{actionLabel}“ ausführst?
+          {t("dialogs.unsavedBody", { label, action: actionLabel })}
         </p>
         <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
@@ -60,7 +64,7 @@ export function UnsavedChangesDialog({
             onClick={() => onChoose("cancel")}
             className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
           >
-            Abbrechen
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -68,7 +72,7 @@ export function UnsavedChangesDialog({
             onClick={() => onChoose("discard")}
             className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
           >
-            Nicht speichern
+            {t("dialogs.dontSave")}
           </button>
           {canSave ? (
             <button
@@ -77,7 +81,7 @@ export function UnsavedChangesDialog({
               onClick={() => onChoose("save")}
               className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
             >
-              {saveLabel}
+              {save}
             </button>
           ) : null}
         </div>

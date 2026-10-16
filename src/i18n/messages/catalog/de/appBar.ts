@@ -1,0 +1,23 @@
+export const appBarDe = {
+  appBar: {
+    boardTitle: "Board-Titel",
+    modelingMode: "Modellierungsmodus",
+    workshopFacilitator: "Workshop & Facilitator",
+    sessionSettings: "Session-Einstellungen",
+    session: "Session",
+    workshopFormat: "Workshop-Format",
+    facilitatorMode: "Facilitator-Modus",
+    syncActiveTab: "Aktiven Tab für alle synchronisieren",
+    syncActiveTabTitle: "In Kollaboration den aktiven Tab für alle synchronisieren",
+    undo: "Rückgängig (⌘Z / Ctrl+Z)",
+    redo: "Wiederholen (⌘⇧Z / Ctrl+Y)",
+    collabRoom: "Kollaborations-Raum",
+    dataPanel: "Daten, Darstellung, Export",
+    data: "Daten",
+    facilitator: "Facilitator",
+    workshop: "Workshop",
+    facilitatorPhases: "Facilitator-Phasen",
+    syncActiveTabShort: "Tab für alle syncen",
+    sessionFormat: "Format",
+  },
+} as const;
