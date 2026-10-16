@@ -8,6 +8,7 @@ import {
   attachTargetToEndpoint,
   resolveConnectorAnchors,
 } from "@/lib/board-connector-resolve";
+import { elementCenter } from "@/lib/connector-geometry";
 import {
   boardConnectorCaption,
   boardConnectorDoubleLine,
@@ -343,6 +344,37 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
           </g>
         );
       })}
+
+      {connectorDraftSource && (
+        <g opacity={0.45}>
+          {elements
+            .filter((el) => {
+              if (connectorDraftSource.attach !== "element") return true;
+              return el.id !== connectorDraftSource.id;
+            })
+            .map((el) => {
+              const draftStart = resolveConnectorAnchors(
+                { source: connectorDraftSource, target: { attach: "point", x: el.x, y: el.y } },
+                elements,
+                swimlanes,
+                boundedContexts,
+              ).start;
+              const end = elementCenter(el);
+              return (
+                <line
+                  key={`draft-hint-${el.id}`}
+                  x1={draftStart.x}
+                  y1={draftStart.y}
+                  x2={end.x}
+                  y2={end.y}
+                  stroke="#e9c46a"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 4"
+                />
+              );
+            })}
+        </g>
+      )}
     </svg>
   );
 }

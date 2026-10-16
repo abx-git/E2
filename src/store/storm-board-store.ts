@@ -288,6 +288,8 @@ export interface StormBoardState {
   /** Toggle progress mark on selected stickies and/or selected connector (Ctrl+1/2/3). */
   applyProgressMark: (mark: ProgressMark) => void;
   setRelationMode: (enabled: boolean) => void;
+  /** Alias: one tool for click-connect, region-connect, and drag lines. */
+  setConnectorMode: (enabled: boolean) => void;
   setRelationDraftSource: (id: string | null) => void;
   connectElements: (sourceId: string, targetId: string) => string | null;
   connectEndpoints: (source: ConnectorEndpoint, target: ConnectorEndpoint) => string | null;
@@ -1540,12 +1542,15 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   setRelationMode: (relationMode) =>
     set({
       relationMode,
+      lineDrawMode: false,
+      contextMapMode: false,
       relationDraftSourceId: relationMode ? get().relationDraftSourceId : null,
-      contextMapMode: relationMode ? false : get().contextMapMode,
-      contextMapDraftSourceId: relationMode ? null : get().contextMapDraftSourceId,
-      lineDrawMode: relationMode ? false : get().lineDrawMode,
+      contextMapDraftSourceId: null,
+      connectorDraftSource: relationMode ? get().connectorDraftSource : null,
       selectedCanvasLineId: relationMode ? null : get().selectedCanvasLineId,
     }),
+
+  setConnectorMode: (enabled) => get().setRelationMode(enabled),
 
   setRelationDraftSource: (relationDraftSourceId) => set({ relationDraftSourceId }),
 
@@ -1735,15 +1740,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
 
   setContextMapDraftSource: (contextMapDraftSourceId) => set({ contextMapDraftSourceId }),
 
-  setLineDrawMode: (lineDrawMode) =>
-    set({
-      lineDrawMode,
-      selectedCanvasLineId: lineDrawMode ? null : get().selectedCanvasLineId,
-      relationMode: lineDrawMode ? false : get().relationMode,
-      relationDraftSourceId: lineDrawMode ? null : get().relationDraftSourceId,
-      contextMapMode: lineDrawMode ? false : get().contextMapMode,
-      contextMapDraftSourceId: lineDrawMode ? null : get().contextMapDraftSourceId,
-    }),
+  setLineDrawMode: (lineDrawMode) => {
+    if (lineDrawMode) get().setRelationMode(true);
+    else if (get().relationMode) get().setRelationMode(false);
+  },
 
   setLineArrowHead: (lineArrowHead) => set({ lineArrowHead }),
 

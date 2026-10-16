@@ -30,6 +30,9 @@ export function SwimlaneLayer() {
   const selectSwimlane = useStormBoardStore((s) => s.selectSwimlane);
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
+  const relationMode = useStormBoardStore((s) => s.relationMode);
+  const connectorDraftSource = useStormBoardStore((s) => s.connectorDraftSource);
+  const connectMode = relationMode;
   const ordered = sortByZOrder(swimlanes);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -91,7 +94,7 @@ export function SwimlaneLayer() {
     e.preventDefault();
 
     const store = useStormBoardStore.getState();
-    if (store.relationMode || store.contextMapMode) {
+    if (store.relationMode) {
       const target = { attach: "swimlane" as const, id: laneId };
       const draft = store.connectorDraftSource;
       if (draft) {
@@ -247,6 +250,8 @@ export function SwimlaneLayer() {
     <>
       {ordered.map((lane) => {
         const selected = selectedSwimlaneIds.includes(lane.id);
+        const draftSource =
+          connectorDraftSource?.attach === "swimlane" && connectorDraftSource.id === lane.id;
         const editing = editingId === lane.id;
         const paint = resolveRegionPaint("swimlane", lane);
         return (
@@ -254,8 +259,13 @@ export function SwimlaneLayer() {
             key={lane.id}
             className={[
               "absolute border-y-2",
-              selected || editing ? "ring-2 ring-sky-300" : "",
-              paint.locked ? "cursor-default" : editing ? "cursor-default" : "cursor-move",
+              selected || draftSource || editing ? "ring-2 ring-sky-300" : "",
+              draftSource ? "ring-[#e9c46a]" : "",
+              connectMode
+                ? "cursor-crosshair"
+                : paint.locked || editing
+                  ? "cursor-default"
+                  : "cursor-move",
             ].join(" ")}
             style={{
               left: lane.x ?? 0,

@@ -9,17 +9,18 @@ import {
   Image,
   Layers,
   Link2,
-  Minus,
   MoreHorizontal,
   Search,
   SquareDashed,
   X,
   ZoomIn,
   ZoomOut,
+  Maximize2,
 } from "lucide-react";
 
 import { lineArrowHeadShortLabel } from "@/components/canvas-lines";
-import { clampZoom } from "@/lib/canvas-viewport";
+import { computeCanvasContentBounds } from "@/lib/canvas-content-bounds";
+import { clampZoom, viewportFitContent } from "@/lib/canvas-viewport";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import {
   copyBoardDrawioToClipboard,
@@ -31,7 +32,7 @@ import {
 import { LINE_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
-type CanvasTool = "select" | "connect" | "bc" | "line";
+type CanvasTool = "select" | "connect" | "bc";
 
 function ToolIconButton({
   active,
@@ -315,10 +316,8 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const relationMode = useStormBoardStore((s) => s.relationMode);
   const setRelationMode = useStormBoardStore((s) => s.setRelationMode);
   const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
-  const setContextMapMode = useStormBoardStore((s) => s.setContextMapMode);
+  const setConnectorDraftSource = useStormBoardStore((s) => s.setConnectorDraftSource);
   const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
-  const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
-  const setLineDrawMode = useStormBoardStore((s) => s.setLineDrawMode);
   const lineArrowHead = useStormBoardStore((s) => s.lineArrowHead);
   const setLineArrowHead = useStormBoardStore((s) => s.setLineArrowHead);
   const addSwimlane = useStormBoardStore((s) => s.addSwimlane);
@@ -329,6 +328,10 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
   const setSearchQuery = useStormBoardStore((s) => s.setSearchQuery);
   const elements = useStormBoardStore((s) => s.elements);
+  const swimlanes = useStormBoardStore((s) => s.swimlanes);
+  const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
+  const connectors = useStormBoardStore((s) => s.connectors);
+  const canvasLines = useStormBoardStore((s) => s.canvasLines);
   const views = useStormBoardStore((s) => s.views);
 
   const [viewOpen, setViewOpen] = useState(false);
@@ -337,41 +340,44 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const exportBtnRef = useRef<HTMLButtonElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const activeTool: CanvasTool = lineDrawMode
-    ? "line"
-    : bcMode
-      ? "bc"
-      : relationMode
-        ? "connect"
-        : "select";
+  const activeTool: CanvasTool = bcMode ? "bc" : relationMode ? "connect" : "select";
 
   const clearConnect = () => {
     setRelationMode(false);
     setRelationDraftSource(null);
-    setContextMapMode(false);
+    setConnectorDraftSource(null);
     setContextMapDraftSource(null);
   };
 
   const setTool = (tool: CanvasTool) => {
     if (tool === activeTool && tool !== "select") {
-      // Toggle off → back to select
       clearConnect();
-      setLineDrawMode(false);
       if (bcMode) onToggleBcMode();
       return;
     }
 
     clearConnect();
-    setLineDrawMode(false);
     if (bcMode && tool !== "bc") onToggleBcMode();
 
     if (tool === "connect") {
       setRelationMode(true);
     } else if (tool === "bc") {
       if (!bcMode) onToggleBcMode();
-    } else if (tool === "line") {
-      setLineDrawMode(true);
     }
+  };
+
+  const fitAllInView = () => {
+    const container = document.querySelector("[data-storm-canvas]");
+    const rect = container?.getBoundingClientRect();
+    if (!rect) return;
+    const bounds = computeCanvasContentBounds({
+      elements,
+      swimlanes,
+      boundedContexts,
+      connectors,
+      canvasLines,
+    });
+    setViewport(viewportFitContent(bounds, rect.width, rect.height));
   };
 
   const viewHighlighted = viewOpen || snapToGrid || focusMode;
@@ -508,7 +514,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
           </ToolIconButton>
           <ToolIconButton
             active={activeTool === "connect"}
-            title="Verbinden (Elemente oder Bounded Contexts)"
+            title="Verbinder: Objekte anklicken oder Linie ziehen"
             onClick={() => setTool("connect")}
           >
             <Link2 className="h-3.5 w-3.5" />
@@ -520,15 +526,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
           >
             <SquareDashed className="h-3.5 w-3.5" />
           </ToolIconButton>
-          <ToolIconButton
-            active={activeTool === "line"}
-            title="Freie Linie zeichnen"
-            onClick={() => setTool("line")}
-          >
-            <Minus className="h-3.5 w-3.5" />
-          </ToolIconButton>
-
-          {activeTool === "line" && (
+          {activeTool === "connect" && (
             <>
               <span className="mx-0.5 h-4 w-px bg-[var(--border)]" aria-hidden />
               <button
@@ -597,6 +595,15 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
           onClick={() => setViewport({ ...viewport, zoom: clampZoom(viewport.zoom + 0.1) })}
         >
           <ZoomIn className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className="rounded-lg p-2 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)] max-lg:p-2.5 touch-manipulation"
+          title="Alles einpassen"
+          aria-label="Alles einpassen"
+          onClick={fitAllInView}
+        >
+          <Maximize2 className="h-4 w-4" />
         </button>
       </div>
     </>

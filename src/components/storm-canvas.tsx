@@ -6,6 +6,7 @@ import { CanvasBoardChrome } from "@/components/canvas-board-chrome";
 import { BoardConnectors } from "@/components/board-connectors";
 import { BoundedContextLayer } from "@/components/bounded-context-layer";
 import { attachTargetToEndpoint } from "@/lib/board-connector-resolve";
+import { connectorDraftSourceLabel } from "@/lib/connector-tool";
 import { pickInnermostConnectorTargetAt } from "@/lib/connector-target-pick";
 import { StormElementCard } from "@/components/storm-element-card";
 import { SwimlaneLayer } from "@/components/swimlane-layer";
@@ -92,9 +93,7 @@ export function StormCanvas() {
   const selectedContextRelationId = useStormBoardStore((s) => s.selectedContextRelationId);
   const relationMode = useStormBoardStore((s) => s.relationMode);
   const relationDraftSourceId = useStormBoardStore((s) => s.relationDraftSourceId);
-  const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
   const contextMapDraftSourceId = useStormBoardStore((s) => s.contextMapDraftSourceId);
-  const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
   const lineArrowHead = useStormBoardStore((s) => s.lineArrowHead);
   const selectedCanvasLineId = useStormBoardStore((s) => s.selectedCanvasLineId);
 
@@ -112,8 +111,6 @@ export function StormCanvas() {
   const addBoundedContext = useStormBoardStore((s) => s.addBoundedContext);
   const addCanvasLine = useStormBoardStore((s) => s.addCanvasLine);
   const selectCanvasLine = useStormBoardStore((s) => s.selectCanvasLine);
-  const deleteCanvasLine = useStormBoardStore((s) => s.deleteCanvasLine);
-  const setLineDrawMode = useStormBoardStore((s) => s.setLineDrawMode);
 
   const [bcDraft, setBcDraft] = useState<WorldRect | null>(null);
   const [bcMode, setBcMode] = useState(false);
@@ -125,15 +122,18 @@ export function StormCanvas() {
   const lineStart = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-    if (relationMode || contextMapMode || lineDrawMode) setBcMode(false);
-  }, [relationMode, contextMapMode, lineDrawMode]);
+    if (relationMode) setBcMode(false);
+  }, [relationMode]);
 
   const [marqueeDraft, setMarqueeDraft] = useState<WorldRect | null>(null);
   const marqueeStart = useRef<{ x: number; y: number; additive: boolean } | null>(null);
   const marqueeDraftRef = useRef<WorldRect | null>(null);
 
-  const sourceElement = elements.find((e) => e.id === relationDraftSourceId);
-  const contextMapSource = boundedContexts.find((b) => b.id === contextMapDraftSourceId);
+  const connectorDraftLabel = connectorDraftSourceLabel(connectorDraftSource, {
+    elements,
+    boundedContexts,
+    swimlanes,
+  });
 
   const applySnap = useCallback(
     (x: number, y: number) => {
@@ -169,30 +169,19 @@ export function StormCanvas() {
       if (e.key === "Escape") {
         if (relationDraftSourceId) setRelationDraftSource(null);
         if (contextMapDraftSourceId) setContextMapDraftSource(null);
-        if (lineDrawMode) setLineDrawMode(false);
-        if (relationMode) {
-          useStormBoardStore.getState().setRelationMode(false);
-          useStormBoardStore.getState().setContextMapMode(false);
-        }
+        useStormBoardStore.getState().setConnectorDraftSource(null);
+        if (relationMode) useStormBoardStore.getState().setRelationMode(false);
         if (bcMode) setBcMode(false);
         return;
       }
 
       if (e.key === "Delete" || e.key === "Backspace") {
         const s = useStormBoardStore.getState();
-        if (s.selectedCanvasLineId) {
+        const connectorId =
+          s.selectedConnectorId ?? s.selectedRelationId ?? s.selectedContextRelationId ?? s.selectedCanvasLineId;
+        if (connectorId) {
           e.preventDefault();
-          deleteCanvasLine(s.selectedCanvasLineId);
-          return;
-        }
-        if (s.selectedRelationId) {
-          e.preventDefault();
-          s.deleteRelation(s.selectedRelationId);
-          return;
-        }
-        if (s.selectedContextRelationId) {
-          e.preventDefault();
-          s.deleteContextRelation(s.selectedContextRelationId);
+          s.deleteConnector(connectorId);
         }
         return;
       }
@@ -218,7 +207,7 @@ export function StormCanvas() {
       }
 
       if (e.key === "Enter" || e.key === "a" || e.key === "A") {
-        if (bcMode || relationMode || contextMapMode || lineDrawMode) return;
+        if (bcMode || relationMode) return;
         e.preventDefault();
         addAtViewportCenter();
       }
@@ -238,10 +227,6 @@ export function StormCanvas() {
     addAtViewportCenter,
     bcMode,
     relationMode,
-    bcMode,
-    lineDrawMode,
-    setLineDrawMode,
-    deleteCanvasLine,
   ]);
 
   // Space for pan: window-level so it works without canvas focus and over stickies.
@@ -348,14 +333,14 @@ export function StormCanvas() {
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (isCanvasChromeTarget(e.target)) return;
-    if (!containerRef.current || bcMode || relationMode || contextMapMode || lineDrawMode) return;
+    if (!containerRef.current || bcMode || relationMode) return;
     const rect = containerRef.current.getBoundingClientRect();
     const world = screenToWorld(viewport, e.clientX, e.clientY, rect);
     const snapped = applySnap(world.x, world.y);
     addElement(paletteType, snapped.x, snapped.y);
   };
 
-  const connectMode = relationMode || contextMapMode || lineDrawMode;
+  const connectorTool = relationMode;
 
   const handleStartConnect = (id: string) => {
     const source = { attach: "element" as const, id };
@@ -500,7 +485,7 @@ export function StormCanvas() {
       data-storm-canvas
       className={[
         "absolute inset-0 overflow-hidden bg-canvas outline-none touch-none",
-        bcMode || lineDrawMode
+        bcMode || connectorTool
           ? "cursor-crosshair"
           : panning
             ? "cursor-grabbing"
@@ -537,13 +522,6 @@ export function StormCanvas() {
           return;
         }
         if (e.button !== 0) return;
-        if (lineDrawMode) {
-          const world = worldFromClient(e.clientX, e.clientY);
-          if (!world) return;
-          lineStart.current = { x: world.x, y: world.y };
-          setLineDraft({ x1: world.x, y1: world.y, x2: world.x, y2: world.y });
-          return;
-        }
         if (bcMode) {
           const world = worldFromClient(e.clientX, e.clientY);
           if (!world) return;
@@ -551,8 +529,13 @@ export function StormCanvas() {
           setBcDraft({ x: world.x, y: world.y, w: 0, h: 0 });
           return;
         }
-        if (relationMode) setRelationDraftSource(null);
-        if (contextMapMode) setContextMapDraftSource(null);
+        if (connectorTool) {
+          const world = worldFromClient(e.clientX, e.clientY);
+          if (!world) return;
+          lineStart.current = { x: world.x, y: world.y };
+          setLineDraft({ x1: world.x, y1: world.y, x2: world.x, y2: world.y });
+          return;
+        }
         if (e.pointerType === "touch" || isCoarsePointer) {
           const vp = useStormBoardStore.getState().viewport;
           touchPanPending.current = {
@@ -602,7 +585,7 @@ export function StormCanvas() {
             h: Math.abs(world.y - sy),
           });
         }
-        if (lineDrawMode && lineStart.current) {
+        if (connectorTool && lineStart.current) {
           const world = worldFromClient(e.clientX, e.clientY);
           if (!world) return;
           const sx = lineStart.current.x;
@@ -628,11 +611,27 @@ export function StormCanvas() {
         if (bcMode && bcDraft && bcDraft.w > 40 && bcDraft.h > 40) {
           addBoundedContext(bcDraft.x, bcDraft.y, bcDraft.w, bcDraft.h);
         }
-        if (lineDrawMode && lineDraft && lineLength(lineDraft) >= MIN_LINE_LENGTH_WORLD) {
-          connectEndpoints(
-            { attach: "point", x: lineDraft.x1, y: lineDraft.y1 },
-            { attach: "point", x: lineDraft.x2, y: lineDraft.y2 },
-          );
+        if (connectorTool && lineDraft && lineLength(lineDraft) >= MIN_LINE_LENGTH_WORLD) {
+          const live = useStormBoardStore.getState();
+          const pickAt = (x: number, y: number) => {
+            const target = pickInnermostConnectorTargetAt(
+              { x, y },
+              live.elements,
+              live.swimlanes,
+              live.boundedContexts,
+            );
+            return target ? attachTargetToEndpoint(target) : { attach: "point" as const, x, y };
+          };
+          const start = pickAt(lineDraft.x1, lineDraft.y1);
+          const end = pickAt(lineDraft.x2, lineDraft.y2);
+          if (live.connectorDraftSource) {
+            live.connectEndpoints(live.connectorDraftSource, end);
+            live.setConnectorDraftSource(null);
+            live.setRelationDraftSource(null);
+            live.setContextMapDraftSource(null);
+          } else {
+            live.connectEndpoints(start, end);
+          }
         }
         bcStart.current = null;
         setBcDraft(null);
@@ -712,9 +711,14 @@ export function StormCanvas() {
             element={el}
             selected={selectedElementIds.includes(el.id)}
             selectedIds={selectedElementIds}
-            connecting={relationDraftSourceId === el.id}
-            isRelationTargetHint={Boolean(relationDraftSourceId && relationDraftSourceId !== el.id)}
-            relationMode={connectMode}
+            connecting={
+              connectorDraftSource?.attach === "element" && connectorDraftSource.id === el.id
+            }
+            isRelationTargetHint={Boolean(
+              connectorDraftSource &&
+                !(connectorDraftSource.attach === "element" && connectorDraftSource.id === el.id),
+            )}
+            relationMode={connectorTool}
             zoom={viewport.zoom}
             onSelect={selectElement}
             onMoveMany={handleMoveCanvasSelection}
@@ -729,49 +733,38 @@ export function StormCanvas() {
         bcMode={bcMode}
         onToggleBcMode={() => setBcMode((v) => !v)}
         status={
-          relationDraftSourceId && sourceElement
+          connectorDraftSource && connectorDraftLabel
             ? {
                 message: (
                   <>
-                    Von <strong className="text-[var(--accent-2)]">{sourceElement.label}</strong> — Ziel
-                    anklicken
+                    Von{" "}
+                    <strong className="text-[var(--accent-2)]">{connectorDraftLabel}</strong> — Ziel
+                    anklicken oder Linie ziehen
                   </>
                 ),
-                onCancel: () => setRelationDraftSource(null),
+                onCancel: () => {
+                  setConnectorDraftSource(null);
+                  setRelationDraftSource(null);
+                  setContextMapDraftSource(null);
+                },
               }
-            : contextMapDraftSourceId && contextMapSource
+            : connectorTool
               ? {
-                  message: (
-                    <>
-                      Von{" "}
-                      <strong className="text-[var(--accent-2)]">{contextMapSource.label}</strong> —
-                      Ziel-BC anklicken
-                    </>
-                  ),
-                  onCancel: () => setContextMapDraftSource(null),
+                  message:
+                    "Verbinder: Element, BC oder Swimlane anklicken · oder Linie auf leerem Canvas ziehen · Enden später umhängen",
+                  onCancel: () => {
+                    useStormBoardStore.getState().setRelationMode(false);
+                    setConnectorDraftSource(null);
+                    setRelationDraftSource(null);
+                    setContextMapDraftSource(null);
+                  },
                 }
-              : relationMode
+              : bcMode
                 ? {
-                    message:
-                      "Verbinden: Element, Bounded Context oder Swimlane — oder Linie ziehen (Werkzeug Linie)",
-                    onCancel: () => {
-                      useStormBoardStore.getState().setRelationMode(false);
-                      useStormBoardStore.getState().setContextMapMode(false);
-                      setRelationDraftSource(null);
-                      setContextMapDraftSource(null);
-                    },
+                    message: "Rechteck ziehen · Esc beendet",
+                    onCancel: () => setBcMode(false),
                   }
-                : lineDrawMode
-                  ? {
-                      message: "Linie ziehen · Esc beendet",
-                      onCancel: () => setLineDrawMode(false),
-                    }
-                  : bcMode
-                    ? {
-                        message: "Rechteck ziehen · Esc beendet",
-                        onCancel: () => setBcMode(false),
-                      }
-                    : null
+                : null
         }
       />
     </div>

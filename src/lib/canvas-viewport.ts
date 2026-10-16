@@ -50,3 +50,30 @@ export function snapToTimeline(y: number, timelineY: number, threshold = 40): nu
 export function snapToGrid(value: number, gridSize = 20): number {
   return Math.round(value / gridSize) * gridSize;
 }
+
+/** Fit `content` into the canvas container with optional screen padding (px). */
+export function viewportFitContent(
+  content: { x: number; y: number; w: number; h: number },
+  containerWidth: number,
+  containerHeight: number,
+  paddingPx = 48,
+): Viewport {
+  if (containerWidth <= 0 || containerHeight <= 0) {
+    return { x: 0, y: 0, zoom: 1 };
+  }
+
+  const innerW = Math.max(1, containerWidth - paddingPx * 2);
+  const innerH = Math.max(1, containerHeight - paddingPx * 2);
+  const contentW = Math.max(1, content.w);
+  const contentH = Math.max(1, content.h);
+
+  const zoom = clampZoom(Math.min(innerW / contentW, innerH / contentH));
+  const centerX = content.x + content.w / 2;
+  const centerY = content.y + content.h / 2;
+
+  return {
+    zoom,
+    x: containerWidth / 2 - centerX * zoom,
+    y: containerHeight / 2 - centerY * zoom,
+  };
+}

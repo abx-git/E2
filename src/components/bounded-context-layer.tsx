@@ -37,9 +37,8 @@ export function BoundedContextLayer() {
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const relationMode = useStormBoardStore((s) => s.relationMode);
-  const contextMapMode = useStormBoardStore((s) => s.contextMapMode);
-  const contextMapDraftSourceId = useStormBoardStore((s) => s.contextMapDraftSourceId);
-  const connectMode = relationMode || contextMapMode;
+  const connectorDraftSource = useStormBoardStore((s) => s.connectorDraftSource);
+  const connectMode = relationMode;
   const ordered = sortByZOrder(boundedContexts);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -102,17 +101,15 @@ export function BoundedContextLayer() {
 
     const store = useStormBoardStore.getState();
     // One "Verbinden"-tool: elements use relations, BCs use context-map links.
-    if (store.relationMode || store.contextMapMode) {
+    if (store.relationMode) {
       store.setRelationDraftSource(null);
       const target = { attach: "boundedContext" as const, id: bcId };
       const draft = store.connectorDraftSource;
       if (draft) {
         store.connectEndpoints(draft, target);
         store.setConnectorDraftSource(null);
-        store.setContextMapDraftSource(null);
       } else {
         store.setConnectorDraftSource(target);
-        store.setContextMapDraftSource(bcId);
         selectBoundedContext(bcId);
       }
       return;
@@ -308,7 +305,8 @@ export function BoundedContextLayer() {
     <>
       {ordered.map((bc) => {
         const selected = selectedBoundedContextIds.includes(bc.id);
-        const draftSource = contextMapDraftSourceId === bc.id;
+        const draftSource =
+          connectorDraftSource?.attach === "boundedContext" && connectorDraftSource.id === bc.id;
         const editing = editingId === bc.id;
         const viewNav = resolveBoundedContextViewNavigation(bc, activeViewId, views);
         const paint = resolveRegionPaint("boundedContext", bc);
