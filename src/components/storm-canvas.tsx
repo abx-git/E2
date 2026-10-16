@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CanvasBoardChrome } from "@/components/canvas-board-chrome";
 import { BoardConnectors } from "@/components/board-connectors";
 import { BoundedContextLayer } from "@/components/bounded-context-layer";
-import { attachTargetToEndpoint } from "@/lib/board-connector-resolve";
+import { attachTargetToEndpoint, withConnectorApproach } from "@/lib/board-connector-resolve";
+import type { ConnectorApproach } from "@/types/board-connector";
 import { connectorDraftSourceLabel } from "@/lib/connector-tool";
 import { pickInnermostConnectorTargetAt } from "@/lib/connector-target-pick";
 import { StormElementCard } from "@/components/storm-element-card";
@@ -342,8 +343,8 @@ export function StormCanvas() {
 
   const connectorTool = relationMode;
 
-  const handleStartConnect = (id: string) => {
-    const source = { attach: "element" as const, id };
+  const handleStartConnect = (id: string, approach?: ConnectorApproach) => {
+    const source = withConnectorApproach({ attach: "element" as const, id }, approach);
     if (connectorDraftSource?.attach === "element" && connectorDraftSource.id === id) {
       setConnectorDraftSource(null);
       setRelationDraftSource(null);
@@ -355,9 +356,9 @@ export function StormCanvas() {
     selectElement(id);
   };
 
-  const handleCompleteConnect = (targetId: string) => {
+  const handleCompleteConnect = (targetId: string, approach?: ConnectorApproach) => {
     setContextMapDraftSource(null);
-    const target = { attach: "element" as const, id: targetId };
+    const target = withConnectorApproach({ attach: "element" as const, id: targetId }, approach);
     if (!connectorDraftSource) {
       setConnectorDraftSource(target);
       setRelationDraftSource(targetId);
@@ -529,9 +530,15 @@ export function StormCanvas() {
           setBcDraft({ x: world.x, y: world.y, w: 0, h: 0 });
           return;
         }
-        if (connectorTool) {
+        if (
+          connectorTool &&
+          (e.shiftKey ||
+            e.target === e.currentTarget ||
+            (e.target as HTMLElement).dataset?.stormCanvas !== undefined)
+        ) {
           const world = worldFromClient(e.clientX, e.clientY);
           if (!world) return;
+          e.stopPropagation();
           lineStart.current = { x: world.x, y: world.y };
           setLineDraft({ x1: world.x, y1: world.y, x2: world.x, y2: world.y });
           return;
@@ -620,7 +627,9 @@ export function StormCanvas() {
               live.swimlanes,
               live.boundedContexts,
             );
-            return target ? attachTargetToEndpoint(target) : { attach: "point" as const, x, y };
+            return target
+              ? attachTargetToEndpoint(target, { x, y })
+              : { attach: "point" as const, x, y };
           };
           const start = pickAt(lineDraft.x1, lineDraft.y1);
           const end = pickAt(lineDraft.x2, lineDraft.y2);
@@ -751,7 +760,7 @@ export function StormCanvas() {
             : connectorTool
               ? {
                   message:
-                    "Verbinder: Element, BC oder Swimlane anklicken · oder Linie auf leerem Canvas ziehen · Enden später umhängen",
+                    "Klicken: Verbindung zwischen Objekten · Shift+Ziehen: freie Linie (Endpunkte snappen am Ziel) · Enden am Verbinder umhängen",
                   onCancel: () => {
                     useStormBoardStore.getState().setRelationMode(false);
                     setConnectorDraftSource(null);

@@ -143,11 +143,14 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
           live.reconnectConnector(
             connector.id,
             side,
-            attachTargetToEndpoint(preview.target),
+            attachTargetToEndpoint(preview.target, world),
           );
-        } else if (connector.source.attach === "point" || connector.target.attach === "point") {
-          const point = { attach: "point" as const, x: world.x, y: world.y };
-          live.reconnectConnector(connector.id, side, point);
+        } else {
+          live.reconnectConnector(connector.id, side, {
+            attach: "point",
+            x: world.x,
+            y: world.y,
+          });
         }
         setEndpointDrag(null);
         live.endGesture();

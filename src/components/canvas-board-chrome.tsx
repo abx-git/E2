@@ -514,7 +514,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
           </ToolIconButton>
           <ToolIconButton
             active={activeTool === "connect"}
-            title="Verbinder: Objekte anklicken oder Linie ziehen"
+            title="Verbinder: Objekte verbinden · Shift+Ziehen für freie Linie"
             onClick={() => setTool("connect")}
           >
             <Link2 className="h-3.5 w-3.5" />
