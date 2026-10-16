@@ -16,6 +16,9 @@ export interface CanvasLine {
 
 export const LINE_ARROW_HEADS: LineArrowHead[] = ["none", "end", "start", "both"];
 
+/** Arrow styles offered for board connectors (toolbar + inspector). */
+export const CONNECTOR_ARROW_HEADS: LineArrowHead[] = ["end", "start", "both"];
+
 export const LINE_ARROW_HEAD_LABELS: Record<LineArrowHead, string> = {
   none: "Ohne Pfeil",
   end: "Pfeil Ende",

@@ -18,7 +18,10 @@ import {
   Maximize2,
 } from "lucide-react";
 
-import { lineArrowHeadShortLabel } from "@/components/canvas-lines";
+import {
+  ConnectorArrowHeadIcon,
+  connectorArrowHeadLabel,
+} from "@/lib/connector-arrow-head";
 import { computeCanvasContentBounds } from "@/lib/canvas-content-bounds";
 import { clampZoom, viewportFitContent } from "@/lib/canvas-viewport";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
@@ -29,7 +32,7 @@ import {
   exportBoardPng,
   exportBoardSvg,
 } from "@/lib/storm-export";
-import { LINE_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
+import { CONNECTOR_ARROW_HEADS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 type CanvasTool = "select" | "connect" | "bc";
@@ -512,6 +515,20 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
           >
             <BoxSelect className="h-3.5 w-3.5" />
           </ToolIconButton>
+          <button
+            type="button"
+            title={connectorArrowHeadLabel(lineArrowHead)}
+            aria-label={connectorArrowHeadLabel(lineArrowHead)}
+            onClick={() => {
+              const current = CONNECTOR_ARROW_HEADS.includes(lineArrowHead) ? lineArrowHead : "end";
+              const index = CONNECTOR_ARROW_HEADS.indexOf(current);
+              const next = CONNECTOR_ARROW_HEADS[(index + 1) % CONNECTOR_ARROW_HEADS.length]!;
+              setLineArrowHead(next);
+            }}
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text)] hover:bg-[var(--control)] touch-manipulation"
+          >
+            <ConnectorArrowHeadIcon head={lineArrowHead} />
+          </button>
           <ToolIconButton
             active={activeTool === "connect"}
             title="Verbinder: anklicken, Shift+Ziehen für Linie, Enden umhängen"
@@ -526,24 +543,6 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
           >
             <SquareDashed className="h-3.5 w-3.5" />
           </ToolIconButton>
-          {relationMode && (
-            <>
-              <span className="mx-0.5 h-4 w-px bg-[var(--border)]" aria-hidden />
-              <button
-                type="button"
-                title={LINE_ARROW_HEAD_LABELS[lineArrowHead]}
-                aria-label={LINE_ARROW_HEAD_LABELS[lineArrowHead]}
-                onClick={() => {
-                  const index = LINE_ARROW_HEADS.indexOf(lineArrowHead);
-                  const next = LINE_ARROW_HEADS[(index + 1) % LINE_ARROW_HEADS.length]!;
-                  setLineArrowHead(next);
-                }}
-                className="flex h-8 min-w-8 items-center justify-center rounded-lg px-1.5 text-sm font-medium text-[var(--text)] hover:bg-[var(--control)]"
-              >
-                {lineArrowHeadShortLabel(lineArrowHead)}
-              </button>
-            </>
-          )}
 
           <span className="mx-0.5 h-4 w-px bg-[var(--border)]" aria-hidden />
 

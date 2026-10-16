@@ -7,7 +7,7 @@ import { activateBoardLink } from "@/lib/board-link";
 import { normalizeCardWebLinks } from "@/lib/card-web-links";
 import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-panel";
 import { RegionAppearanceControls } from "@/components/region-appearance-controls";
-import { lineArrowHeadShortLabel } from "@/components/canvas-lines";
+import { connectorArrowHeadGlyph } from "@/lib/connector-arrow-head";
 import { resolveElementStyle } from "@/lib/element-styles";
 import { cardShowsDetails, isOnCardFieldEnabled, onCardDisplayFieldsForType } from "@/lib/card-preview";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
@@ -38,7 +38,7 @@ import type {
   SubdomainKind,
 } from "@/types/storm-element";
 import { isCloudElementType, supportsArchDrilldown } from "@/types/storm-element";
-import { LINE_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
+import { CONNECTOR_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_ELEMENT_SIZE = 40;
@@ -271,7 +271,7 @@ export function ElementDetailSidebar({
         </Field>
         <Field label="Pfeil">
           <div className="flex gap-1" role="group" aria-label="Pfeilrichtung">
-            {LINE_ARROW_HEADS.map((head) => (
+            {CONNECTOR_ARROW_HEADS.map((head) => (
               <button
                 key={head}
                 type="button"
@@ -286,7 +286,7 @@ export function ElementDetailSidebar({
                 ].join(" ")}
                 onClick={() => updateConnector(c.id, { arrowHead: head })}
               >
-                {lineArrowHeadShortLabel(head)}
+                {connectorArrowHeadGlyph(head)}
               </button>
             ))}
           </div>
@@ -343,6 +343,32 @@ export function ElementDetailSidebar({
             value={strokeStyle}
             onChange={(next) => updateRelation(selectedRelation.id, { strokeStyle: next })}
           />
+        </Field>
+        <Field label="Pfeil">
+          <div className="flex gap-1" role="group" aria-label="Pfeilrichtung">
+            {CONNECTOR_ARROW_HEADS.map((head) => {
+              const conn = connectors.find((x) => x.id === selectedRelation.id);
+              const active = (conn?.arrowHead ?? "end") === head;
+              return (
+                <button
+                  key={head}
+                  type="button"
+                  title={LINE_ARROW_HEAD_LABELS[head]}
+                  aria-label={LINE_ARROW_HEAD_LABELS[head]}
+                  aria-pressed={active}
+                  className={[
+                    "flex h-8 flex-1 items-center justify-center rounded-md text-sm font-medium transition",
+                    active
+                      ? "dock-control-active"
+                      : "dock-control hover:bg-[var(--control-hover)]",
+                  ].join(" ")}
+                  onClick={() => updateConnector(selectedRelation.id, { arrowHead: head })}
+                >
+                  {connectorArrowHeadGlyph(head)}
+                </button>
+              );
+            })}
+          </div>
         </Field>
         <Field label="Beschriftung">
           <div className="flex gap-1" role="group" aria-label="Beschriftung">

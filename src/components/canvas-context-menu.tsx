@@ -60,7 +60,8 @@ import {
   resolveRelationStrokeStyle,
 } from "@/lib/connector-style";
 import { defaultRelationType } from "@/lib/relation-validation";
-import { LINE_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
+import { CONNECTOR_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
+import { connectorArrowHeadGlyph } from "@/lib/connector-arrow-head";
 import type { BoardConnector } from "@/types/board-connector";
 
 function clipboardSelectionFromStore() {
@@ -739,10 +740,10 @@ export function CanvasContextMenu({
           ))}
           <Separator />
           <Section label="Pfeil" />
-          {LINE_ARROW_HEADS.map((head) => (
+          {CONNECTOR_ARROW_HEADS.map((head) => (
             <Item
               key={head}
-              label={LINE_ARROW_HEAD_LABELS[head]}
+              label={`${connectorArrowHeadGlyph(head)} ${LINE_ARROW_HEAD_LABELS[head]}`}
               active={(c.arrowHead ?? "end") === head}
               onClick={() => run(() => patch({ arrowHead: head }))}
             />
@@ -803,10 +804,10 @@ export function CanvasContextMenu({
           ))}
           <Separator />
           <Section label="Pfeil" />
-          {LINE_ARROW_HEADS.map((head) => (
+          {CONNECTOR_ARROW_HEADS.map((head) => (
             <Item
               key={head}
-              label={LINE_ARROW_HEAD_LABELS[head]}
+              label={`${connectorArrowHeadGlyph(head)} ${LINE_ARROW_HEAD_LABELS[head]}`}
               active={(c.arrowHead ?? "end") === head}
               onClick={() => run(() => patch({ arrowHead: head }))}
             />
