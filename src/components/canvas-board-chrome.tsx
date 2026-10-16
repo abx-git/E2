@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
-  BoxSelect,
   ClipboardCopy,
   Download,
   FileText,
   Image,
   Layers,
   Link2,
+  MousePointer2,
   MoreHorizontal,
   Search,
   SquareDashed,
@@ -510,32 +510,34 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
         >
           <ToolIconButton
             active={activeTool === "select"}
-            title="Auswählen / Verschieben"
+            title="Auswählen und verschieben"
             onClick={() => setTool("select")}
           >
-            <BoxSelect className="h-3.5 w-3.5" />
+            <MousePointer2 className="h-3.5 w-3.5" />
           </ToolIconButton>
-          <button
-            type="button"
-            title={connectorArrowHeadLabel(lineArrowHead)}
-            aria-label={connectorArrowHeadLabel(lineArrowHead)}
-            onClick={() => {
-              const current = CONNECTOR_ARROW_HEADS.includes(lineArrowHead) ? lineArrowHead : "end";
-              const index = CONNECTOR_ARROW_HEADS.indexOf(current);
-              const next = CONNECTOR_ARROW_HEADS[(index + 1) % CONNECTOR_ARROW_HEADS.length]!;
-              setLineArrowHead(next);
-            }}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text)] hover:bg-[var(--control)] touch-manipulation"
-          >
-            <ConnectorArrowHeadIcon head={lineArrowHead} />
-          </button>
           <ToolIconButton
             active={activeTool === "connect"}
-            title="Verbinder: anklicken, Shift+Ziehen für Linie, Enden umhängen"
+            title="Verbinder: Elemente verbinden, Shift+Ziehen für freie Linie, Enden umhängen"
             onClick={() => setTool("connect")}
           >
             <Link2 className="h-3.5 w-3.5" />
           </ToolIconButton>
+          {relationMode && (
+            <button
+              type="button"
+              title={`Pfeiltyp: ${connectorArrowHeadLabel(lineArrowHead)} (Klick zum Wechseln)`}
+              aria-label={`Pfeiltyp: ${connectorArrowHeadLabel(lineArrowHead)}`}
+              onClick={() => {
+                const current = CONNECTOR_ARROW_HEADS.includes(lineArrowHead) ? lineArrowHead : "end";
+                const index = CONNECTOR_ARROW_HEADS.indexOf(current);
+                const next = CONNECTOR_ARROW_HEADS[(index + 1) % CONNECTOR_ARROW_HEADS.length]!;
+                setLineArrowHead(next);
+              }}
+              className="flex h-8 w-8 max-lg:h-10 max-lg:w-10 items-center justify-center rounded-lg text-[var(--text)] hover:bg-[var(--control)] touch-manipulation"
+            >
+              <ConnectorArrowHeadIcon head={lineArrowHead} />
+            </button>
+          )}
           <ToolIconButton
             active={activeTool === "bc"}
             title="Bounded Context zeichnen"
