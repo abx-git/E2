@@ -7,6 +7,10 @@ import { BoardConnectors } from "@/components/board-connectors";
 import { BoundedContextLayer } from "@/components/bounded-context-layer";
 import { attachTargetToEndpoint, withConnectorApproach } from "@/lib/board-connector-resolve";
 import type { ConnectorApproach } from "@/types/board-connector";
+import {
+  isBoardConnectorTarget,
+  shouldStartConnectorLineDraw,
+} from "@/lib/connector-canvas-input";
 import { connectorDraftSourceLabel } from "@/lib/connector-tool";
 import { pickConnectorTargetSnapAt } from "@/lib/connector-target-pick";
 import { StormElementCard } from "@/components/storm-element-card";
@@ -93,7 +97,6 @@ export function StormCanvas() {
   const selectedRelationId = useStormBoardStore((s) => s.selectedRelationId);
   const selectedContextRelationId = useStormBoardStore((s) => s.selectedContextRelationId);
   const relationMode = useStormBoardStore((s) => s.relationMode);
-  const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
   const relationDraftSourceId = useStormBoardStore((s) => s.relationDraftSourceId);
   const contextMapDraftSourceId = useStormBoardStore((s) => s.contextMapDraftSourceId);
   const lineArrowHead = useStormBoardStore((s) => s.lineArrowHead);
@@ -343,7 +346,6 @@ export function StormCanvas() {
   };
 
   const connectorTool = relationMode;
-  const freeLineTool = relationMode && lineDrawMode;
 
   const handleStartConnect = (id: string, approach?: ConnectorApproach) => {
     const source = withConnectorApproach({ attach: "element" as const, id }, approach);
@@ -488,7 +490,7 @@ export function StormCanvas() {
       data-storm-canvas
       className={[
         "absolute inset-0 overflow-hidden bg-canvas outline-none touch-none",
-        bcMode || freeLineTool || connectorTool
+        bcMode || connectorTool
           ? "cursor-crosshair"
           : panning
             ? "cursor-grabbing"
@@ -512,7 +514,10 @@ export function StormCanvas() {
           beginPan(e);
           return;
         }
-        if (e.button === 0 && freeLineTool) {
+        if (
+          e.button === 0 &&
+          shouldStartConnectorLineDraw(e.target, { relationMode, shiftKey: e.shiftKey })
+        ) {
           const world = worldFromClient(e.clientX, e.clientY);
           if (!world) return;
           e.stopPropagation();
@@ -546,18 +551,7 @@ export function StormCanvas() {
           setBcDraft({ x: world.x, y: world.y, w: 0, h: 0 });
           return;
         }
-        if (
-          connectorTool &&
-          !lineDrawMode &&
-          (e.shiftKey ||
-            e.target === e.currentTarget ||
-            (e.target as HTMLElement).dataset?.stormCanvas !== undefined)
-        ) {
-          const world = worldFromClient(e.clientX, e.clientY);
-          if (!world) return;
-          e.stopPropagation();
-          lineStart.current = { x: world.x, y: world.y };
-          setLineDraft({ x1: world.x, y1: world.y, x2: world.x, y2: world.y });
+        if (isBoardConnectorTarget(e.target)) {
           return;
         }
         if (e.pointerType === "touch" || isCoarsePointer) {
@@ -774,26 +768,17 @@ export function StormCanvas() {
                   setContextMapDraftSource(null);
                 },
               }
-            : freeLineTool
+            : connectorTool
               ? {
                   message:
-                    "Linie ziehen: Start halten, loslassen — Endpunkte snappen an Elementen, BCs und Swimlanes",
+                    "Objekte anklicken · Shift+Ziehen = Linie · Verbinder wählen und Endpunkt ziehen = umhängen",
                   onCancel: () => {
-                    useStormBoardStore.getState().setLineDrawMode(false);
                     useStormBoardStore.getState().setRelationMode(false);
+                    setConnectorDraftSource(null);
+                    setRelationDraftSource(null);
+                    setContextMapDraftSource(null);
                   },
                 }
-              : connectorTool
-                ? {
-                    message:
-                      "Zwei Objekte anklicken (Element, BC, Swimlane) · Shift+Ziehen: kurz freie Linie · Enden am Verbinder umhängen",
-                    onCancel: () => {
-                      useStormBoardStore.getState().setRelationMode(false);
-                      setConnectorDraftSource(null);
-                      setRelationDraftSource(null);
-                      setContextMapDraftSource(null);
-                    },
-                  }
               : bcMode
                 ? {
                     message: "Rechteck ziehen · Esc beendet",

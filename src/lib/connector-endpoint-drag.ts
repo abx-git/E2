@@ -39,5 +39,5 @@ export function beginConnectorEndpointDrag(options: {
 }
 
 export function connectorEndpointHandleRadius(selected: boolean): number {
-  return selected ? 6 : 0;
+  return selected ? 8 : 0;
 }

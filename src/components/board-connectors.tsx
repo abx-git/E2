@@ -8,7 +8,6 @@ import {
   attachTargetToEndpoint,
   resolveConnectorAnchors,
 } from "@/lib/board-connector-resolve";
-import { elementCenter } from "@/lib/connector-geometry";
 import {
   boardConnectorCaption,
   boardConnectorDoubleLine,
@@ -67,6 +66,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
   const viewport = useStormBoardStore((s) => s.viewport);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
+  const relationMode = useStormBoardStore((s) => s.relationMode);
   const views = useStormBoardStore((s) => s.views);
   const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
   const searchActive = Boolean(normalizeSearchQuery(searchQuery));
@@ -166,8 +166,14 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
     (c.source.attach === "element" && c.source.id === elId) ||
     (c.target.attach === "element" && c.target.id === elId);
 
+  const elevateInteraction = Boolean(selectedConnectorId || endpointDrag || relationMode);
+
   return (
-    <svg className="pointer-events-none absolute inset-0 overflow-visible" style={{ zIndex: 10 }}>
+    <svg
+      data-board-connector
+      className="pointer-events-none absolute inset-0 overflow-visible"
+      style={{ zIndex: elevateInteraction ? 100_002 : 10 }}
+    >
       <defs>
         <marker id="board-conn-arrow-end" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
           <path d="M0,0 L8,3 L0,6 Z" fill="#8b9aab" />
@@ -255,6 +261,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
               stroke="transparent"
               strokeWidth={hitWidth}
               strokeLinecap="round"
+              data-board-connector="hit"
               className="pointer-events-auto cursor-pointer"
               onPointerDown={selectThis}
               onClick={selectThis}
@@ -318,6 +325,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
             {selected && handleR > 0 && (
               <>
                 <circle
+                  data-board-connector="endpoint"
                   cx={start.x}
                   cy={start.y}
                   r={handleR}
@@ -328,6 +336,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
                   onPointerDown={(e) => startEndpointDrag(conn, "source", end, e)}
                 />
                 <circle
+                  data-board-connector="endpoint"
                   cx={end.x}
                   cy={end.y}
                   r={handleR}
@@ -343,36 +352,6 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
         );
       })}
 
-      {connectorDraftSource && (
-        <g opacity={0.45}>
-          {elements
-            .filter((el) => {
-              if (connectorDraftSource.attach !== "element") return true;
-              return el.id !== connectorDraftSource.id;
-            })
-            .map((el) => {
-              const draftStart = resolveConnectorAnchors(
-                { source: connectorDraftSource, target: { attach: "point", x: el.x, y: el.y } },
-                elements,
-                swimlanes,
-                boundedContexts,
-              ).start;
-              const end = elementCenter(el);
-              return (
-                <line
-                  key={`draft-hint-${el.id}`}
-                  x1={draftStart.x}
-                  y1={draftStart.y}
-                  x2={end.x}
-                  y2={end.y}
-                  stroke="#e9c46a"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 4"
-                />
-              );
-            })}
-        </g>
-      )}
     </svg>
   );
 }

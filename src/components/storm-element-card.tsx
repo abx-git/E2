@@ -389,7 +389,7 @@ export function StormElementCard({
           return;
         }
         const live = useStormBoardStore.getState();
-        if (live.relationMode && (live.lineDrawMode || e.shiftKey)) return;
+        if (live.relationMode && e.shiftKey) return;
         e.stopPropagation();
         draggedRef.current = false;
         useStormBoardStore.getState().beginGesture();
@@ -538,7 +538,7 @@ export function StormElementCard({
             return;
           }
 
-          if (relationMode && !useStormBoardStore.getState().lineDrawMode) {
+          if (relationMode) {
             handleConnectAt(ev.clientX, ev.clientY);
             return;
           }

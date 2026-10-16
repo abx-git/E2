@@ -94,7 +94,7 @@ export function SwimlaneLayer() {
     }
 
     const store = useStormBoardStore.getState();
-    if (store.relationMode && (store.lineDrawMode || e.shiftKey)) return;
+    if (store.relationMode && e.shiftKey) return;
 
     e.stopPropagation();
     e.preventDefault();
@@ -266,6 +266,7 @@ export function SwimlaneLayer() {
         return (
           <div
             key={lane.id}
+            data-swimlane
             className={[
               "absolute border-y-2",
               selected || draftSource || editing ? "ring-2 ring-sky-300" : "",

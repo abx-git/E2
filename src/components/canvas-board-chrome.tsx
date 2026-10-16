@@ -9,7 +9,6 @@ import {
   Image,
   Layers,
   Link2,
-  Minus,
   MoreHorizontal,
   Search,
   SquareDashed,
@@ -315,9 +314,7 @@ export interface CanvasBoardChromeProps {
 /** Floating tool + zoom chrome for the canvas. */
 export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoardChromeProps) {
   const relationMode = useStormBoardStore((s) => s.relationMode);
-  const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
   const setRelationMode = useStormBoardStore((s) => s.setRelationMode);
-  const setLineDrawMode = useStormBoardStore((s) => s.setLineDrawMode);
   const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
   const setConnectorDraftSource = useStormBoardStore((s) => s.setConnectorDraftSource);
   const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
@@ -346,20 +343,10 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const activeTool: CanvasTool = bcMode ? "bc" : relationMode ? "connect" : "select";
 
   const clearConnect = () => {
-    setLineDrawMode(false);
     setRelationMode(false);
     setRelationDraftSource(null);
     setConnectorDraftSource(null);
     setContextMapDraftSource(null);
-  };
-
-  const setClickConnectMode = () => {
-    setLineDrawMode(false);
-    setRelationMode(true);
-  };
-
-  const setFreeLineMode = () => {
-    setLineDrawMode(true);
   };
 
   const setTool = (tool: CanvasTool) => {
@@ -373,7 +360,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
     if (bcMode && tool !== "bc") onToggleBcMode();
 
     if (tool === "connect") {
-      setClickConnectMode();
+      setRelationMode(true);
     } else if (tool === "bc") {
       if (!bcMode) onToggleBcMode();
     }
@@ -526,18 +513,11 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
             <BoxSelect className="h-3.5 w-3.5" />
           </ToolIconButton>
           <ToolIconButton
-            active={activeTool === "connect" && !lineDrawMode}
-            title="Verbinder: Objekte per Klick verbinden"
-            onClick={() => setClickConnectMode()}
+            active={activeTool === "connect"}
+            title="Verbinder: anklicken, Shift+Ziehen für Linie, Enden umhängen"
+            onClick={() => setTool("connect")}
           >
             <Link2 className="h-3.5 w-3.5" />
-          </ToolIconButton>
-          <ToolIconButton
-            active={activeTool === "connect" && lineDrawMode}
-            title="Freie Linie / Pfeil zeichnen (snappt an Objekte)"
-            onClick={() => setFreeLineMode()}
-          >
-            <Minus className="h-3.5 w-3.5" />
           </ToolIconButton>
           <ToolIconButton
             active={activeTool === "bc"}

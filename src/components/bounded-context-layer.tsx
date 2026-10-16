@@ -100,7 +100,7 @@ export function BoundedContextLayer() {
     }
 
     const store = useStormBoardStore.getState();
-    if (store.relationMode && (store.lineDrawMode || e.shiftKey)) return;
+    if (store.relationMode && e.shiftKey) return;
 
     e.stopPropagation();
     e.preventDefault();
@@ -322,6 +322,7 @@ export function BoundedContextLayer() {
         return (
           <div
             key={bc.id}
+            data-bounded-context
             className={[
               "absolute rounded-lg border-2 touch-manipulation",
               selected || draftSource || editing ? "ring-2 ring-blue-300" : "",
