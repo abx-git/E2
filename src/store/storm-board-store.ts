@@ -108,8 +108,11 @@ import {
   canvasLineToConnector,
   connectorsToLegacy,
   contextRelationToConnector,
-  inferConnectorSemantics,
+  prepareConnectorEndpoints,
   stormRelationToConnector,
+  connectorToCanvasLine,
+  connectorToContextRelation,
+  connectorToStormRelation,
 } from "@/lib/board-connector-migrate";
 
 function withConnectors(connectors: BoardConnector[]) {
@@ -1485,13 +1488,17 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   applyProgressMark: (mark) =>
     commit(set, get, (s) => {
       const elementIds = s.selectedElementIds;
-      const relationId = s.selectedRelationId;
+      const relationId = s.selectedRelationId ?? s.selectedConnectorId;
       if (elementIds.length === 0 && !relationId) return {};
 
       const selectedEls = s.elements.filter((e) => elementIds.includes(e.id));
       const selectedRel = relationId
         ? s.relations.find((r) => r.id === relationId)
         : undefined;
+      const selectedConn =
+        relationId && !selectedRel
+          ? s.connectors.find((c) => c.id === relationId)
+          : undefined;
 
       const allAlready =
         selectedEls.every(
@@ -1499,8 +1506,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         ) &&
         (selectedRel
           ? normalizeProgressMark(selectedRel.progressMark) === mark
-          : true) &&
-        (selectedEls.length > 0 || Boolean(selectedRel));
+          : selectedConn
+            ? normalizeProgressMark(selectedConn.progressMark) === mark
+            : true) &&
+        (selectedEls.length > 0 || Boolean(selectedRel) || Boolean(selectedConn));
 
       const next = allAlready ? undefined : mark;
 
@@ -1518,9 +1527,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
               };
             });
 
-      const connectors = selectedRel
+      const markConnectorId = selectedRel?.id ?? selectedConn?.id;
+      const connectors = markConnectorId
         ? s.connectors.map((c) => {
-            if (c.id !== selectedRel.id) return c;
+            if (c.id !== markConnectorId) return c;
             if (!next) {
               const { progressMark: _removed, ...rest } = c;
               return rest;
@@ -1591,29 +1601,33 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   },
 
   connectEndpoints: (source, target) => {
+    const state = get();
+    const prepared = prepareConnectorEndpoints(
+      source,
+      target,
+      state.elements,
+      state.swimlanes,
+      state.boundedContexts,
+    );
     if (
-      source.attach !== "point" &&
-      target.attach !== "point" &&
-      JSON.stringify(source) === JSON.stringify(target)
+      prepared.source.attach !== "point" &&
+      prepared.target.attach !== "point" &&
+      JSON.stringify(prepared.source) === JSON.stringify(prepared.target)
     ) {
       return null;
     }
-    const state = get();
-    let relationType: RelationType | undefined;
-    if (source.attach === "element" && target.attach === "element") {
-      const src = state.elements.find((e) => e.id === source.id);
-      const tgt = state.elements.find((e) => e.id === target.id);
+    const { source: srcEp, target: tgtEp } = prepared;
+    if (srcEp.attach === "element" && tgtEp.attach === "element") {
+      const src = state.elements.find((e) => e.id === srcEp.id);
+      const tgt = state.elements.find((e) => e.id === tgtEp.id);
       if (!src || !tgt) return null;
-      relationType = defaultRelationType(src, tgt);
     }
-    const semantics = inferConnectorSemantics(source, target, relationType);
     const connector: BoardConnector = {
       id: generateStormId(),
-      source,
-      target,
+      source: prepared.source,
+      target: prepared.target,
       arrowHead: state.lineArrowHead,
-      labelMode: semantics.relationType ? "type" : undefined,
-      ...semantics,
+      ...prepared.semantics,
     };
     commit(set, get, (s) => ({
       ...withConnectors([...s.connectors, connector]),
@@ -1643,16 +1657,18 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedCanvasLineId: s.selectedCanvasLineId === id ? null : s.selectedCanvasLineId,
     })),
 
-  selectConnector: (id) =>
+  selectConnector: (id) => {
+    const conn = get().connectors.find((c) => c.id === id);
     set({
       selectedConnectorId: id,
-      selectedRelationId: id,
-      selectedContextRelationId: id,
-      selectedCanvasLineId: id,
+      selectedRelationId: conn && connectorToStormRelation(conn) ? id : null,
+      selectedContextRelationId: conn && connectorToContextRelation(conn) ? id : null,
+      selectedCanvasLineId: conn && connectorToCanvasLine(conn) ? id : null,
       selectedElementIds: [],
       selectedBoundedContextIds: [],
       selectedSwimlaneIds: [],
-    }),
+    });
+  },
 
   reconnectConnector: (connectorId, endpoint, attach) => {
     const state = get();
@@ -1661,21 +1677,23 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     const source = endpoint === "source" ? attach : conn.source;
     const target = endpoint === "target" ? attach : conn.target;
     if (JSON.stringify(source) === JSON.stringify(target)) return false;
-    let next: BoardConnector = {
-      ...conn,
+    const prepared = prepareConnectorEndpoints(
       source,
       target,
+      state.elements,
+      state.swimlanes,
+      state.boundedContexts,
+    );
+    let next: BoardConnector = {
+      ...conn,
+      source: prepared.source,
+      target: prepared.target,
+      relationType: undefined,
+      contextMapPattern: undefined,
+      labelMode: undefined,
+      ...prepared.semantics,
     };
-    if (source.attach === "element" && target.attach === "element") {
-      const src = state.elements.find((e) => e.id === source.id);
-      const tgt = state.elements.find((e) => e.id === target.id);
-      if (!src || !tgt) return false;
-      next = {
-        ...next,
-        relationType: defaultRelationType(src, tgt),
-        contextMapPattern: undefined,
-      };
-    } else if (source.attach === "boundedContext" && target.attach === "boundedContext") {
+    if (prepared.source.attach === "boundedContext" && prepared.target.attach === "boundedContext") {
       next = {
         ...next,
         contextMapPattern: next.contextMapPattern ?? "customerSupplier",

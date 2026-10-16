@@ -12,7 +12,9 @@ import { resolveElementStyle } from "@/lib/element-styles";
 import { cardShowsDetails, isOnCardFieldEnabled, onCardDisplayFieldsForType } from "@/lib/card-preview";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
-import { validateBoard } from "@/lib/relation-validation";
+import { connectorToCanvasLine } from "@/lib/board-connector-migrate";
+import { resolveBoardConnectorStrokeStyle } from "@/lib/board-connector-style";
+import { defaultRelationType, validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
 import { DescriptionMarkdownContent } from "@/components/description-markdown-content";
 import { DescriptionEditorDialog } from "@/components/description-editor-dialog";
@@ -165,8 +167,10 @@ export function ElementDetailSidebar({
   const elements = useStormBoardStore((s) => s.elements);
   const relations = useStormBoardStore((s) => s.relations);
   const canvasLines = useStormBoardStore((s) => s.canvasLines);
+  const connectors = useStormBoardStore((s) => s.connectors);
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const selectedRelationId = useStormBoardStore((s) => s.selectedRelationId);
+  const selectedConnectorId = useStormBoardStore((s) => s.selectedConnectorId);
   const selectedCanvasLineId = useStormBoardStore((s) => s.selectedCanvasLineId);
   const selectedBoundedContextId = useStormBoardStore((s) => s.selectedBoundedContextIds[0] ?? null);
   const selectedSwimlaneId = useStormBoardStore((s) => s.selectedSwimlaneIds[0] ?? null);
@@ -177,6 +181,8 @@ export function ElementDetailSidebar({
   const deleteRelation = useStormBoardStore((s) => s.deleteRelation);
   const updateCanvasLine = useStormBoardStore((s) => s.updateCanvasLine);
   const deleteCanvasLine = useStormBoardStore((s) => s.deleteCanvasLine);
+  const updateConnector = useStormBoardStore((s) => s.updateConnector);
+  const deleteConnector = useStormBoardStore((s) => s.deleteConnector);
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
   const openBuildingBlockView = useStormBoardStore((s) => s.openBuildingBlockView);
   const navigateBuildingBlockViewLink = useStormBoardStore((s) => s.navigateBuildingBlockViewLink);
@@ -188,6 +194,7 @@ export function ElementDetailSidebar({
   const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const selectedElement = elements.find((e) => e.id === selectedElementIds[0]);
   const selectedRelation = relations.find((r) => r.id === selectedRelationId);
+  const selectedConnector = connectors.find((c) => c.id === selectedConnectorId);
   const selectedCanvasLine = canvasLines.find((line) => line.id === selectedCanvasLineId);
   const selectedBoundedContext = boundedContexts.find((bc) => bc.id === selectedBoundedContextId);
   const selectedSwimlane = swimlanes.find((lane) => lane.id === selectedSwimlaneId);
@@ -207,25 +214,59 @@ export function ElementDetailSidebar({
     [elements, relations, contextRelations, selectedElement?.id],
   );
 
-  if (selectedCanvasLine) {
-    const arrowHead = selectedCanvasLine.arrowHead ?? "none";
-    const strokeStyle = isConnectorStrokeStyle(selectedCanvasLine.strokeStyle)
-      ? selectedCanvasLine.strokeStyle
-      : "solid";
+  if (selectedConnector && connectorToCanvasLine(selectedConnector)) {
+    const c = selectedConnector;
+    const arrowHead = c.arrowHead ?? "end";
+    const strokeStyle = resolveBoardConnectorStrokeStyle(c);
+    let srcEl: (typeof elements)[number] | undefined;
+    let tgtEl: (typeof elements)[number] | undefined;
+    if (c.source.attach === "element") {
+      const sourceId = c.source.id;
+      srcEl = elements.find((e) => e.id === sourceId);
+    }
+    if (c.target.attach === "element") {
+      const targetId = c.target.id;
+      tgtEl = elements.find((e) => e.id === targetId);
+    }
+    const elementLink = Boolean(srcEl && tgtEl);
+    const relationType =
+      c.relationType ?? (srcEl && tgtEl ? defaultRelationType(srcEl, tgtEl) : undefined);
     return (
-      <DockPanel title="Freie Linie">
-        <Field label="Label">
+      <DockPanel title="Verbinder">
+        {relationType && (
+          <Field label="Art">
+            <select
+              className="dock-field"
+              value={relationType}
+              onChange={(e) =>
+                updateConnector(c.id, {
+                  relationType: e.target.value as RelationType,
+                  labelMode: "type",
+                })
+              }
+            >
+              {RELATION_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {RELATION_TYPE_LABELS[type]}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+        <Field label="Beschriftung">
           <input
             className="dock-field"
-            value={selectedCanvasLine.label ?? ""}
-            onChange={(e) => updateCanvasLine(selectedCanvasLine.id, { label: e.target.value })}
+            value={c.label ?? ""}
+            onChange={(e) =>
+              updateConnector(c.id, { label: e.target.value, labelMode: "custom" })
+            }
             placeholder="Optional"
           />
         </Field>
         <Field label="Linie">
           <StrokeStyleButtons
             value={strokeStyle}
-            onChange={(next) => updateCanvasLine(selectedCanvasLine.id, { strokeStyle: next })}
+            onChange={(next) => updateConnector(c.id, { strokeStyle: next })}
           />
         </Field>
         <Field label="Pfeil">
@@ -243,7 +284,7 @@ export function ElementDetailSidebar({
                     ? "dock-control-active"
                     : "dock-control hover:bg-[var(--control-hover)]",
                 ].join(" ")}
-                onClick={() => updateCanvasLine(selectedCanvasLine.id, { arrowHead: head })}
+                onClick={() => updateConnector(c.id, { arrowHead: head })}
               >
                 {lineArrowHeadShortLabel(head)}
               </button>
@@ -254,14 +295,14 @@ export function ElementDetailSidebar({
           <input
             className="dock-field h-9 cursor-pointer p-1"
             type="color"
-            value={selectedCanvasLine.color ?? "#64748b"}
-            onChange={(e) => updateCanvasLine(selectedCanvasLine.id, { color: e.target.value })}
+            value={c.color ?? "#64748b"}
+            onChange={(e) => updateConnector(c.id, { color: e.target.value })}
           />
         </Field>
         <button
           type="button"
           className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--control)] px-2 py-1.5 text-xs font-medium text-[#f0a8a0] hover:border-[#f0a8a0]"
-          onClick={() => deleteCanvasLine(selectedCanvasLine.id)}
+          onClick={() => deleteConnector(c.id)}
         >
           <Trash2 className="size-3.5" aria-hidden />
           Löschen

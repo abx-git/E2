@@ -263,12 +263,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
                 e.stopPropagation();
                 const store = useStormBoardStore.getState();
                 store.selectConnector(conn.id);
-                const kind = conn.relationType
-                  ? "relation"
-                  : conn.contextMapPattern
-                    ? "contextRelation"
-                    : "relation";
-                store.openContextMenu(e.clientX, e.clientY, { kind, id: conn.id });
+                store.openContextMenu(e.clientX, e.clientY, { kind: "connector", id: conn.id });
               }}
             />
             {boardConnectorDoubleLine(conn) && (

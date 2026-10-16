@@ -8,7 +8,7 @@ import { BoundedContextLayer } from "@/components/bounded-context-layer";
 import { attachTargetToEndpoint, withConnectorApproach } from "@/lib/board-connector-resolve";
 import type { ConnectorApproach } from "@/types/board-connector";
 import { connectorDraftSourceLabel } from "@/lib/connector-tool";
-import { pickInnermostConnectorTargetAt } from "@/lib/connector-target-pick";
+import { pickConnectorTargetSnapAt } from "@/lib/connector-target-pick";
 import { StormElementCard } from "@/components/storm-element-card";
 import { SwimlaneLayer } from "@/components/swimlane-layer";
 import { TimelineGuide } from "@/components/timeline-guide";
@@ -638,7 +638,7 @@ export function StormCanvas() {
         if (connectorTool && lineDraft && lineLength(lineDraft) >= MIN_LINE_LENGTH_WORLD) {
           const live = useStormBoardStore.getState();
           const pickAt = (x: number, y: number) => {
-            const target = pickInnermostConnectorTargetAt(
+            const target = pickConnectorTargetSnapAt(
               { x, y },
               live.elements,
               live.swimlanes,

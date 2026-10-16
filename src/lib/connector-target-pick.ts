@@ -82,6 +82,48 @@ export function pickInnermostConnectorTargetAt(
   return best ? { kind: best.kind, id: best.id } : null;
 }
 
+function expandRect(rect: WorldRect, margin: number): WorldRect {
+  return {
+    x: rect.x - margin,
+    y: rect.y - margin,
+    w: rect.w + margin * 2,
+    h: rect.h + margin * 2,
+  };
+}
+
+/** Like pickInnermostConnectorTargetAt but also snaps when the pointer is near a shape edge. */
+export function pickConnectorTargetSnapAt(
+  point: WorldPoint,
+  elements: StormElement[],
+  swimlanes: Swimlane[],
+  boundedContexts: BoundedContext[],
+  snapMargin = 28,
+): ConnectorAttachTarget | null {
+  const direct = pickInnermostConnectorTargetAt(point, elements, swimlanes, boundedContexts);
+  if (direct) return direct;
+
+  let best: Candidate | undefined;
+
+  const consider = (bounds: WorldRect, candidate: ConnectorAttachTarget) => {
+    if (!pointInWorldRect(point, expandRect(bounds, snapMargin))) return;
+    const entry: Candidate = { ...candidate, area: rectArea(bounds) };
+    best = best === undefined ? entry : betterCandidate(best, entry);
+  };
+
+  for (const el of elements) {
+    consider(elementBounds(el), { kind: "element", id: el.id });
+  }
+  for (const bc of boundedContexts) {
+    consider(boundedContextBounds(bc), { kind: "boundedContext", id: bc.id });
+  }
+  for (const lane of swimlanes) {
+    consider(swimlaneBounds(lane), { kind: "swimlane", id: lane.id });
+  }
+
+  if (best === undefined) return null;
+  return { kind: best.kind, id: best.id };
+}
+
 export function boundsForConnectorTarget(
   target: ConnectorAttachTarget,
   elements: StormElement[],
@@ -131,12 +173,7 @@ export function connectorEndpointDragPreview(
   boundedContexts: BoundedContext[],
   accept: ConnectorTargetFilter,
 ): ConnectorEndpointDragPreview {
-  const target = pickInnermostConnectorTargetAt(
-    pointer,
-    elements,
-    swimlanes,
-    boundedContexts,
-  );
+  const target = pickConnectorTargetSnapAt(pointer, elements, swimlanes, boundedContexts);
   if (!target || !acceptsTarget(target, accept)) {
     return { lineEnd: pointer, target, valid: false };
   }

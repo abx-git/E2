@@ -1,6 +1,10 @@
+import { attachTargetToEndpoint } from "@/lib/board-connector-resolve";
 import { normalizeCanvasLine } from "@/lib/canvas-annotations";
+import { pickConnectorTargetSnapAt } from "@/lib/connector-target-pick";
+import { defaultRelationType } from "@/lib/relation-validation";
 import { generateStormId } from "@/lib/storm-id";
 import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
+import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 import type { LineArrowHead } from "@/types/canvas-annotation";
 import type { CanvasLine } from "@/types/canvas-annotation";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
@@ -173,12 +177,56 @@ export function inferConnectorSemantics(
   contextMapPattern?: import("@/types/storm-relation").ContextMapPattern,
 ): Partial<BoardConnector> {
   if (source.attach === "element" && target.attach === "element") {
-    return { relationType, arrowHead: "end" as LineArrowHead };
+    return {
+      relationType,
+      arrowHead: "end" as LineArrowHead,
+      labelMode: relationType ? "type" : undefined,
+    };
   }
   if (source.attach === "boundedContext" && target.attach === "boundedContext") {
     return { contextMapPattern: contextMapPattern ?? "customerSupplier", arrowHead: "end" };
   }
   return { arrowHead: "end" };
+}
+
+export function snapConnectorEndpoint(
+  endpoint: ConnectorEndpoint,
+  elements: StormElement[],
+  swimlanes: Swimlane[],
+  boundedContexts: BoundedContext[],
+  snapMargin = 28,
+): ConnectorEndpoint {
+  if (endpoint.attach !== "point") return endpoint;
+  const target = pickConnectorTargetSnapAt(
+    { x: endpoint.x, y: endpoint.y },
+    elements,
+    swimlanes,
+    boundedContexts,
+    snapMargin,
+  );
+  if (!target) return endpoint;
+  return attachTargetToEndpoint(target, { x: endpoint.x, y: endpoint.y });
+}
+
+export function prepareConnectorEndpoints(
+  source: ConnectorEndpoint,
+  target: ConnectorEndpoint,
+  elements: StormElement[],
+  swimlanes: Swimlane[],
+  boundedContexts: BoundedContext[],
+): { source: ConnectorEndpoint; target: ConnectorEndpoint; semantics: Partial<BoardConnector> } {
+  const snappedSource = snapConnectorEndpoint(source, elements, swimlanes, boundedContexts);
+  const snappedTarget = snapConnectorEndpoint(target, elements, swimlanes, boundedContexts);
+
+  let relationType: import("@/types/storm-relation").RelationType | undefined;
+  if (snappedSource.attach === "element" && snappedTarget.attach === "element") {
+    const src = elements.find((e) => e.id === snappedSource.id);
+    const tgt = elements.find((e) => e.id === snappedTarget.id);
+    if (src && tgt) relationType = defaultRelationType(src, tgt);
+  }
+
+  const semantics = inferConnectorSemantics(snappedSource, snappedTarget, relationType);
+  return { source: snappedSource, target: snappedTarget, semantics };
 }
 
 export function newConnectorId(): string {

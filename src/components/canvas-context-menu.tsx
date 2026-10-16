@@ -53,11 +53,15 @@ import { ProgressMarkGlyph } from "@/components/progress-mark-badge";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { supportsArchDrilldown, type NoteColorId } from "@/types/storm-element";
 import { RELATION_TYPE_LABELS, RELATION_TYPES, CONTEXT_MAP_PATTERN_LABELS, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
+import { resolveBoardConnectorStrokeStyle } from "@/lib/board-connector-style";
 import {
   CONNECTOR_STROKE_STYLES,
   CONNECTOR_STROKE_STYLE_LABELS,
   resolveRelationStrokeStyle,
 } from "@/lib/connector-style";
+import { defaultRelationType } from "@/lib/relation-validation";
+import { LINE_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
+import type { BoardConnector } from "@/types/board-connector";
 
 function clipboardSelectionFromStore() {
   const s = useStormBoardStore.getState();
@@ -94,6 +98,7 @@ export function CanvasContextMenu({
   const closeContextMenu = useStormBoardStore((s) => s.closeContextMenu);
   const elements = useStormBoardStore((s) => s.elements);
   const relations = useStormBoardStore((s) => s.relations);
+  const connectors = useStormBoardStore((s) => s.connectors);
   const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
@@ -110,6 +115,8 @@ export function CanvasContextMenu({
   const sendElementsBackward = useStormBoardStore((s) => s.sendElementsBackward);
   const updateRelation = useStormBoardStore((s) => s.updateRelation);
   const deleteRelation = useStormBoardStore((s) => s.deleteRelation);
+  const updateConnector = useStormBoardStore((s) => s.updateConnector);
+  const deleteConnector = useStormBoardStore((s) => s.deleteConnector);
   const updateContextRelation = useStormBoardStore((s) => s.updateContextRelation);
   const deleteContextRelation = useStormBoardStore((s) => s.deleteContextRelation);
   const setRelationMode = useStormBoardStore((s) => s.setRelationMode);
@@ -658,6 +665,177 @@ export function CanvasContextMenu({
         />
       </>
     );
+  } else if (target.kind === "connector") {
+    const c = connectors.find((x) => x.id === target.id);
+    if (!c) return null;
+    const patch = (p: Partial<BoardConnector>) => updateConnector(c.id, p);
+    let srcEl: (typeof elements)[number] | undefined;
+    let tgtEl: (typeof elements)[number] | undefined;
+    if (c.source.attach === "element") {
+      const sourceId = c.source.id;
+      srcEl = elements.find((e) => e.id === sourceId);
+    }
+    if (c.target.attach === "element") {
+      const targetId = c.target.id;
+      tgtEl = elements.find((e) => e.id === targetId);
+    }
+    const relType =
+      c.relationType ?? (srcEl && tgtEl ? defaultRelationType(srcEl, tgtEl) : null);
+
+    if (c.contextMapPattern) {
+      body = (
+        <>
+          <Header title="Context Map" subtitle={CONTEXT_MAP_PATTERN_LABELS[c.contextMapPattern]} />
+          <Section label="Muster" />
+          {CONTEXT_PATTERNS.map((t) => (
+            <Item
+              key={t}
+              label={CONTEXT_MAP_PATTERN_LABELS[t]}
+              active={c.contextMapPattern === t}
+              onClick={() => run(() => patch({ contextMapPattern: t }))}
+            />
+          ))}
+          <Separator />
+          <Item
+            icon={Trash2}
+            label="Löschen"
+            danger
+            onClick={() =>
+              run(() => {
+                deleteConnector(c.id);
+                clearSelection();
+              })
+            }
+          />
+        </>
+      );
+    } else if (relType) {
+      body = (
+        <>
+          <Header title="Verbinder" subtitle={RELATION_TYPE_LABELS[relType]} />
+          <Section label="Typ" />
+          {RELATION_TYPES.map((t) => (
+            <Item
+              key={t}
+              label={RELATION_TYPE_LABELS[t]}
+              active={relType === t}
+              onClick={() => run(() => patch({ relationType: t, labelMode: "type" }))}
+            />
+          ))}
+          <Item
+            icon={HelpCircle}
+            label="Hilfe"
+            onClick={() => run(() => onRequestHelpRelationType?.(relType))}
+          />
+          <Separator />
+          <Section label="Linie" />
+          {CONNECTOR_STROKE_STYLES.map((style) => (
+            <Item
+              key={style}
+              label={CONNECTOR_STROKE_STYLE_LABELS[style]}
+              active={resolveBoardConnectorStrokeStyle(c) === style}
+              onClick={() => run(() => patch({ strokeStyle: style }))}
+            />
+          ))}
+          <Separator />
+          <Section label="Pfeil" />
+          {LINE_ARROW_HEADS.map((head) => (
+            <Item
+              key={head}
+              label={LINE_ARROW_HEAD_LABELS[head]}
+              active={(c.arrowHead ?? "end") === head}
+              onClick={() => run(() => patch({ arrowHead: head }))}
+            />
+          ))}
+          <Separator />
+          <Section label="Bearbeitungsstand" />
+          {PROGRESS_MARKS.map((mark) => (
+            <Item
+              key={mark}
+              label={PROGRESS_MARK_SHORT[mark]}
+              hint={PROGRESS_MARK_SHORTCUT[mark]}
+              active={normalizeProgressMark(c.progressMark) === mark}
+              leading={
+                <span
+                  className="inline-flex h-4 w-4 items-center justify-center rounded-full"
+                  style={{
+                    backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
+                    color: PROGRESS_MARK_STYLE[mark].fg,
+                  }}
+                >
+                  <ProgressMarkGlyph mark={mark} />
+                </span>
+              }
+              onClick={() =>
+                run(() => {
+                  useStormBoardStore.getState().selectConnector(c.id);
+                  applyProgressMark(mark);
+                })
+              }
+            />
+          ))}
+          <Separator />
+          <Item
+            icon={Trash2}
+            label="Löschen"
+            danger
+            onClick={() =>
+              run(() => {
+                deleteConnector(c.id);
+                clearSelection();
+              })
+            }
+          />
+        </>
+      );
+    } else {
+      body = (
+        <>
+          <Header title="Verbinder" subtitle="Freier Verbinder" />
+          <Section label="Linie" />
+          {CONNECTOR_STROKE_STYLES.map((style) => (
+            <Item
+              key={style}
+              label={CONNECTOR_STROKE_STYLE_LABELS[style]}
+              active={resolveBoardConnectorStrokeStyle(c) === style}
+              onClick={() => run(() => patch({ strokeStyle: style }))}
+            />
+          ))}
+          <Separator />
+          <Section label="Pfeil" />
+          {LINE_ARROW_HEADS.map((head) => (
+            <Item
+              key={head}
+              label={LINE_ARROW_HEAD_LABELS[head]}
+              active={(c.arrowHead ?? "end") === head}
+              onClick={() => run(() => patch({ arrowHead: head }))}
+            />
+          ))}
+          <Separator />
+          <Item
+            label="Beschriftung ändern…"
+            onClick={() =>
+              run(() => {
+                const next = window.prompt("Text am Verbinder", c.label ?? "");
+                if (next !== null) patch({ label: next, labelMode: "custom" });
+              })
+            }
+          />
+          <Separator />
+          <Item
+            icon={Trash2}
+            label="Löschen"
+            danger
+            onClick={() =>
+              run(() => {
+                deleteConnector(c.id);
+                clearSelection();
+              })
+            }
+          />
+        </>
+      );
+    }
   } else if (target.kind === "relation") {
     const rel = relations.find((r) => r.id === target.id);
     if (!rel) return null;
