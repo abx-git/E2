@@ -15,6 +15,7 @@ import type {
 } from "@/types/storm-element";
 import type { ActionItem } from "@/types/action-item";
 import type { CanvasLine, LineArrowHead, ViewBookmark } from "@/types/canvas-annotation";
+import type { BoardConnector } from "@/types/board-connector";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 import type { BoardAppearance } from "@/lib/board-appearance";
 
@@ -25,6 +26,7 @@ export interface ActiveViewFlatState {
   facilitatorEnabled: boolean;
   facilitatorPhase: number;
   elements: StormElement[];
+  connectors: BoardConnector[];
   relations: StormRelation[];
   contextRelations: ContextRelation[];
   swimlanes: Swimlane[];
@@ -55,6 +57,7 @@ export function flatFieldsFromView(view: BoardView): ActiveViewFlatState {
     facilitatorEnabled: view.facilitatorEnabled,
     facilitatorPhase: view.facilitatorPhase,
     elements: view.elements,
+    connectors: view.connectors,
     relations: view.relations,
     contextRelations: view.contextRelations,
     swimlanes: view.swimlanes,
@@ -125,8 +128,10 @@ export function createInitialViewDocument(title: string): {
 
 export const CLEAR_SELECTION_PATCH = {
   selectedElementIds: [] as string[],
+  selectedConnectorId: null as string | null,
   selectedRelationId: null as string | null,
   selectedContextRelationId: null as string | null,
+  connectorDraftSource: null,
   selectedBoundedContextIds: [] as string[],
   selectedSwimlaneIds: [] as string[],
   relationMode: false,

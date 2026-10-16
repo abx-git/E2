@@ -104,10 +104,14 @@ export function BoundedContextLayer() {
     // One "Verbinden"-tool: elements use relations, BCs use context-map links.
     if (store.relationMode || store.contextMapMode) {
       store.setRelationDraftSource(null);
-      if (store.contextMapDraftSourceId && store.contextMapDraftSourceId !== bcId) {
-        store.connectBoundedContexts(store.contextMapDraftSourceId, bcId);
+      const target = { attach: "boundedContext" as const, id: bcId };
+      const draft = store.connectorDraftSource;
+      if (draft) {
+        store.connectEndpoints(draft, target);
+        store.setConnectorDraftSource(null);
         store.setContextMapDraftSource(null);
       } else {
+        store.setConnectorDraftSource(target);
         store.setContextMapDraftSource(bcId);
         selectBoundedContext(bcId);
       }

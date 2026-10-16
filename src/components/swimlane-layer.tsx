@@ -91,6 +91,18 @@ export function SwimlaneLayer() {
     e.preventDefault();
 
     const store = useStormBoardStore.getState();
+    if (store.relationMode || store.contextMapMode) {
+      const target = { attach: "swimlane" as const, id: laneId };
+      const draft = store.connectorDraftSource;
+      if (draft) {
+        store.connectEndpoints(draft, target);
+        store.setConnectorDraftSource(null);
+      } else {
+        store.setConnectorDraftSource(target);
+        selectSwimlane(laneId);
+      }
+      return;
+    }
     const alreadySelected = store.selectedSwimlaneIds.includes(laneId);
     const multiSelected =
       alreadySelected &&

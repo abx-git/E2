@@ -103,6 +103,24 @@ import type { ActionItem } from "@/types/action-item";
 import type { CanvasLine, LineArrowHead, ViewBookmark } from "@/types/canvas-annotation";
 import { normalizeCanvasLine } from "@/lib/canvas-annotations";
 import { sanitizeRegionGeometryPatch } from "@/lib/region-style";
+import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
+import {
+  canvasLineToConnector,
+  connectorsToLegacy,
+  contextRelationToConnector,
+  inferConnectorSemantics,
+  stormRelationToConnector,
+} from "@/lib/board-connector-migrate";
+
+function withConnectors(connectors: BoardConnector[]) {
+  const legacy = connectorsToLegacy(connectors);
+  return {
+    connectors,
+    relations: legacy.relations,
+    contextRelations: legacy.contextRelations,
+    canvasLines: legacy.canvasLines,
+  };
+}
 
 export interface StormBoardState {
   title: string;
@@ -116,6 +134,7 @@ export interface StormBoardState {
   facilitatorEnabled: boolean;
   facilitatorPhase: number;
   elements: StormElement[];
+  connectors: BoardConnector[];
   relations: StormRelation[];
   contextRelations: ContextRelation[];
   swimlanes: Swimlane[];
@@ -132,8 +151,10 @@ export interface StormBoardState {
   /** Freeform: stereotype definitions for the active view. */
   customCardTypes: CustomCardType[];
   selectedElementIds: string[];
+  selectedConnectorId: string | null;
   selectedRelationId: string | null;
   selectedContextRelationId: string | null;
+  connectorDraftSource: ConnectorEndpoint | null;
   selectedBoundedContextIds: string[];
   selectedSwimlaneIds: string[];
   /** Ephemeral UI: element that should enter label edit (e.g. after create). */
@@ -269,6 +290,16 @@ export interface StormBoardState {
   setRelationMode: (enabled: boolean) => void;
   setRelationDraftSource: (id: string | null) => void;
   connectElements: (sourceId: string, targetId: string) => string | null;
+  connectEndpoints: (source: ConnectorEndpoint, target: ConnectorEndpoint) => string | null;
+  updateConnector: (id: string, patch: Partial<BoardConnector>) => void;
+  deleteConnector: (id: string) => void;
+  selectConnector: (id: string | null) => void;
+  reconnectConnector: (
+    connectorId: string,
+    endpoint: "source" | "target",
+    attach: ConnectorEndpoint,
+  ) => boolean;
+  setConnectorDraftSource: (source: ConnectorEndpoint | null) => void;
   reconnectRelation: (
     relationId: string,
     endpoint: "source" | "target",
@@ -521,6 +552,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   facilitatorEnabled: initialViewDoc.facilitatorEnabled,
   facilitatorPhase: initialViewDoc.facilitatorPhase,
   elements: initialViewDoc.elements,
+  connectors: initialViewDoc.connectors,
   relations: initialViewDoc.relations,
   contextRelations: initialViewDoc.contextRelations,
   swimlanes: initialViewDoc.swimlanes,
@@ -536,8 +568,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   snapToGrid: initialViewDoc.snapToGrid,
   customCardTypes: initialViewDoc.customCardTypes ?? [],
   selectedElementIds: [],
+  selectedConnectorId: null,
   selectedRelationId: null,
   selectedContextRelationId: null,
+  connectorDraftSource: null,
   selectedBoundedContextIds: [],
   selectedSwimlaneIds: [],
   editingElementId: null,
@@ -1237,7 +1271,14 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           if (next.subdomainId === id) next = { ...next, subdomainId: undefined };
           return next;
         }),
-      relations: s.relations.filter((r) => r.sourceId !== id && r.targetId !== id),
+      ...withConnectors(
+        s.connectors.filter((c) => {
+          const hits =
+            (c.source.attach === "element" && c.source.id === id) ||
+            (c.target.attach === "element" && c.target.id === id);
+          return !hits;
+        }),
+      ),
       selectedElementIds: s.selectedElementIds.filter((x) => x !== id),
     })),
 
@@ -1421,16 +1462,23 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       ...(label?.trim() ? { label: label.trim() } : {}),
     };
     commit(set, get, (s) => ({
-      relations: [...s.relations, rel],
+      ...withConnectors([...s.connectors, stormRelationToConnector(rel)]),
       relationDraftSourceId: null,
+      connectorDraftSource: null,
     }));
     return rel.id;
   },
 
   updateRelation: (id, patch) =>
-    commit(set, get, (s) => ({
-      relations: s.relations.map((r) => (r.id === id ? { ...r, ...patch, id: r.id } : r)),
-    })),
+    commit(set, get, (s) => {
+      const rel = s.relations.find((r) => r.id === id);
+      if (!rel) return {};
+      const next = { ...rel, ...patch, id: rel.id };
+      const connectors = s.connectors.map((c) =>
+        c.id === id ? stormRelationToConnector(next) : c,
+      );
+      return withConnectors(connectors);
+    }),
 
   applyProgressMark: (mark) =>
     commit(set, get, (s) => {
@@ -1468,24 +1516,25 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
               };
             });
 
-      const relations = selectedRel
-        ? s.relations.map((r) => {
-            if (r.id !== selectedRel.id) return r;
+      const connectors = selectedRel
+        ? s.connectors.map((c) => {
+            if (c.id !== selectedRel.id) return c;
             if (!next) {
-              const { progressMark: _removed, ...rest } = r;
+              const { progressMark: _removed, ...rest } = c;
               return rest;
             }
-            return { ...r, progressMark: next };
+            return { ...c, progressMark: next };
           })
-        : s.relations;
+        : s.connectors;
 
-      return { elements, relations };
+      return { elements, ...withConnectors(connectors) };
     }),
 
   deleteRelation: (id) =>
     commit(set, get, (s) => ({
-      relations: s.relations.filter((r) => r.id !== id),
+      ...withConnectors(s.connectors.filter((c) => c.id !== id)),
       selectedRelationId: s.selectedRelationId === id ? null : s.selectedRelationId,
+      selectedConnectorId: s.selectedConnectorId === id ? null : s.selectedConnectorId,
     })),
 
   setRelationMode: (relationMode) =>
@@ -1522,20 +1571,119 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       (r) => r.id !== relationId && r.sourceId === sourceId && r.targetId === targetId,
     );
     if (duplicate) return false;
+    const next = {
+      ...rel,
+      sourceId,
+      targetId,
+      type: defaultRelationType(src, tgt),
+    };
     commit(set, get, (s) => ({
-      relations: s.relations.map((r) =>
-        r.id === relationId
-          ? {
-              ...r,
-              sourceId,
-              targetId,
-              type: defaultRelationType(src, tgt),
-            }
-          : r,
+      ...withConnectors(
+        s.connectors.map((c) => (c.id === relationId ? stormRelationToConnector(next) : c)),
       ),
     }));
     return true;
   },
+
+  connectEndpoints: (source, target) => {
+    if (
+      source.attach !== "point" &&
+      target.attach !== "point" &&
+      JSON.stringify(source) === JSON.stringify(target)
+    ) {
+      return null;
+    }
+    const state = get();
+    let relationType: RelationType | undefined;
+    if (source.attach === "element" && target.attach === "element") {
+      const src = state.elements.find((e) => e.id === source.id);
+      const tgt = state.elements.find((e) => e.id === target.id);
+      if (!src || !tgt) return null;
+      relationType = defaultRelationType(src, tgt);
+    }
+    const semantics = inferConnectorSemantics(source, target, relationType);
+    const connector: BoardConnector = {
+      id: generateStormId(),
+      source,
+      target,
+      arrowHead: state.lineArrowHead,
+      labelMode: semantics.relationType ? "type" : undefined,
+      ...semantics,
+    };
+    commit(set, get, (s) => ({
+      ...withConnectors([...s.connectors, connector]),
+      connectorDraftSource: null,
+      relationDraftSourceId: null,
+      contextMapDraftSourceId: null,
+      selectedConnectorId: connector.id,
+    }));
+    return connector.id;
+  },
+
+  updateConnector: (id, patch) =>
+    commit(set, get, (s) => {
+      const connectors = s.connectors.map((c) =>
+        c.id === id ? { ...c, ...patch, id: c.id } : c,
+      );
+      return withConnectors(connectors);
+    }),
+
+  deleteConnector: (id) =>
+    commit(set, get, (s) => ({
+      ...withConnectors(s.connectors.filter((c) => c.id !== id)),
+      selectedConnectorId: s.selectedConnectorId === id ? null : s.selectedConnectorId,
+      selectedRelationId: s.selectedRelationId === id ? null : s.selectedRelationId,
+      selectedContextRelationId:
+        s.selectedContextRelationId === id ? null : s.selectedContextRelationId,
+      selectedCanvasLineId: s.selectedCanvasLineId === id ? null : s.selectedCanvasLineId,
+    })),
+
+  selectConnector: (id) =>
+    set({
+      selectedConnectorId: id,
+      selectedRelationId: id,
+      selectedContextRelationId: id,
+      selectedCanvasLineId: id,
+      selectedElementIds: [],
+      selectedBoundedContextIds: [],
+      selectedSwimlaneIds: [],
+    }),
+
+  reconnectConnector: (connectorId, endpoint, attach) => {
+    const state = get();
+    const conn = state.connectors.find((c) => c.id === connectorId);
+    if (!conn) return false;
+    const source = endpoint === "source" ? attach : conn.source;
+    const target = endpoint === "target" ? attach : conn.target;
+    if (JSON.stringify(source) === JSON.stringify(target)) return false;
+    let next: BoardConnector = {
+      ...conn,
+      source,
+      target,
+    };
+    if (source.attach === "element" && target.attach === "element") {
+      const src = state.elements.find((e) => e.id === source.id);
+      const tgt = state.elements.find((e) => e.id === target.id);
+      if (!src || !tgt) return false;
+      next = {
+        ...next,
+        relationType: defaultRelationType(src, tgt),
+        contextMapPattern: undefined,
+      };
+    } else if (source.attach === "boundedContext" && target.attach === "boundedContext") {
+      next = {
+        ...next,
+        contextMapPattern: next.contextMapPattern ?? "customerSupplier",
+        relationType: undefined,
+      };
+    }
+    commit(set, get, (s) => ({
+      ...withConnectors(s.connectors.map((c) => (c.id === connectorId ? next : c))),
+    }));
+    return true;
+  },
+
+  setConnectorDraftSource: (connectorDraftSource) => set({ connectorDraftSource }),
 
   addContextRelation: (sourceContextId, targetContextId, type, label) => {
     if (sourceContextId === targetContextId) return null;
@@ -1553,26 +1701,27 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       label,
     };
     commit(set, get, (s) => ({
-      contextRelations: [...s.contextRelations, rel],
+      ...withConnectors([...s.connectors, contextRelationToConnector(rel)]),
       contextMapDraftSourceId: null,
+      connectorDraftSource: null,
       selectedContextRelationId: rel.id,
+      selectedConnectorId: rel.id,
     }));
     return rel.id;
   },
 
   updateContextRelation: (id, patch) =>
-    commit(set, get, (s) => ({
-      contextRelations: s.contextRelations.map((r) =>
-        r.id === id ? { ...r, ...patch, id: r.id } : r,
-      ),
-    })),
+    commit(set, get, (s) => {
+      const rel = s.contextRelations.find((r) => r.id === id);
+      if (!rel) return {};
+      const next = { ...rel, ...patch, id: rel.id };
+      const connectors = s.connectors.map((c) =>
+        c.id === id ? contextRelationToConnector(next) : c,
+      );
+      return withConnectors(connectors);
+    }),
 
-  deleteContextRelation: (id) =>
-    commit(set, get, (s) => ({
-      contextRelations: s.contextRelations.filter((r) => r.id !== id),
-      selectedContextRelationId:
-        s.selectedContextRelationId === id ? null : s.selectedContextRelationId,
-    })),
+  deleteContextRelation: (id) => get().deleteConnector(id),
 
   setContextMapMode: (contextMapMode) =>
     set({
@@ -1604,9 +1753,11 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       arrowHead: line.arrowHead ?? get().lineArrowHead,
     });
     if (!normalized) return null;
+    const connector = canvasLineToConnector(normalized);
     commit(set, get, (s) => ({
-      canvasLines: [...s.canvasLines, normalized],
+      ...withConnectors([...s.connectors, connector]),
       selectedCanvasLineId: normalized.id,
+      selectedConnectorId: normalized.id,
       selectedElementIds: [],
       selectedRelationId: null,
       selectedContextRelationId: null,
@@ -1617,18 +1768,18 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   },
 
   updateCanvasLine: (id, patch) =>
-    commit(set, get, (s) => ({
-      canvasLines: s.canvasLines.map((line) => {
-        if (line.id !== id) return line;
-        return normalizeCanvasLine({ ...line, ...patch, id: line.id }) ?? line;
-      }),
-    })),
+    commit(set, get, (s) => {
+      const line = s.canvasLines.find((l) => l.id === id);
+      if (!line) return {};
+      const normalized = normalizeCanvasLine({ ...line, ...patch, id: line.id });
+      if (!normalized) return {};
+      const connectors = s.connectors.map((c) =>
+        c.id === id ? canvasLineToConnector(normalized) : c,
+      );
+      return withConnectors(connectors);
+    }),
 
-  deleteCanvasLine: (id) =>
-    commit(set, get, (s) => ({
-      canvasLines: s.canvasLines.filter((line) => line.id !== id),
-      selectedCanvasLineId: s.selectedCanvasLineId === id ? null : s.selectedCanvasLineId,
-    })),
+  deleteCanvasLine: (id) => get().deleteConnector(id),
 
   selectCanvasLine: (id) =>
     set({
@@ -1713,9 +1864,12 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           (r.sourceContextId === targetContextId && r.targetContextId === sourceContextId)),
     );
     if (duplicate) return false;
+    const next = { ...rel, sourceContextId, targetContextId };
     commit(set, get, (s) => ({
-      contextRelations: s.contextRelations.map((r) =>
-        r.id === relationId ? { ...r, sourceContextId, targetContextId } : r,
+      ...withConnectors(
+        s.connectors.map((c) =>
+          c.id === relationId ? contextRelationToConnector(next) : c,
+        ),
       ),
     }));
     return true;
@@ -2237,6 +2391,7 @@ export function boardActiveSliceFromStore() {
     facilitatorEnabled: s.facilitatorEnabled,
     facilitatorPhase: s.facilitatorPhase,
     elements: s.elements,
+    connectors: s.connectors,
     relations: s.relations,
     contextRelations: s.contextRelations,
     swimlanes: s.swimlanes,

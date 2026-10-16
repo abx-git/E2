@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CanvasBoardChrome } from "@/components/canvas-board-chrome";
-import { CanvasLines } from "@/components/canvas-lines";
+import { BoardConnectors } from "@/components/board-connectors";
 import { BoundedContextLayer } from "@/components/bounded-context-layer";
-import { ContextMapConnectors } from "@/components/context-map-connectors";
-import { StormConnectors } from "@/components/storm-connectors";
+import { attachTargetToEndpoint } from "@/lib/board-connector-resolve";
+import { pickInnermostConnectorTargetAt } from "@/lib/connector-target-pick";
 import { StormElementCard } from "@/components/storm-element-card";
 import { SwimlaneLayer } from "@/components/swimlane-layer";
 import { TimelineGuide } from "@/components/timeline-guide";
@@ -76,9 +76,8 @@ export function StormCanvas() {
   const viewport = useStormBoardStore((s) => s.viewport);
   const setViewport = useStormBoardStore((s) => s.setViewport);
   const elements = useStormBoardStore((s) => s.elements);
-  const relations = useStormBoardStore((s) => s.relations);
-  const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
+  const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const timeline = useStormBoardStore((s) => s.timeline);
   const snapToTimelineEnabled = useStormBoardStore((s) => s.snapToTimeline);
   const snapToGridEnabled = useStormBoardStore((s) => s.snapToGrid);
@@ -107,7 +106,9 @@ export function StormCanvas() {
   const clearSelection = useStormBoardStore((s) => s.clearSelection);
   const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
   const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
-  const connectElements = useStormBoardStore((s) => s.connectElements);
+  const connectEndpoints = useStormBoardStore((s) => s.connectEndpoints);
+  const connectorDraftSource = useStormBoardStore((s) => s.connectorDraftSource);
+  const setConnectorDraftSource = useStormBoardStore((s) => s.setConnectorDraftSource);
   const addBoundedContext = useStormBoardStore((s) => s.addBoundedContext);
   const addCanvasLine = useStormBoardStore((s) => s.addCanvasLine);
   const selectCanvasLine = useStormBoardStore((s) => s.selectCanvasLine);
@@ -354,28 +355,37 @@ export function StormCanvas() {
     addElement(paletteType, snapped.x, snapped.y);
   };
 
+  const connectMode = relationMode || contextMapMode || lineDrawMode;
+
   const handleStartConnect = (id: string) => {
-    if (relationDraftSourceId === id) {
+    const source = { attach: "element" as const, id };
+    if (connectorDraftSource?.attach === "element" && connectorDraftSource.id === id) {
+      setConnectorDraftSource(null);
       setRelationDraftSource(null);
       return;
     }
     setContextMapDraftSource(null);
+    setConnectorDraftSource(source);
     setRelationDraftSource(id);
     selectElement(id);
   };
 
   const handleCompleteConnect = (targetId: string) => {
     setContextMapDraftSource(null);
-    if (!relationDraftSourceId) {
+    const target = { attach: "element" as const, id: targetId };
+    if (!connectorDraftSource) {
+      setConnectorDraftSource(target);
       setRelationDraftSource(targetId);
       selectElement(targetId);
       return;
     }
-    if (relationDraftSourceId === targetId) {
+    if (connectorDraftSource.attach === "element" && connectorDraftSource.id === targetId) {
+      setConnectorDraftSource(null);
       setRelationDraftSource(null);
       return;
     }
-    connectElements(relationDraftSourceId, targetId);
+    connectEndpoints(connectorDraftSource, target);
+    setConnectorDraftSource(null);
     setRelationDraftSource(null);
   };
 
@@ -619,13 +629,10 @@ export function StormCanvas() {
           addBoundedContext(bcDraft.x, bcDraft.y, bcDraft.w, bcDraft.h);
         }
         if (lineDrawMode && lineDraft && lineLength(lineDraft) >= MIN_LINE_LENGTH_WORLD) {
-          addCanvasLine({
-            x1: lineDraft.x1,
-            y1: lineDraft.y1,
-            x2: lineDraft.x2,
-            y2: lineDraft.y2,
-            arrowHead: lineArrowHead,
-          });
+          connectEndpoints(
+            { attach: "point", x: lineDraft.x1, y: lineDraft.y1 },
+            { attach: "point", x: lineDraft.x2, y: lineDraft.y2 },
+          );
         }
         bcStart.current = null;
         setBcDraft(null);
@@ -666,13 +673,6 @@ export function StormCanvas() {
           <SwimlaneLayer />
           <BoundedContextLayer />
         </div>
-        <ContextMapConnectors
-          boundedContexts={boundedContexts}
-          contextRelations={contextRelations}
-          selectedContextRelationId={selectedContextRelationId}
-          contextMapDraftSourceId={contextMapDraftSourceId}
-          onSelectContextRelation={selectContextRelation}
-        />
         {bcDraft && (
           <div
             className="pointer-events-none absolute border-2 border-dashed border-blue-500 bg-blue-100/30"
@@ -692,18 +692,20 @@ export function StormCanvas() {
           />
         )}
         <TimelineGuide />
-        <StormConnectors
-          elements={elements}
-          relations={relations}
-          selectedRelationId={selectedRelationId}
-          relationDraftSourceId={relationDraftSourceId}
-          onSelectRelation={selectRelation}
-        />
-        <CanvasLines
-          selectedLineId={selectedCanvasLineId}
-          onSelectLine={selectCanvasLine}
-          draftLine={lineDraft}
-        />
+        <BoardConnectors elements={elements} connectorDraftSource={connectorDraftSource} />
+        {lineDraft && (
+          <svg className="pointer-events-none absolute inset-0 overflow-visible" style={{ zIndex: 11 }}>
+            <line
+              x1={lineDraft.x1}
+              y1={lineDraft.y1}
+              x2={lineDraft.x2}
+              y2={lineDraft.y2}
+              stroke="#e9c46a"
+              strokeWidth={2}
+              strokeDasharray="6 4"
+            />
+          </svg>
+        )}
         {sortElementsByZOrder(elements).map((el) => (
           <StormElementCard
             key={el.id}
@@ -712,7 +714,7 @@ export function StormCanvas() {
             selectedIds={selectedElementIds}
             connecting={relationDraftSourceId === el.id}
             isRelationTargetHint={Boolean(relationDraftSourceId && relationDraftSourceId !== el.id)}
-            relationMode={relationMode}
+            relationMode={connectMode}
             zoom={viewport.zoom}
             onSelect={selectElement}
             onMoveMany={handleMoveCanvasSelection}
@@ -750,7 +752,8 @@ export function StormCanvas() {
                 }
               : relationMode
                 ? {
-                    message: "Verbinden: Element oder Bounded Context wählen",
+                    message:
+                      "Verbinden: Element, Bounded Context oder Swimlane — oder Linie ziehen (Werkzeug Linie)",
                     onCancel: () => {
                       useStormBoardStore.getState().setRelationMode(false);
                       useStormBoardStore.getState().setContextMapMode(false);

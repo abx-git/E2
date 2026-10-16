@@ -20,6 +20,12 @@ import {
   normalizeModelingMode,
   normalizeWorkshopFormatForMode,
 } from "@/types/storm-element";
+import type { BoardConnector } from "@/types/board-connector";
+import {
+  connectorsToLegacy,
+  mergeLegacyIntoConnectors,
+  normalizeBoardConnectors,
+} from "@/lib/board-connector-migrate";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 import {
   normalizeAppearance,
@@ -102,6 +108,7 @@ export interface BoardView {
   facilitatorEnabled: boolean;
   facilitatorPhase: number;
   elements: StormElement[];
+  connectors: BoardConnector[];
   relations: StormRelation[];
   contextRelations: ContextRelation[];
   swimlanes: Swimlane[];
@@ -208,6 +215,7 @@ export function createEmptyBoardView(
     facilitatorEnabled: false,
     facilitatorPhase: 0,
     elements: [],
+    connectors: [],
     relations: [],
     contextRelations: [],
     swimlanes: [],
@@ -268,7 +276,7 @@ export function normalizeBoardView(raw: Partial<BoardView> & { id?: string; name
   const id = raw.id?.trim() || generateStormId();
   const modelingMode = normalizeModelingMode(raw.modelingMode, raw.workshopFormat);
   const workshopFormat = normalizeWorkshopFormatForMode(raw.workshopFormat ?? "free", modelingMode);
-  return createEmptyBoardView({
+  const base = createEmptyBoardView({
     id,
     name: raw.name?.trim() || "Board",
     modelingMode,
@@ -291,6 +299,20 @@ export function normalizeBoardView(raw: Partial<BoardView> & { id?: string; name
     snapToGrid: raw.snapToGrid ?? false,
     customCardTypes: normalizeCustomCardTypes(raw.customCardTypes),
   });
+  const connectors = mergeLegacyIntoConnectors(
+    normalizeBoardConnectors(raw.connectors),
+    base.relations,
+    base.contextRelations,
+    base.canvasLines,
+  );
+  const legacy = connectorsToLegacy(connectors);
+  return {
+    ...base,
+    connectors,
+    relations: legacy.relations,
+    contextRelations: legacy.contextRelations,
+    canvasLines: legacy.canvasLines,
+  };
 }
 
 export function migrateV1ToDocument(snap: BoardSnapshotV1): BoardImportPayload {
@@ -401,8 +423,7 @@ export function activeSliceFromDocument(doc: BoardImportPayload): BoardActiveSli
 export function viewHasContent(view: BoardView): boolean {
   return (
     view.elements.length > 0 ||
-    view.relations.length > 0 ||
-    view.contextRelations.length > 0 ||
+    view.connectors.length > 0 ||
     view.swimlanes.length > 0 ||
     view.boundedContexts.length > 0
   );
@@ -495,6 +516,7 @@ function stableViewKey(view: BoardView): unknown {
     facilitatorEnabled: view.facilitatorEnabled,
     facilitatorPhase: view.facilitatorPhase,
     elements: [...view.elements].sort((a, b) => a.id.localeCompare(b.id)),
+    connectors: [...view.connectors].sort((a, b) => a.id.localeCompare(b.id)),
     relations: [...view.relations].sort((a, b) => a.id.localeCompare(b.id)),
     contextRelations: [...view.contextRelations].sort((a, b) => a.id.localeCompare(b.id)),
     swimlanes: [...view.swimlanes].sort((a, b) => a.id.localeCompare(b.id)),
