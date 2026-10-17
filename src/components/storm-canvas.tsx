@@ -5,8 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CanvasBoardChrome } from "@/components/canvas-board-chrome";
 import { BoardConnectors } from "@/components/board-connectors";
 import { BoundedContextLayer } from "@/components/bounded-context-layer";
-import { attachTargetToEndpoint, withConnectorApproach } from "@/lib/board-connector-resolve";
-import type { ConnectorApproach } from "@/types/board-connector";
+import { attachTargetToEndpoint } from "@/lib/board-connector-resolve";
 import {
   isBoardConnectorTarget,
   shouldStartConnectorLineDraw,
@@ -347,8 +346,8 @@ export function StormCanvas() {
 
   const connectorTool = relationMode;
 
-  const handleStartConnect = (id: string, approach?: ConnectorApproach) => {
-    const source = withConnectorApproach({ attach: "element" as const, id }, approach);
+  const handleStartConnect = (id: string) => {
+    const source = { attach: "element" as const, id };
     if (connectorDraftSource?.attach === "element" && connectorDraftSource.id === id) {
       setConnectorDraftSource(null);
       setRelationDraftSource(null);
@@ -360,9 +359,9 @@ export function StormCanvas() {
     selectElement(id);
   };
 
-  const handleCompleteConnect = (targetId: string, approach?: ConnectorApproach) => {
+  const handleCompleteConnect = (targetId: string) => {
     setContextMapDraftSource(null);
-    const target = withConnectorApproach({ attach: "element" as const, id: targetId }, approach);
+    const target = { attach: "element" as const, id: targetId };
     if (!connectorDraftSource) {
       setConnectorDraftSource(target);
       setRelationDraftSource(targetId);
@@ -638,9 +637,7 @@ export function StormCanvas() {
               live.swimlanes,
               live.boundedContexts,
             );
-            return target
-              ? attachTargetToEndpoint(target, { x, y })
-              : { attach: "point" as const, x, y };
+            return target ? attachTargetToEndpoint(target) : { attach: "point" as const, x, y };
           };
           const start = pickAt(lineDraft.x1, lineDraft.y1);
           const end = pickAt(lineDraft.x2, lineDraft.y2);

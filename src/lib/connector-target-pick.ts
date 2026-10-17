@@ -181,7 +181,7 @@ export function connectorEndpointDragPreview(
   if (!bounds) return { lineEnd: pointer, target, valid: false };
   const rect = { x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h };
   return {
-    lineEnd: rectAnchorToward(rect, pointer),
+    lineEnd: rectAnchorToward(rect, toward),
     target,
     valid: true,
   };

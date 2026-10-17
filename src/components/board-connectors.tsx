@@ -6,6 +6,7 @@ import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent }
 import { ConnectorSnapTargetHighlight } from "@/components/connector-snap-highlight";
 import {
   attachTargetToEndpoint,
+  connectorEndpointCenter,
   resolveConnectorAnchors,
 } from "@/lib/board-connector-resolve";
 import {
@@ -140,11 +141,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
           SNAP_ACCEPT,
         );
         if (preview.valid && preview.target) {
-          live.reconnectConnector(
-            connector.id,
-            side,
-            attachTargetToEndpoint(preview.target, world),
-          );
+          live.reconnectConnector(connector.id, side, attachTargetToEndpoint(preview.target));
         } else {
           live.reconnectConnector(connector.id, side, {
             attach: "point",
@@ -198,6 +195,46 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
           boundedContexts={boundedContexts}
         />
       )}
+
+      {relationMode &&
+        connectorDraftSource &&
+        elements
+          .filter(
+            (el) =>
+              !(
+                connectorDraftSource.attach === "element" && connectorDraftSource.id === el.id
+              ),
+          )
+          .map((el) => {
+            const targetEp = { attach: "element" as const, id: el.id };
+            const { start } = resolveConnectorAnchors(
+              { source: connectorDraftSource, target: targetEp },
+              elements,
+              swimlanes,
+              boundedContexts,
+            );
+            const center = connectorEndpointCenter(
+              targetEp,
+              elements,
+              swimlanes,
+              boundedContexts,
+            );
+            if (!center) return null;
+            return (
+              <line
+                key={`connector-draft-fan-${el.id}`}
+                x1={start.x}
+                y1={start.y}
+                x2={center.x}
+                y2={center.y}
+                stroke="#e9c46a"
+                strokeWidth={1.5}
+                strokeDasharray="4 4"
+                opacity={0.35}
+                className="pointer-events-none"
+              />
+            );
+          })}
 
       {connectors.map((conn) => {
         const { start, end } = resolveConnectorAnchors(
