@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { withConnectorApproach } from "@/lib/board-connector-resolve";
-import { screenToWorld } from "@/lib/canvas-viewport";
 import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
 import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
 import { resolveRegionPaint } from "@/lib/region-style";
@@ -100,11 +98,7 @@ export function SwimlaneLayer() {
     e.preventDefault();
 
     if (store.relationMode) {
-      const rect = document.querySelector("[data-storm-canvas]")?.getBoundingClientRect();
-      const approach = rect
-        ? screenToWorld(store.viewport, e.clientX, e.clientY, rect)
-        : undefined;
-      const target = withConnectorApproach({ attach: "swimlane" as const, id: laneId }, approach);
+      const target = { attach: "swimlane" as const, id: laneId };
       const draft = store.connectorDraftSource;
       if (draft) {
         store.connectEndpoints(draft, target);

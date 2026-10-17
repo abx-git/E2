@@ -34,13 +34,13 @@ describe("resolveConnectorAnchors", () => {
     expect(end.y).toBeCloseTo(20, 0);
   });
 
-  it("uses approach point to pick the attachment edge", () => {
+  it("ignores stale approach points and still aims at opposite centers", () => {
     const source = el({ id: "s", x: 0, y: 0 });
     const target = el({ id: "t", x: 200, y: 80 });
 
-    const { end } = resolveConnectorAnchors(
+    const { start, end } = resolveConnectorAnchors(
       {
-        source: { attach: "element", id: "s" },
+        source: { attach: "element", id: "s", approach: { x: 10, y: 5 } },
         target: { attach: "element", id: "t", approach: { x: 250, y: 120 } },
       },
       [source, target],
@@ -48,7 +48,30 @@ describe("resolveConnectorAnchors", () => {
       [],
     );
 
-    expect(end.y).toBeGreaterThan(100);
-    expect(end.x).toBeCloseTo(250, 0);
+    // Horizontal mid of source right edge → left edge of target (center-to-center ray).
+    expect(start.x).toBeCloseTo(100, 0);
+    expect(end.x).toBeCloseTo(200, 0);
+    expect(start.y).toBeGreaterThan(20);
+    expect(end.y).toBeLessThan(100);
+  });
+
+  it("anchors vertically stacked cards at top/bottom edges", () => {
+    const source = el({ id: "s", x: 0, y: 0, width: 100, height: 40 });
+    const target = el({ id: "t", x: 0, y: 120, width: 100, height: 40 });
+
+    const { start, end } = resolveConnectorAnchors(
+      {
+        source: { attach: "element", id: "s" },
+        target: { attach: "element", id: "t" },
+      },
+      [source, target],
+      [],
+      [],
+    );
+
+    expect(start.x).toBeCloseTo(50, 0);
+    expect(end.x).toBeCloseTo(50, 0);
+    expect(start.y).toBeCloseTo(40, 0);
+    expect(end.y).toBeCloseTo(120, 0);
   });
 });

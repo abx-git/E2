@@ -6,29 +6,30 @@ import {
 import type { ConnectorApproach, ConnectorEndpoint } from "@/types/board-connector";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 
-export function attachTargetToEndpoint(
-  target: ConnectorAttachTarget,
-  approach?: ConnectorApproach,
-): ConnectorEndpoint {
-  if (target.kind === "element") {
-    return approach ? { attach: "element", id: target.id, approach } : { attach: "element", id: target.id };
-  }
-  if (target.kind === "boundedContext") {
-    return approach
-      ? { attach: "boundedContext", id: target.id, approach }
-      : { attach: "boundedContext", id: target.id };
-  }
-  return approach
-    ? { attach: "swimlane", id: target.id, approach }
-    : { attach: "swimlane", id: target.id };
+/** Attach to a shape by id only — anchors always resolve center→edge. */
+export function attachTargetToEndpoint(target: ConnectorAttachTarget): ConnectorEndpoint {
+  if (target.kind === "element") return { attach: "element", id: target.id };
+  if (target.kind === "boundedContext") return { attach: "boundedContext", id: target.id };
+  return { attach: "swimlane", id: target.id };
 }
 
+/** @deprecated Prefer attachTargetToEndpoint; approach is ignored when resolving anchors. */
 export function withConnectorApproach(
   endpoint: ConnectorEndpoint,
   approach?: ConnectorApproach,
 ): ConnectorEndpoint {
   if (endpoint.attach === "point" || !approach) return endpoint;
   return { ...endpoint, approach };
+}
+
+/** Drop stale approach points so connectors stay center→edge. */
+export function stripConnectorApproach(endpoint: ConnectorEndpoint): ConnectorEndpoint {
+  if (endpoint.attach === "point") return endpoint;
+  if (endpoint.attach === "element") return { attach: "element", id: endpoint.id };
+  if (endpoint.attach === "boundedContext") {
+    return { attach: "boundedContext", id: endpoint.id };
+  }
+  return { attach: "swimlane", id: endpoint.id };
 }
 
 export function connectorEndpointToAttachTarget(
@@ -56,11 +57,11 @@ export function connectorEndpointCenter(
   return { x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2 };
 }
 
-function edgeToward(endpoint: ConnectorEndpoint, fallback: Point): Point {
-  if (endpoint.attach !== "point" && endpoint.approach) return endpoint.approach;
-  return fallback;
-}
-
+/**
+ * World point where a connector meets this endpoint.
+ * Shape attachments always aim at `toward` (typically the opposite center) and
+ * terminate on the rectangle edge — click/drag approach is intentionally ignored.
+ */
 export function resolveConnectorEndpointPoint(
   endpoint: ConnectorEndpoint,
   toward: Point,
@@ -76,7 +77,7 @@ export function resolveConnectorEndpointPoint(
   const bounds = boundsForConnectorTarget(attach, elements, swimlanes, boundedContexts);
   if (!bounds) return toward;
   const rect = { x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h };
-  return rectAnchorToward(rect, edgeToward(endpoint, toward));
+  return rectAnchorToward(rect, toward);
 }
 
 export function resolveConnectorAnchors(

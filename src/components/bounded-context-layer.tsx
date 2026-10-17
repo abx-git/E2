@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LayoutDashboard, Lock } from "lucide-react";
 
-import { withConnectorApproach } from "@/lib/board-connector-resolve";
-import { screenToWorld } from "@/lib/canvas-viewport";
 import { resolveBoundedContextViewNavigation } from "@/lib/bounded-context-view";
 import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
 import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
@@ -108,11 +106,7 @@ export function BoundedContextLayer() {
     // One "Verbinden"-tool: elements use relations, BCs use context-map links.
     if (store.relationMode) {
       store.setRelationDraftSource(null);
-      const rect = document.querySelector("[data-storm-canvas]")?.getBoundingClientRect();
-      const approach = rect
-        ? screenToWorld(store.viewport, e.clientX, e.clientY, rect)
-        : undefined;
-      const target = withConnectorApproach({ attach: "boundedContext" as const, id: bcId }, approach);
+      const target = { attach: "boundedContext" as const, id: bcId };
       const draft = store.connectorDraftSource;
       if (draft) {
         store.connectEndpoints(draft, target);

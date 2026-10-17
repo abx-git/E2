@@ -1,4 +1,7 @@
-import { attachTargetToEndpoint } from "@/lib/board-connector-resolve";
+import {
+  attachTargetToEndpoint,
+  stripConnectorApproach,
+} from "@/lib/board-connector-resolve";
 import { normalizeCanvasLine } from "@/lib/canvas-annotations";
 import { pickConnectorTargetSnapAt } from "@/lib/connector-target-pick";
 import { defaultRelationType } from "@/lib/relation-validation";
@@ -205,7 +208,7 @@ export function snapConnectorEndpoint(
     snapMargin,
   );
   if (!target) return endpoint;
-  return attachTargetToEndpoint(target, { x: endpoint.x, y: endpoint.y });
+  return attachTargetToEndpoint(target);
 }
 
 export function prepareConnectorEndpoints(
@@ -215,8 +218,12 @@ export function prepareConnectorEndpoints(
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
 ): { source: ConnectorEndpoint; target: ConnectorEndpoint; semantics: Partial<BoardConnector> } {
-  const snappedSource = snapConnectorEndpoint(source, elements, swimlanes, boundedContexts);
-  const snappedTarget = snapConnectorEndpoint(target, elements, swimlanes, boundedContexts);
+  const snappedSource = stripConnectorApproach(
+    snapConnectorEndpoint(source, elements, swimlanes, boundedContexts),
+  );
+  const snappedTarget = stripConnectorApproach(
+    snapConnectorEndpoint(target, elements, swimlanes, boundedContexts),
+  );
 
   let relationType: import("@/types/storm-relation").RelationType | undefined;
   if (snappedSource.attach === "element" && snappedTarget.attach === "element") {

@@ -2,7 +2,10 @@ import type { LineArrowHead } from "@/types/canvas-annotation";
 import type { ProgressMark } from "@/lib/progress-mark";
 import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
 
-/** World point used to pick which edge of a shape the connector meets (drag / click position). */
+/**
+ * Legacy click/drag point on a shape. Kept for file compatibility; anchors now
+ * always resolve center→edge and ignore approach when rendering.
+ */
 export type ConnectorApproach = { x: number; y: number };
 
 type EndpointWithApproach = { approach?: ConnectorApproach };

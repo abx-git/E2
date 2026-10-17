@@ -6,7 +6,6 @@ import { ArrowRight, Clock, ExternalLink, LayoutDashboard, MoreVertical, RotateC
 import { ProgressMarkBadge } from "@/components/progress-mark-badge";
 import { DescriptionMarkdownContent } from "@/components/description-markdown-content";
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
-import { screenToWorld } from "@/lib/canvas-viewport";
 import { activateBoardLink, linkDestinationPreview, linkHasTarget } from "@/lib/board-link";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
 import { ELEMENT_STYLES, cardTypeCaption, resolveElementStyle } from "@/lib/element-styles";
@@ -77,8 +76,8 @@ export interface StormElementCardProps {
     boundedContexts?: Array<{ id: string; x: number; y: number }>;
   }) => void;
   onResize: (id: string, patch: { x: number; y: number; width: number; height: number }) => void;
-  onStartConnect: (id: string, approach?: { x: number; y: number }) => void;
-  onCompleteConnect: (id: string, approach?: { x: number; y: number }) => void;
+  onStartConnect: (id: string) => void;
+  onCompleteConnect: (id: string) => void;
 }
 
 export function StormElementCard({
@@ -224,17 +223,9 @@ export function StormElementCard({
     }
   }, [element.label, editing]);
 
-  const connectApproachFromClient = (clientX: number, clientY: number) => {
-    const rect = document.querySelector("[data-storm-canvas]")?.getBoundingClientRect();
-    const vp = useStormBoardStore.getState().viewport;
-    if (!rect) return undefined;
-    return screenToWorld(vp, clientX, clientY, rect);
-  };
-
-  const handleConnectAt = (clientX: number, clientY: number) => {
-    const approach = connectApproachFromClient(clientX, clientY);
-    if (connecting) onCompleteConnect(element.id, approach);
-    else onStartConnect(element.id, approach);
+  const handleConnectAt = () => {
+    if (connecting) onCompleteConnect(element.id);
+    else onStartConnect(element.id);
   };
 
   const openElementContextMenu = (clientX: number, clientY: number) => {
@@ -534,12 +525,12 @@ export function StormElementCard({
           if (draggedRef.current) return;
 
           if (isRelationTargetHint) {
-            onCompleteConnect(element.id, connectApproachFromClient(ev.clientX, ev.clientY));
+            onCompleteConnect(element.id);
             return;
           }
 
           if (relationMode) {
-            handleConnectAt(ev.clientX, ev.clientY);
+            handleConnectAt();
             return;
           }
 
@@ -909,7 +900,7 @@ export function StormElementCard({
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
-            handleConnectAt(e.clientX, e.clientY);
+            handleConnectAt();
           }}
         >
           <ArrowRight className="h-3 w-3" aria-hidden />
