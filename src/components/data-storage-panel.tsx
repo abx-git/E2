@@ -92,19 +92,8 @@ export interface DataStoragePanelProps {
   /** Complete single-view diagram extract (.storm.json). */
   onExportViewJson: (viewId: string) => void;
   onCopyViewJsonToClipboard: (viewId: string) => boolean | Promise<boolean>;
-  /** Reduced semantic extract for AI conversation context. */
-  onExportViewAiContext: (
-    viewId: string,
-    options?: { includeLayout?: boolean },
-  ) => void;
-  onCopyViewAiContextToClipboard: (
-    viewId: string,
-    options?: { includeLayout?: boolean },
-  ) => boolean | Promise<boolean>;
-  /** Full JSON Schema for the AI-context format (all modes). */
-  onExportAiContextSchema: () => void;
-  /** Mode-scoped AI-context schema for the selected view's modeling mode. */
-  onExportAiContextModeSchema: (viewId: string) => void;
+  /** Mode schema + AI context data (with layout) for the system clipboard. */
+  onCopyAiPackageToClipboard: (viewId: string) => boolean | Promise<boolean>;
   /** Paste AI-context JSON as a new view (layout when present, else auto-layout). */
   onPasteAiContextAsNewView: () => void;
   /** Mermaid / PlantUML for the selected view. */
@@ -345,10 +334,7 @@ export function DataStoragePanel({
   onCopyJsonToClipboard,
   onExportViewJson,
   onCopyViewJsonToClipboard,
-  onExportViewAiContext,
-  onCopyViewAiContextToClipboard,
-  onExportAiContextSchema,
-  onExportAiContextModeSchema,
+  onCopyAiPackageToClipboard,
   onPasteAiContextAsNewView,
   onExportViewMermaid,
   onCopyViewMermaidToClipboard,
@@ -395,8 +381,7 @@ export function DataStoragePanel({
   const [promptCopied, setPromptCopied] = useState(false);
   const [drawioCopied, setDrawioCopied] = useState(false);
   const [viewJsonCopied, setViewJsonCopied] = useState(false);
-  const [aiContextCopied, setAiContextCopied] = useState(false);
-  const [aiContextLayoutCopied, setAiContextLayoutCopied] = useState(false);
+  const [aiPackageCopied, setAiPackageCopied] = useState(false);
   const [mermaidCopied, setMermaidCopied] = useState(false);
   const [plantUmlCopied, setPlantUmlCopied] = useState(false);
   const [exportViewId, setExportViewId] = useState<string | null>(null);
@@ -1129,73 +1114,26 @@ export function DataStoragePanel({
                     emphasize
                   />
                   <ExportTile
-                    onClick={() => onExportViewAiContext(selectedExportViewId)}
-                    disabled={busy || !selectedExportViewId}
-                    label="KI-Kontext"
-                    detail="ohne Layout"
-                    emphasize
-                  />
-                  <ExportTile
-                    onClick={() =>
-                      onExportViewAiContext(selectedExportViewId, { includeLayout: true })
-                    }
-                    disabled={busy || !selectedExportViewId}
-                    label="KI+Layout"
-                    detail="mit Positionen"
-                    emphasize
-                  />
-                  <ExportTile
                     onClick={() => {
                       void Promise.resolve(
-                        onCopyViewAiContextToClipboard(selectedExportViewId),
+                        onCopyAiPackageToClipboard(selectedExportViewId),
                       ).then((ok) => {
                         if (!ok) return;
-                        setAiContextCopied(true);
-                        window.setTimeout(() => setAiContextCopied(false), 2000);
+                        setAiPackageCopied(true);
+                        window.setTimeout(() => setAiPackageCopied(false), 2000);
                       });
                     }}
                     disabled={busy || !selectedExportViewId}
-                    label={aiContextCopied ? "Kopiert" : "KI kopieren"}
-                    detail="ohne Layout"
+                    label={aiPackageCopied ? "Kopiert" : "KI kopieren"}
+                    detail="Schema + Daten"
                     icon={ClipboardCopy}
-                    emphasize={aiContextCopied}
-                  />
-                  <ExportTile
-                    onClick={() => {
-                      void Promise.resolve(
-                        onCopyViewAiContextToClipboard(selectedExportViewId, {
-                          includeLayout: true,
-                        }),
-                      ).then((ok) => {
-                        if (!ok) return;
-                        setAiContextLayoutCopied(true);
-                        window.setTimeout(() => setAiContextLayoutCopied(false), 2000);
-                      });
-                    }}
-                    disabled={busy || !selectedExportViewId}
-                    label={aiContextLayoutCopied ? "Kopiert" : "KI+Layout kop."}
-                    detail="mit Positionen"
-                    icon={ClipboardCopy}
-                    emphasize={aiContextLayoutCopied}
-                  />
-                  <ExportTile
-                    onClick={() => onExportAiContextModeSchema(selectedExportViewId)}
-                    disabled={busy || !selectedExportViewId}
-                    label="KI-Schema"
-                    detail="aktueller Modus"
-                    emphasize
-                  />
-                  <ExportTile
-                    onClick={onExportAiContextSchema}
-                    disabled={busy}
-                    label="KI-Schema alle"
-                    detail="alle Modi"
+                    emphasize={aiPackageCopied}
                   />
                   <ExportTile
                     onClick={onPasteAiContextAsNewView}
                     disabled={busy}
                     label="KI einfügen"
-                    detail="als neue Sicht"
+                    detail="Daten als neue Sicht"
                     icon={ClipboardPaste}
                     emphasize
                   />

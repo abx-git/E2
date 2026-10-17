@@ -6,7 +6,10 @@ import {
   layoutYOffsetForType,
   parseAiBoardContext,
 } from "@/lib/ai-board-context-import";
+import { buildAiClipboardPackage } from "@/lib/ai-context-mode-schema";
 import { boardImportPayloadFromAnyExportText } from "@/lib/board-import-text";
+import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
+import { createDefaultBoardDocument, createEmptyBoardView } from "@/lib/storm-json";
 import { AI_BOARD_CONTEXT_SCHEMA_ID, AI_CONTEXT_FORMAT } from "@/lib/view-export";
 
 const sampleAiJson = `{
@@ -230,6 +233,41 @@ describe("ai-board-context-import", () => {
       y: 25,
       width: 420,
       height: 200,
+    });
+  });
+
+  it("imports a full AI clipboard package via any-export bridge", () => {
+    const doc = createDefaultBoardDocument({
+      title: "Pkg",
+      appearance: { ...DEFAULT_APPEARANCE },
+      views: [
+        createEmptyBoardView({
+          id: "v1",
+          name: "Board",
+          modelingMode: "eventStorming",
+          elements: [
+            {
+              id: "e1",
+              type: "domainEvent",
+              label: "Packed",
+              x: 33,
+              y: 44,
+              width: 160,
+              height: 72,
+            },
+          ],
+        }),
+      ],
+      activeViewId: "v1",
+    });
+    const pack = buildAiClipboardPackage(doc, "v1")!;
+    expect(pack.startsWith("{")).toBe(false);
+    const payload = boardImportPayloadFromAnyExportText(pack);
+    expect(payload).not.toBeNull();
+    expect(payload!.views[0]!.elements[0]).toMatchObject({
+      label: "Packed",
+      x: 33,
+      y: 44,
     });
   });
 

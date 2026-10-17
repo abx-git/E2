@@ -5,9 +5,9 @@ export const alertsDe = {
     jsonClipboardFailed:
       "JSON konnte nicht in die System-Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen oder JSON herunterladen.",
     viewExportFailed: "Sicht konnte nicht exportiert werden.",
-    aiContextExportFailed: "KI-Kontext konnte nicht exportiert werden.",
+    aiContextExportFailed: "KI-Paket konnte nicht exportiert werden.",
     aiContextClipboardFailed:
-      "KI-Kontext konnte nicht in die Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen oder herunterladen.",
+      "KI-Paket konnte nicht in die Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen.",
     mermaidExportFailed: "Mermaid konnte nicht exportiert werden.",
     mermaidClipboardFailed:
       "Mermaid konnte nicht in die Zwischenablage kopiert werden. Bitte herunterladen.",

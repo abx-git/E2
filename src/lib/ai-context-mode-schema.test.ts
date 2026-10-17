@@ -3,8 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   aiContextModeSchemaFilename,
   aiContextModeSchemaId,
+  buildAiClipboardPackage,
   buildAiContextModeSchema,
+  extractAiContextJsonFromClipboardText,
 } from "@/lib/ai-context-mode-schema";
+import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
+import { createDefaultBoardDocument, createEmptyBoardView } from "@/lib/storm-json";
 import { AI_CONTEXT_FORMAT } from "@/lib/view-export";
 import {
   ALL_ELEMENT_TYPES,
@@ -69,5 +73,45 @@ describe("ai-context-mode-schema", () => {
     expect(props).toHaveProperty("y");
     expect(props).toHaveProperty("width");
     expect(props).toHaveProperty("height");
+  });
+
+  it("builds a clipboard package with mode schema and laid-out data", () => {
+    const doc = createDefaultBoardDocument({
+      title: "Orders",
+      appearance: { ...DEFAULT_APPEARANCE },
+      views: [
+        createEmptyBoardView({
+          id: "view-a",
+          name: "Big Picture",
+          modelingMode: "eventStorming",
+          elements: [
+            {
+              id: "evt-1",
+              type: "domainEvent",
+              label: "Order Placed",
+              x: 100,
+              y: 80,
+              width: 160,
+              height: 72,
+            },
+          ],
+        }),
+      ],
+      activeViewId: "view-a",
+    });
+    const pack = buildAiClipboardPackage(doc, "view-a");
+    expect(pack).not.toBeNull();
+    expect(pack!).toContain("## schema");
+    expect(pack!).toContain("## data");
+    expect(pack!).toContain(AI_CONTEXT_FORMAT);
+    expect(pack!).toContain('"modelingMode": "eventStorming"');
+    expect(pack!).toContain('"x": 100');
+    expect(pack!).toContain("Order Placed");
+    expect(pack!).not.toContain("c4Person");
+
+    const extracted = extractAiContextJsonFromClipboardText(pack!);
+    const parsed = JSON.parse(extracted) as { format: string; view: { elements: Array<{ x: number }> } };
+    expect(parsed.format).toBe(AI_CONTEXT_FORMAT);
+    expect(parsed.view.elements[0]!.x).toBe(100);
   });
 });

@@ -5,6 +5,7 @@ import {
   createEmptyBoardView,
   type BoardImportPayload,
 } from "@/lib/storm-json";
+import { extractAiContextJsonFromClipboardText } from "@/lib/ai-context-mode-schema";
 import {
   AI_BOARD_CONTEXT_SCHEMA_FILENAME,
   AI_BOARD_CONTEXT_SCHEMA_ID,
@@ -837,7 +838,7 @@ export function aiBoardContextToImportPayload(ctx: AiBoardContext): BoardImportP
 }
 
 export function boardImportPayloadFromAiContextText(text: string): BoardImportPayload | null {
-  const trimmed = text.trim();
+  const trimmed = extractAiContextJsonFromClipboardText(text);
   if (!trimmed) return null;
   try {
     const doc = JSON.parse(trimmed) as unknown;

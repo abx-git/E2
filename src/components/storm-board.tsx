@@ -102,12 +102,8 @@ import {
   looksLikeJsonText,
 } from "@/lib/board-import-text";
 import {
-  AI_BOARD_CONTEXT_SCHEMA_FILENAME,
-  aiContextExportFilename,
   singleViewExportFilename,
-  stringifyAiBoardContext,
   stringifySingleViewExport,
-  type BuildAiBoardContextOptions,
 } from "@/lib/view-export";
 import {
   diagramExportFilename,
@@ -115,11 +111,7 @@ import {
   mermaidFromViewId,
   plantUmlFromViewId,
 } from "@/lib/diagram-io";
-import { stringifyAiBoardContextSchema } from "@/lib/ai-board-context-import";
-import {
-  aiContextModeSchemaFilename,
-  stringifyAiContextModeSchema,
-} from "@/lib/ai-context-mode-schema";
+import { buildAiClipboardPackage } from "@/lib/ai-context-mode-schema";
 import { type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
 import { JsonPasteDialog } from "@/components/json-paste-dialog";
@@ -400,35 +392,15 @@ export function StormBoard() {
     }
   }, []);
 
-  const downloadViewAiContext = useCallback(
-    (viewId: string, options?: BuildAiBoardContextOptions) => {
-      const payload = boardImportPayloadFromStore();
-      const json = stringifyAiBoardContext(payload, viewId, options);
-      const view = payload.views.find((v) => v.id === viewId);
-      if (!json || !view) {
-        window.alert(t("alerts.aiContextExportFailed"));
-        return;
-      }
-      const blob = new Blob([json], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = aiContextExportFilename(payload.title, view.name);
-      a.click();
-      URL.revokeObjectURL(url);
-    },
-    [t],
-  );
-
-  const copyViewAiContextToClipboard = useCallback(
-    async (viewId: string, options?: BuildAiBoardContextOptions): Promise<boolean> => {
-      const json = stringifyAiBoardContext(boardImportPayloadFromStore(), viewId, options);
-      if (!json) {
+  const copyAiPackageToClipboard = useCallback(
+    async (viewId: string): Promise<boolean> => {
+      const pack = buildAiClipboardPackage(boardImportPayloadFromStore(), viewId);
+      if (!pack) {
         window.alert(t("alerts.aiContextExportFailed"));
         return false;
       }
       try {
-        await navigator.clipboard.writeText(json);
+        await navigator.clipboard.writeText(pack);
         return true;
       } catch {
         window.alert(t("alerts.aiContextClipboardFailed"));
@@ -448,37 +420,6 @@ export function StormBoard() {
     a.click();
     URL.revokeObjectURL(url);
   }, []);
-
-  const downloadAiContextSchema = useCallback(() => {
-    const json = stringifyAiBoardContextSchema();
-    const blob = new Blob([json], { type: "application/schema+json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = AI_BOARD_CONTEXT_SCHEMA_FILENAME;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, []);
-
-  const downloadAiContextModeSchema = useCallback(
-    (viewId: string) => {
-      const payload = boardImportPayloadFromStore();
-      const view = payload.views.find((v) => v.id === viewId);
-      if (!view) {
-        window.alert(t("alerts.aiContextExportFailed"));
-        return;
-      }
-      const json = stringifyAiContextModeSchema(view.modelingMode);
-      const blob = new Blob([json], { type: "application/schema+json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = aiContextModeSchemaFilename(view.modelingMode);
-      a.click();
-      URL.revokeObjectURL(url);
-    },
-    [t],
-  );
 
   const downloadViewMermaid = useCallback((viewId: string) => {
     const text = mermaidFromViewId(viewId);
@@ -1342,10 +1283,7 @@ export function StormBoard() {
         onCopyJsonToClipboard={copyJsonToClipboard}
         onExportViewJson={downloadViewJson}
         onCopyViewJsonToClipboard={copyViewJsonToClipboard}
-        onExportViewAiContext={downloadViewAiContext}
-        onCopyViewAiContextToClipboard={copyViewAiContextToClipboard}
-        onExportAiContextSchema={downloadAiContextSchema}
-        onExportAiContextModeSchema={downloadAiContextModeSchema}
+        onCopyAiPackageToClipboard={copyAiPackageToClipboard}
         onPasteAiContextAsNewView={handlePasteAiContextAsNewView}
         onExportViewMermaid={downloadViewMermaid}
         onCopyViewMermaidToClipboard={copyViewMermaidToClipboard}

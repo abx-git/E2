@@ -9,17 +9,21 @@ export function looksLikeJsonText(text: string): boolean {
 }
 
 /**
- * Accepts a full `.storm.json` snapshot (v1/v2) or reduced AI-context JSON.
+ * Accepts a full `.storm.json` snapshot (v1/v2), reduced AI-context JSON,
+ * or an E2 AI clipboard package (schema + data markdown).
  * Diagram text is intentionally excluded — use `boardImportPayloadFromAnyExportText`.
  */
 export function boardImportPayloadFromJsonText(text: string): BoardImportPayload | null {
-  if (!looksLikeJsonText(text)) return null;
-  return boardImportPayloadFromExportText(text) ?? boardImportPayloadFromAiContextText(text);
+  if (looksLikeJsonText(text)) {
+    return boardImportPayloadFromExportText(text) ?? boardImportPayloadFromAiContextText(text);
+  }
+  // AI clipboard packages start with prose / markdown, not `{`.
+  return boardImportPayloadFromAiContextText(text);
 }
 
 /**
  * Accepts a full `.storm.json` snapshot (v1/v2), reduced AI-context JSON,
- * Mermaid, or PlantUML. Diagram text is converted with auto-layout.
+ * AI clipboard package, Mermaid, or PlantUML. Diagram text uses auto-layout.
  */
 export function boardImportPayloadFromAnyExportText(text: string): BoardImportPayload | null {
   return (

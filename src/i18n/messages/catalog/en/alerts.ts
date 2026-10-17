@@ -5,9 +5,9 @@ export const alertsEn = {
     jsonClipboardFailed:
       "Could not copy JSON to the system clipboard. Check browser permissions or download JSON.",
     viewExportFailed: "Could not export view.",
-    aiContextExportFailed: "Could not export AI context.",
+    aiContextExportFailed: "Could not export AI package.",
     aiContextClipboardFailed:
-      "Could not copy AI context to the clipboard. Download instead.",
+      "Could not copy the AI package to the clipboard. Check browser permissions.",
     mermaidExportFailed: "Could not export Mermaid.",
     mermaidClipboardFailed: "Could not copy Mermaid to the clipboard. Download instead.",
     plantUmlExportFailed: "Could not export PlantUML.",
