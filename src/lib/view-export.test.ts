@@ -203,6 +203,32 @@ describe("view-export", () => {
     expect(ctx!.view).not.toHaveProperty("canvasLines");
   });
 
+  it("includes layout coordinates when requested", () => {
+    const ctx = buildAiBoardContext(doc, "view-a", { includeLayout: true });
+    expect(ctx).not.toBeNull();
+    const placed = ctx!.view.elements.find((e) => e.id === "evt-1")!;
+    expect(placed.x).toBe(100);
+    expect(placed.y).toBe(100);
+    expect(placed.width).toBe(160);
+    expect(placed.height).toBe(72);
+    expect(ctx!.view.swimlanes[0]).toMatchObject({
+      id: "lane-1",
+      label: "Checkout",
+      x: 0,
+      y: 0,
+      width: 800,
+      height: 200,
+    });
+    expect(ctx!.view.boundedContexts[0]).toMatchObject({
+      id: "bc-1",
+      label: "Ordering",
+      x: 0,
+      y: 0,
+      width: 400,
+      height: 300,
+    });
+  });
+
   it("stringifies AI context and filenames", () => {
     const text = stringifyAiBoardContext(doc, "view-b");
     expect(text).toContain(AI_CONTEXT_FORMAT);

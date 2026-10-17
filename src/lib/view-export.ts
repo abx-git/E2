@@ -35,7 +35,14 @@ const AI_OMIT_METADATA_KEYS = new Set<keyof ElementMetadata>([
   "arc42SectionNumber",
 ]);
 
-export interface AiContextElement {
+export interface AiContextLayoutBox {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}
+
+export interface AiContextElement extends AiContextLayoutBox {
   id: string;
   type: StormElement["type"];
   label: string;
@@ -46,6 +53,11 @@ export interface AiContextElement {
   /** Left-to-right order on the canvas (1-based); useful for timelines / process flow. */
   order: number;
   metadata?: Partial<ElementMetadata>;
+}
+
+export interface BuildAiBoardContextOptions {
+  /** When true, include canvas x/y/width/height on elements, swimlanes, and bounded contexts. */
+  includeLayout?: boolean;
 }
 
 export interface AiContextRelation {
@@ -74,13 +86,15 @@ export interface AiContextView {
   elements: AiContextElement[];
   relations: AiContextRelation[];
   contextRelations: AiContextContextRelation[];
-  swimlanes: Array<{ id: string; label: string }>;
-  boundedContexts: Array<{
-    id: string;
-    label: string;
-    purpose?: string;
-    detailView?: string;
-  }>;
+  swimlanes: Array<{ id: string; label: string } & AiContextLayoutBox>;
+  boundedContexts: Array<
+    {
+      id: string;
+      label: string;
+      purpose?: string;
+      detailView?: string;
+    } & AiContextLayoutBox
+  >;
   timeline?: { startLabel?: string; endLabel?: string };
 }
 
@@ -128,6 +142,17 @@ function slimMetadata(meta: ElementMetadata | undefined): Partial<ElementMetadat
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+function layoutBoxFrom(
+  item: { x: number; y: number; width: number; height: number },
+): AiContextLayoutBox {
+  return {
+    x: item.x,
+    y: item.y,
+    width: item.width,
+    height: item.height,
+  };
+}
+
 function sortElementsLeftToRight(elements: StormElement[]): StormElement[] {
   return [...elements].sort((a, b) => a.x - b.x || a.y - b.y || a.id.localeCompare(b.id));
 }
@@ -162,14 +187,20 @@ export function stringifySingleViewExport(doc: BoardImportPayload, viewId: strin
 export function buildAiBoardContext(
   doc: BoardImportPayload,
   viewId: string,
+  options?: BuildAiBoardContextOptions,
 ): AiBoardContext | null {
   const view = resolveView(doc, viewId);
   if (!view) return null;
+  const includeLayout = Boolean(options?.includeLayout);
 
   const names = viewNameMap(doc);
   const sorted = sortElementsLeftToRight(view.elements);
   const elementById = new Map(view.elements.map((el) => [el.id, el]));
-  const swimlanes = view.swimlanes.map((s: Swimlane) => ({ id: s.id, label: s.label }));
+  const swimlanes = view.swimlanes.map((s: Swimlane) => ({
+    id: s.id,
+    label: s.label,
+    ...(includeLayout ? layoutBoxFrom(s) : {}),
+  }));
   const boundedContexts = view.boundedContexts.map((bc: BoundedContext) => ({
     id: bc.id,
     label: bc.label,
@@ -177,6 +208,7 @@ export function buildAiBoardContext(
     ...(bc.detailViewId && names.has(bc.detailViewId)
       ? { detailView: names.get(bc.detailViewId)! }
       : {}),
+    ...(includeLayout ? layoutBoxFrom(bc) : {}),
   }));
 
   const elements: AiContextElement[] = sorted.map((el, index) => {
@@ -196,6 +228,12 @@ export function buildAiBoardContext(
     }
     const metadata = slimMetadata(el.metadata);
     if (metadata) entry.metadata = metadata;
+    if (includeLayout) {
+      entry.x = el.x;
+      entry.y = el.y;
+      if (typeof el.width === "number" && el.width > 0) entry.width = el.width;
+      if (typeof el.height === "number" && el.height > 0) entry.height = el.height;
+    }
     return entry;
   });
 
@@ -274,8 +312,12 @@ export function buildAiBoardContext(
   };
 }
 
-export function stringifyAiBoardContext(doc: BoardImportPayload, viewId: string): string | null {
-  const ctx = buildAiBoardContext(doc, viewId);
+export function stringifyAiBoardContext(
+  doc: BoardImportPayload,
+  viewId: string,
+  options?: BuildAiBoardContextOptions,
+): string | null {
+  const ctx = buildAiBoardContext(doc, viewId, options);
   if (!ctx) return null;
   return JSON.stringify(ctx, null, 2);
 }

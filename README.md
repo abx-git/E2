@@ -321,7 +321,9 @@ Im Facilitator-Modus:
 |--------|--------|-------------|
 | **JSON** | Vollständiger Board-Stand inkl. Schema-Verweis | alle |
 | **JSON Schema** | Für andere Tools, die gültige Boards erzeugen | alle |
-| **KI-Kontext** | Reduzierte Sicht (semantisch) + Schema; Import mit Auto-Layout | alle |
+| **KI-Kontext** | Reduzierte Sicht (semantisch); optional mit Layout (`x`/`y`/…); Import übernimmt Koordinaten oder Auto-Layout | alle |
+| **KI-Schema (Modus)** | Kleineres Prompt-Schema nur mit Typen/Formaten des aktuellen Modeling-Mode; gleiches Wire-Format wie KI-Kontext (Paste-kompatibel) | alle |
+| **KI-Schema (alle)** | Vollständiges AI-Context-JSON-Schema (alle Modi) | alle |
 | **Mermaid / PlantUML** | Diagramm-Text pro Sicht; Import mit Auto-Layout | alle |
 | **SVG / PNG** | Visueller Snapshot; SVG als `.drawio.svg` mit eingebettetem Diagramm — in [diagrams.net](https://app.diagrams.net) / Draw.io bearbeitbar | alle |
 | **Hotspot-Report (MD)** | Offene Punkte | alle |

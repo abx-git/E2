@@ -93,11 +93,19 @@ export interface DataStoragePanelProps {
   onExportViewJson: (viewId: string) => void;
   onCopyViewJsonToClipboard: (viewId: string) => boolean | Promise<boolean>;
   /** Reduced semantic extract for AI conversation context. */
-  onExportViewAiContext: (viewId: string) => void;
-  onCopyViewAiContextToClipboard: (viewId: string) => boolean | Promise<boolean>;
-  /** JSON Schema for the AI-context format (for prompting an LLM). */
+  onExportViewAiContext: (
+    viewId: string,
+    options?: { includeLayout?: boolean },
+  ) => void;
+  onCopyViewAiContextToClipboard: (
+    viewId: string,
+    options?: { includeLayout?: boolean },
+  ) => boolean | Promise<boolean>;
+  /** Full JSON Schema for the AI-context format (all modes). */
   onExportAiContextSchema: () => void;
-  /** Paste AI-context JSON as a new view (auto-layout). */
+  /** Mode-scoped AI-context schema for the selected view's modeling mode. */
+  onExportAiContextModeSchema: (viewId: string) => void;
+  /** Paste AI-context JSON as a new view (layout when present, else auto-layout). */
   onPasteAiContextAsNewView: () => void;
   /** Mermaid / PlantUML for the selected view. */
   onExportViewMermaid: (viewId: string) => void;
@@ -340,6 +348,7 @@ export function DataStoragePanel({
   onExportViewAiContext,
   onCopyViewAiContextToClipboard,
   onExportAiContextSchema,
+  onExportAiContextModeSchema,
   onPasteAiContextAsNewView,
   onExportViewMermaid,
   onCopyViewMermaidToClipboard,
@@ -387,6 +396,7 @@ export function DataStoragePanel({
   const [drawioCopied, setDrawioCopied] = useState(false);
   const [viewJsonCopied, setViewJsonCopied] = useState(false);
   const [aiContextCopied, setAiContextCopied] = useState(false);
+  const [aiContextLayoutCopied, setAiContextLayoutCopied] = useState(false);
   const [mermaidCopied, setMermaidCopied] = useState(false);
   const [plantUmlCopied, setPlantUmlCopied] = useState(false);
   const [exportViewId, setExportViewId] = useState<string | null>(null);
@@ -1122,7 +1132,16 @@ export function DataStoragePanel({
                     onClick={() => onExportViewAiContext(selectedExportViewId)}
                     disabled={busy || !selectedExportViewId}
                     label="KI-Kontext"
-                    detail="reduziert · semantisch"
+                    detail="ohne Layout"
+                    emphasize
+                  />
+                  <ExportTile
+                    onClick={() =>
+                      onExportViewAiContext(selectedExportViewId, { includeLayout: true })
+                    }
+                    disabled={busy || !selectedExportViewId}
+                    label="KI+Layout"
+                    detail="mit Positionen"
                     emphasize
                   />
                   <ExportTile
@@ -1137,15 +1156,40 @@ export function DataStoragePanel({
                     }}
                     disabled={busy || !selectedExportViewId}
                     label={aiContextCopied ? "Kopiert" : "KI kopieren"}
-                    detail="für Conversation"
+                    detail="ohne Layout"
                     icon={ClipboardCopy}
                     emphasize={aiContextCopied}
                   />
                   <ExportTile
+                    onClick={() => {
+                      void Promise.resolve(
+                        onCopyViewAiContextToClipboard(selectedExportViewId, {
+                          includeLayout: true,
+                        }),
+                      ).then((ok) => {
+                        if (!ok) return;
+                        setAiContextLayoutCopied(true);
+                        window.setTimeout(() => setAiContextLayoutCopied(false), 2000);
+                      });
+                    }}
+                    disabled={busy || !selectedExportViewId}
+                    label={aiContextLayoutCopied ? "Kopiert" : "KI+Layout kop."}
+                    detail="mit Positionen"
+                    icon={ClipboardCopy}
+                    emphasize={aiContextLayoutCopied}
+                  />
+                  <ExportTile
+                    onClick={() => onExportAiContextModeSchema(selectedExportViewId)}
+                    disabled={busy || !selectedExportViewId}
+                    label="KI-Schema"
+                    detail="aktueller Modus"
+                    emphasize
+                  />
+                  <ExportTile
                     onClick={onExportAiContextSchema}
                     disabled={busy}
-                    label="KI-Schema"
-                    detail="für Prompt / LLM"
+                    label="KI-Schema alle"
+                    detail="alle Modi"
                   />
                   <ExportTile
                     onClick={onPasteAiContextAsNewView}

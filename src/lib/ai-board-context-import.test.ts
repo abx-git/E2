@@ -172,4 +172,85 @@ describe("ai-board-context-import", () => {
   it("schema id constant matches published path", () => {
     expect(AI_BOARD_CONTEXT_SCHEMA_ID).toContain("ai-board-context-v1.schema.json");
   });
+
+  it("preserves explicit element and region layout on import", () => {
+    const json = JSON.stringify({
+      format: AI_CONTEXT_FORMAT,
+      version: 1,
+      title: "Laid out",
+      view: {
+        name: "V",
+        modelingMode: "eventStorming",
+        swimlanes: [
+          { id: "lane-1", label: "Checkout", x: 10, y: 20, width: 500, height: 180 },
+        ],
+        boundedContexts: [
+          { id: "bc-1", label: "Ordering", x: 15, y: 25, width: 420, height: 200 },
+        ],
+        elements: [
+          {
+            id: "cmd-1",
+            type: "command",
+            label: "Place Order",
+            order: 1,
+            swimlane: "Checkout",
+            x: 40,
+            y: 60,
+            width: 140,
+            height: 70,
+          },
+          {
+            id: "evt-1",
+            type: "domainEvent",
+            label: "Order Placed",
+            order: 2,
+            swimlane: "Checkout",
+            boundedContext: "Ordering",
+            x: 220,
+            y: 90,
+          },
+        ],
+        relations: [{ type: "triggers", fromId: "cmd-1", toId: "evt-1" }],
+      },
+    });
+    const payload = boardImportPayloadFromAiContextText(json);
+    expect(payload).not.toBeNull();
+    const view = payload!.views[0]!;
+    const byLabel = Object.fromEntries(view.elements.map((e) => [e.label, e]));
+    expect(byLabel["Place Order"]).toMatchObject({ x: 40, y: 60, width: 140, height: 70 });
+    expect(byLabel["Order Placed"]).toMatchObject({ x: 220, y: 90 });
+    expect(view.swimlanes.find((s) => s.label === "Checkout")).toMatchObject({
+      x: 10,
+      y: 20,
+      width: 500,
+      height: 180,
+    });
+    expect(view.boundedContexts.find((b) => b.label === "Ordering")).toMatchObject({
+      x: 15,
+      y: 25,
+      width: 420,
+      height: 200,
+    });
+  });
+
+  it("auto-layouts elements that omit coordinates alongside explicit ones", () => {
+    const json = JSON.stringify({
+      format: AI_CONTEXT_FORMAT,
+      version: 1,
+      title: "Mixed",
+      view: {
+        name: "V",
+        modelingMode: "eventStorming",
+        elements: [
+          { type: "command", label: "Fixed", x: 500, y: 40 },
+          { type: "domainEvent", label: "Auto" },
+        ],
+      },
+    });
+    const payload = boardImportPayloadFromAiContextText(json)!;
+    const byLabel = Object.fromEntries(payload.views[0]!.elements.map((e) => [e.label, e]));
+    expect(byLabel["Fixed"]).toMatchObject({ x: 500, y: 40 });
+    expect(byLabel["Auto"]!.x).not.toBe(500);
+    expect(typeof byLabel["Auto"]!.x).toBe("number");
+  });
 });

@@ -107,6 +107,7 @@ import {
   singleViewExportFilename,
   stringifyAiBoardContext,
   stringifySingleViewExport,
+  type BuildAiBoardContextOptions,
 } from "@/lib/view-export";
 import {
   diagramExportFilename,
@@ -115,6 +116,10 @@ import {
   plantUmlFromViewId,
 } from "@/lib/diagram-io";
 import { stringifyAiBoardContextSchema } from "@/lib/ai-board-context-import";
+import {
+  aiContextModeSchemaFilename,
+  stringifyAiContextModeSchema,
+} from "@/lib/ai-context-mode-schema";
 import { type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
 import { JsonPasteDialog } from "@/components/json-paste-dialog";
@@ -395,37 +400,43 @@ export function StormBoard() {
     }
   }, []);
 
-  const downloadViewAiContext = useCallback((viewId: string) => {
-    const payload = boardImportPayloadFromStore();
-    const json = stringifyAiBoardContext(payload, viewId);
-    const view = payload.views.find((v) => v.id === viewId);
-    if (!json || !view) {
-      window.alert(t("alerts.aiContextExportFailed"));
-      return;
-    }
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = aiContextExportFilename(payload.title, view.name);
-    a.click();
-    URL.revokeObjectURL(url);
-  }, []);
+  const downloadViewAiContext = useCallback(
+    (viewId: string, options?: BuildAiBoardContextOptions) => {
+      const payload = boardImportPayloadFromStore();
+      const json = stringifyAiBoardContext(payload, viewId, options);
+      const view = payload.views.find((v) => v.id === viewId);
+      if (!json || !view) {
+        window.alert(t("alerts.aiContextExportFailed"));
+        return;
+      }
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = aiContextExportFilename(payload.title, view.name);
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+    [t],
+  );
 
-  const copyViewAiContextToClipboard = useCallback(async (viewId: string): Promise<boolean> => {
-    const json = stringifyAiBoardContext(boardImportPayloadFromStore(), viewId);
-    if (!json) {
-      window.alert(t("alerts.aiContextExportFailed"));
-      return false;
-    }
-    try {
-      await navigator.clipboard.writeText(json);
-      return true;
-    } catch {
-      window.alert(t("alerts.aiContextClipboardFailed"));
-      return false;
-    }
-  }, []);
+  const copyViewAiContextToClipboard = useCallback(
+    async (viewId: string, options?: BuildAiBoardContextOptions): Promise<boolean> => {
+      const json = stringifyAiBoardContext(boardImportPayloadFromStore(), viewId, options);
+      if (!json) {
+        window.alert(t("alerts.aiContextExportFailed"));
+        return false;
+      }
+      try {
+        await navigator.clipboard.writeText(json);
+        return true;
+      } catch {
+        window.alert(t("alerts.aiContextClipboardFailed"));
+        return false;
+      }
+    },
+    [t],
+  );
 
   const downloadJsonSchema = useCallback(() => {
     const json = stringifyBoardSnapshotSchema();
@@ -448,6 +459,26 @@ export function StormBoard() {
     a.click();
     URL.revokeObjectURL(url);
   }, []);
+
+  const downloadAiContextModeSchema = useCallback(
+    (viewId: string) => {
+      const payload = boardImportPayloadFromStore();
+      const view = payload.views.find((v) => v.id === viewId);
+      if (!view) {
+        window.alert(t("alerts.aiContextExportFailed"));
+        return;
+      }
+      const json = stringifyAiContextModeSchema(view.modelingMode);
+      const blob = new Blob([json], { type: "application/schema+json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = aiContextModeSchemaFilename(view.modelingMode);
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+    [t],
+  );
 
   const downloadViewMermaid = useCallback((viewId: string) => {
     const text = mermaidFromViewId(viewId);
@@ -1314,6 +1345,7 @@ export function StormBoard() {
         onExportViewAiContext={downloadViewAiContext}
         onCopyViewAiContextToClipboard={copyViewAiContextToClipboard}
         onExportAiContextSchema={downloadAiContextSchema}
+        onExportAiContextModeSchema={downloadAiContextModeSchema}
         onPasteAiContextAsNewView={handlePasteAiContextAsNewView}
         onExportViewMermaid={downloadViewMermaid}
         onCopyViewMermaidToClipboard={copyViewMermaidToClipboard}

@@ -12,17 +12,9 @@ import {
   AI_CONTEXT_VERSION,
   type AiBoardContext,
   type AiContextElement,
+  type AiContextLayoutBox,
   type AiContextView,
 } from "@/lib/view-export";
-import aiBoardContextSchemaJson from "../../public/schemas/ai-board-context-v1.schema.json";
-
-export { AI_BOARD_CONTEXT_SCHEMA_FILENAME, AI_BOARD_CONTEXT_SCHEMA_ID };
-
-export const aiBoardContextSchemaDocument = aiBoardContextSchemaJson;
-
-export function stringifyAiBoardContextSchema(): string {
-  return JSON.stringify(aiBoardContextSchemaDocument, null, 2);
-}
 import type { ActionItem } from "@/types/action-item";
 import {
   ACTION_ITEM_AREAS,
@@ -43,6 +35,15 @@ import {
 } from "@/types/storm-element";
 import type { ContextMapPattern, RelationType, StormRelation, ContextRelation } from "@/types/storm-relation";
 import { CONTEXT_MAP_PATTERNS } from "@/types/storm-relation";
+import aiBoardContextSchemaJson from "../../public/schemas/ai-board-context-v1.schema.json";
+
+export { AI_BOARD_CONTEXT_SCHEMA_FILENAME, AI_BOARD_CONTEXT_SCHEMA_ID };
+
+export const aiBoardContextSchemaDocument = aiBoardContextSchemaJson;
+
+export function stringifyAiBoardContextSchema(): string {
+  return JSON.stringify(aiBoardContextSchemaDocument, null, 2);
+}
 
 const RELATION_TYPES: RelationType[] = [
   "triggers",
@@ -91,6 +92,41 @@ function asString(value: unknown): string | undefined {
 function asTrimmed(value: unknown): string | undefined {
   const s = asString(value)?.trim();
   return s || undefined;
+}
+
+function asFiniteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function asPositiveNumber(value: unknown): number | undefined {
+  const n = asFiniteNumber(value);
+  return n !== undefined && n > 0 ? n : undefined;
+}
+
+function readLayoutBox(raw: Record<string, unknown>): AiContextLayoutBox {
+  const out: AiContextLayoutBox = {};
+  const x = asFiniteNumber(raw.x);
+  const y = asFiniteNumber(raw.y);
+  const width = asPositiveNumber(raw.width);
+  const height = asPositiveNumber(raw.height);
+  if (x !== undefined) out.x = x;
+  if (y !== undefined) out.y = y;
+  if (width !== undefined) out.width = width;
+  if (height !== undefined) out.height = height;
+  return out;
+}
+
+function hasExplicitPosition(box: AiContextLayoutBox): boolean {
+  return typeof box.x === "number" && typeof box.y === "number";
+}
+
+function hasExplicitRegionBox(box: AiContextLayoutBox): boolean {
+  return (
+    typeof box.x === "number" &&
+    typeof box.y === "number" &&
+    typeof box.width === "number" &&
+    typeof box.height === "number"
+  );
 }
 
 function isElementType(value: unknown): value is ElementType {
@@ -241,9 +277,24 @@ function bboxOf(elements: StormElement[]): {
   };
 }
 
+type LaneDef = {
+  id: string;
+  label: string;
+  layout: AiContextLayoutBox;
+};
+
+type BcDef = {
+  id: string;
+  label: string;
+  purpose?: string;
+  layout: AiContextLayoutBox;
+};
+
 /**
  * Place stickies left-to-right (by order), stacked in swimlane bands when present.
- * Region boxes are derived from member bounds.
+ * Explicit x/y (and optional width/height) on elements or regions are preserved;
+ * missing positions fall back to auto-layout. Region boxes without layout are
+ * derived from member bounds.
  */
 export function layoutAiContextView(view: AiContextView): {
   elements: StormElement[];
@@ -255,16 +306,28 @@ export function layoutAiContextView(view: AiContextView): {
 } {
   const usedIds = new Set<string>();
 
-  const laneDefs = (view.swimlanes ?? []).map((lane) => ({
+  const laneDefs: LaneDef[] = (view.swimlanes ?? []).map((lane) => ({
     id: uniqueId(lane.id, usedIds),
     label: lane.label.trim() || "Lane",
+    layout: {
+      ...(typeof lane.x === "number" ? { x: lane.x } : {}),
+      ...(typeof lane.y === "number" ? { y: lane.y } : {}),
+      ...(typeof lane.width === "number" ? { width: lane.width } : {}),
+      ...(typeof lane.height === "number" ? { height: lane.height } : {}),
+    },
   }));
   const laneByLabel = new Map(laneDefs.map((l) => [l.label.toLowerCase(), l]));
 
-  const bcDefs = (view.boundedContexts ?? []).map((bc) => ({
+  const bcDefs: BcDef[] = (view.boundedContexts ?? []).map((bc) => ({
     id: uniqueId(bc.id, usedIds),
     label: bc.label.trim() || "Context",
     purpose: bc.purpose?.trim() || undefined,
+    layout: {
+      ...(typeof bc.x === "number" ? { x: bc.x } : {}),
+      ...(typeof bc.y === "number" ? { y: bc.y } : {}),
+      ...(typeof bc.width === "number" ? { width: bc.width } : {}),
+      ...(typeof bc.height === "number" ? { height: bc.height } : {}),
+    },
   }));
   const bcByLabel = new Map(bcDefs.map((b) => [b.label.toLowerCase(), b]));
 
@@ -295,7 +358,11 @@ export function layoutAiContextView(view: AiContextView): {
       seenLaneKeys.add(key);
       laneKeysInOrder.push(key);
       if (key && !laneByLabel.has(key) && source.swimlane?.trim()) {
-        const created = { id: uniqueId(undefined, usedIds), label: source.swimlane.trim() };
+        const created: LaneDef = {
+          id: uniqueId(undefined, usedIds),
+          label: source.swimlane.trim(),
+          layout: {},
+        };
         laneDefs.push(created);
         laneByLabel.set(key, created);
       }
@@ -309,7 +376,12 @@ export function layoutAiContextView(view: AiContextView): {
     if (!label) continue;
     const key = label.toLowerCase();
     if (!bcByLabel.has(key)) {
-      const created = { id: uniqueId(undefined, usedIds), label, purpose: undefined as string | undefined };
+      const created: BcDef = {
+        id: uniqueId(undefined, usedIds),
+        label,
+        purpose: undefined,
+        layout: {},
+      };
       bcDefs.push(created);
       bcByLabel.set(key, created);
     }
@@ -334,8 +406,15 @@ export function layoutAiContextView(view: AiContextView): {
     for (const source of members) {
       if (!isElementType(source.type)) continue;
       const size = elementSize(source.type);
-      const x = PAD_X + col * COL_STRIDE;
-      const y = bandCenterY + layoutYOffsetForType(source.type) - size.height / 2;
+      const width =
+        typeof source.width === "number" && source.width > 0 ? source.width : size.width;
+      const height =
+        typeof source.height === "number" && source.height > 0 ? source.height : size.height;
+      const explicit = hasExplicitPosition(source);
+      const x = explicit ? source.x! : PAD_X + col * COL_STRIDE;
+      const y = explicit
+        ? source.y!
+        : bandCenterY + layoutYOffsetForType(source.type) - height / 2;
       const id = uniqueId(source.id, usedIds);
       const lane = laneKey ? laneByLabel.get(laneKey) : undefined;
       const bcLabel = source.boundedContext?.trim().toLowerCase();
@@ -347,8 +426,8 @@ export function layoutAiContextView(view: AiContextView): {
         label: source.label?.trim() || source.type,
         x,
         y,
-        width: size.width,
-        height: size.height,
+        width,
+        height,
         zIndex: placed.length,
         ...(source.description?.trim() ? { description: source.description.trim() } : {}),
         ...(lane ? { swimlaneId: lane.id } : {}),
@@ -363,7 +442,7 @@ export function layoutAiContextView(view: AiContextView): {
         source.type === "pivotalEvent" ||
         source.type === "processActivity"
       ) {
-        timelineSamples.push(y + size.height / 2);
+        timelineSamples.push(y + height / 2);
       }
 
       placed.push({
@@ -372,8 +451,8 @@ export function layoutAiContextView(view: AiContextView): {
         laneKey,
         bcKey: bc ? bc.label.toLowerCase() : null,
       });
-      bandMaxBottom = Math.max(bandMaxBottom, y + size.height);
-      col += 1;
+      bandMaxBottom = Math.max(bandMaxBottom, y + height);
+      if (!explicit) col += 1;
     }
 
     if (members.length === 0) {
@@ -387,26 +466,37 @@ export function layoutAiContextView(view: AiContextView): {
 
   const swimlanes: Swimlane[] = laneDefs
     .map((lane, index) => {
+      if (hasExplicitRegionBox(lane.layout)) {
+        return {
+          id: lane.id,
+          label: lane.label,
+          x: lane.layout.x!,
+          y: lane.layout.y!,
+          width: lane.layout.width!,
+          height: lane.layout.height!,
+          zIndex: index,
+        } satisfies Swimlane;
+      }
       const members = placed.filter((p) => p.laneKey === lane.label.toLowerCase()).map((p) => p.el);
       const box = bboxOf(members);
       if (!box) {
         return {
           id: lane.id,
           label: lane.label,
-          x: PAD_X,
-          y: PAD_X + index * 140,
-          width: 480,
-          height: 120,
+          x: typeof lane.layout.x === "number" ? lane.layout.x : PAD_X,
+          y: typeof lane.layout.y === "number" ? lane.layout.y : PAD_X + index * 140,
+          width: typeof lane.layout.width === "number" ? lane.layout.width : 480,
+          height: typeof lane.layout.height === "number" ? lane.layout.height : 120,
           zIndex: index,
         } satisfies Swimlane;
       }
       return {
         id: lane.id,
         label: lane.label,
-        x: box.x,
-        y: box.y,
-        width: box.width,
-        height: box.height,
+        x: typeof lane.layout.x === "number" ? lane.layout.x : box.x,
+        y: typeof lane.layout.y === "number" ? lane.layout.y : box.y,
+        width: typeof lane.layout.width === "number" ? lane.layout.width : box.width,
+        height: typeof lane.layout.height === "number" ? lane.layout.height : box.height,
         zIndex: index,
       } satisfies Swimlane;
     })
@@ -417,16 +507,28 @@ export function layoutAiContextView(view: AiContextView): {
   const finalSwimlanes = swimlanes.filter((l) => usedLaneIds.has(l.id));
 
   const boundedContexts: BoundedContext[] = bcDefs.map((bc, index) => {
+    if (hasExplicitRegionBox(bc.layout)) {
+      return {
+        id: bc.id,
+        label: bc.label,
+        ...(bc.purpose ? { purpose: bc.purpose } : {}),
+        x: bc.layout.x!,
+        y: bc.layout.y!,
+        width: bc.layout.width!,
+        height: bc.layout.height!,
+        zIndex: index,
+      } satisfies BoundedContext;
+    }
     const members = placed.filter((p) => p.bcKey === bc.label.toLowerCase()).map((p) => p.el);
     const box = bboxOf(members);
     return {
       id: bc.id,
       label: bc.label,
       ...(bc.purpose ? { purpose: bc.purpose } : {}),
-      x: box?.x ?? PAD_X + index * 40,
-      y: box?.y ?? PAD_X + index * 40,
-      width: box?.width ?? 280,
-      height: box?.height ?? 160,
+      x: typeof bc.layout.x === "number" ? bc.layout.x : (box?.x ?? PAD_X + index * 40),
+      y: typeof bc.layout.y === "number" ? bc.layout.y : (box?.y ?? PAD_X + index * 40),
+      width: typeof bc.layout.width === "number" ? bc.layout.width : (box?.width ?? 280),
+      height: typeof bc.layout.height === "number" ? bc.layout.height : (box?.height ?? 160),
       zIndex: index,
     } satisfies BoundedContext;
   }).filter((bc) => elements.some((e) => e.boundedContextId === bc.id) || (view.boundedContexts ?? []).some((b) => b.label.trim() === bc.label));
@@ -511,6 +613,7 @@ function parseAiElement(raw: unknown, index: number): AiContextElement | null {
     type: raw.type,
     label,
     order,
+    ...readLayoutBox(raw),
   };
   const description = asTrimmed(raw.description);
   if (description) entry.description = description;
@@ -589,6 +692,7 @@ function parseAiView(raw: unknown): AiContextView | null {
       .map((s) => ({
         id: asTrimmed(s.id) || generateStormId(),
         label: asTrimmed(s.label) || "Lane",
+        ...readLayoutBox(s),
       }));
   }
 
@@ -600,6 +704,7 @@ function parseAiView(raw: unknown): AiContextView | null {
         label: asTrimmed(b.label) || "Context",
         ...(asTrimmed(b.purpose) ? { purpose: asTrimmed(b.purpose) } : {}),
         ...(asTrimmed(b.detailView) ? { detailView: asTrimmed(b.detailView) } : {}),
+        ...readLayoutBox(b),
       }));
   }
 

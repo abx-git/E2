@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://abx-git.github.io/E2/schemas/ai-board-context-v1.schema.json",
   "title": "E2 AI Board Context",
-  "description": "Reduziertes semantisches Board-Format (format: event-storming-tool-ai-context, version: 1) für KI-Konversation und Roundtrip-Import. Ohne Layout-Koordinaten — die App arrangiert Elemente beim Import.",
+  "description": "Reduziertes semantisches Board-Format (format: event-storming-tool-ai-context, version: 1) für KI-Konversation und Roundtrip-Import. Layout-Koordinaten (x/y/width/height) sind optional — fehlen sie, arrangiert die App beim Import.",
   "type": "object",
   "additionalProperties": false,
   "required": ["format", "version", "title", "view"],
@@ -83,6 +83,7 @@
         "c4",
         "arc42",
         "cloud",
+        "freeform",
         "architectureDocumentation"
       ]
     },
@@ -148,6 +149,15 @@
         "archBlackbox",
         "archWhitebox",
         "archComponent",
+        "cloudBoundary",
+        "cloudCompute",
+        "cloudEdge",
+        "cloudDataStore",
+        "cloudMessaging",
+        "cloudNetwork",
+        "cloudIdentity",
+        "cloudManagedService",
+        "customCard",
         "link"
       ]
     },
@@ -206,7 +216,11 @@
             "required": ["label"],
             "properties": {
               "id": { "type": "string" },
-              "label": { "type": "string", "minLength": 1 }
+              "label": { "type": "string", "minLength": 1 },
+              "x": { "type": "number", "description": "Optional: Welt-X der Lane." },
+              "y": { "type": "number", "description": "Optional: Welt-Y der Lane." },
+              "width": { "type": "number", "exclusiveMinimum": 0 },
+              "height": { "type": "number", "exclusiveMinimum": 0 }
             }
           }
         },
@@ -223,7 +237,11 @@
               "detailView": {
                 "type": "string",
                 "description": "Name einer Detail-Sicht (informativ; Import legt keine leere Sicht an)."
-              }
+              },
+              "x": { "type": "number", "description": "Optional: Welt-X des Contexts." },
+              "y": { "type": "number", "description": "Optional: Welt-Y des Contexts." },
+              "width": { "type": "number", "exclusiveMinimum": 0 },
+              "height": { "type": "number", "exclusiveMinimum": 0 }
             }
           }
         },
@@ -263,9 +281,27 @@
           "minimum": 1,
           "description": "Links-nach-rechts-Reihenfolge (1-basiert). Fehlt sie, gilt die Array-Position."
         },
+        "x": {
+          "type": "number",
+          "description": "Optional: Welt-X. Zusammen mit y übernimmt der Import diese Position statt Auto-Layout."
+        },
+        "y": {
+          "type": "number",
+          "description": "Optional: Welt-Y. Zusammen mit x übernimmt der Import diese Position statt Auto-Layout."
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Optional: Kartenbreite."
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Optional: Kartenhöhe."
+        },
         "metadata": {
           "type": "object",
-          "description": "Semantische Element-Metadaten (Attribute, GWT, C4, …). Keine Layout-/Card-Display-Flags.",
+          "description": "Semantische Element-Metadaten (Attribute, GWT, C4, …). Keine Card-Display-Flags.",
           "additionalProperties": true
         }
       }
