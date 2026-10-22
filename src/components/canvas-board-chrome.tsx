@@ -84,6 +84,10 @@ function ViewMenu({
   const setSnapToGrid = useStormBoardStore((s) => s.setSnapToGrid);
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const setFocusMode = useStormBoardStore((s) => s.setFocusMode);
+  const elementsPanelOpen = useStormBoardStore((s) => s.elementsPanelOpen);
+  const propertiesPanelOpen = useStormBoardStore((s) => s.propertiesPanelOpen);
+  const setElementsPanelOpen = useStormBoardStore((s) => s.setElementsPanelOpen);
+  const setPropertiesPanelOpen = useStormBoardStore((s) => s.setPropertiesPanelOpen);
   const t = useT();
 
   useEffect(() => {
@@ -144,6 +148,23 @@ function ViewMenu({
           onChange={(e) => setFocusMode(e.target.checked)}
         />
         {t("chrome.focusPaletteOnly")}
+      </label>
+      <p className="group-label mt-2 px-2 pb-1.5 pt-1">{t("chrome.panelsSection")}</p>
+      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-[var(--control)]">
+        <input
+          type="checkbox"
+          checked={elementsPanelOpen}
+          onChange={(e) => setElementsPanelOpen(e.target.checked)}
+        />
+        {t("chrome.showElementsPanel")}
+      </label>
+      <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-[var(--control)]">
+        <input
+          type="checkbox"
+          checked={propertiesPanelOpen}
+          onChange={(e) => setPropertiesPanelOpen(e.target.checked)}
+        />
+        {t("chrome.showPropertiesPanel")}
       </label>
     </div>
   );
