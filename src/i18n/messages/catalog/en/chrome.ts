@@ -42,6 +42,8 @@ export const chromeEn = {
     connectToolHint:
       "Click objects · Shift+drag = line · select connector and drag endpoint to reattach",
     bcDrawHint: "Drag rectangle · Esc to finish",
+    dropImportHint:
+      "Drop file to import as new view(s) (E2, E2V, AI context, Mermaid, PlantUML)",
     filterSelection: "Highlight selection",
     filterSelectionDimmed: "Not in current selection",
     filterSelectionNeedSelection: "Select at least one element",
