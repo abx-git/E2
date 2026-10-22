@@ -16,6 +16,7 @@ import { StormElementCard } from "@/components/storm-element-card";
 import { SwimlaneLayer } from "@/components/swimlane-layer";
 import { TimelineGuide } from "@/components/timeline-guide";
 import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint, ZOOM_STEP } from "@/lib/canvas-viewport";
+import { deleteCurrentSelection } from "@/lib/board-delete-selection";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { elementsInMarquee, swimlanesInMarquee, boundedContextsInMarquee, type WorldRect } from "@/lib/selection-geometry";
 import { lineLength } from "@/lib/canvas-annotations";
@@ -182,12 +183,9 @@ export function StormCanvas() {
       }
 
       if (e.key === "Delete" || e.key === "Backspace") {
-        const s = useStormBoardStore.getState();
-        const connectorId =
-          s.selectedConnectorId ?? s.selectedRelationId ?? s.selectedContextRelationId ?? s.selectedCanvasLineId;
-        if (connectorId) {
+        const store = useStormBoardStore.getState();
+        if (deleteCurrentSelection(store)) {
           e.preventDefault();
-          s.deleteConnector(connectorId);
         }
         return;
       }
