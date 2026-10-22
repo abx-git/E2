@@ -361,6 +361,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const connectors = useStormBoardStore((s) => s.connectors);
   const canvasLines = useStormBoardStore((s) => s.canvasLines);
   const views = useStormBoardStore((s) => s.views);
+  const propertiesPanelOpen = useStormBoardStore((s) => s.propertiesPanelOpen);
 
   const [viewOpen, setViewOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -439,7 +440,10 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   return (
     <>
       <div
-        className="absolute right-3 top-3 z-30 flex max-w-[min(100%-1.5rem,22rem)] items-start gap-1.5"
+        className={[
+          "absolute top-3 z-30 flex max-w-[min(100%-1.5rem,22rem)] items-start gap-1.5",
+          propertiesPanelOpen ? "right-3" : "right-14",
+        ].join(" ")}
         data-canvas-chrome
       >
         <label className="dock-surface flex min-w-0 flex-1 items-center gap-1.5 rounded-xl px-2 py-1 shadow-dock">
