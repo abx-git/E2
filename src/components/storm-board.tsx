@@ -13,6 +13,7 @@ import {
   runManualBoardBackup,
 } from "@/components/board-backup-sync";
 import { progressMarkFromDigit } from "@/lib/progress-mark";
+import { BoardDockReopenButton } from "@/components/board-dock-toggle";
 import { BoardSideRail } from "@/components/board-side-rail";
 import { MobileBoardBar } from "@/components/mobile-board-bar";
 import { CollabEnterConfirmDialog } from "@/components/collab-enter-confirm-dialog";
@@ -232,6 +233,10 @@ export function StormBoard() {
   const appearance = useStormBoardStore((s) => s.appearance);
   const undo = useStormBoardStore((s) => s.undo);
   const redo = useStormBoardStore((s) => s.redo);
+  const elementsPanelOpen = useStormBoardStore((s) => s.elementsPanelOpen);
+  const propertiesPanelOpen = useStormBoardStore((s) => s.propertiesPanelOpen);
+  const setElementsPanelOpen = useStormBoardStore((s) => s.setElementsPanelOpen);
+  const setPropertiesPanelOpen = useStormBoardStore((s) => s.setPropertiesPanelOpen);
   const duplicateElements = useStormBoardStore((s) => s.duplicateElements);
   const applyProgressMark = useStormBoardStore((s) => s.applyProgressMark);
   const boardRootRef = useRef<HTMLDivElement>(null);
@@ -1150,10 +1155,22 @@ export function StormBoard() {
       />
 
       <div className="mx-2 mb-2 mt-2 flex min-h-0 flex-1 gap-2 lg:mx-3 lg:mb-3">
-        <div className="dock-surface hidden overflow-hidden rounded-dock lg:flex">
-          <ElementPalette onSelectType={() => {}} onRequestHelp={openElementHelp} />
-        </div>
+        {elementsPanelOpen ? (
+          <div className="dock-surface hidden overflow-hidden rounded-dock lg:flex">
+            <ElementPalette
+              onSelectType={() => {}}
+              onRequestHelp={openElementHelp}
+              onHide={() => setElementsPanelOpen(false)}
+            />
+          </div>
+        ) : null}
         <div className="dock-surface relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-dock">
+          {!elementsPanelOpen ? (
+            <BoardDockReopenButton side="left" onOpen={() => setElementsPanelOpen(true)} />
+          ) : null}
+          {!propertiesPanelOpen ? (
+            <BoardDockReopenButton side="right" onOpen={() => setPropertiesPanelOpen(true)} />
+          ) : null}
           <StormCanvas />
           <BoundedContextMobileActions onOpenDetails={() => setBcMobileSheetOpen(true)} />
           <MobileBoardBar
@@ -1162,11 +1179,14 @@ export function StormBoard() {
             onRequestHelpPhase={openPhaseHelp}
           />
         </div>
-        <BoardSideRail
-          onRequestHelpElementType={openElementHelp}
-          onRequestHelpRelationType={openRelationHelp}
-          onRequestHelpPhase={openPhaseHelp}
-        />
+        {propertiesPanelOpen ? (
+          <BoardSideRail
+            onRequestHelpElementType={openElementHelp}
+            onRequestHelpRelationType={openRelationHelp}
+            onRequestHelpPhase={openPhaseHelp}
+            onHide={() => setPropertiesPanelOpen(false)}
+          />
+        ) : null}
       </div>
 
       <footer className="flex shrink-0 items-center justify-between px-4 pb-2 text-[0.72rem] text-[var(--muted)]">

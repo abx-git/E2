@@ -18,6 +18,7 @@ import {
   styleForCustomCardType,
 } from "@/lib/element-styles";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
+import { BoardDockHideButton } from "@/components/board-dock-toggle";
 import { isPointerOverStormCanvas } from "@/lib/board-clipboard";
 import { screenToWorld, snapToGrid, snapToTimeline } from "@/lib/canvas-viewport";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -28,6 +29,7 @@ const DRAG_THRESHOLD_PX = 5;
 export interface ElementPaletteProps {
   onSelectType: (type: ElementType) => void;
   onRequestHelp?: (type: ElementType) => void;
+  onHide?: () => void;
 }
 
 type GhostState =
@@ -229,7 +231,7 @@ function CustomCardTypeEditDialog({
     document.body,
   );
 }
-export function ElementPalette({ onSelectType, onRequestHelp }: ElementPaletteProps) {
+export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementPaletteProps) {
   const t = useT();
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const setPaletteType = useStormBoardStore((s) => s.setPaletteType);
@@ -516,10 +518,15 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
   return (
     <aside className="flex w-48 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel-solid)]">
       <div className="border-b border-[var(--border)] px-3 py-3">
-        <h2 className="group-label">{t("panels.paletteTitle")}</h2>
-        <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
-          {t("panels.paletteDragHint", { mode: modeLabel })}
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h2 className="group-label">{t("panels.paletteTitle")}</h2>
+            <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
+              {t("panels.paletteDragHint", { mode: modeLabel })}
+            </p>
+          </div>
+          {onHide ? <BoardDockHideButton side="left" onHide={onHide} /> : null}
+        </div>
       </div>
       <div className="flex flex-col gap-1.5 overflow-y-auto p-2">
         {isFreeform ? (

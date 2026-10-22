@@ -73,6 +73,12 @@ import {
   type BoardAppearance,
 } from "@/lib/board-appearance";
 import {
+  readElementsPanelOpen,
+  readPropertiesPanelOpen,
+  writeElementsPanelOpen,
+  writePropertiesPanelOpen,
+} from "@/lib/board-layout-prefs";
+import {
   type BoardDomainSnapshot,
   pushHistory,
   redoHistory,
@@ -167,6 +173,10 @@ export interface StormBoardState {
   /** Ephemeral: which freeform stereotype is selected for placement. */
   paletteCustomTypeId: string | null;
   focusMode: boolean;
+  /** Desktop layout: left element palette visible. */
+  elementsPanelOpen: boolean;
+  /** Desktop layout: right inspector + tools rail visible. */
+  propertiesPanelOpen: boolean;
   /** Ephemeral canvas text search (not persisted / not undo). */
   searchQuery: string;
   relationMode: boolean;
@@ -207,6 +217,8 @@ export interface StormBoardState {
   setPaletteType: (type: ElementType) => void;
   setPaletteCustomTypeId: (id: string | null) => void;
   setFocusMode: (enabled: boolean) => void;
+  setElementsPanelOpen: (open: boolean) => void;
+  setPropertiesPanelOpen: (open: boolean) => void;
   setSearchQuery: (query: string) => void;
   setClipboardDropHighlight: (active: boolean) => void;
   /** Cut selection into the board clipboard (removes from canvas). */
@@ -584,6 +596,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   paletteType: defaultPaletteTypeForMode(initialViewDoc.modelingMode),
   paletteCustomTypeId: null,
   focusMode: false,
+  elementsPanelOpen: readElementsPanelOpen(),
+  propertiesPanelOpen: readPropertiesPanelOpen(),
   searchQuery: "",
   relationMode: false,
   relationDraftSourceId: null,
@@ -737,6 +751,14 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   setPaletteType: (paletteType) => set({ paletteType }),
   setPaletteCustomTypeId: (paletteCustomTypeId) => set({ paletteCustomTypeId }),
   setFocusMode: (focusMode) => set({ focusMode }),
+  setElementsPanelOpen: (elementsPanelOpen) => {
+    writeElementsPanelOpen(elementsPanelOpen);
+    set({ elementsPanelOpen });
+  },
+  setPropertiesPanelOpen: (propertiesPanelOpen) => {
+    writePropertiesPanelOpen(propertiesPanelOpen);
+    set({ propertiesPanelOpen });
+  },
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setClipboardDropHighlight: (clipboardDropHighlight) => set({ clipboardDropHighlight }),
 
