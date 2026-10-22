@@ -59,7 +59,7 @@ export const dialogsEn = {
     startWithoutFile: "Start without file",
     jsonPasteClipboardEmpty: "The clipboard is empty.",
     jsonPasteClipboardButton: "Clipboard",
-    jsonPasteJsonLabel: "JSON",
+    jsonPasteJsonLabel: "Import text (JSON or E2V)",
     deleteViewBody: "“{name}” and all content of this view will be removed.",
     addViewTab: "View",
     newViewTitle: "New view",
@@ -89,11 +89,11 @@ export const dialogsEn = {
     importTryLoad: "Try loading file anyway",
     jsonPasteBoardTitle: "Paste JSON",
     jsonPasteBoardBody:
-      "Paste a full board (.storm.json) or AI context. Replaces the current board state.",
+      "Paste a full board (.storm.json), compact E2V (# e2v/1), E2V package, or AI context. Replaces the current board state.",
     jsonPasteBoardConfirm: "Load board",
     jsonPasteViewTitle: "JSON as new view",
     jsonPasteViewBody:
-      "Add E2 JSON (.storm.json) or AI context from the clipboard as a new view. Existing views are kept.",
+      "Add E2 JSON (.storm.json), E2V (# e2v/1 / package), or AI context as a new view. Existing views are kept; E2V preserves layout.",
     jsonPasteViewConfirm: "Import as view",
     jsonPasteAiTitle: "Paste AI context",
     jsonPasteAiBody:

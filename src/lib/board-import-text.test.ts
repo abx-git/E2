@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   boardImportPayloadFromJsonText,
   looksLikeJsonText,
+  looksLikePasteImportText,
 } from "@/lib/board-import-text";
+import { encodeE2vSingleView } from "@/lib/e2v";
+import { createDefaultBoardDocument, createEmptyBoardView } from "@/lib/storm-json";
 
 const stormJson = JSON.stringify({
   format: "event-storming-tool",
@@ -51,6 +54,32 @@ describe("boardImportPayloadFromJsonText", () => {
     expect(looksLikeJsonText("  {\"a\":1}")).toBe(true);
     expect(looksLikeJsonText("[1]")).toBe(true);
     expect(looksLikeJsonText("flowchart LR")).toBe(false);
+  });
+
+  it("detects E2V for paste prefill", () => {
+    const doc = createDefaultBoardDocument({
+      views: [createEmptyBoardView({ id: "v1", name: "A" })],
+    });
+    const e2v = encodeE2vSingleView(doc, "v1")!;
+    expect(looksLikePasteImportText(e2v)).toBe(true);
+    expect(looksLikePasteImportText("flowchart LR")).toBe(false);
+  });
+
+  it("imports compact E2V text", () => {
+    const doc = createDefaultBoardDocument({
+      title: "Compact",
+      views: [
+        createEmptyBoardView({
+          id: "v1",
+          name: "View",
+          elements: [{ id: "e1", type: "note", label: "Note", x: 5, y: 6, width: 100, height: 50 }],
+        }),
+      ],
+    });
+    const e2v = encodeE2vSingleView(doc, "v1")!;
+    const payload = boardImportPayloadFromJsonText(e2v);
+    expect(payload?.title).toBe("Compact");
+    expect(payload?.views[0]?.elements[0]).toMatchObject({ label: "Note", x: 5, y: 6 });
   });
 
   it("imports a .storm.json snapshot", () => {
