@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://abx-git.github.io/E2/schemas/e2v-v1.schema.json",
+  "title": "E2 View Compact (E2V)",
+  "description": "Line-oriented, layout-preserving export for E2 diagram views. First line must be # e2v/1. See e2vGrammar in-repo for row types.",
+  "type": "object",
+  "properties": {
+    "format": { "const": "event-storming-tool-e2v" },
+    "version": { "const": 1 },
+    "magicFirstLine": { "const": "# e2v/1" }
+  },
+  "required": ["format", "version"]
+}

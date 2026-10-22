@@ -113,6 +113,14 @@ import {
   plantUmlFromViewId,
 } from "@/lib/diagram-io";
 import { buildAiClipboardPackage } from "@/lib/ai-context-mode-schema";
+import {
+  buildE2vClipboardPackage,
+  encodeE2vDocument,
+  encodeE2vSingleView,
+  e2vExportFilename,
+  E2V_SCHEMA_FILENAME,
+  stringifyE2vSchema,
+} from "@/lib/e2v";
 import { type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
 import { JsonPasteDialog } from "@/components/json-paste-dialog";
@@ -205,7 +213,7 @@ export function StormBoard() {
   } | null>(null);
   const [unsavedBusy, setUnsavedBusy] = useState(false);
   const [jsonPasteMode, setJsonPasteMode] = useState<
-    "board" | "ai-view" | "diagram" | "json-view" | null
+    "board" | "ai-view" | "e2v-view" | "diagram" | "json-view" | null
   >(null);
   const [jsonPasteInitial, setJsonPasteInitial] = useState("");
   const [shareLinkOpen, setShareLinkOpen] = useState(false);
@@ -414,6 +422,51 @@ export function StormBoard() {
     },
     [t],
   );
+
+  const downloadE2vDocument = useCallback(() => {
+    const payload = boardImportPayloadFromStore();
+    const text = encodeE2vDocument(payload, { scope: "document" });
+    const slug =
+      title
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "board";
+    downloadTextFile(`${slug}.e2v.txt`, text, "text/plain");
+  }, [title]);
+
+  const downloadViewE2v = useCallback((viewId: string) => {
+    const payload = boardImportPayloadFromStore();
+    const text = encodeE2vSingleView(payload, viewId);
+    const view = payload.views.find((v) => v.id === viewId);
+    if (!text || !view) {
+      window.alert(t("alerts.viewExportFailed"));
+      return;
+    }
+    downloadTextFile(e2vExportFilename(payload.title, view.name), text, "text/plain");
+  }, [t]);
+
+  const copyE2vPackageToClipboard = useCallback(
+    async (viewId: string): Promise<boolean> => {
+      const pack = buildE2vClipboardPackage(boardImportPayloadFromStore(), viewId);
+      if (!pack) {
+        window.alert(t("alerts.viewExportFailed"));
+        return false;
+      }
+      try {
+        await navigator.clipboard.writeText(pack);
+        return true;
+      } catch {
+        window.alert(t("alerts.aiContextClipboardFailed"));
+        return false;
+      }
+    },
+    [t],
+  );
+
+  const downloadE2vSchema = useCallback(() => {
+    downloadTextFile(E2V_SCHEMA_FILENAME, stringifyE2vSchema(), "application/schema+json");
+  }, []);
 
   const downloadJsonSchema = useCallback(() => {
     const json = stringifyBoardSnapshotSchema();
@@ -1091,6 +1144,12 @@ export function StormBoard() {
     setJsonPasteMode("ai-view");
   };
 
+  const handlePasteE2vAsNewView = () => {
+    if (collabBlocksPasteAsNewView("E2V")) return;
+    setJsonPasteInitial("");
+    setJsonPasteMode("e2v-view");
+  };
+
   const handlePasteDiagramAsNewView = () => {
     if (collabBlocksPasteAsNewView("Diagramm")) return;
     setJsonPasteInitial("");
@@ -1305,6 +1364,11 @@ export function StormBoard() {
         onCopyViewJsonToClipboard={copyViewJsonToClipboard}
         onCopyAiPackageToClipboard={copyAiPackageToClipboard}
         onPasteAiContextAsNewView={handlePasteAiContextAsNewView}
+        onExportE2vDocument={downloadE2vDocument}
+        onExportViewE2v={downloadViewE2v}
+        onCopyE2vPackageToClipboard={copyE2vPackageToClipboard}
+        onExportE2vSchema={downloadE2vSchema}
+        onPasteE2vAsNewView={handlePasteE2vAsNewView}
         onExportViewMermaid={downloadViewMermaid}
         onCopyViewMermaidToClipboard={copyViewMermaidToClipboard}
         onExportViewPlantUml={downloadViewPlantUml}
@@ -1427,6 +1491,17 @@ export function StormBoard() {
         title={t("dialogs.jsonPasteAiTitle")}
         description={t("dialogs.jsonPasteAiBody")}
         placeholder='{ "format": "event-storming-tool-ai-context", "version": 1, … }'
+        confirmLabel={t("dialogs.jsonPasteViewConfirm")}
+        busy={busy}
+        onClose={closeJsonPaste}
+        onConfirm={applyPastedAiOrViewJson}
+      />
+
+      <JsonPasteDialog
+        open={jsonPasteMode === "e2v-view"}
+        title={t("dialogs.jsonPasteE2vTitle")}
+        description={t("dialogs.jsonPasteE2vBody")}
+        placeholder={"# e2v/1\n@format event-storming-tool-e2v\n…"}
         confirmLabel={t("dialogs.jsonPasteViewConfirm")}
         busy={busy}
         onClose={closeJsonPaste}

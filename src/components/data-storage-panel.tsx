@@ -102,6 +102,12 @@ export interface DataStoragePanelProps {
   onCopyViewPlantUmlToClipboard: (viewId: string) => boolean | Promise<boolean>;
   onPasteDiagramAsNewView: () => void;
   onExportJsonSchema: () => void;
+  /** Full board as compact E2V text file. */
+  onExportE2vDocument?: () => void;
+  onExportViewE2v?: (viewId: string) => void;
+  onCopyE2vPackageToClipboard?: (viewId: string) => boolean | Promise<boolean>;
+  onExportE2vSchema?: () => void;
+  onPasteE2vAsNewView?: () => void;
   onExportSvg: () => void;
   onExportPng: () => void;
   onExportPdf: () => void;
@@ -341,6 +347,11 @@ export function DataStoragePanel({
   onCopyViewPlantUmlToClipboard,
   onPasteDiagramAsNewView,
   onExportJsonSchema,
+  onExportE2vDocument,
+  onExportViewE2v,
+  onCopyE2vPackageToClipboard,
+  onExportE2vSchema,
+  onPasteE2vAsNewView,
   onExportSvg,
   onExportPng,
   onExportPdf,
@@ -381,6 +392,7 @@ export function DataStoragePanel({
   const [drawioCopied, setDrawioCopied] = useState(false);
   const [viewJsonCopied, setViewJsonCopied] = useState(false);
   const [aiPackageCopied, setAiPackageCopied] = useState(false);
+  const [e2vPackageCopied, setE2vPackageCopied] = useState(false);
   const [mermaidCopied, setMermaidCopied] = useState(false);
   const [plantUmlCopied, setPlantUmlCopied] = useState(false);
   const [exportViewId, setExportViewId] = useState<string | null>(null);
@@ -1004,6 +1016,22 @@ export function DataStoragePanel({
                   label="Schema"
                   detail="JSON Schema"
                 />
+                {onExportE2vDocument ? (
+                  <ExportTile
+                    onClick={onExportE2vDocument}
+                    disabled={busy}
+                    label="E2V"
+                    detail={t("exportPanel.e2vBoardDownloadDetail")}
+                  />
+                ) : null}
+                {onExportE2vSchema ? (
+                  <ExportTile
+                    onClick={onExportE2vSchema}
+                    disabled={busy}
+                    label={t("exportPanel.e2vSchema")}
+                    detail={t("exportPanel.e2vSchemaDetail")}
+                  />
+                ) : null}
               </ExportGroup>
 
               <ExportGroup title={t("exportPanel.groupActiveView")} hint={t("exportPanel.groupActiveViewHint")}>
@@ -1133,6 +1161,42 @@ export function DataStoragePanel({
                     icon={ClipboardPaste}
                     emphasize
                   />
+                  {onExportViewE2v ? (
+                    <ExportTile
+                      onClick={() => onExportViewE2v(selectedExportViewId)}
+                      disabled={busy || !selectedExportViewId}
+                      label="E2V"
+                      detail={t("exportPanel.e2vViewDownloadDetail")}
+                    />
+                  ) : null}
+                  {onCopyE2vPackageToClipboard ? (
+                    <ExportTile
+                      onClick={() => {
+                        void Promise.resolve(
+                          onCopyE2vPackageToClipboard(selectedExportViewId),
+                        ).then((ok) => {
+                          if (!ok) return;
+                          setE2vPackageCopied(true);
+                          window.setTimeout(() => setE2vPackageCopied(false), 2000);
+                        });
+                      }}
+                      disabled={busy || !selectedExportViewId}
+                      label={e2vPackageCopied ? t("common.copied") : t("exportPanel.e2vView")}
+                      detail={t("exportPanel.e2vViewDetail")}
+                      icon={ClipboardCopy}
+                      emphasize={e2vPackageCopied}
+                    />
+                  ) : null}
+                  {onPasteE2vAsNewView ? (
+                    <ExportTile
+                      onClick={onPasteE2vAsNewView}
+                      disabled={busy}
+                      label={t("exportPanel.pasteE2v")}
+                      detail={t("exportPanel.pasteE2vDetail")}
+                      icon={ClipboardPaste}
+                      emphasize
+                    />
+                  ) : null}
                 </div>
               </div>
 

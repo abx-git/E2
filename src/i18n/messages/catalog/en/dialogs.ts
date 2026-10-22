@@ -98,6 +98,9 @@ export const dialogsEn = {
     jsonPasteAiTitle: "Paste AI context",
     jsonPasteAiBody:
       "Add reduced AI JSON (or .storm.json) as a new view. Existing views are kept; elements are auto-arranged.",
+    jsonPasteE2vTitle: "Paste E2V",
+    jsonPasteE2vBody:
+      "Add compact E2V (# e2v/1) or an E2V package from the clipboard as a new view. Layout (x/y, sizes, connectors) is preserved.",
     jsonPasteDiagramTitle: "Paste diagram",
     jsonPasteDiagramBody:
       "Import Mermaid or PlantUML text as a new view. Elements are auto-arranged.",
