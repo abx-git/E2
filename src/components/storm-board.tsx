@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { BetaRibbon } from "@/components/beta-ribbon";
 import { BoardAppBar } from "@/components/board-app-bar";
@@ -116,13 +116,7 @@ import { buildAiClipboardPackage } from "@/lib/ai-context-mode-schema";
 import { type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { HelpDialog } from "@/components/help-dialog";
 import { JsonPasteDialog } from "@/components/json-paste-dialog";
-import {
-  getElementHelp,
-  getPhaseHelp,
-  getRelationHelp,
-  getContextMapHelp,
-  type HelpDialogModel,
-} from "@/lib/storm-help";
+import { resolveHelpRequest, type HelpRequest } from "@/lib/storm-help";
 import {
   loadForeignBoardIntoEditor,
   downloadWorkingFileSafetyCopy,
@@ -158,10 +152,11 @@ import {
   UnsavedChangesDialog,
   type UnsavedChangesChoice,
 } from "@/components/unsaved-changes-dialog";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
 
 export function StormBoard() {
   const t = useT();
+  const locale = useLocale();
   const [storageOpen, setStorageOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [newFileOpen, setNewFileOpen] = useState(false);
@@ -184,7 +179,11 @@ export function StormBoard() {
   }, []);
 
   const [helpOpen, setHelpOpen] = useState(false);
-  const [helpModel, setHelpModel] = useState<HelpDialogModel | null>(null);
+  const [helpRequest, setHelpRequest] = useState<HelpRequest | null>(null);
+  const helpModel = useMemo(
+    () => (helpRequest ? resolveHelpRequest(helpRequest, locale) : null),
+    [helpRequest, locale],
+  );
   const [collabOpen, setCollabOpen] = useState(false);
   const [pendingRoomCode, setPendingRoomCode] = useState<string | null>(null);
   const [urlJoinConfirm, setUrlJoinConfirm] = useState(false);
@@ -218,16 +217,17 @@ export function StormBoard() {
   const syncConflict = useCollabStore((s) => s.syncConflict);
   const resolveSyncConflict = useCollabStore((s) => s.resolveSyncConflict);
 
-  const openHelp = (model: HelpDialogModel) => {
-    setHelpModel(model);
+  const openHelpRequest = (request: HelpRequest) => {
+    setHelpRequest(request);
     setHelpOpen(true);
   };
 
-  const openElementHelp = (type: ElementType) => openHelp(getElementHelp(type));
-  const openRelationHelp = (type: RelationType) => openHelp(getRelationHelp(type));
-  const openContextMapHelp = (type: ContextMapPattern) => openHelp(getContextMapHelp(type));
+  const openElementHelp = (type: ElementType) => openHelpRequest({ kind: "element", type });
+  const openRelationHelp = (type: RelationType) => openHelpRequest({ kind: "relation", type });
+  const openContextMapHelp = (type: ContextMapPattern) =>
+    openHelpRequest({ kind: "contextMap", type });
   const openPhaseHelp = (phase: FacilitatorPhase, format: WorkshopFormat) =>
-    openHelp(getPhaseHelp(format, phase));
+    openHelpRequest({ kind: "phase", format, phase });
 
   const title = useStormBoardStore((s) => s.title);
   const appearance = useStormBoardStore((s) => s.appearance);
@@ -1550,7 +1550,14 @@ export function StormBoard() {
         }}
       />
 
-      <HelpDialog open={helpOpen} model={helpModel} onClose={() => setHelpOpen(false)} />
+      <HelpDialog
+        open={helpOpen}
+        model={helpModel}
+        onClose={() => {
+          setHelpOpen(false);
+          setHelpRequest(null);
+        }}
+      />
     </div>
   );
 }

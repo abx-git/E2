@@ -56,6 +56,8 @@ import {
   progressMarkLongLabel,
   progressMarkShortLabel,
   relationTypeLabel,
+  elementTypeLabel,
+  elementTypeShortLabel,
   useT,
 } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -198,9 +200,10 @@ export function CanvasContextMenu({
     const el = elements.find((e) => e.id === target.id);
     if (!el) return null;
     const style = styleForElementType(el.type);
+    const typeLabel = elementTypeLabel(t, el.type);
     body = (
       <>
-        <Header title={el.label || style.label} subtitle={style.label} />
+        <Header title={el.label || typeLabel} subtitle={typeLabel} />
         {supportsArchDrilldown(el.type) && (
           <>
             <Item
@@ -1157,7 +1160,9 @@ export function CanvasContextMenu({
       <>
         <Header title={t("contextMenu.canvas")} subtitle={t("contextMenu.quickActions")} />
         <Item
-          label={`Element hinzufügen (${ELEMENT_STYLES[paletteType].shortLabel})`}
+          label={t("contextMenu.addElement", {
+            type: elementTypeShortLabel(t, paletteType),
+          })}
           onClick={() =>
             run(() => addElement(paletteType, target.worldX, target.worldY))
           }
@@ -1165,7 +1170,7 @@ export function CanvasContextMenu({
         {clipboard && !isClipboardEmpty(clipboard) && (
           <Item
             icon={ClipboardPaste}
-            label={`Zwischenablage einfügen (${clipboardItemCount(clipboard)})`}
+            label={t("contextMenu.pasteClipboard", { count: clipboardItemCount(clipboard) })}
             onClick={() => run(() => pasteClipboardAt(target.worldX, target.worldY))}
           />
         )}

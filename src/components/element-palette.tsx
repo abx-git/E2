@@ -22,7 +22,7 @@ import { BoardDockHideButton } from "@/components/board-dock-toggle";
 import { isPointerOverStormCanvas } from "@/lib/board-clipboard";
 import { screenToWorld, snapToGrid, snapToTimeline } from "@/lib/canvas-viewport";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { modelingModeLabel, useT } from "@/i18n";
+import { elementTypeLabel, modelingModeLabel, useT } from "@/i18n";
 
 const DRAG_THRESHOLD_PX = 5;
 
@@ -418,6 +418,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
 
   const renderTypeRow = (type: ElementType, compact = false) => {
     const style = ELEMENT_STYLES[type];
+    const typeLabel = elementTypeLabel(t, type);
     const active = paletteType === type;
     return (
       <div key={type} className="flex items-center gap-1.5">
@@ -436,15 +437,15 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
             borderColor: style.stroke,
             color: style.ink,
           }}
-          title={`${style.label} — auf die Karte ziehen`}
+          title={t("panels.paletteDragHint", { mode: typeLabel })}
         >
-          {style.label}
+          {typeLabel}
         </button>
         <button
           type="button"
           className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
           title={t("panels.helpForElement")}
-          aria-label={t("panels.helpForType", { type: style.label })}
+          aria-label={t("panels.helpForType", { type: typeLabel })}
           onClick={(e) => {
             e.stopPropagation();
             onRequestHelp?.(type);

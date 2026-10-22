@@ -8,7 +8,7 @@ import { DescriptionMarkdownContent } from "@/components/description-markdown-co
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkDestinationPreview, linkHasTarget } from "@/lib/board-link";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
-import { ELEMENT_STYLES, cardTypeCaption, resolveElementStyle } from "@/lib/element-styles";
+import { ELEMENT_STYLES, resolveElementStyle } from "@/lib/element-styles";
 import {
   cardAttributeLines,
   cardMethodLines,
@@ -31,7 +31,7 @@ import { cssStackingZIndex } from "@/lib/element-z-order";
 import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
 import { hexToRgba } from "@/lib/region-style";
 import { HighlightedText } from "@/components/highlighted-text";
-import { useT } from "@/i18n";
+import { elementCardTypeCaption, elementTypeLabel, useT } from "@/i18n";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -116,7 +116,7 @@ export function StormElementCard({
   const isWhitebox = element.type === "archWhitebox";
   const isCloudBoundary = element.type === "cloudBoundary";
   const isBoundary = isAggregate || isSubdomain || isWhitebox || isCloudBoundary;
-  const typeCaption = cardTypeCaption(element, customCardTypes);
+  const typeCaption = elementCardTypeCaption(t, element, customCardTypes);
   const noteLike = isNoteLike(element.type);
   const linkReady = isLink && linkHasTarget(element);
   const linkKind = element.metadata?.linkKind ?? "external";
@@ -193,7 +193,7 @@ export function StormElementCard({
   const commitLabel = (value: string) => {
     if (!editingRef.current) return;
     editingRef.current = false;
-    const next = value.trim() || style.label;
+    const next = value.trim() || elementTypeLabel(t, element.type);
     setEditing(false);
     if (next !== element.label) {
       useStormBoardStore.getState().updateElement(element.id, { label: next });

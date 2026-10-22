@@ -7,7 +7,7 @@ import { ClipboardList, ClipboardPaste, Trash2 } from "lucide-react";
 import { CLIPBOARD_DROP_ATTR, clipboardItemCount, isPointerOverStormCanvas } from "@/lib/board-clipboard";
 import { styleForElementType } from "@/lib/element-styles";
 import { screenToWorld } from "@/lib/canvas-viewport";
-import { useT } from "@/i18n";
+import { elementTypeLabel, elementTypeShortLabel, useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
 
@@ -151,6 +151,7 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
           ))}
           {clipboard!.elements.map((el) => {
             const cardStyle = styleForElementType(el.type);
+            const shortLabel = elementTypeShortLabel(t, el.type);
             return (
               <li key={el.id}>
                 <button
@@ -160,10 +161,10 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
                     backgroundColor: cardStyle.fill,
                     color: cardStyle.ink,
                   }}
-                  title={t("panels.clipboardDragItem", { type: cardStyle.label })}
+                  title={t("panels.clipboardDragItem", { type: elementTypeLabel(t, el.type) })}
                   onPointerDown={(e) => beginItemDrag(el, e)}
                 >
-                  {el.label || cardStyle.shortLabel}
+                  {el.label || shortLabel}
                 </button>
               </li>
             );
@@ -208,7 +209,7 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
               opacity: ghost.overCanvas ? 1 : 0.55,
             }}
           >
-            {ghost.el.label || style.shortLabel}
+            {ghost.el.label || elementTypeShortLabel(t, ghost.el.type)}
           </div>,
           document.body,
         )}
