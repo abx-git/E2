@@ -179,9 +179,6 @@ function encodeViewBody(view: BoardView, out: string[]): void {
         bMap.alias(r.sourceContextId),
         bMap.alias(r.targetContextId),
         r.label ?? "",
-        r.labelMode ?? "",
-        r.strokeStyle ?? "",
-        r.progressMark ?? "",
       ]),
     );
   }

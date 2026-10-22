@@ -6,14 +6,42 @@ import {
   normalizeBoardView,
   normalizeStormElement,
 } from "@/lib/storm-json";
+import { DEFAULT_TIMELINE, DEFAULT_VIEWPORT } from "@/types/storm-element";
 import { generateStormId } from "@/lib/storm-id";
 import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
 import type { CanvasLine } from "@/types/canvas-annotation";
 import type { CustomCardType } from "@/lib/custom-card-types";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
-import type { StormElement, WorkshopFormat } from "@/types/storm-element";
-import type { ModelingMode } from "@/types/storm-element";
-import type { GlossaryEntry } from "@/types/storm-element";
+import type {
+  GlossaryEntry,
+  ModelingMode,
+  StormElement,
+  Timeline,
+  Viewport,
+  WorkshopFormat,
+} from "@/types/storm-element";
+
+/** Mutable parse buffer for one `@view` … `@endview` block. */
+interface E2vViewDraft {
+  id: string;
+  name: string;
+  modelingMode: ModelingMode;
+  workshopFormat: WorkshopFormat;
+  facilitatorEnabled: boolean;
+  facilitatorPhase: number;
+  elements: StormElement[];
+  swimlanes: BoardView["swimlanes"];
+  boundedContexts: BoardView["boundedContexts"];
+  relations: StormRelation[];
+  contextRelations: ContextRelation[];
+  connectors: BoardConnector[];
+  canvasLines: CanvasLine[];
+  customCardTypes: CustomCardType[];
+  timeline: Timeline;
+  viewport: Viewport;
+  snapToTimeline: boolean;
+  snapToGrid: boolean;
+}
 
 import { E2V_FORMAT, E2V_MAGIC } from "@/lib/e2v/constants";
 import { parseCell, splitRow } from "@/lib/e2v/text";
@@ -79,17 +107,17 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
   const views: BoardView[] = [];
 
   const globalIdMap = new Map<string, string>();
-  let viewDraft: Partial<BoardView> | null = null;
+  const parseState = { viewDraft: null as E2vViewDraft | null };
   let viewIdMap = new Map<string, string>();
   const descPending = new Map<string, string>();
   const metaPending = new Map<string, Record<string, unknown>>();
 
   const flushView = () => {
-    if (!viewDraft) return;
+    if (!parseState.viewDraft) return;
     const idRemap = new Map<string, string>();
     const resolve = (alias: string) => mapId(alias, viewIdMap, idRemap);
 
-    const elements = (viewDraft.elements ?? []).map((el) => {
+    const elements = (parseState.viewDraft.elements ?? []).map((el) => {
       const raw = el as StormElement;
       const id = resolve(raw.id);
       const next: StormElement = {
@@ -108,31 +136,31 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
       return normalizeStormElement(next);
     });
 
-    const swimlanes = (viewDraft.swimlanes ?? []).map((s) => ({
+    const swimlanes = (parseState.viewDraft.swimlanes ?? []).map((s) => ({
       ...s,
       id: resolve(s.id),
     }));
-    const boundedContexts = (viewDraft.boundedContexts ?? []).map((b) => ({
+    const boundedContexts = (parseState.viewDraft.boundedContexts ?? []).map((b) => ({
       ...b,
       id: resolve(b.id),
       detailViewId: b.detailViewId || undefined,
     }));
 
-    const relations = (viewDraft.relations ?? []).map((r) => ({
+    const relations = (parseState.viewDraft.relations ?? []).map((r) => ({
       ...r,
       id: resolve(r.id),
       sourceId: resolve(r.sourceId),
       targetId: resolve(r.targetId),
     })) as StormRelation[];
 
-    const contextRelations = (viewDraft.contextRelations ?? []).map((r) => ({
+    const contextRelations = (parseState.viewDraft.contextRelations ?? []).map((r) => ({
       ...r,
       id: resolve(r.id),
       sourceContextId: resolve(r.sourceContextId),
       targetContextId: resolve(r.targetContextId),
     })) as ContextRelation[];
 
-    const connectors = (viewDraft.connectors ?? []).map((c) => {
+    const connectors = (parseState.viewDraft.connectors ?? []).map((c) => {
       const remapEp = (ep: ConnectorEndpoint): ConnectorEndpoint => {
         if (ep.attach === "element") return { attach: "element", id: resolve(ep.id) };
         if (ep.attach === "swimlane") return { attach: "swimlane", id: resolve(ep.id) };
@@ -147,22 +175,25 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
       } as BoardConnector;
     });
 
-    const canvasLines = (viewDraft.canvasLines ?? []).map((ln) => ({
+    const canvasLines = (parseState.viewDraft.canvasLines ?? []).map((ln) => ({
       ...ln,
       id: resolve(ln.id),
     })) as CanvasLine[];
 
-    const customCardTypes = (viewDraft.customCardTypes ?? []).map((ct) => ({
+    const customCardTypes = (parseState.viewDraft.customCardTypes ?? []).map((ct) => ({
       ...ct,
       id: resolve(ct.id),
     })) as CustomCardType[];
 
-    const viewId = viewDraft.id?.trim() ? resolve(viewDraft.id) : generateStormId();
+    const viewId = parseState.viewDraft.id?.trim() ? resolve(parseState.viewDraft.id) : generateStormId();
     views.push(
       normalizeBoardView({
-        ...viewDraft,
         id: viewId,
-        name: viewDraft.name ?? "Board",
+        name: parseState.viewDraft.name,
+        modelingMode: parseState.viewDraft.modelingMode,
+        workshopFormat: parseState.viewDraft.workshopFormat,
+        facilitatorEnabled: parseState.viewDraft.facilitatorEnabled,
+        facilitatorPhase: parseState.viewDraft.facilitatorPhase,
         elements,
         swimlanes,
         boundedContexts,
@@ -171,9 +202,13 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         connectors,
         canvasLines,
         customCardTypes,
+        timeline: parseState.viewDraft.timeline,
+        viewport: parseState.viewDraft.viewport,
+        snapToTimeline: parseState.viewDraft.snapToTimeline,
+        snapToGrid: parseState.viewDraft.snapToGrid,
       }),
     );
-    viewDraft = null;
+    parseState.viewDraft = null;
     viewIdMap = new Map(globalIdMap);
     descPending.clear();
     metaPending.clear();
@@ -181,7 +216,7 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
 
   const startView = (cols: string[]) => {
     flushView();
-    viewDraft = {
+    parseState.viewDraft = {
       id: cols[1] ?? generateStormId(),
       name: parseCell(cols[2] ?? "Board"),
       modelingMode: (cols[3] ?? "eventStorming") as ModelingMode,
@@ -196,8 +231,8 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
       connectors: [],
       canvasLines: [],
       customCardTypes: [],
-      timeline: { startLabel: "", endLabel: "", visible: true },
-      viewport: { x: 0, y: 0, zoom: 1 },
+      timeline: { ...DEFAULT_TIMELINE },
+      viewport: { ...DEFAULT_VIEWPORT },
       snapToTimeline: true,
       snapToGrid: false,
     };
@@ -228,25 +263,27 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         viewIdMap.set(cols[1], cols[2]);
       }
       if (tag === "view") startView(cols);
-      if (tag === "v" && viewDraft) {
-        viewDraft.viewport = {
+      if (tag === "v" && parseState.viewDraft) {
+        parseState.viewDraft.viewport = {
           x: num(cols[1] ?? "") ?? 0,
           y: num(cols[2] ?? "") ?? 0,
           zoom: num(cols[3] ?? "") ?? 1,
         };
       }
-      if (tag === "t" && viewDraft) {
-        viewDraft.timeline = {
+      if (tag === "t" && parseState.viewDraft) {
+        parseState.viewDraft.timeline = {
+          ...DEFAULT_TIMELINE,
+          ...parseState.viewDraft.timeline,
           startLabel: parseCell(cols[1] ?? ""),
           endLabel: parseCell(cols[2] ?? ""),
           visible: cols[3] !== "0",
         };
       }
-      if (tag === "snap" && viewDraft) {
-        viewDraft.snapToTimeline = cols[1] !== "0";
-        viewDraft.snapToGrid = cols[2] === "1";
+      if (tag === "snap" && parseState.viewDraft) {
+        parseState.viewDraft.snapToTimeline = cols[1] !== "0";
+        parseState.viewDraft.snapToGrid = cols[2] === "1";
       }
-      if (tag === "ct" && viewDraft) {
+      if (tag === "ct" && parseState.viewDraft) {
         const ct: CustomCardType = {
           id: cols[1] ?? generateStormId(),
           name: parseCell(cols[2] ?? "Type"),
@@ -254,7 +291,7 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
           stroke: cols[4] ?? "#94a3b8",
           ink: cols[5] ?? "#0f172a",
         };
-        viewDraft.customCardTypes = [...(viewDraft.customCardTypes ?? []), ct];
+        parseState.viewDraft.customCardTypes = [...(parseState.viewDraft.customCardTypes ?? []), ct];
       }
       if (tag === "desc" && cols[1]) {
         descPending.set(cols[1], parseCell(cols.slice(2).join("\t")));
@@ -289,11 +326,11 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
       continue;
     }
 
-    if (!viewDraft) continue;
+    if (!parseState.viewDraft) continue;
 
     if (kind === "s") {
-      viewDraft.swimlanes = [
-        ...(viewDraft.swimlanes ?? []),
+      parseState.viewDraft.swimlanes = [
+        ...(parseState.viewDraft.swimlanes ?? []),
         {
           id: cols[1] ?? generateStormId(),
           label: parseCell(cols[2] ?? ""),
@@ -309,8 +346,8 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         },
       ];
     } else if (kind === "b") {
-      viewDraft.boundedContexts = [
-        ...(viewDraft.boundedContexts ?? []),
+      parseState.viewDraft.boundedContexts = [
+        ...(parseState.viewDraft.boundedContexts ?? []),
         {
           id: cols[1] ?? generateStormId(),
           label: parseCell(cols[2] ?? ""),
@@ -328,8 +365,8 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         },
       ];
     } else if (kind === "e") {
-      viewDraft.elements = [
-        ...(viewDraft.elements ?? []),
+      parseState.viewDraft.elements = [
+        ...(parseState.viewDraft.elements ?? []),
         {
           id: cols[1] ?? generateStormId(),
           type: cols[2] as StormElement["type"],
@@ -348,8 +385,8 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         },
       ];
     } else if (kind === "r") {
-      viewDraft.relations = [
-        ...(viewDraft.relations ?? []),
+      parseState.viewDraft.relations = [
+        ...(parseState.viewDraft.relations ?? []),
         {
           id: cols[1] ?? generateStormId(),
           type: cols[2] as StormRelation["type"],
@@ -362,22 +399,19 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         },
       ];
     } else if (kind === "cr") {
-      viewDraft.contextRelations = [
-        ...(viewDraft.contextRelations ?? []),
+      parseState.viewDraft.contextRelations = [
+        ...(parseState.viewDraft.contextRelations ?? []),
         {
           id: cols[1] ?? generateStormId(),
           type: cols[2] as ContextRelation["type"],
           sourceContextId: cols[3] ?? "",
           targetContextId: cols[4] ?? "",
           label: parseCell(cols[5] ?? "") || undefined,
-          labelMode: (cols[6] as ContextRelation["labelMode"]) || undefined,
-          strokeStyle: (cols[7] as ContextRelation["strokeStyle"]) || undefined,
-          progressMark: (cols[8] as ContextRelation["progressMark"]) || undefined,
         },
       ];
     } else if (kind === "cn") {
-      viewDraft.connectors = [
-        ...(viewDraft.connectors ?? []),
+      parseState.viewDraft.connectors = [
+        ...(parseState.viewDraft.connectors ?? []),
         {
           id: cols[1] ?? generateStormId(),
           source: parseEndpoint(cols[2] ?? "", viewIdMap),
@@ -393,8 +427,8 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         },
       ];
     } else if (kind === "ln") {
-      viewDraft.canvasLines = [
-        ...(viewDraft.canvasLines ?? []),
+      parseState.viewDraft.canvasLines = [
+        ...(parseState.viewDraft.canvasLines ?? []),
         {
           id: cols[1] ?? generateStormId(),
           x1: num(cols[2] ?? "") ?? 0,
