@@ -169,6 +169,8 @@ export interface StormBoardState {
   focusMode: boolean;
   /** Ephemeral canvas text search (not persisted / not undo). */
   searchQuery: string;
+  /** When true, non-selected elements are faded on the canvas (like search). */
+  selectionFilterEnabled: boolean;
   relationMode: boolean;
   relationDraftSourceId: string | null;
   contextMapMode: boolean;
@@ -208,6 +210,7 @@ export interface StormBoardState {
   setPaletteCustomTypeId: (id: string | null) => void;
   setFocusMode: (enabled: boolean) => void;
   setSearchQuery: (query: string) => void;
+  setSelectionFilterEnabled: (enabled: boolean) => void;
   setClipboardDropHighlight: (active: boolean) => void;
   /** Cut selection into the board clipboard (removes from canvas). */
   moveToClipboard: (selection: ClipboardSelection | string[]) => boolean;
@@ -585,6 +588,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   paletteCustomTypeId: null,
   focusMode: false,
   searchQuery: "",
+  selectionFilterEnabled: false,
   relationMode: false,
   relationDraftSourceId: null,
   contextMapMode: false,
@@ -738,6 +742,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   setPaletteCustomTypeId: (paletteCustomTypeId) => set({ paletteCustomTypeId }),
   setFocusMode: (focusMode) => set({ focusMode }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
+  setSelectionFilterEnabled: (selectionFilterEnabled) => set({ selectionFilterEnabled }),
   setClipboardDropHighlight: (clipboardDropHighlight) => set({ clipboardDropHighlight }),
 
   moveToClipboard: (selection) => {

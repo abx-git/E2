@@ -26,6 +26,7 @@ import {
   type ConnectorAttachTarget,
 } from "@/lib/connector-target-pick";
 import { connectorHitStrokeWidth } from "@/lib/connector-style";
+import { connectorDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { ProgressMarkConnectorBadge } from "@/components/progress-mark-badge";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -69,6 +70,8 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
+  const selectionFilterEnabled = useStormBoardStore((s) => s.selectionFilterEnabled);
+  const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const viewport = useStormBoardStore((s) => s.viewport);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
@@ -300,7 +303,12 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
           const dimForSearch =
             searchHitIds !== null &&
             !elements.some((el) => searchHitIds.has(el.id) && elementInvolved(conn, el.id));
-          const dimmed = dimForFocus || dimForSearch;
+          const dimForSelection = connectorDimmedBySelectionFilter(
+            (elementId) => elementInvolved(conn, elementId),
+            selectionFilterEnabled,
+            selectedElementIds,
+          );
+          const dimmed = dimForFocus || dimForSearch || dimForSelection;
           const mark = conn.progressMark;
           const strokeColor = draggingThis && !dragSnapActive ? "#e9c46a" : stroke;
           const selectThis = (e: ReactPointerEvent | ReactMouseEvent) => {

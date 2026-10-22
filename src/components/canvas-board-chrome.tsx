@@ -11,6 +11,7 @@ import {
   MousePointer2,
   MoreHorizontal,
   Search,
+  ListFilter,
   SquareDashed,
   X,
   ZoomIn,
@@ -330,6 +331,9 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
   const setSearchQuery = useStormBoardStore((s) => s.setSearchQuery);
+  const selectionFilterEnabled = useStormBoardStore((s) => s.selectionFilterEnabled);
+  const setSelectionFilterEnabled = useStormBoardStore((s) => s.setSelectionFilterEnabled);
+  const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const elements = useStormBoardStore((s) => s.elements);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
@@ -384,8 +388,9 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
     setViewport(viewportFitContent(bounds, rect.width, rect.height));
   };
 
-  const viewHighlighted = viewOpen || snapToGrid || focusMode;
+  const viewHighlighted = viewOpen || snapToGrid || focusMode || selectionFilterEnabled;
   const searchActive = Boolean(normalizeSearchQuery(searchQuery));
+  const selectionFilterActive = selectionFilterEnabled && selectedElementIds.length > 0;
   const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
   const hitCount = searchActive
     ? elements.filter((el) => matchElementSearch(el, searchQuery, { viewNameById }).match).length
@@ -455,6 +460,31 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
             </button>
           ) : null}
         </label>
+        <button
+          type="button"
+          title={
+            selectedElementIds.length === 0
+              ? t("chrome.filterSelectionNeedSelection")
+              : t("chrome.filterSelection")
+          }
+          aria-label={t("chrome.filterSelection")}
+          aria-pressed={selectionFilterEnabled}
+          disabled={selectedElementIds.length === 0}
+          onClick={() => setSelectionFilterEnabled(!selectionFilterEnabled)}
+          className={[
+            "dock-surface flex h-8 shrink-0 items-center gap-1 rounded-xl px-2 shadow-dock transition disabled:opacity-45",
+            selectionFilterEnabled && selectionFilterActive
+              ? "dock-control-active ring-1 ring-[var(--accent)]/40"
+              : "hover:bg-[var(--control-hover)]",
+          ].join(" ")}
+        >
+          <ListFilter className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          {selectionFilterActive ? (
+            <span className="text-[0.65rem] font-medium tabular-nums text-[var(--text)]">
+              {selectedElementIds.length}
+            </span>
+          ) : null}
+        </button>
         <div className="relative shrink-0">
           <button
             ref={exportBtnRef}

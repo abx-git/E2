@@ -36,5 +36,8 @@ export const chromeEn = {
     connectToolHint:
       "Click objects · Shift+drag = line · select connector and drag endpoint to reattach",
     bcDrawHint: "Drag rectangle · Esc to finish",
+    filterSelection: "Highlight selection",
+    filterSelectionDimmed: "Not in current selection",
+    filterSelectionNeedSelection: "Select at least one element",
   },
 } as const;

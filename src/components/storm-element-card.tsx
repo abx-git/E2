@@ -20,6 +20,7 @@ import {
   cardWebLinkLabel,
   elementWebLinks,
 } from "@/lib/card-web-links";
+import { elementDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import {
   effectiveElementRotation,
@@ -133,6 +134,8 @@ export function StormElementCard({
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
+  const selectionFilterEnabled = useStormBoardStore((s) => s.selectionFilterEnabled);
+  const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const editingElementId = useStormBoardStore((s) => s.editingElementId);
   const views = useStormBoardStore((s) => s.views);
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
@@ -151,7 +154,12 @@ export function StormElementCard({
     : null;
   const dimForFocus = focusMode && element.type !== paletteType;
   const dimForSearch = searchActive && !searchHit?.match;
-  const dimmed = dimForFocus || dimForSearch;
+  const dimForSelection = elementDimmedBySelectionFilter(
+    element.id,
+    selectionFilterEnabled,
+    selectedElementIds,
+  );
+  const dimmed = dimForFocus || dimForSearch || dimForSelection;
   const searchEmphasize = Boolean(searchHit?.emphasizeCard);
   const showDetails = cardShowsDetails(element);
   const attrLines = element.metadata?.showAttributesOnCard
@@ -369,7 +377,9 @@ export function StormElementCard({
             elevated:
               !isBoundary && (selected || connecting || editing || searchEmphasize),
             highlighted:
-              (focusMode && !dimForFocus) || (searchActive && Boolean(searchHit?.match)),
+              (focusMode && !dimForFocus) ||
+              (searchActive && Boolean(searchHit?.match)) ||
+              (selectionFilterEnabled && selectedElementIds.length > 0 && selected),
           }),
         opacity: dimmed ? 0.28 : undefined,
         filter: dimmed ? "saturate(0.55) brightness(0.72)" : undefined,
@@ -593,7 +603,9 @@ export function StormElementCard({
           borderLeftWidth: isInstruction ? 4 : undefined,
         }}
         title={
-          dimForSearch
+          dimForSelection
+            ? t("chrome.filterSelectionDimmed")
+            : dimForSearch
             ? t("panels.noSearchHit")
             : dimForFocus
               ? t("panels.cardFocusDimmed", { type: ELEMENT_STYLES[paletteType].label })
