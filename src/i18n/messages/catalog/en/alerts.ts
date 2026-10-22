@@ -59,5 +59,6 @@ export const alertsEn = {
     openFileFailedOpenDialog:
       "Could not open file. Grant permission or choose the file again via Open…",
     pasteFileName: "Paste",
+    dropImportKind: "a file",
   },
 } as const;

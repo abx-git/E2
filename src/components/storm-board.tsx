@@ -179,6 +179,8 @@ export function StormBoard() {
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importViewsInputRef = useRef<HTMLInputElement>(null);
+  const canvasFileDragDepthRef = useRef(0);
+  const [canvasFileDragOver, setCanvasFileDragOver] = useState(false);
 
   useEffect(() => {
     setBackupIntervalMinutes(readBackupIntervalMinutes());
@@ -1090,12 +1092,9 @@ export function StormBoard() {
     return false;
   };
 
-  const applyImportedFileAsNewViews = (text: string): boolean => {
+  const importFileTextAsNewViews = (text: string): boolean => {
     const payload = boardImportPayloadFromAnyExportText(text);
-    if (!payload) {
-      window.alert(t("alerts.invalidImportFormat"));
-      return false;
-    }
+    if (!payload) return false;
     const result = useStormBoardStore.getState().importDocumentAsNewViews(payload);
     if (!result.ok) {
       window.alert(result.error);
@@ -1103,6 +1102,37 @@ export function StormBoard() {
     }
     setStorageOpen(false);
     return true;
+  };
+
+  const applyImportedFileAsNewViews = (text: string): boolean => {
+    if (!importFileTextAsNewViews(text)) {
+      window.alert(t("alerts.invalidImportFormat"));
+      return false;
+    }
+    return true;
+  };
+
+  const applyDroppedFilesAsNewViews = async (files: FileList | File[]): Promise<void> => {
+    if (collabBlocksPasteAsNewView(t("alerts.dropImportKind"))) return;
+    const list = Array.from(files);
+    if (!list.length) return;
+    setBusy(true);
+    let imported = 0;
+    try {
+      for (const file of list) {
+        try {
+          const text = await file.text();
+          if (importFileTextAsNewViews(text)) imported += 1;
+        } catch {
+          window.alert(t("alerts.fileReadFailed"));
+        }
+      }
+      if (imported === 0) {
+        window.alert(t("alerts.invalidImportFormat"));
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   const applyImportedJsonAsNewViews = (text: string): boolean => {
@@ -1223,12 +1253,51 @@ export function StormBoard() {
             />
           </div>
         ) : null}
-        <div className="dock-surface relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-dock">
+        <div
+          className="dock-surface relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-dock"
+          onDragEnter={(e) => {
+            if (!e.dataTransfer.types.includes("Files")) return;
+            e.preventDefault();
+            canvasFileDragDepthRef.current += 1;
+            setCanvasFileDragOver(true);
+          }}
+          onDragLeave={() => {
+            canvasFileDragDepthRef.current -= 1;
+            if (canvasFileDragDepthRef.current <= 0) {
+              canvasFileDragDepthRef.current = 0;
+              setCanvasFileDragOver(false);
+            }
+          }}
+          onDragOver={(e) => {
+            if (!e.dataTransfer.types.includes("Files")) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+          }}
+          onDrop={(e) => {
+            canvasFileDragDepthRef.current = 0;
+            setCanvasFileDragOver(false);
+            if (!e.dataTransfer.types.includes("Files")) return;
+            e.preventDefault();
+            const { files } = e.dataTransfer;
+            if (!files?.length) return;
+            void applyDroppedFilesAsNewViews(files);
+          }}
+        >
           {!elementsPanelOpen ? (
             <BoardDockReopenButton side="left" onOpen={() => setElementsPanelOpen(true)} />
           ) : null}
           {!propertiesPanelOpen ? (
             <BoardDockReopenButton side="right" onOpen={() => setPropertiesPanelOpen(true)} />
+          ) : null}
+          {canvasFileDragOver ? (
+            <div
+              className="pointer-events-none absolute inset-0 z-[70] flex items-center justify-center border-2 border-dashed border-[var(--accent-2)] bg-[var(--accent-2)]/10 px-6 text-center"
+              aria-hidden
+            >
+              <p className="max-w-md text-sm font-medium text-[var(--text)]">
+                {t("chrome.dropImportHint")}
+              </p>
+            </div>
           ) : null}
           <StormCanvas />
           <BoundedContextMobileActions onOpenDetails={() => setBcMobileSheetOpen(true)} />
@@ -1606,12 +1675,13 @@ export function StormBoard() {
       <input
         ref={importViewsInputRef}
         type="file"
-        accept=".json,.storm.json,application/json"
+        accept=".json,.storm.json,.txt,.md,.mmd,.mermaid,.puml,.plantuml,application/json,text/plain"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
           e.target.value = "";
           if (!file) return;
+          if (collabBlocksPasteAsNewView(t("alerts.dropImportKind"))) return;
           setBusy(true);
           void file
             .text()

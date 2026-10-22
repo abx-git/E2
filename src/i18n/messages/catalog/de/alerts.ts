@@ -64,5 +64,6 @@ export const alertsDe = {
     openFileFailedOpenDialog:
       "Datei konnte nicht geöffnet werden. Bitte Berechtigung erteilen oder die Datei erneut über „Öffnen…“ wählen.",
     pasteFileName: "Einfügen",
+    dropImportKind: "eine Datei",
   },
 } as const;

@@ -42,6 +42,8 @@ export const chromeDe = {
     connectToolHint:
       "Objekte anklicken · Shift+Ziehen = Linie · Verbinder wählen und Endpunkt ziehen = umhängen",
     bcDrawHint: "Rechteck ziehen · Esc beendet",
+    dropImportHint:
+      "Datei ablegen — als neue Sicht(en) importieren (E2, E2V, KI-Kontext, Mermaid, PlantUML)",
     filterSelection: "Auswahl hervorheben",
     filterSelectionDimmed: "Nicht in der aktuellen Auswahl",
     filterSelectionNeedSelection: "Mindestens ein Element auswählen",
