@@ -11,6 +11,7 @@ import { panelsDe } from "@/i18n/messages/catalog/de/panels";
 import { sideRailDe } from "@/i18n/messages/catalog/de/sideRail";
 import { collabDe } from "@/i18n/messages/catalog/de/collab";
 import { mobileDe } from "@/i18n/messages/catalog/de/mobile";
+import { detailSidebarDe } from "@/i18n/messages/catalog/de/detailSidebar";
 
 export const catalogDe = {
   ...coreDe,
@@ -26,4 +27,5 @@ export const catalogDe = {
   ...contextMenuDe,
   ...panelsDe,
   ...footerDe,
+  ...detailSidebarDe,
 };

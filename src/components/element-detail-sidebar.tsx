@@ -9,7 +9,12 @@ import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-p
 import { RegionAppearanceControls } from "@/components/region-appearance-controls";
 import { connectorArrowHeadGlyph } from "@/lib/connector-arrow-head";
 import { resolveElementStyle } from "@/lib/element-styles";
-import { cardShowsDetails, isOnCardFieldEnabled, onCardDisplayFieldsForType } from "@/lib/card-preview";
+import {
+  cardShowsDetails,
+  isOnCardFieldEnabled,
+  onCardDisplayFieldsForType,
+  type OnCardDisplayKey,
+} from "@/lib/card-preview";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { connectorToCanvasLine } from "@/lib/board-connector-migrate";
@@ -20,12 +25,11 @@ import { DescriptionMarkdownContent } from "@/components/description-markdown-co
 import { DescriptionEditorDialog } from "@/components/description-editor-dialog";
 import {
   CONNECTOR_STROKE_STYLES,
-  CONNECTOR_STROKE_STYLE_LABELS,
   isConnectorStrokeStyle,
   resolveRelationStrokeStyle,
   type ConnectorStrokeStyle,
 } from "@/lib/connector-style";
-import { RELATION_TYPE_LABELS, RELATION_TYPES, type RelationType } from "@/types/storm-relation";
+import { RELATION_TYPES, type RelationType } from "@/types/storm-relation";
 import type {
   CardWebLink,
   DataCardinality,
@@ -38,10 +42,37 @@ import type {
   SubdomainKind,
 } from "@/types/storm-element";
 import { isCloudElementType, supportsArchDrilldown } from "@/types/storm-element";
-import { CONNECTOR_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
+import { CONNECTOR_ARROW_HEADS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
+import {
+  connectorStrokeStyleLabel,
+  lineArrowHeadLabel,
+  relationTypeLabel,
+  useT,
+} from "@/i18n";
+import type { MessageKey } from "@/i18n/types";
+import type { TranslateFn } from "@/i18n/translate";
 
 const MIN_ELEMENT_SIZE = 40;
+
+const DATA_CARDINALITY_KEY: Record<DataCardinality, MessageKey> = {
+  "1:1": "detailSidebar.enums.dataCardinality.oneOne",
+  "1:n": "detailSidebar.enums.dataCardinality.oneMany",
+  "n:1": "detailSidebar.enums.dataCardinality.manyOne",
+  "n:m": "detailSidebar.enums.dataCardinality.manyMany",
+};
+
+function dataCardinalityLabel(t: TranslateFn, value: DataCardinality): string {
+  return t(DATA_CARDINALITY_KEY[value]);
+}
+
+function noteColorLabel(t: TranslateFn, id: NoteColorId): string {
+  return t(`detailSidebar.noteColors.${id}` as MessageKey);
+}
+
+function onCardFieldLabel(t: TranslateFn, key: OnCardDisplayKey): string {
+  return t(`detailSidebar.onCard.fields.${key}` as MessageKey);
+}
 
 function linesFromMeta(values: string[] | undefined): string {
   return (values ?? []).join("\n");
@@ -100,9 +131,11 @@ function LinesTextarea({
 function WebLinksEditor({
   links,
   onChange,
+  t,
 }: {
   links: CardWebLink[] | undefined;
   onChange: (links: CardWebLink[]) => void;
+  t: TranslateFn;
 }) {
   const rows = links && links.length > 0 ? links : [{ url: "" }];
   const commit = (next: CardWebLink[]) => onChange(normalizeCardWebLinks(next));
@@ -120,14 +153,14 @@ function WebLinksEditor({
             <input
               className="dock-field"
               type="url"
-              placeholder="https://…"
+              placeholder={t("detailSidebar.webLinks.urlPlaceholder")}
               value={link.url}
               onChange={(e) => patchRow(index, { url: e.target.value })}
               onBlur={() => commit(rows)}
             />
             <input
               className="dock-field"
-              placeholder="Titel (optional)"
+              placeholder={t("detailSidebar.webLinks.titlePlaceholder")}
               value={link.title ?? ""}
               onChange={(e) => patchRow(index, { title: e.target.value })}
               onBlur={() => commit(rows)}
@@ -136,7 +169,7 @@ function WebLinksEditor({
           <button
             type="button"
             className="mt-1 rounded-md p-1 text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)]"
-            aria-label="Link entfernen"
+            aria-label={t("detailSidebar.aria.removeLink")}
             onClick={() => commit(rows.filter((_, i) => i !== index))}
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -148,7 +181,7 @@ function WebLinksEditor({
         className="w-full rounded-md border border-dashed border-[var(--border)] px-2 py-1 text-[0.72rem] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--text)]"
         onClick={() => onChange([...rows, { url: "" }])}
       >
-        Link hinzufügen
+        {t("detailSidebar.webLinks.addLink")}
       </button>
     </div>
   );
@@ -164,6 +197,7 @@ export function ElementDetailSidebar({
   onRequestHelpElementType,
   onRequestHelpRelationType,
 }: ElementDetailSidebarProps) {
+  const t = useT();
   const elements = useStormBoardStore((s) => s.elements);
   const relations = useStormBoardStore((s) => s.relations);
   const canvasLines = useStormBoardStore((s) => s.canvasLines);
@@ -232,9 +266,9 @@ export function ElementDetailSidebar({
     const relationType =
       c.relationType ?? (srcEl && tgtEl ? defaultRelationType(srcEl, tgtEl) : undefined);
     return (
-      <DockPanel title="Verbinder">
+      <DockPanel title={t("detailSidebar.titles.connector")} t={t}>
         {relationType && (
-          <Field label="Art">
+          <Field label={t("detailSidebar.fields.kind")}>
             <select
               className="dock-field"
               value={relationType}
@@ -247,36 +281,37 @@ export function ElementDetailSidebar({
             >
               {RELATION_TYPES.map((type) => (
                 <option key={type} value={type}>
-                  {RELATION_TYPE_LABELS[type]}
+                  {relationTypeLabel(t, type)}
                 </option>
               ))}
             </select>
           </Field>
         )}
-        <Field label="Beschriftung">
+        <Field label={t("detailSidebar.fields.caption")}>
           <input
             className="dock-field"
             value={c.label ?? ""}
             onChange={(e) =>
               updateConnector(c.id, { label: e.target.value, labelMode: "custom" })
             }
-            placeholder="Optional"
+            placeholder={t("detailSidebar.optional")}
           />
         </Field>
-        <Field label="Linie">
+        <Field label={t("detailSidebar.fields.line")}>
           <StrokeStyleButtons
             value={strokeStyle}
+            t={t}
             onChange={(next) => updateConnector(c.id, { strokeStyle: next })}
           />
         </Field>
-        <Field label="Pfeil">
-          <div className="flex gap-1" role="group" aria-label="Pfeilrichtung">
+        <Field label={t("detailSidebar.fields.arrow")}>
+          <div className="flex gap-1" role="group" aria-label={t("detailSidebar.aria.arrowDirection")}>
             {CONNECTOR_ARROW_HEADS.map((head) => (
               <button
                 key={head}
                 type="button"
-                title={LINE_ARROW_HEAD_LABELS[head]}
-                aria-label={LINE_ARROW_HEAD_LABELS[head]}
+                title={lineArrowHeadLabel(t, head)}
+                aria-label={lineArrowHeadLabel(t, head)}
                 aria-pressed={arrowHead === head}
                 className={[
                   "flex h-8 flex-1 items-center justify-center rounded-md text-sm font-medium transition",
@@ -291,7 +326,7 @@ export function ElementDetailSidebar({
             ))}
           </div>
         </Field>
-        <Field label="Farbe">
+        <Field label={t("detailSidebar.fields.color")}>
           <input
             className="dock-field h-9 cursor-pointer p-1"
             type="color"
@@ -305,7 +340,7 @@ export function ElementDetailSidebar({
           onClick={() => deleteConnector(c.id)}
         >
           <Trash2 className="size-3.5" aria-hidden />
-          Löschen
+          {t("detailSidebar.delete")}
         </button>
       </DockPanel>
     );
@@ -313,17 +348,18 @@ export function ElementDetailSidebar({
 
   if (selectedRelation) {
     const strokeStyle = resolveRelationStrokeStyle(selectedRelation);
-    const typeCaption = RELATION_TYPE_LABELS[selectedRelation.type];
+    const typeCaption = relationTypeLabel(t, selectedRelation.type);
     const labelMode = selectedRelation.labelMode;
     const typeLabelSelected = labelMode === "type";
     const customLabelSelected =
       labelMode === "custom" || (!labelMode && Boolean(selectedRelation.label?.trim()));
     return (
       <DockPanel
-        title="Relation"
+        title={t("detailSidebar.titles.relation")}
+        t={t}
         onHelp={() => onRequestHelpRelationType?.(selectedRelation.type)}
       >
-        <Field label="Art">
+        <Field label={t("detailSidebar.fields.kind")}>
           <select
             className="dock-field"
             value={selectedRelation.type}
@@ -333,19 +369,20 @@ export function ElementDetailSidebar({
           >
             {RELATION_TYPES.map((type) => (
               <option key={type} value={type}>
-                {RELATION_TYPE_LABELS[type]}
+                {relationTypeLabel(t, type)}
               </option>
             ))}
           </select>
         </Field>
-        <Field label="Linie">
+        <Field label={t("detailSidebar.fields.line")}>
           <StrokeStyleButtons
             value={strokeStyle}
+            t={t}
             onChange={(next) => updateRelation(selectedRelation.id, { strokeStyle: next })}
           />
         </Field>
-        <Field label="Pfeil">
-          <div className="flex gap-1" role="group" aria-label="Pfeilrichtung">
+        <Field label={t("detailSidebar.fields.arrow")}>
+          <div className="flex gap-1" role="group" aria-label={t("detailSidebar.aria.arrowDirection")}>
             {CONNECTOR_ARROW_HEADS.map((head) => {
               const conn = connectors.find((x) => x.id === selectedRelation.id);
               const active = (conn?.arrowHead ?? "end") === head;
@@ -353,8 +390,8 @@ export function ElementDetailSidebar({
                 <button
                   key={head}
                   type="button"
-                  title={LINE_ARROW_HEAD_LABELS[head]}
-                  aria-label={LINE_ARROW_HEAD_LABELS[head]}
+                  title={lineArrowHeadLabel(t, head)}
+                  aria-label={lineArrowHeadLabel(t, head)}
                   aria-pressed={active}
                   className={[
                     "flex h-8 flex-1 items-center justify-center rounded-md text-sm font-medium transition",
@@ -370,8 +407,8 @@ export function ElementDetailSidebar({
             })}
           </div>
         </Field>
-        <Field label="Beschriftung">
-          <div className="flex gap-1" role="group" aria-label="Beschriftung">
+        <Field label={t("detailSidebar.fields.caption")}>
+          <div className="flex gap-1" role="group" aria-label={t("detailSidebar.aria.captionMode")}>
             <button
               type="button"
               aria-pressed={typeLabelSelected}
@@ -383,7 +420,7 @@ export function ElementDetailSidebar({
               ].join(" ")}
               onClick={() => updateRelation(selectedRelation.id, { labelMode: "type" })}
             >
-              Art
+              {t("detailSidebar.captionMode.kind")}
             </button>
             <button
               type="button"
@@ -396,14 +433,16 @@ export function ElementDetailSidebar({
               ].join(" ")}
               onClick={() => updateRelation(selectedRelation.id, { labelMode: "custom" })}
             >
-              Freier Text
+              {t("detailSidebar.captionMode.freeText")}
             </button>
           </div>
         </Field>
         {typeLabelSelected ? (
-          <p className="text-[0.72rem] text-[var(--muted)]">Am Verbinder: {typeCaption}</p>
+          <p className="text-[0.72rem] text-[var(--muted)]">
+            {t("detailSidebar.relationLabelOnConnector", { type: typeCaption })}
+          </p>
         ) : (
-          <Field label="Text">
+          <Field label={t("detailSidebar.fields.text")}>
             <input
               className="dock-field"
               value={selectedRelation.label ?? ""}
@@ -413,7 +452,7 @@ export function ElementDetailSidebar({
                   labelMode: "custom",
                 })
               }
-              placeholder="Optional"
+              placeholder={t("detailSidebar.optional")}
             />
           </Field>
         )}
@@ -423,7 +462,7 @@ export function ElementDetailSidebar({
           onClick={() => deleteRelation(selectedRelation.id)}
         >
           <Trash2 className="size-3.5" aria-hidden />
-          Löschen
+          {t("detailSidebar.delete")}
         </button>
       </DockPanel>
     );
@@ -431,10 +470,8 @@ export function ElementDetailSidebar({
 
   if (multiCount >= 2) {
     return (
-      <DockPanel title={`${multiCount} Elemente`}>
-        <p className="text-[0.82rem] text-[var(--muted)]">
-          Ausrichten, Verteilen und Löschen über Rechtsklick.
-        </p>
+      <DockPanel title={t("detailSidebar.titles.multiElements", { count: multiCount })} t={t}>
+        <p className="text-[0.82rem] text-[var(--muted)]">{t("detailSidebar.multiSelectHint")}</p>
       </DockPanel>
     );
   }
@@ -442,8 +479,8 @@ export function ElementDetailSidebar({
   if (!selectedElement) {
     if (selectedSwimlane) {
       return (
-        <DockPanel title="Swimlane">
-          <Field label="Label">
+        <DockPanel title={t("detailSidebar.titles.swimlane")} t={t}>
+          <Field label={t("detailSidebar.fields.label")}>
             <input
               className="dock-field"
               value={selectedSwimlane.label}
@@ -455,41 +492,41 @@ export function ElementDetailSidebar({
             region={selectedSwimlane}
             onChange={(patch) => updateSwimlane(selectedSwimlane.id, patch)}
           />
-          <CollapsibleSection title="Position & Größe" defaultOpen={false}>
+          <CollapsibleSection title={t("detailSidebar.positionSize.sectionTitle")} defaultOpen={false}>
             {selectedSwimlane.locked && (
               <p className="mb-2 text-[0.65rem] text-[var(--muted)]">
-                Gesperrt — Position und Größe sind geschützt.
+                {t("detailSidebar.positionSize.lockedHint")}
               </p>
             )}
             <div className="grid grid-cols-2 gap-2">
               <NumberField
-                label="X"
+                label={t("detailSidebar.positionSize.x")}
                 value={selectedSwimlane.x ?? 0}
                 disabled={selectedSwimlane.locked}
                 onChange={(v) => updateSwimlane(selectedSwimlane.id, { x: v })}
               />
               <NumberField
-                label="Y"
+                label={t("detailSidebar.positionSize.y")}
                 value={selectedSwimlane.y}
                 disabled={selectedSwimlane.locked}
                 onChange={(v) => updateSwimlane(selectedSwimlane.id, { y: v })}
               />
               <NumberField
-                label="Breite"
+                label={t("detailSidebar.positionSize.width")}
                 value={selectedSwimlane.width ?? 4000}
                 min={80}
                 disabled={selectedSwimlane.locked}
                 onChange={(v) => updateSwimlane(selectedSwimlane.id, { width: Math.max(80, v) })}
               />
               <NumberField
-                label="Höhe"
+                label={t("detailSidebar.positionSize.height")}
                 value={selectedSwimlane.height}
                 min={80}
                 disabled={selectedSwimlane.locked}
                 onChange={(v) => updateSwimlane(selectedSwimlane.id, { height: Math.max(80, v) })}
               />
               <NumberField
-                label="Ebene (z)"
+                label={t("detailSidebar.positionSize.zIndex")}
                 value={selectedSwimlane.zIndex ?? 0}
                 onChange={(v) => updateSwimlane(selectedSwimlane.id, { zIndex: v })}
               />
@@ -501,7 +538,7 @@ export function ElementDetailSidebar({
 
     if (selectedBoundedContext) {
       return (
-        <DockPanel title="Bounded Context">
+        <DockPanel title={t("detailSidebar.titles.boundedContext")} t={t}>
           <BoundedContextDetailPanel boundedContext={selectedBoundedContext} />
         </DockPanel>
       );
@@ -518,9 +555,10 @@ export function ElementDetailSidebar({
   return (
     <DockPanel
       title={style.label}
+      t={t}
       onHelp={() => onRequestHelpElementType?.(selectedElement.type)}
     >
-      <Field label="Label">
+      <Field label={t("detailSidebar.fields.label")}>
         <input
           className="dock-field"
           value={selectedElement.label}
@@ -528,12 +566,14 @@ export function ElementDetailSidebar({
         />
       </Field>
       <div className="space-y-1">
-        <p className="text-[0.72rem] font-medium text-[var(--muted)]">Beschreibung</p>
+        <p className="text-[0.72rem] font-medium text-[var(--muted)]">
+          {t("detailSidebar.fields.description")}
+        </p>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--control)] px-2.5 py-2 text-xs text-[var(--text)]">
           {selectedElement.description?.trim() ? (
             <DescriptionMarkdownContent markdown={selectedElement.description} compact />
           ) : (
-            <p className="italic text-[var(--muted)]">Keine Beschreibung</p>
+            <p className="italic text-[var(--muted)]">{t("detailSidebar.description.none")}</p>
           )}
         </div>
         <button
@@ -542,7 +582,7 @@ export function ElementDetailSidebar({
           onClick={() => setDescriptionEditorOpen(true)}
         >
           <Pencil className="h-3.5 w-3.5" aria-hidden />
-          WYSIWYG-Editor öffnen
+          {t("detailSidebar.description.openWysiwyg")}
         </button>
         <DescriptionEditorDialog
           open={descriptionEditorOpen}
@@ -555,12 +595,12 @@ export function ElementDetailSidebar({
       </div>
 
       <CollapsibleSection
-        title="Auf der Karte"
+        title={t("detailSidebar.onCard.sectionTitle")}
         defaultOpen={cardFlagsActive || selectedElement.type === "note"}
-        hint={cardFlagsActive ? "aktiv" : undefined}
+        hint={cardFlagsActive ? t("detailSidebar.active") : undefined}
       >
         <div className="flex flex-col gap-1.5 text-xs text-[var(--text)]">
-          {onCardDisplayFieldsForType(selectedElement.type).map(({ key, label }) => (
+          {onCardDisplayFieldsForType(selectedElement.type).map(({ key }) => (
             <label key={key} className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -574,23 +614,26 @@ export function ElementDetailSidebar({
                   })
                 }
               />
-              {label}
+              {onCardFieldLabel(t, key)}
             </label>
           ))}
         </div>
         {selectedElement.type === "note" && (
           <div className="mt-2">
-            <p className="mb-1.5 text-[0.65rem] font-medium text-[var(--muted)]">Hintergrund</p>
+            <p className="mb-1.5 text-[0.65rem] font-medium text-[var(--muted)]">
+              {t("detailSidebar.onCard.background")}
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {NOTE_COLOR_IDS.map((id) => {
                 const c = NOTE_COLORS[id];
+                const colorLabel = noteColorLabel(t, id);
                 const active = (selectedElement.metadata?.noteColor ?? "cream") === id;
                 return (
                   <button
                     key={id}
                     type="button"
-                    title={c.label}
-                    aria-label={c.label}
+                    title={colorLabel}
+                    aria-label={colorLabel}
                     aria-pressed={active}
                     className={[
                       "h-7 w-7 rounded-md border-2 shadow-sm transition-transform",
@@ -614,7 +657,9 @@ export function ElementDetailSidebar({
         {selectedElement.type === "customCard" && (
           <div className="mt-2 space-y-2">
             <label className="flex flex-col gap-1 text-xs text-[var(--text)]">
-              <span className="text-[0.65rem] font-medium text-[var(--muted)]">Kartentyp</span>
+              <span className="text-[0.65rem] font-medium text-[var(--muted)]">
+                {t("detailSidebar.onCard.cardType")}
+              </span>
               <select
                 className="dock-field"
                 value={selectedElement.metadata?.customTypeId ?? ""}
@@ -625,33 +670,34 @@ export function ElementDetailSidebar({
                   });
                 }}
               >
-                <option value="">— ohne Typ —</option>
-                {customCardTypes.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
+                <option value="">{t("detailSidebar.noCardType")}</option>
+                {customCardTypes.map((ct) => (
+                  <option key={ct.id} value={ct.id}>
+                    {ct.name}
                   </option>
                 ))}
               </select>
             </label>
             {(() => {
               const typeId = selectedElement.metadata?.customTypeId;
-              const def = customCardTypes.find((t) => t.id === typeId);
+              const def = customCardTypes.find((ct) => ct.id === typeId);
               if (!def) return null;
               return (
                 <div>
                   <p className="mb-1.5 text-[0.65rem] font-medium text-[var(--muted)]">
-                    Typfarbe (alle {def.name})
+                    {t("detailSidebar.onCard.typeColorAll", { name: def.name })}
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {NOTE_COLOR_IDS.map((id) => {
                       const c = NOTE_COLORS[id];
+                      const colorLabel = noteColorLabel(t, id);
                       const active = def.fill === c.fill;
                       return (
                         <button
                           key={id}
                           type="button"
-                          title={c.label}
-                          aria-label={c.label}
+                          title={colorLabel}
+                          aria-label={colorLabel}
                           aria-pressed={active}
                           className={[
                             "h-7 w-7 rounded-md border-2 shadow-sm transition-transform",
@@ -682,7 +728,7 @@ export function ElementDetailSidebar({
       </CollapsibleSection>
 
       <CollapsibleSection
-        title="Web-Links"
+        title={t("detailSidebar.webLinks.sectionTitle")}
         defaultOpen={Boolean(selectedElement.metadata?.webLinks?.length)}
         hint={
           selectedElement.metadata?.webLinks?.length
@@ -691,6 +737,7 @@ export function ElementDetailSidebar({
         }
       >
         <WebLinksEditor
+          t={t}
           links={selectedElement.metadata?.webLinks}
           onChange={(webLinks) =>
             updateElement(selectedElement.id, {
@@ -703,20 +750,20 @@ export function ElementDetailSidebar({
         />
       </CollapsibleSection>
 
-      <CollapsibleSection title="Position & Größe" defaultOpen={false}>
+      <CollapsibleSection title={t("detailSidebar.positionSize.sectionTitle")} defaultOpen={false}>
         <div className="grid grid-cols-2 gap-2">
           <NumberField
-            label="X"
+            label={t("detailSidebar.positionSize.x")}
             value={selectedElement.x}
             onChange={(v) => updateElement(selectedElement.id, { x: v })}
           />
           <NumberField
-            label="Y"
+            label={t("detailSidebar.positionSize.y")}
             value={selectedElement.y}
             onChange={(v) => updateElement(selectedElement.id, { y: v })}
           />
           <NumberField
-            label="Breite"
+            label={t("detailSidebar.positionSize.width")}
             value={width}
             min={MIN_ELEMENT_SIZE}
             onChange={(v) =>
@@ -726,7 +773,7 @@ export function ElementDetailSidebar({
             }
           />
           <NumberField
-            label="Höhe"
+            label={t("detailSidebar.positionSize.height")}
             value={height}
             min={MIN_ELEMENT_SIZE}
             onChange={(v) =>
@@ -736,7 +783,7 @@ export function ElementDetailSidebar({
             }
           />
           <NumberField
-            label="Drehung (°)"
+            label={t("detailSidebar.positionSize.rotation")}
             value={selectedElement.rotation ?? style.rotation ?? 0}
             onChange={(v) =>
               updateElement(selectedElement.id, {
@@ -748,7 +795,7 @@ export function ElementDetailSidebar({
       </CollapsibleSection>
 
       {(selectedElement.type === "domainEvent" || selectedElement.type === "aggregate") && (
-        <Field label="Event Schema">
+        <Field label={t("detailSidebar.fields.eventSchema")}>
           <JsonValueEditor
             value={selectedElement.metadata?.eventSchema}
             onChange={(eventSchema) =>
@@ -756,14 +803,14 @@ export function ElementDetailSidebar({
                 metadata: { ...selectedElement.metadata, eventSchema },
               })
             }
-            emptyHint="Keine Schema-Felder — typischerweise Name → Typ"
+            emptyHint={t("detailSidebar.jsonSchemaEmptyHint")}
           />
         </Field>
       )}
 
       {selectedElement.type === "aggregate" && (
         <>
-          <Field label="Attribute (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.attributesPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.attributes}
@@ -777,10 +824,10 @@ export function ElementDetailSidebar({
               }
               rows={3}
               className="dock-field min-h-[4rem]"
-              placeholder={"z. B. status: OrderStatus\ntotal: Money"}
+              placeholder={t("detailSidebar.placeholders.aggregateAttributes")}
             />
           </Field>
-          <Field label="Methoden (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.methodsPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.aggregateMethods}
@@ -796,7 +843,7 @@ export function ElementDetailSidebar({
               className="dock-field min-h-[4rem]"
             />
           </Field>
-          <Field label="Invarianten (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.invariantsPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.aggregateInvariants}
@@ -810,7 +857,7 @@ export function ElementDetailSidebar({
               }
               rows={3}
               className="dock-field min-h-[4rem]"
-              placeholder="z. B. Balance darf nicht negativ sein"
+              placeholder={t("detailSidebar.placeholders.aggregateInvariants")}
             />
           </Field>
         </>
@@ -818,7 +865,7 @@ export function ElementDetailSidebar({
 
       {selectedElement.type === "entity" && (
         <>
-          <Field label="Identität (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.identityPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.identityFields}
@@ -832,10 +879,10 @@ export function ElementDetailSidebar({
               }
               rows={2}
               className="dock-field min-h-[2.5rem]"
-              placeholder={"z. B. id\ncustomerId"}
+              placeholder={t("detailSidebar.placeholders.entityIdentity")}
             />
           </Field>
-          <Field label="Attribute (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.attributesPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.attributes}
@@ -849,10 +896,10 @@ export function ElementDetailSidebar({
               }
               rows={3}
               className="dock-field min-h-[4rem]"
-              placeholder={"z. B. name: string\nemail: Email"}
+              placeholder={t("detailSidebar.placeholders.entityAttributes")}
             />
           </Field>
-          <Field label="Operationen (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.operationsPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.operations}
@@ -866,7 +913,7 @@ export function ElementDetailSidebar({
               }
               rows={3}
               className="dock-field min-h-[4rem]"
-              placeholder={"z. B. rename(name)\nchangeEmail(email)"}
+              placeholder={t("detailSidebar.placeholders.entityOperations")}
             />
           </Field>
         </>
@@ -887,9 +934,9 @@ export function ElementDetailSidebar({
                 })
               }
             />
-            Unveränderlich (immutable)
+            {t("detailSidebar.flags.immutable")}
           </label>
-          <Field label="Attribute / Komponenten (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.attributesComponentsPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.attributes}
@@ -903,7 +950,7 @@ export function ElementDetailSidebar({
               }
               rows={3}
               className="dock-field min-h-[4rem]"
-              placeholder={"z. B. amount: decimal\ncurrency: string"}
+              placeholder={t("detailSidebar.placeholders.valueObjectAttributes")}
             />
           </Field>
         </>
@@ -924,9 +971,9 @@ export function ElementDetailSidebar({
                 })
               }
             />
-            Zustandslos (stateless)
+            {t("detailSidebar.flags.stateless")}
           </label>
-          <Field label="Operationen (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.operationsPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.operations}
@@ -940,7 +987,7 @@ export function ElementDetailSidebar({
               }
               rows={3}
               className="dock-field min-h-[4rem]"
-              placeholder={"z. B. transfer(from, to, money)\ncalculateRisk(order)"}
+              placeholder={t("detailSidebar.placeholders.domainServiceOperations")}
             />
           </Field>
         </>
@@ -948,7 +995,7 @@ export function ElementDetailSidebar({
 
       {selectedElement.type === "repository" && (
         <>
-          <Field label="Aggregate Root">
+          <Field label={t("detailSidebar.fields.aggregateRoot")}>
             <input
               className="dock-field"
               value={selectedElement.metadata?.aggregateRootRef ?? ""}
@@ -960,10 +1007,10 @@ export function ElementDetailSidebar({
                   },
                 })
               }
-              placeholder="z. B. Order"
+              placeholder={t("detailSidebar.placeholders.aggregateRootRef")}
             />
           </Field>
-          <Field label="Operationen (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.operationsPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.operations}
@@ -977,7 +1024,7 @@ export function ElementDetailSidebar({
               }
               rows={3}
               className="dock-field min-h-[4rem]"
-              placeholder={"z. B. findById(id)\nsave(aggregate)\nnextIdentity()"}
+              placeholder={t("detailSidebar.placeholders.repositoryOperations")}
             />
           </Field>
         </>
@@ -985,7 +1032,7 @@ export function ElementDetailSidebar({
 
       {selectedElement.type === "factory" && (
         <>
-          <Field label="Erzeugt">
+          <Field label={t("detailSidebar.fields.creates")}>
             <input
               className="dock-field"
               value={selectedElement.metadata?.createsRef ?? ""}
@@ -997,10 +1044,10 @@ export function ElementDetailSidebar({
                   },
                 })
               }
-              placeholder="z. B. Order / Customer"
+              placeholder={t("detailSidebar.placeholders.createsRef")}
             />
           </Field>
-          <Field label="Operationen (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.operationsPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.operations}
@@ -1014,14 +1061,14 @@ export function ElementDetailSidebar({
               }
               rows={3}
               className="dock-field min-h-[4rem]"
-              placeholder={"z. B. createFromDraft(draft)\nreconstitute(snapshot)"}
+              placeholder={t("detailSidebar.placeholders.factoryOperations")}
             />
           </Field>
         </>
       )}
 
       {selectedElement.type === "subdomain" && (
-        <Field label="Subdomain-Art">
+        <Field label={t("detailSidebar.fields.subdomainKind")}>
           <select
             className="dock-field"
             value={selectedElement.metadata?.subdomainKind ?? "core"}
@@ -1034,15 +1081,15 @@ export function ElementDetailSidebar({
               })
             }
           >
-            <option value="core">Core Domain</option>
-            <option value="supporting">Supporting</option>
-            <option value="generic">Generic</option>
+            <option value="core">{t("detailSidebar.enums.subdomainKind.core")}</option>
+            <option value="supporting">{t("detailSidebar.enums.subdomainKind.supporting")}</option>
+            <option value="generic">{t("detailSidebar.enums.subdomainKind.generic")}</option>
           </select>
         </Field>
       )}
 
       {selectedElement.type === "rule" && (
-        <Field label="Kriterien / Hinweise (eine pro Zeile)">
+        <Field label={t("detailSidebar.fields.ruleCriteriaPerLine")}>
           <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.ruleCriteria}
@@ -1056,14 +1103,14 @@ export function ElementDetailSidebar({
               }
               rows={3}
               className="dock-field min-h-[4rem]"
-              placeholder={"z. B. Nur für registrierte Kunden\nMax. 3 Retouren / Jahr"}
+              placeholder={t("detailSidebar.placeholders.ruleCriteria")}
             />
         </Field>
       )}
 
       {selectedElement.type === "example" && (
         <>
-          <Field label="Given (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.givenPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.exampleGiven}
@@ -1077,10 +1124,10 @@ export function ElementDetailSidebar({
               }
               rows={2}
               className="dock-field min-h-[3rem]"
-              placeholder="Ausgangssituation"
+              placeholder={t("detailSidebar.placeholders.exampleGiven")}
             />
           </Field>
-          <Field label="When (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.whenPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.exampleWhen}
@@ -1094,10 +1141,10 @@ export function ElementDetailSidebar({
               }
               rows={2}
               className="dock-field min-h-[3rem]"
-              placeholder="Aktion"
+              placeholder={t("detailSidebar.placeholders.exampleWhen")}
             />
           </Field>
-          <Field label="Then (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.thenPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.exampleThen}
@@ -1111,14 +1158,14 @@ export function ElementDetailSidebar({
               }
               rows={2}
               className="dock-field min-h-[3rem]"
-              placeholder="Erwartetes Ergebnis"
+              placeholder={t("detailSidebar.placeholders.exampleThen")}
             />
           </Field>
         </>
       )}
 
       {selectedElement.type === "question" && (
-        <Field label="Status">
+        <Field label={t("detailSidebar.fields.status")}>
           <select
             className="dock-field"
             value={selectedElement.metadata?.questionStatus ?? "open"}
@@ -1131,15 +1178,15 @@ export function ElementDetailSidebar({
               })
             }
           >
-            <option value="open">Offen</option>
-            <option value="resolved">Geklärt</option>
+            <option value="open">{t("detailSidebar.enums.questionStatus.open")}</option>
+            <option value="resolved">{t("detailSidebar.enums.questionStatus.resolved")}</option>
           </select>
         </Field>
       )}
 
       {selectedElement.type === "userStory" && (
         <>
-          <Field label="Persona">
+          <Field label={t("detailSidebar.fields.persona")}>
             <input
               className="dock-field"
               value={selectedElement.metadata?.storyPersona ?? ""}
@@ -1151,11 +1198,11 @@ export function ElementDetailSidebar({
                   },
                 })
               }
-              placeholder="z. B. Einkäuferin"
+              placeholder={t("detailSidebar.placeholders.storyPersona")}
             />
           </Field>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Priorität">
+            <Field label={t("detailSidebar.fields.priority")}>
               <select
                 className="dock-field"
                 value={selectedElement.metadata?.storyPriority ?? "must"}
@@ -1168,13 +1215,13 @@ export function ElementDetailSidebar({
                   })
                 }
               >
-                <option value="must">Must</option>
-                <option value="should">Should</option>
-                <option value="could">Could</option>
-                <option value="wont">Won't</option>
+                <option value="must">{t("detailSidebar.enums.storyPriority.must")}</option>
+                <option value="should">{t("detailSidebar.enums.storyPriority.should")}</option>
+                <option value="could">{t("detailSidebar.enums.storyPriority.could")}</option>
+                <option value="wont">{t("detailSidebar.enums.storyPriority.wont")}</option>
               </select>
             </Field>
-            <Field label="Schätzung">
+            <Field label={t("detailSidebar.fields.estimate")}>
               <input
                 className="dock-field"
                 value={selectedElement.metadata?.storyEstimate ?? ""}
@@ -1186,11 +1233,11 @@ export function ElementDetailSidebar({
                     },
                   })
                 }
-                placeholder="z. B. 3"
+                placeholder={t("detailSidebar.placeholders.storyEstimate")}
               />
             </Field>
           </div>
-          <Field label="Akzeptanzkriterien (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.acceptancePerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.storyAcceptance}
@@ -1210,7 +1257,13 @@ export function ElementDetailSidebar({
       )}
 
       {(selectedElement.type === "release" || selectedElement.type === "slice") && (
-        <Field label={selectedElement.type === "slice" ? "Slice-Ziel" : "Release-Ziel"}>
+        <Field
+          label={
+            selectedElement.type === "slice"
+              ? t("detailSidebar.fields.sliceGoal")
+              : t("detailSidebar.fields.releaseGoal")
+          }
+        >
           <input
             className="dock-field"
             value={selectedElement.metadata?.releaseGoal ?? ""}
@@ -1224,15 +1277,15 @@ export function ElementDetailSidebar({
             }
             placeholder={
               selectedElement.type === "slice"
-                ? "z. B. Bestellung anlegen End-to-End"
-                : "z. B. MVP: Bestellen & Bezahlen"
+                ? t("detailSidebar.placeholders.sliceGoal")
+                : t("detailSidebar.placeholders.releaseGoal")
             }
           />
         </Field>
       )}
 
       {selectedElement.type === "slice" && (
-        <Field label="Systeme / Lanes (eine pro Zeile)">
+        <Field label={t("detailSidebar.fields.sliceSystemsPerLine")}>
           <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.sliceSystems}
@@ -1246,14 +1299,14 @@ export function ElementDetailSidebar({
               }
               rows={2}
               className="dock-field min-h-[3rem]"
-              placeholder={"z. B. Web UI\nOrder Service"}
+              placeholder={t("detailSidebar.placeholders.sliceSystems")}
             />
         </Field>
       )}
 
       {selectedElement.type === "processActivity" && (
         <>
-          <Field label="Rolle / Verantwortlich">
+          <Field label={t("detailSidebar.fields.processRole")}>
             <input
               className="dock-field"
               value={selectedElement.metadata?.processRole ?? ""}
@@ -1264,7 +1317,7 @@ export function ElementDetailSidebar({
               }
             />
           </Field>
-          <Field label="System">
+          <Field label={t("detailSidebar.fields.processSystem")}>
             <input
               className="dock-field"
               value={selectedElement.metadata?.processSystem ?? ""}
@@ -1275,7 +1328,7 @@ export function ElementDetailSidebar({
               }
             />
           </Field>
-          <Field label="Dauer / SLA">
+          <Field label={t("detailSidebar.fields.processDuration")}>
             <input
               className="dock-field"
               value={selectedElement.metadata?.processDuration ?? ""}
@@ -1284,10 +1337,10 @@ export function ElementDetailSidebar({
                   metadata: { ...selectedElement.metadata, processDuration: e.target.value },
                 })
               }
-              placeholder="z. B. < 1 Tag"
+              placeholder={t("detailSidebar.placeholders.processDuration")}
             />
           </Field>
-          <Field label="Eingaben (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.processInputsPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.processInputs}
@@ -1303,7 +1356,7 @@ export function ElementDetailSidebar({
               className="dock-field min-h-[3rem]"
             />
           </Field>
-          <Field label="Ausgaben (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.processOutputsPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.processOutputs}
@@ -1324,7 +1377,7 @@ export function ElementDetailSidebar({
 
       {selectedElement.type === "processGateway" && (
         <>
-          <Field label="Gateway-Art">
+          <Field label={t("detailSidebar.fields.gatewayKind")}>
             <select
               className="dock-field"
               value={selectedElement.metadata?.gatewayKind ?? "xor"}
@@ -1337,12 +1390,12 @@ export function ElementDetailSidebar({
                 })
               }
             >
-              <option value="xor">XOR (exklusiv)</option>
-              <option value="and">AND (parallel)</option>
-              <option value="or">OR (inklusiv)</option>
+              <option value="xor">{t("detailSidebar.enums.gatewayKind.xor")}</option>
+              <option value="and">{t("detailSidebar.enums.gatewayKind.and")}</option>
+              <option value="or">{t("detailSidebar.enums.gatewayKind.or")}</option>
             </select>
           </Field>
-          <Field label="Bedingungen / Pfade (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.gatewayConditionsPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.gatewayConditions}
@@ -1356,14 +1409,14 @@ export function ElementDetailSidebar({
               }
               rows={3}
               className="dock-field min-h-[3rem]"
-              placeholder={"z. B. genehmigt\nabgelehnt"}
+              placeholder={t("detailSidebar.placeholders.gatewayConditions")}
             />
           </Field>
         </>
       )}
 
       {selectedElement.type === "processStart" && (
-        <Field label="Auslöser">
+        <Field label={t("detailSidebar.fields.processTrigger")}>
           <input
             className="dock-field"
             value={selectedElement.metadata?.processTrigger ?? ""}
@@ -1377,7 +1430,7 @@ export function ElementDetailSidebar({
       )}
 
       {selectedElement.type === "processEnd" && (
-        <Field label="Ergebnis">
+        <Field label={t("detailSidebar.fields.processResult")}>
           <input
             className="dock-field"
             value={selectedElement.metadata?.processResult ?? ""}
@@ -1392,7 +1445,7 @@ export function ElementDetailSidebar({
 
       {selectedElement.type === "dataEntity" && (
         <>
-          <Field label="Tabellenname (optional)">
+          <Field label={t("detailSidebar.fields.dataTableName")}>
             <input
               className="dock-field"
               value={selectedElement.metadata?.dataTableName ?? ""}
@@ -1403,7 +1456,7 @@ export function ElementDetailSidebar({
               }
             />
           </Field>
-          <Field label="Primärschlüssel / Identität (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.dataIdentityPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.identityFields}
@@ -1419,7 +1472,7 @@ export function ElementDetailSidebar({
               className="dock-field min-h-[3rem]"
             />
           </Field>
-          <Field label="Attribute (eine pro Zeile, z. B. name: string)">
+          <Field label={t("detailSidebar.fields.dataAttributesPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.attributes}
@@ -1435,7 +1488,7 @@ export function ElementDetailSidebar({
               className="dock-field min-h-[4rem]"
             />
           </Field>
-          <Field label="Unique Keys (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.dataUniqueKeysPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.dataUniqueKeys}
@@ -1456,7 +1509,7 @@ export function ElementDetailSidebar({
 
       {selectedElement.type === "dataAssociation" && (
         <>
-          <Field label="Kardinalität">
+          <Field label={t("detailSidebar.fields.dataCardinality")}>
             <select
               className="dock-field"
               value={selectedElement.metadata?.dataCardinality ?? "1:n"}
@@ -1469,13 +1522,14 @@ export function ElementDetailSidebar({
                 })
               }
             >
-              <option value="1:1">1:1</option>
-              <option value="1:n">1:n</option>
-              <option value="n:1">n:1</option>
-              <option value="n:m">n:m</option>
+              {(["1:1", "1:n", "n:1", "n:m"] as const).map((card) => (
+                <option key={card} value={card}>
+                  {dataCardinalityLabel(t, card)}
+                </option>
+              ))}
             </select>
           </Field>
-          <Field label="Linke Entität">
+          <Field label={t("detailSidebar.fields.dataLeftEntity")}>
             <input
               className="dock-field"
               value={selectedElement.metadata?.dataLeftEntity ?? ""}
@@ -1486,7 +1540,7 @@ export function ElementDetailSidebar({
               }
             />
           </Field>
-          <Field label="Rechte Entität">
+          <Field label={t("detailSidebar.fields.dataRightEntity")}>
             <input
               className="dock-field"
               value={selectedElement.metadata?.dataRightEntity ?? ""}
@@ -1497,7 +1551,7 @@ export function ElementDetailSidebar({
               }
             />
           </Field>
-          <Field label="Beziehungsattribute (eine pro Zeile)">
+          <Field label={t("detailSidebar.fields.relationAttributesPerLine")}>
             <LinesTextarea
               resetKey={selectedElement.id}
               values={selectedElement.metadata?.attributes}
@@ -1532,19 +1586,19 @@ export function ElementDetailSidebar({
           >
             {selectedElement.detailViewId &&
             views.some((v) => v.id === selectedElement.detailViewId)
-              ? "Detail-Sicht öffnen"
-              : "Detail-Sicht erstellen"}
+              ? t("contextMenu.openDetailView")
+              : t("contextMenu.createDetailView")}
           </button>
           <p className="text-[0.72rem] text-[var(--muted)]">
             {selectedElement.type === "c4SoftwareSystem"
-              ? "C4 Zoom: Container-Diagramm — Whitebox-Scope mit Containern."
+              ? t("detailSidebar.drilldown.hintC4SoftwareSystem")
               : selectedElement.type === "c4Container"
-                ? "C4 Zoom: Komponenten-Diagramm — Whitebox-Scope mit Komponenten."
+                ? t("detailSidebar.drilldown.hintC4Container")
                 : selectedElement.type === "cloudBoundary"
-                  ? "Cloud Zoom: Workloads und Netzwerke innerhalb der Grenze."
+                  ? t("detailSidebar.drilldown.hintCloudBoundary")
                   : selectedElement.type === "archBlackbox"
-                    ? "Öffnet die Whitebox dieses Bausteins (C4-ähnlicher Drill-down)."
-                    : "Zoom in die nächste Verfeinerungsebene."}
+                    ? t("detailSidebar.drilldown.hintArchBlackbox")
+                    : t("detailSidebar.drilldown.hintDefault")}
           </p>
         </div>
       )}
@@ -1555,10 +1609,10 @@ export function ElementDetailSidebar({
         isCloudElementType(selectedElement.type)) && (
         <>
           {isCloudElementType(selectedElement.type) && (
-            <Field label="Provider">
+            <Field label={t("detailSidebar.fields.provider")}>
               <input
                 className="dock-field"
-                placeholder="z. B. AWS, Azure, GCP"
+                placeholder={t("detailSidebar.placeholders.cloudProvider")}
                 value={selectedElement.metadata?.cloudProvider ?? ""}
                 onChange={(e) =>
                   updateElement(selectedElement.id, {
@@ -1568,13 +1622,13 @@ export function ElementDetailSidebar({
               />
             </Field>
           )}
-          <Field label="Technologie">
+          <Field label={t("detailSidebar.fields.technology")}>
             <input
               className="dock-field"
               placeholder={
                 isCloudElementType(selectedElement.type)
-                  ? "z. B. Lambda, AKS, Cloud SQL"
-                  : "z. B. Spring Boot, PostgreSQL"
+                  ? t("detailSidebar.placeholders.c4TechnologyCloud")
+                  : t("detailSidebar.placeholders.c4TechnologyDefault")
               }
               value={selectedElement.metadata?.c4Technology ?? ""}
               onChange={(e) =>
@@ -1589,7 +1643,7 @@ export function ElementDetailSidebar({
 
       {selectedElement.type === "link" && (
         <>
-          <Field label="Zielart">
+          <Field label={t("detailSidebar.fields.linkTargetKind")}>
             <select
               className="dock-field"
               value={selectedElement.metadata?.linkKind ?? "external"}
@@ -1602,16 +1656,16 @@ export function ElementDetailSidebar({
                 })
               }
             >
-              <option value="external">Externe URL</option>
-              <option value="view">Board-Sicht</option>
+              <option value="external">{t("detailSidebar.enums.linkKind.external")}</option>
+              <option value="view">{t("detailSidebar.enums.linkKind.view")}</option>
             </select>
           </Field>
           {(selectedElement.metadata?.linkKind ?? "external") === "external" ? (
-            <Field label="URL">
+            <Field label={t("detailSidebar.fields.url")}>
               <input
                 className="dock-field"
                 type="url"
-                placeholder="https://…"
+                placeholder={t("detailSidebar.webLinks.urlPlaceholder")}
                 value={selectedElement.metadata?.linkUrl ?? ""}
                 onChange={(e) =>
                   updateElement(selectedElement.id, {
@@ -1621,7 +1675,7 @@ export function ElementDetailSidebar({
               />
             </Field>
           ) : (
-            <Field label="Sicht">
+            <Field label={t("detailSidebar.fields.view")}>
               <select
                 className="dock-field"
                 value={selectedElement.metadata?.linkViewId ?? ""}
@@ -1634,11 +1688,11 @@ export function ElementDetailSidebar({
                   })
                 }
               >
-                <option value="">— wählen —</option>
+                <option value="">{t("detailSidebar.chooseView")}</option>
                 {views.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
-                    {v.id === activeViewId ? " (aktuell)" : ""}
+                    {v.id === activeViewId ? t("detailSidebar.currentViewSuffix") : ""}
                   </option>
                 ))}
               </select>
@@ -1655,7 +1709,7 @@ export function ElementDetailSidebar({
             }}
           >
             <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-            Öffnen
+            {t("detailSidebar.open")}
           </button>
         </>
       )}
@@ -1670,7 +1724,7 @@ export function ElementDetailSidebar({
         </div>
       ))}
 
-      <p className="text-[0.7rem] text-[var(--muted)]">Mehr: Rechtsklick</p>
+      <p className="text-[0.7rem] text-[var(--muted)]">{t("detailSidebar.moreViaContextMenu")}</p>
     </DockPanel>
   );
 }
@@ -1715,10 +1769,12 @@ function CollapsibleSection({
 function DockPanel({
   title,
   onHelp,
+  t,
   children,
 }: {
   title: string;
   onHelp?: () => void;
+  t: TranslateFn;
   children: ReactNode;
 }) {
   return (
@@ -1730,7 +1786,7 @@ function DockPanel({
             type="button"
             onClick={onHelp}
             className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
-            title="Hilfe"
+            title={t("detailSidebar.help")}
           >
             <HelpCircle className="h-4 w-4" />
           </button>
@@ -1753,18 +1809,20 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 function StrokeStyleButtons({
   value,
   onChange,
+  t,
 }: {
   value: ConnectorStrokeStyle;
   onChange: (style: ConnectorStrokeStyle) => void;
+  t: TranslateFn;
 }) {
   return (
-    <div className="flex gap-1" role="group" aria-label="Linienstil">
+    <div className="flex gap-1" role="group" aria-label={t("detailSidebar.aria.lineStyle")}>
       {CONNECTOR_STROKE_STYLES.map((style) => (
         <button
           key={style}
           type="button"
-          title={CONNECTOR_STROKE_STYLE_LABELS[style]}
-          aria-label={CONNECTOR_STROKE_STYLE_LABELS[style]}
+          title={connectorStrokeStyleLabel(t, style)}
+          aria-label={connectorStrokeStyleLabel(t, style)}
           aria-pressed={value === style}
           className={[
             "flex h-8 flex-1 items-center justify-center rounded-md px-1.5 transition",

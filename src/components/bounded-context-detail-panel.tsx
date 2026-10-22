@@ -7,6 +7,7 @@ import { resolveBoundedContextDetailView } from "@/lib/bounded-context-view";
 import { RegionAppearanceControls } from "@/components/region-appearance-controls";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { BoundedContext } from "@/types/storm-element";
+import { useT } from "@/i18n";
 
 export interface BoundedContextDetailPanelProps {
   boundedContext: BoundedContext;
@@ -20,6 +21,7 @@ export function BoundedContextDetailPanel({
   compact = false,
   onDetailViewOpened,
 }: BoundedContextDetailPanelProps) {
+  const t = useT();
   const views = useStormBoardStore((s) => s.views);
   const updateBoundedContext = useStormBoardStore((s) => s.updateBoundedContext);
   const openBoundedContextView = useStormBoardStore((s) => s.openBoundedContextView);
@@ -40,16 +42,18 @@ export function BoundedContextDetailPanel({
           onClick={openDetailView}
         >
           <LayoutDashboard className="size-4 shrink-0" aria-hidden />
-          {detailView ? `Detail-Sicht öffnen (${detailView.name})` : "Detail-Sicht erstellen"}
+          {detailView
+            ? t("panels.openDetailNamed", { name: detailView.name })
+            : t("contextMenu.createDetailView")}
         </button>
         <p className="mt-1.5 text-[0.72rem] text-[var(--muted)]">
           {detailView
-            ? "Inhalte wurden beim Erstellen kopiert; Änderungen in der Detail-Sicht sind unabhängig."
-            : "Erstellt eine neue Sicht mit Inhalten dieses Bounded Contexts und direkten Referenzen außerhalb."}
+            ? t("detailSidebar.boundedContext.detailExistsHint")
+            : t("detailSidebar.boundedContext.detailCreateHint")}
         </p>
       </div>
 
-      <Field label="Label">
+      <Field label={t("detailSidebar.fields.label")}>
         <input
           className="dock-field"
           value={boundedContext.label}
@@ -57,7 +61,7 @@ export function BoundedContextDetailPanel({
         />
       </Field>
 
-      <Field label="Zweck">
+      <Field label={t("detailSidebar.fields.purpose")}>
         <textarea
           className="dock-field min-h-[4rem]"
           rows={2}
@@ -73,27 +77,27 @@ export function BoundedContextDetailPanel({
       />
 
       {!compact && (
-          <CollapsibleSection title="Position & Größe" defaultOpen={false}>
+          <CollapsibleSection title={t("detailSidebar.positionSize.sectionTitle")} defaultOpen={false}>
             {boundedContext.locked && (
               <p className="mb-2 text-[0.65rem] text-[var(--muted)]">
-                Gesperrt — Position und Größe sind geschützt.
+                {t("detailSidebar.positionSize.lockedHint")}
               </p>
             )}
             <div className="grid grid-cols-2 gap-2">
               <NumberField
-                label="X"
+                label={t("detailSidebar.positionSize.x")}
                 value={boundedContext.x}
                 disabled={boundedContext.locked}
                 onChange={(v) => updateBoundedContext(boundedContext.id, { x: v })}
               />
               <NumberField
-                label="Y"
+                label={t("detailSidebar.positionSize.y")}
                 value={boundedContext.y}
                 disabled={boundedContext.locked}
                 onChange={(v) => updateBoundedContext(boundedContext.id, { y: v })}
               />
               <NumberField
-                label="Breite"
+                label={t("detailSidebar.positionSize.width")}
                 value={boundedContext.width}
                 min={80}
                 disabled={boundedContext.locked}
@@ -102,7 +106,7 @@ export function BoundedContextDetailPanel({
                 }
               />
               <NumberField
-                label="Höhe"
+                label={t("detailSidebar.positionSize.height")}
                 value={boundedContext.height}
                 min={80}
                 disabled={boundedContext.locked}
@@ -111,7 +115,7 @@ export function BoundedContextDetailPanel({
                 }
               />
               <NumberField
-                label="Ebene (z)"
+                label={t("detailSidebar.positionSize.zIndex")}
                 value={boundedContext.zIndex ?? 0}
                 onChange={(v) => updateBoundedContext(boundedContext.id, { zIndex: v })}
               />

@@ -68,6 +68,11 @@ export const enumsEn = {
     start: "Arrow at start",
     both: "Arrows both ends",
   },
+  connectorStrokeStyle: {
+    solid: "Solid",
+    dashed: "Dashed",
+    dotted: "Dotted",
+  },
   actionItemStatus: {
     open: "Open",
     inProgress: "In progress",

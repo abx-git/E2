@@ -2,6 +2,7 @@ import type { TranslateFn } from "@/i18n/translate";
 import type { MessageKey } from "@/i18n/types";
 import type { ActionItemArea, ActionItemStatus } from "@/types/action-item";
 import type { LineArrowHead } from "@/types/canvas-annotation";
+import type { ConnectorStrokeStyle } from "@/lib/connector-style";
 import type { ModelingMode } from "@/types/storm-element";
 import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
 
@@ -27,6 +28,10 @@ export function contextMapPatternLabel(t: TranslateFn, pattern: ContextMapPatter
 
 export function lineArrowHeadLabel(t: TranslateFn, head: LineArrowHead): string {
   return t(enumKey("lineArrowHead", head));
+}
+
+export function connectorStrokeStyleLabel(t: TranslateFn, style: ConnectorStrokeStyle): string {
+  return t(enumKey("connectorStrokeStyle", style));
 }
 
 export function actionItemStatusLabel(t: TranslateFn, status: ActionItemStatus): string {

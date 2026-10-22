@@ -69,6 +69,11 @@ export const enumsDe = {
     start: "Pfeil Start",
     both: "Pfeil beidseitig",
   },
+  connectorStrokeStyle: {
+    solid: "Durchgezogen",
+    dashed: "Gestrichelt",
+    dotted: "Gepunktet",
+  },
   actionItemStatus: {
     open: "Offen",
     inProgress: "In Arbeit",
