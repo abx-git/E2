@@ -16,6 +16,8 @@ import { normalizeCanvasLines, normalizeViewBookmarks } from "@/lib/canvas-annot
 import {
   DEFAULT_MODELING_MODE,
   DEFAULT_TIMELINE,
+  defaultTimelineForModelingMode,
+  modelingModeUsesTimelineByDefault,
   DEFAULT_VIEWPORT,
   normalizeModelingMode,
   normalizeWorkshopFormatForMode,
@@ -223,9 +225,9 @@ export function createEmptyBoardView(
     swimlanes: [],
     boundedContexts: [],
     canvasLines: [],
-    timeline: { ...DEFAULT_TIMELINE },
+    timeline: defaultTimelineForModelingMode(modelingMode),
     viewport: { ...DEFAULT_VIEWPORT },
-    snapToTimeline: true,
+    snapToTimeline: modelingModeUsesTimelineByDefault(modelingMode),
     snapToGrid: false,
     ...overrides,
     modelingMode,
@@ -267,10 +269,12 @@ export function normalizeSwimlane(lane: Swimlane): Swimlane {
   };
 }
 
-export function normalizeTimeline(timeline: Timeline): Timeline {
+export function normalizeTimeline(timeline: Timeline, modelingMode: ModelingMode): Timeline {
+  const defaultVisible = modelingModeUsesTimelineByDefault(modelingMode);
   return {
     ...timeline,
-    visible: timeline.visible !== false,
+    visible:
+      timeline.visible === undefined ? defaultVisible : timeline.visible !== false,
   };
 }
 
@@ -295,9 +299,13 @@ export function normalizeBoardView(raw: Partial<BoardView> & { id?: string; name
     swimlanes: Array.isArray(raw.swimlanes) ? raw.swimlanes.map(normalizeSwimlane) : [],
     boundedContexts: Array.isArray(raw.boundedContexts) ? raw.boundedContexts : [],
     canvasLines: normalizeCanvasLines(raw.canvasLines),
-    timeline: raw.timeline ? normalizeTimeline({ ...DEFAULT_TIMELINE, ...raw.timeline }) : { ...DEFAULT_TIMELINE },
+    timeline: normalizeTimeline(
+      { ...defaultTimelineForModelingMode(modelingMode), ...raw.timeline },
+      modelingMode,
+    ),
     viewport: raw.viewport ? { ...DEFAULT_VIEWPORT, ...raw.viewport } : { ...DEFAULT_VIEWPORT },
-    snapToTimeline: raw.snapToTimeline ?? true,
+    snapToTimeline:
+      raw.snapToTimeline ?? modelingModeUsesTimelineByDefault(modelingMode),
     snapToGrid: raw.snapToGrid ?? false,
     customCardTypes: normalizeCustomCardTypes(raw.customCardTypes),
   });

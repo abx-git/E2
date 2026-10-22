@@ -30,7 +30,8 @@ import type {
   WorkshopFormat,
 } from "@/types/storm-element";
 import {
-  DEFAULT_TIMELINE,
+  defaultTimelineForModelingMode,
+  modelingModeUsesTimelineByDefault,
   MODELING_MODES,
   normalizeModelingMode,
 } from "@/types/storm-element";
@@ -814,14 +815,17 @@ export function aiBoardContextToImportPayload(ctx: AiBoardContext): BoardImportP
     swimlanes: laidOut.swimlanes,
     boundedContexts: laidOut.boundedContexts,
     timeline: {
-      ...DEFAULT_TIMELINE,
+      ...defaultTimelineForModelingMode(ctx.view.modelingMode),
       y: laidOut.timelineY,
       ...(ctx.view.timeline?.startLabel
         ? { startLabel: ctx.view.timeline.startLabel }
         : {}),
       ...(ctx.view.timeline?.endLabel ? { endLabel: ctx.view.timeline.endLabel } : {}),
+      ...(ctx.view.timeline?.visible !== undefined
+        ? { visible: ctx.view.timeline.visible }
+        : {}),
     },
-    snapToTimeline: true,
+    snapToTimeline: modelingModeUsesTimelineByDefault(ctx.view.modelingMode),
     snapToGrid: false,
   });
 

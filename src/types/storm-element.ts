@@ -381,14 +381,32 @@ export interface FacilitatorState {
   phaseIndex: number;
 }
 
+/** Geometry and labels; visibility is set per modeling mode via {@link defaultTimelineForModelingMode}. */
 export const DEFAULT_TIMELINE: Timeline = {
   y: 400,
   startLabel: "Start",
   endLabel: "Ende",
-  visible: true,
 };
 export const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 };
 export const DEFAULT_MODELING_MODE: ModelingMode = "eventStorming";
+
+/** Modes where a horizontal time/process axis is part of the method (Event Storming, Event Modeling, …). */
+export const MODELING_MODES_WITH_DEFAULT_TIMELINE: ReadonlySet<ModelingMode> = new Set([
+  "eventStorming",
+  "eventModeling",
+  "processFlow",
+]);
+
+export function modelingModeUsesTimelineByDefault(mode: ModelingMode): boolean {
+  return MODELING_MODES_WITH_DEFAULT_TIMELINE.has(mode);
+}
+
+export function defaultTimelineForModelingMode(mode: ModelingMode): Timeline {
+  return {
+    ...DEFAULT_TIMELINE,
+    visible: modelingModeUsesTimelineByDefault(mode),
+  };
+}
 
 export const MODELING_MODES: ModelingMode[] = [
   "eventStorming",

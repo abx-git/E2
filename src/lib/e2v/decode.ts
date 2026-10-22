@@ -6,20 +6,21 @@ import {
   normalizeBoardView,
   normalizeStormElement,
 } from "@/lib/storm-json";
-import { DEFAULT_TIMELINE, DEFAULT_VIEWPORT } from "@/types/storm-element";
+import {
+  DEFAULT_VIEWPORT,
+  defaultTimelineForModelingMode,
+  modelingModeUsesTimelineByDefault,
+  normalizeModelingMode,
+  normalizeWorkshopFormatForMode,
+  type ModelingMode,
+  type WorkshopFormat,
+} from "@/types/storm-element";
 import { generateStormId } from "@/lib/storm-id";
 import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
 import type { CanvasLine } from "@/types/canvas-annotation";
 import type { CustomCardType } from "@/lib/custom-card-types";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
-import type {
-  GlossaryEntry,
-  ModelingMode,
-  StormElement,
-  Timeline,
-  Viewport,
-  WorkshopFormat,
-} from "@/types/storm-element";
+import type { GlossaryEntry, StormElement, Timeline, Viewport } from "@/types/storm-element";
 
 /** Mutable parse buffer for one `@view` … `@endview` block. */
 interface E2vViewDraft {
@@ -217,11 +218,13 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
 
   const startView = (cols: string[]) => {
     flushView();
+    const modelingMode = normalizeModelingMode(cols[3] ?? "eventStorming", cols[4]);
+    const workshopFormat = normalizeWorkshopFormatForMode(cols[4] ?? "free", modelingMode);
     parseState.viewDraft = {
       id: cols[1] ?? generateStormId(),
       name: parseCell(cols[2] ?? "Board"),
-      modelingMode: (cols[3] ?? "eventStorming") as ModelingMode,
-      workshopFormat: (cols[4] ?? "free") as WorkshopFormat,
+      modelingMode,
+      workshopFormat,
       facilitatorEnabled: cols[5] === "1",
       facilitatorPhase: num(cols[6] ?? "") ?? 0,
       elements: [],
@@ -232,9 +235,9 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
       connectors: [],
       canvasLines: [],
       customCardTypes: [],
-      timeline: { ...DEFAULT_TIMELINE },
+      timeline: defaultTimelineForModelingMode(modelingMode),
       viewport: { ...DEFAULT_VIEWPORT },
-      snapToTimeline: true,
+      snapToTimeline: modelingModeUsesTimelineByDefault(modelingMode),
       snapToGrid: false,
     };
     viewIdMap = new Map(globalIdMap);
@@ -275,12 +278,15 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         };
       }
       if (tag === "t" && parseState.viewDraft) {
+        const visCol = cols[3];
         parseState.viewDraft.timeline = {
-          ...DEFAULT_TIMELINE,
           ...parseState.viewDraft.timeline,
           startLabel: parseCell(cols[1] ?? ""),
           endLabel: parseCell(cols[2] ?? ""),
-          visible: cols[3] !== "0",
+          visible:
+            visCol !== undefined && visCol !== ""
+              ? visCol !== "0"
+              : parseState.viewDraft.timeline.visible,
         };
       }
       if (tag === "snap" && parseState.viewDraft) {
