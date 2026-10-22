@@ -713,10 +713,13 @@ function parseAiView(raw: unknown): AiContextView | null {
   if (isRecord(raw.timeline)) {
     const startLabel = asTrimmed(raw.timeline.startLabel);
     const endLabel = asTrimmed(raw.timeline.endLabel);
-    if (startLabel || endLabel) {
+    const visible =
+      typeof raw.timeline.visible === "boolean" ? raw.timeline.visible : undefined;
+    if (startLabel || endLabel || visible !== undefined) {
       view.timeline = {
         ...(startLabel ? { startLabel } : {}),
         ...(endLabel ? { endLabel } : {}),
+        ...(visible !== undefined ? { visible } : {}),
       };
     }
   }

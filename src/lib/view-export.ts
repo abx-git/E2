@@ -95,7 +95,7 @@ export interface AiContextView {
       detailView?: string;
     } & AiContextLayoutBox
   >;
-  timeline?: { startLabel?: string; endLabel?: string };
+  timeline?: { startLabel?: string; endLabel?: string; visible?: boolean };
 }
 
 export interface AiBoardContext {
