@@ -102,6 +102,9 @@ export const dialogsDe = {
     jsonPasteAiTitle: "KI-Kontext einfügen",
     jsonPasteAiBody:
       "Reduziertes KI-JSON (oder .storm.json) als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten; Elemente werden automatisch arrangiert.",
+    jsonPasteE2vTitle: "E2V einfügen",
+    jsonPasteE2vBody:
+      "Kompaktes E2V (# e2v/1) oder E2V-Paket aus der Zwischenablage als neue Sicht. Layout (x/y, Größen, Connectors) bleibt erhalten.",
     jsonPasteDiagramTitle: "Diagramm einfügen",
     jsonPasteDiagramBody:
       "Mermaid- oder PlantUML-Text als neue Sicht importieren. Elemente werden automatisch arrangiert.",
