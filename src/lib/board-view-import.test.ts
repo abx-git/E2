@@ -63,6 +63,45 @@ describe("remapBoardViewIds", () => {
     expect(remapped.relations[0]!.targetId).toBe(remapped.elements[0]!.id);
   });
 
+  it("remaps connector endpoints when element ids change", () => {
+    const view = createEmptyBoardView({
+      id: "v-old",
+      name: "Quelle",
+      elements: [
+        el({ id: "e1", x: 0, y: 0, type: "command", label: "Cmd" }),
+        el({ id: "e2", x: 40, y: 0 }),
+      ],
+      relations: [{ id: "r1", type: "triggers", sourceId: "e2", targetId: "e1" }],
+      connectors: [
+        {
+          id: "c1",
+          source: { attach: "element", id: "e2" },
+          target: { attach: "element", id: "e1" },
+          arrowHead: "end",
+          relationType: "triggers",
+          labelMode: "type",
+        },
+      ],
+    });
+
+    const remapped = remapBoardViewIds(view, { viewIdMap: new Map([["v-old", "v-new"]]) });
+
+    expect(remapped.connectors).toHaveLength(1);
+    const conn = remapped.connectors[0]!;
+    expect(conn.id).not.toBe("c1");
+    expect(conn.source.attach).toBe("element");
+    expect(conn.target.attach).toBe("element");
+    if (conn.source.attach !== "element" || conn.target.attach !== "element") {
+      throw new Error("expected element endpoints");
+    }
+    const cmd = remapped.elements.find((e) => e.type === "command")!;
+    const evt = remapped.elements.find((e) => e.type === "domainEvent")!;
+    expect(conn.source.id).toBe(evt.id);
+    expect(conn.target.id).toBe(cmd.id);
+    expect(remapped.relations[0]!.sourceId).toBe(conn.source.id);
+    expect(remapped.relations[0]!.targetId).toBe(conn.target.id);
+  });
+
   it("remaps link sticky view targets via viewIdMap", () => {
     const view = createEmptyBoardView({
       id: "v-a",

@@ -1,9 +1,13 @@
+import { legacyToConnectors } from "@/lib/board-connector-migrate";
 import { generateStormId } from "@/lib/storm-id";
 import {
   normalizeBoardDocument,
+  normalizeBoardView,
   type BoardImportPayload,
   type BoardView,
 } from "@/lib/storm-json";
+import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
+import type { CanvasLine } from "@/types/canvas-annotation";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 
@@ -84,6 +88,28 @@ function remapRelation(rel: StormRelation, idMap: Map<string, string>): StormRel
   };
 }
 
+function remapConnectorEndpoint(
+  endpoint: ConnectorEndpoint,
+  idMap: Map<string, string>,
+): ConnectorEndpoint | null {
+  if (endpoint.attach === "point") return endpoint;
+  const nextId = idMap.get(endpoint.id);
+  if (!nextId) return null;
+  return { ...endpoint, id: nextId };
+}
+
+function remapConnector(connector: BoardConnector, idMap: Map<string, string>): BoardConnector | null {
+  const source = remapConnectorEndpoint(connector.source, idMap);
+  const target = remapConnectorEndpoint(connector.target, idMap);
+  if (!source || !target) return null;
+  return {
+    ...structuredClone(connector),
+    id: generateStormId(),
+    source,
+    target,
+  };
+}
+
 function remapContextRelation(
   rel: ContextRelation,
   idMap: Map<string, string>,
@@ -119,20 +145,43 @@ export function remapBoardViewIds(
   for (const lane of clone.swimlanes) idMap.set(lane.id, generateStormId());
   for (const bc of clone.boundedContexts) idMap.set(bc.id, generateStormId());
 
-  return {
+  const elements = clone.elements.map((el) => remapElement(el, idMap, options.viewIdMap));
+  const swimlanes = clone.swimlanes.map((lane) => remapSwimlane(lane, idMap));
+  const boundedContexts = clone.boundedContexts.map((bc) => remapBoundedContext(bc, idMap));
+  const relations = clone.relations
+    .map((r) => remapRelation(r, idMap))
+    .filter((r): r is StormRelation => r !== null);
+  const contextRelations = clone.contextRelations
+    .map((r) => remapContextRelation(r, idMap))
+    .filter((r): r is ContextRelation => r !== null);
+  const canvasLines: CanvasLine[] = clone.canvasLines.map((line) => ({
+    ...structuredClone(line),
+    id: generateStormId(),
+  }));
+
+  let connectors = clone.connectors
+    .map((c) => remapConnector(c, idMap))
+    .filter((c): c is BoardConnector => c !== null);
+
+  if (
+    connectors.length === 0 &&
+    (relations.length > 0 || contextRelations.length > 0 || canvasLines.length > 0)
+  ) {
+    connectors = legacyToConnectors(relations, contextRelations, canvasLines);
+  }
+
+  return normalizeBoardView({
     ...clone,
     id: newViewId,
     name: options.newName ?? clone.name,
-    elements: clone.elements.map((el) => remapElement(el, idMap, options.viewIdMap)),
-    swimlanes: clone.swimlanes.map((lane) => remapSwimlane(lane, idMap)),
-    boundedContexts: clone.boundedContexts.map((bc) => remapBoundedContext(bc, idMap)),
-    relations: clone.relations
-      .map((r) => remapRelation(r, idMap))
-      .filter((r): r is StormRelation => r !== null),
-    contextRelations: clone.contextRelations
-      .map((r) => remapContextRelation(r, idMap))
-      .filter((r): r is ContextRelation => r !== null),
-  };
+    elements,
+    swimlanes,
+    boundedContexts,
+    relations,
+    contextRelations,
+    connectors,
+    canvasLines,
+  });
 }
 
 export interface PreparedImportViews {
