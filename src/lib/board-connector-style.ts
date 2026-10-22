@@ -5,12 +5,13 @@ import {
   resolveRelationStrokeStyle,
   type ConnectorStrokeStyle,
 } from "@/lib/connector-style";
-import { CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
+import { CONTEXT_MAP_PATTERN_LABELS, type ContextMapPattern } from "@/types/storm-relation";
 import type { BoardConnector } from "@/types/board-connector";
 import type { LineArrowHead } from "@/types/canvas-annotation";
 
-const CONTEXT_PATTERN_STYLE: Record<
-  string,
+/** Context-map edge paint — shared by canvas and board export. */
+export const CONTEXT_MAP_CONNECTOR_STYLE: Record<
+  ContextMapPattern,
   { stroke: string; dash?: string; width: number; double?: boolean }
 > = {
   partnership: { stroke: "#2a9d8f", width: 3 },
@@ -22,6 +23,8 @@ const CONTEXT_PATTERN_STYLE: Record<
   publishedLanguage: { stroke: "#264653", width: 2, dash: "2 2" },
   separateWays: { stroke: "#adb5bd", width: 2, dash: "10 6" },
 };
+
+const CONTEXT_PATTERN_STYLE = CONTEXT_MAP_CONNECTOR_STYLE;
 
 export function connectorArrowHead(c: BoardConnector): LineArrowHead {
   return c.arrowHead ?? "end";

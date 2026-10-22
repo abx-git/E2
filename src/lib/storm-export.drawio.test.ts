@@ -134,6 +134,7 @@ describe("buildDrawioMxFile", () => {
     expect(mx).toContain('id="el_cmd-1"');
     expect(mx).toContain('source="el_cmd-1"');
     expect(mx).toContain('target="el_evt-1"');
+    expect(mx).toContain('id="conn_rel-1"');
     expect(mx).toContain('id="lane_lane-1"');
     expect(mx).toContain('id="bc_bc-1"');
     expect(mx).toContain('id="timeline"');
@@ -163,11 +164,12 @@ describe("buildDrawioMxFile", () => {
     expect(mx).toContain("fillOpacity=38");
     expect(mx).toContain("shape=partialRectangle");
     expect(mx).toContain("strokeColor=#e9c46a");
-    expect(mx).toContain("id=\"line_line-1\"");
+    expect(mx).toContain("id=\"conn_line-1\"");
     expect(mx).toContain("after validation");
+    expect(mx).toContain(`background="${DEFAULT_APPEARANCE.canvas}"`);
     expect(mx).not.toContain("löst aus");
 
-    const relAt = mx.indexOf('id="rel_rel-1"');
+    const relAt = mx.indexOf('id="conn_rel-1"');
     const evtAt = mx.indexOf('id="el_evt-1"');
     const aggAt = mx.indexOf('id="el_agg-1"');
     const cmdAt = mx.indexOf('id="el_cmd-1"');
