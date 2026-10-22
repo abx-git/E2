@@ -15,7 +15,7 @@ import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { placeElementAtViewportCenter } from "@/lib/place-element-on-canvas";
 import { useIsMobileLayout } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { modelingModeLabel, useT } from "@/i18n";
+import { elementTypeLabel, modelingModeLabel, useT } from "@/i18n";
 import { partitionPaletteTypes, type ElementType } from "@/types/storm-element";
 import type { FacilitatorPhase } from "@/lib/facilitator-phases";
 import type { WorkshopFormat } from "@/types/storm-element";
@@ -230,14 +230,14 @@ function MobilePaletteSheet({
             color: style.ink,
           }}
         >
-          {style.label}
+          {elementTypeLabel(t, type)}
         </button>
         {onRequestHelp && (
           <button
             type="button"
             className="dock-control shrink-0 self-center rounded-md p-2 touch-manipulation"
             title={t("mobile.help")}
-            aria-label={t("mobile.helpFor", { type })}
+            aria-label={t("mobile.helpFor", { type: elementTypeLabel(t, type) })}
             onClick={(e) => {
               e.stopPropagation();
               onRequestHelp(type);

@@ -29,6 +29,14 @@ export const coreEn = {
     defaultWorkingFile: "Working file",
     defaultBoardFile: "board.storm.json",
     unnamedBoard: "Untitled board",
+    ok: "OK",
+  },
+  helpPhase: {
+    title: "Facilitator phase: {title}",
+    subtitle: "{format} — standard workflow & checklist",
+    allowedElements: "Allowed element types: {count}",
+    tip: "Tip: move fast first, then consolidate.",
+    moreChip: "+{count} more",
   },
   language: {
     label: "Language",

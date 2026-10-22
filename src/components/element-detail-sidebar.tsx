@@ -46,6 +46,7 @@ import { CONNECTOR_ARROW_HEADS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import {
   connectorStrokeStyleLabel,
+  elementTypeLabel,
   lineArrowHeadLabel,
   relationTypeLabel,
   useT,
@@ -551,10 +552,14 @@ export function ElementDetailSidebar({
   const width = selectedElement.width ?? style.defaultWidth;
   const height = selectedElement.height ?? style.defaultHeight;
   const cardFlagsActive = cardShowsDetails(selectedElement);
+  const panelTitle =
+    selectedElement.type === "customCard"
+      ? style.label
+      : elementTypeLabel(t, selectedElement.type);
 
   return (
     <DockPanel
-      title={style.label}
+      title={panelTitle}
       t={t}
       onHelp={() => onRequestHelpElementType?.(selectedElement.type)}
     >

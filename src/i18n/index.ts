@@ -45,4 +45,7 @@ export {
   hotspotPriorityLabel,
   progressMarkShortLabel,
   progressMarkLongLabel,
+  elementTypeLabel,
+  elementTypeShortLabel,
+  elementCardTypeCaption,
 } from "@/i18n/domain-labels";

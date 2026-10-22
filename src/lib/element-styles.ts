@@ -1,5 +1,8 @@
 import type { CustomCardType } from "@/lib/custom-card-types";
 import { findCustomCardType, stereotypeLabel } from "@/lib/custom-card-types";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { elementCardTypeCaption } from "@/i18n/domain-labels";
+import { createTranslator } from "@/i18n/translate";
 import type { ElementType, StormElement } from "@/types/storm-element";
 
 export interface ElementStyle {
@@ -717,23 +720,13 @@ export function resolveElementStyle(
   };
 }
 
-const SUBDOMAIN_KIND_CAPTION: Record<string, string> = {
-  core: "Core",
-  supporting: "Supporting",
-  generic: "Generic",
-};
-
 /** Small type line shown at the top of a sticky. */
 export function cardTypeCaption(
   element: Pick<StormElement, "type" | "metadata">,
   customCardTypes: CustomCardType[] = [],
+  locale: Locale = DEFAULT_LOCALE,
 ): string {
-  if (element.type === "aggregate") return "Aggregate Root";
-  if (element.type === "subdomain") {
-    const kind = element.metadata?.subdomainKind ?? "core";
-    return `Subdomain · ${SUBDOMAIN_KIND_CAPTION[kind] ?? "Core"}`;
-  }
-  return resolveElementStyle(element, customCardTypes).label;
+  return elementCardTypeCaption(createTranslator(locale), element, customCardTypes);
 }
 
 /** Style for a custom type row in the palette (before an element exists). */

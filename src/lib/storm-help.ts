@@ -1,5 +1,10 @@
 import type { FacilitatorPhase } from "@/lib/facilitator-phases";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import {
+  elementTypeShortLabel,
+  workshopFormatLabel,
+} from "@/i18n/domain-labels";
+import { createTranslator } from "@/i18n/translate";
 import type { ElementType, WorkshopFormat } from "@/types/storm-element";
 import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
 import { CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
@@ -59,19 +64,25 @@ export function getContextMapHelp(
   );
 }
 
-export function getPhaseHelp(format: WorkshopFormat, phase: FacilitatorPhase): HelpDialogModel {
+export function getPhaseHelp(
+  format: WorkshopFormat,
+  phase: FacilitatorPhase,
+  locale: Locale = DEFAULT_LOCALE,
+): HelpDialogModel {
+  const t = createTranslator(locale);
+  const formatLabel = workshopFormatLabel(t, format);
+  const extra = phase.allowedTypes.length - 6;
   return {
-    title: `Facilitator Phase: ${phase.title}`,
-    subtitle: `${format} — Standard-Workflow & Checkliste`,
-    paragraphs: [phase.description, `Erlaubte Elemente: ${phase.allowedTypes.length}`],
-    bullets: [
-      ...phase.checklist,
-      "",
-      "Tipp: Arbeite erst schnell, dann konsolidieren.",
+    title: t("helpPhase.title", { title: phase.title }),
+    subtitle: t("helpPhase.subtitle", { format: formatLabel }),
+    paragraphs: [
+      phase.description,
+      t("helpPhase.allowedElements", { count: phase.allowedTypes.length }),
     ],
+    bullets: [...phase.checklist, "", t("helpPhase.tip")],
     chips: [
-      ...phase.allowedTypes.slice(0, 6).map(String),
-      ...(phase.allowedTypes.length > 6 ? [`+${phase.allowedTypes.length - 6} weitere`] : []),
+      ...phase.allowedTypes.slice(0, 6).map((ty) => elementTypeShortLabel(t, ty)),
+      ...(extra > 0 ? [t("helpPhase.moreChip", { count: extra })] : []),
     ],
   };
 }

@@ -27,7 +27,7 @@ describe("board export visual helpers", () => {
   it("emits type captions matching the canvas", () => {
     expect(elementTypeBadgeLabel(el({ type: "domainEvent", label: "A" }))).toBe("Domain Event");
     expect(elementTypeBadgeLabel(el({ type: "command", label: "A" }))).toBe("Command");
-    expect(elementTypeBadgeLabel(el({ type: "instruction", label: "A" }))).toBe("Instruction");
+    expect(elementTypeBadgeLabel(el({ type: "instruction", label: "A" }))).toBe("Anweisung");
     expect(elementTypeBadgeLabel(el({ type: "aggregate", label: "A" }))).toBe("Aggregate Root");
     expect(
       elementTypeBadgeLabel(

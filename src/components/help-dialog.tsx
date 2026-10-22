@@ -104,7 +104,7 @@ export function HelpDialog({ open, model, onClose }: HelpDialogProps) {
             onClick={onClose}
             className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            OK
+            {t("common.ok")}
           </button>
         </div>
       </div>
