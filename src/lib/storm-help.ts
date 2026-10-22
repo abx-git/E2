@@ -28,6 +28,12 @@ export interface HelpDialogModel {
   chips?: string[];
 }
 
+export type HelpRequest =
+  | { kind: "element"; type: ElementType }
+  | { kind: "relation"; type: RelationType }
+  | { kind: "contextMap"; type: ContextMapPattern }
+  | { kind: "phase"; format: WorkshopFormat; phase: FacilitatorPhase };
+
 const ELEMENT_HELP_BY_LOCALE: Record<Locale, Record<ElementType, HelpDialogModel>> = {
   de: ELEMENT_HELP_DE,
   en: ELEMENT_HELP_EN,
@@ -42,6 +48,19 @@ const CONTEXT_MAP_HELP_BY_LOCALE: Record<Locale, Record<ContextMapPattern, HelpD
   de: CONTEXT_MAP_HELP_DE,
   en: CONTEXT_MAP_HELP_EN,
 };
+
+export function resolveHelpRequest(request: HelpRequest, locale: Locale = DEFAULT_LOCALE): HelpDialogModel {
+  switch (request.kind) {
+    case "element":
+      return getElementHelp(request.type, locale);
+    case "relation":
+      return getRelationHelp(request.type, locale);
+    case "contextMap":
+      return getContextMapHelp(request.type, locale);
+    case "phase":
+      return getPhaseHelp(request.format, request.phase, locale);
+  }
+}
 
 export function getElementHelp(type: ElementType, locale: Locale = DEFAULT_LOCALE): HelpDialogModel {
   return ELEMENT_HELP_BY_LOCALE[locale][type];
