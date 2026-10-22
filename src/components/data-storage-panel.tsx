@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AppearanceSettings } from "@/components/appearance-settings";
 import {
+  ArrowLeftRight,
   Clock,
   ClipboardCopy,
   ClipboardPaste,
@@ -38,7 +39,7 @@ import {
   type FileLibraryEntry,
 } from "@/lib/file-library";
 import { listRecentWorkingFiles } from "@/lib/working-file";
-import { modelingModeLabel, useI18n, useT } from "@/i18n";
+import { useI18n, useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ModelingMode } from "@/types/storm-element";
 
@@ -171,6 +172,17 @@ function ActionButton({
     >
       {children}
     </button>
+  );
+}
+
+function PanelSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-2">
+      <h3 className="text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
+        {title}
+      </h3>
+      {children}
+    </section>
   );
 }
 
@@ -549,7 +561,7 @@ export function DataStoragePanel({
 
   const tabs: Array<{ id: StorageTabId; label: string; icon: typeof FolderOpen }> = [
     { id: "file", label: t("storage.tabFile"), icon: FolderOpen },
-    { id: "export", label: t("storage.tabExport"), icon: Share2 },
+    { id: "export", label: t("storage.tabExport"), icon: ArrowLeftRight },
     { id: "appearance", label: t("storage.tabAppearance"), icon: Palette },
   ];
 
@@ -573,9 +585,6 @@ export function DataStoragePanel({
             <h2 id="storage-panel-title" className="text-base font-semibold tracking-tight">
               {t("storage.panelTitle")}
             </h2>
-            <p className="mt-1 text-xs text-[var(--muted)]">
-              {t("storage.panelHint")}
-            </p>
           </div>
           <button
             type="button"
@@ -618,9 +627,102 @@ export function DataStoragePanel({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4" role="tabpanel">
           {activeTab === "file" && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-[var(--text)]">{t("storage.libraryTitle")}</p>
+            <div className="space-y-5">
+              <PanelSection title={t("storage.sectionWorkingFile")}>
+                {workingFileAttached ? (
+                  <p className="text-xs text-[var(--muted)]">
+                    <span className="font-medium text-[var(--text)]">
+                      {workingFileLabel ?? t("common.defaultWorkingFile")}
+                    </span>
+                    {syncStatus ? ` · ${syncStatus}` : null}
+                  </p>
+                ) : (
+                  <p className="text-xs text-[var(--muted)]">{t("storage.noSyncTarget")}</p>
+                )}
+                {workingFilePersistPaused && (
+                  <p className="rounded-lg border border-[var(--accent-2)]/40 bg-[rgba(233,196,106,0.12)] px-2.5 py-2 text-xs text-[var(--accent-2)]">
+                    {t("storage.autosavePausedHint")}
+                  </p>
+                )}
+                {hasUnsavedDocument && (
+                  <p className="rounded-lg border border-[var(--accent-2)]/40 bg-[rgba(233,196,106,0.12)] px-2.5 py-2 text-xs text-[var(--accent-2)]">
+                    {t("storage.unsavedHint")}
+                  </p>
+                )}
+                <div className="grid grid-cols-2 gap-2">
+                  <ActionButton onClick={onNewWorkingFile} disabled={busy}>
+                    <FilePlus className="h-4 w-4" /> {t("common.new")}
+                  </ActionButton>
+                  {fsAccessSupported ? (
+                    <ActionButton onClick={onOpenWorkingFile} disabled={busy}>
+                      <FolderOpen className="h-4 w-4" /> {t("common.open")}
+                    </ActionButton>
+                  ) : (
+                    <ActionButton onClick={onRestoreBackupFile} disabled={busy}>
+                      <FolderOpen className="h-4 w-4" /> {t("common.open")}
+                    </ActionButton>
+                  )}
+                  {workingFileAttached ? (
+                    <ActionButton
+                      onClick={onSaveWorkingFile}
+                      disabled={busy || (!workingFileDirty && !workingFilePersistPaused)}
+                      emphasize={workingFileDirty || Boolean(hasUnsavedDocument)}
+                    >
+                      <Save className="h-4 w-4" /> {t("common.save")}
+                    </ActionButton>
+                  ) : null}
+                  <ActionButton
+                    onClick={onSaveWorkingFileAs}
+                    disabled={busy}
+                    emphasize={!workingFileAttached && Boolean(hasUnsavedDocument)}
+                  >
+                    <Save className="h-4 w-4" /> {t("storage.saveAs")}
+                  </ActionButton>
+                  {workingFileAttached && onCloseWorkingFile ? (
+                    <ActionButton onClick={onCloseWorkingFile} disabled={busy}>
+                      <X className="h-4 w-4" /> {t("common.close")}
+                    </ActionButton>
+                  ) : null}
+                  {workingFileAttached && onRenameWorkingFile ? (
+                    <ActionButton onClick={onRenameWorkingFile} disabled={busy}>
+                      {t("common.rename")}
+                    </ActionButton>
+                  ) : null}
+                </div>
+                {busy && (
+                  <p className="flex items-center gap-2 text-xs text-[var(--muted)]">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t("common.loading")}
+                  </p>
+                )}
+                {fsAccessSupported && !libraryReady && recentFiles.length > 0 ? (
+                  <ul className="space-y-1 pt-1">
+                    <p className="text-[0.65rem] font-medium text-[var(--muted)]">
+                      {t("storage.sectionRecent")}
+                    </p>
+                    {recentFiles.map((entry) => (
+                      <li key={`${entry.name}-${entry.openedAt}`}>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => onOpenRecentWorkingFile(entry.handle)}
+                          className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
+                          title={new Date(entry.openedAt).toLocaleString(bcp47)}
+                        >
+                          <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-medium">{entry.name}</span>
+                            <span className="block text-[0.65rem] text-[var(--muted)]">
+                              {new Date(entry.openedAt).toLocaleString(bcp47)}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </PanelSection>
+
+              <PanelSection title={t("storage.sectionLibrary")}>
                 {libraryReady ? (
                   <p className="text-[0.7rem] leading-snug text-[var(--muted)]">
                     {t("storage.libraryHint", {
@@ -704,114 +806,7 @@ export function DataStoragePanel({
                     </ActionButton>
                   ) : null}
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                {workingFileAttached ? (
-                  <p className="text-xs text-[var(--muted)]">
-                    <span className="font-medium text-[var(--text)]">
-                      {workingFileLabel ?? t("common.defaultWorkingFile")}
-                    </span>
-                    {syncStatus ? ` · ${syncStatus}` : null}
-                  </p>
-                ) : (
-                  <p className="text-xs text-[var(--muted)]">
-                    {t("storage.noSyncTarget")}
-                  </p>
-                )}
-                {workingFilePersistPaused && (
-                  <p className="rounded-lg border border-[var(--accent-2)]/40 bg-[rgba(233,196,106,0.12)] px-2.5 py-2 text-xs text-[var(--accent-2)]">
-                    {t("storage.autosavePausedHint")}
-                  </p>
-                )}
-                {hasUnsavedDocument && (
-                  <p className="rounded-lg border border-[var(--accent-2)]/40 bg-[rgba(233,196,106,0.12)] px-2.5 py-2 text-xs text-[var(--accent-2)]">
-                    {t("storage.unsavedHint")}
-                  </p>
-                )}
-                <div className="grid grid-cols-2 gap-2">
-                  <ActionButton onClick={onNewWorkingFile} disabled={busy}>
-                    <FilePlus className="h-4 w-4" /> {t("common.new")}
-                  </ActionButton>
-                  {fsAccessSupported ? (
-                    <ActionButton onClick={onOpenWorkingFile} disabled={busy}>
-                      <FolderOpen className="h-4 w-4" /> {t("common.open")}
-                    </ActionButton>
-                  ) : (
-                    <ActionButton onClick={onRestoreBackupFile} disabled={busy}>
-                      <FolderOpen className="h-4 w-4" /> {t("common.open")}
-                    </ActionButton>
-                  )}
-                  {workingFileAttached ? (
-                    <ActionButton
-                      onClick={onSaveWorkingFile}
-                      disabled={busy || (!workingFileDirty && !workingFilePersistPaused)}
-                      emphasize={workingFileDirty || Boolean(hasUnsavedDocument)}
-                    >
-                      <Save className="h-4 w-4" /> {t("common.save")}
-                    </ActionButton>
-                  ) : null}
-                  <ActionButton
-                    onClick={onSaveWorkingFileAs}
-                    disabled={busy}
-                    emphasize={!workingFileAttached && Boolean(hasUnsavedDocument)}
-                  >
-                    <Save className="h-4 w-4" /> {t("storage.saveAs")}
-                  </ActionButton>
-                  {workingFileAttached && onCloseWorkingFile ? (
-                    <ActionButton onClick={onCloseWorkingFile} disabled={busy}>
-                      <X className="h-4 w-4" /> {t("common.close")}
-                    </ActionButton>
-                  ) : null}
-                  {workingFileAttached && onRenameWorkingFile ? (
-                    <ActionButton onClick={onRenameWorkingFile} disabled={busy}>
-                      {t("common.rename")}
-                    </ActionButton>
-                  ) : null}
-                </div>
-                {busy && (
-                  <p className="flex items-center gap-2 text-xs text-[var(--muted)]">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t("common.loading")}
-                  </p>
-                )}
-              </div>
-
-              <Disclosure title={t("storage.moreActions")}>
-                <ActionButton
-                  onClick={onRestoreBackupPaste}
-                  disabled={busy}
-                >
-                  {t("storage.pasteJson")}
-                </ActionButton>
-                {fsAccessSupported && !libraryReady && recentFiles.length > 0 && (
-                  <div className="space-y-1.5">
-                    <p className="text-[0.7rem] font-medium text-[var(--muted)]">
-                      {t("storage.recentFiles")}
-                    </p>
-                    <ul className="space-y-1">
-                      {recentFiles.map((entry) => (
-                        <li key={`${entry.name}-${entry.openedAt}`}>
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => onOpenRecentWorkingFile(entry.handle)}
-                            className="dock-control flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm disabled:opacity-50"
-                            title={new Date(entry.openedAt).toLocaleString(bcp47)}
-                          >
-                            <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate font-medium">{entry.name}</span>
-                              <span className="block text-[0.65rem] text-[var(--muted)]">
-                                {new Date(entry.openedAt).toLocaleString(bcp47)}
-                              </span>
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </Disclosure>
+              </PanelSection>
 
               <Disclosure
                 title={t("backup.title")}
@@ -956,38 +951,52 @@ export function DataStoragePanel({
                   </div>
                 ) : null}
               </Disclosure>
-
-              <div className="space-y-2 border-t border-[var(--border)] pt-4">
-                <p className="text-xs text-[var(--muted)]">{t("storage.exportImportHint")}</p>
-                <ActionButton onClick={onImportAsNewViews} disabled={busy}>
-                  <Upload className="h-4 w-4" /> {t("storage.importAsNewPage")}
-                </ActionButton>
-                <ActionButton onClick={onPasteJsonAsNewView} disabled={busy}>
-                  <ClipboardPaste className="h-4 w-4" /> {t("storage.jsonAsNewViewShort")}
-                </ActionButton>
-                {onOpenBoardShareLink && (
-                  <ActionButton
-                    onClick={onOpenBoardShareLink}
-                    disabled={busy}
-                  >
-                    <Share2 className="h-4 w-4" /> {t("storage.shareBoardLink")}
-                  </ActionButton>
-                )}
-                {onOpenCollab && (
-                  <ActionButton onClick={onOpenCollab}>
-                    <Users className="h-4 w-4" /> {t("storage.createJoinRoom")}
-                  </ActionButton>
-                )}
-              </div>
             </div>
           )}
 
           {activeTab === "export" && (
-            <div className="space-y-3">
-              <p className="text-xs text-[var(--muted)]">
-                {t("storage.exportModeHint", { mode: modelingModeLabel(t, modelingMode) })}{" "}
-                {t("storage.exportActiveViewHint")}
-              </p>
+            <div className="space-y-5">
+              <PanelSection title={t("storage.sectionImport")}>
+                <div className="grid grid-cols-1 gap-1.5">
+                  <ActionButton onClick={onImportAsNewViews} disabled={busy}>
+                    <Upload className="h-4 w-4" /> {t("storage.importAsNewPage")}
+                  </ActionButton>
+                  <ActionButton onClick={onRestoreBackupPaste} disabled={busy}>
+                    <ClipboardPaste className="h-4 w-4" /> {t("storage.importBoardFromClipboard")}
+                  </ActionButton>
+                  <ActionButton onClick={onPasteJsonAsNewView} disabled={busy}>
+                    <ClipboardPaste className="h-4 w-4" /> {t("storage.jsonAsNewViewShort")}
+                  </ActionButton>
+                  <ActionButton onClick={onPasteAiContextAsNewView} disabled={busy}>
+                    <ClipboardPaste className="h-4 w-4" /> {t("exportPanel.pasteAi")}
+                  </ActionButton>
+                  {onPasteE2vAsNewView ? (
+                    <ActionButton onClick={onPasteE2vAsNewView} disabled={busy}>
+                      <ClipboardPaste className="h-4 w-4" /> {t("exportPanel.pasteE2v")}
+                    </ActionButton>
+                  ) : null}
+                  <ActionButton onClick={onPasteDiagramAsNewView} disabled={busy}>
+                    <ClipboardPaste className="h-4 w-4" /> {t("exportPanel.pasteDiagram")}
+                  </ActionButton>
+                </div>
+              </PanelSection>
+
+              {(onOpenCollab || onOpenBoardShareLink) && (
+                <PanelSection title={t("storage.sectionCollab")}>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {onOpenCollab ? (
+                      <ActionButton onClick={onOpenCollab} disabled={busy}>
+                        <Users className="h-4 w-4" /> {t("storage.createJoinRoom")}
+                      </ActionButton>
+                    ) : null}
+                    {onOpenBoardShareLink ? (
+                      <ActionButton onClick={onOpenBoardShareLink} disabled={busy}>
+                        <Share2 className="h-4 w-4" /> {t("storage.shareBoardLink")}
+                      </ActionButton>
+                    ) : null}
+                  </div>
+                </PanelSection>
+              )}
 
               <ExportGroup title={t("exportPanel.groupBoard")} hint={t("exportPanel.groupBoardHint")}>
                 <ExportTile
@@ -1130,14 +1139,6 @@ export function DataStoragePanel({
                     emphasize={viewJsonCopied}
                   />
                   <ExportTile
-                    onClick={onPasteJsonAsNewView}
-                    disabled={busy}
-                    label={t("exportPanel.pasteJson")}
-                    detail={t("exportPanel.pasteJsonAsView")}
-                    icon={ClipboardPaste}
-                    emphasize
-                  />
-                  <ExportTile
                     onClick={() => {
                       void Promise.resolve(
                         onCopyAiPackageToClipboard(selectedExportViewId),
@@ -1152,14 +1153,6 @@ export function DataStoragePanel({
                     detail={t("exportPanel.aiContextDetail")}
                     icon={ClipboardCopy}
                     emphasize={aiPackageCopied}
-                  />
-                  <ExportTile
-                    onClick={onPasteAiContextAsNewView}
-                    disabled={busy}
-                    label={t("exportPanel.pasteAi")}
-                    detail={t("exportPanel.pasteAiDetail")}
-                    icon={ClipboardPaste}
-                    emphasize
                   />
                   {onExportViewE2v ? (
                     <ExportTile
@@ -1187,16 +1180,6 @@ export function DataStoragePanel({
                       emphasize={e2vPackageCopied}
                     />
                   ) : null}
-                  {onPasteE2vAsNewView ? (
-                    <ExportTile
-                      onClick={onPasteE2vAsNewView}
-                      disabled={busy}
-                      label={t("exportPanel.pasteE2v")}
-                      detail={t("exportPanel.pasteE2vDetail")}
-                      icon={ClipboardPaste}
-                      emphasize
-                    />
-                  ) : null}
                 </div>
               </div>
 
@@ -1207,9 +1190,6 @@ export function DataStoragePanel({
                   </p>
                   <p className="text-[0.65rem] text-[var(--muted)]">{t("exportPanel.diagramSectionHint")}</p>
                 </div>
-                <p className="mb-2 px-0.5 text-[0.65rem] text-[var(--muted)]">
-                  {t("storage.exportViewHint")}
-                </p>
                 <div className="grid grid-cols-2 gap-1.5">
                   <ExportTile
                     onClick={() => onExportViewMermaid(selectedExportViewId)}
@@ -1256,14 +1236,6 @@ export function DataStoragePanel({
                     detail={t("exportPanel.clipboard")}
                     icon={ClipboardCopy}
                     emphasize={plantUmlCopied}
-                  />
-                  <ExportTile
-                    onClick={onPasteDiagramAsNewView}
-                    disabled={busy}
-                    label={t("exportPanel.pasteDiagram")}
-                    detail={t("exportPanel.pasteDiagramDetail")}
-                    icon={ClipboardPaste}
-                    emphasize
                   />
                 </div>
               </div>
@@ -1313,7 +1285,11 @@ export function DataStoragePanel({
 
               {otherMethods.length > 0 && (
                 <Disclosure
-                  title={matchedMethods.length > 0 ? "Weitere Methoden" : "Methoden"}
+                  title={
+                    matchedMethods.length > 0
+                      ? t("exportPanel.otherMethods")
+                      : t("exportPanel.methodsFallback")
+                  }
                   defaultOpen={matchedMethods.length === 0}
                 >
                   <div className="grid grid-cols-2 gap-1.5">

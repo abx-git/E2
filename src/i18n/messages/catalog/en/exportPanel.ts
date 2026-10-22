@@ -86,6 +86,8 @@ export const exportPanelEn = {
     glossaryTermsDetail: "Terms",
     contextMapBcDetail: "BC interfaces",
     methodsGroup: "Methods",
+    otherMethods: "Other methods",
+    methodsFallback: "Methods",
     mermaidCopied: "Mermaid copied",
     plantUmlCopied: "PlantUML copied",
     jsonCopied: "JSON copied",
