@@ -38,6 +38,7 @@ export {
   relationTypeLabel,
   contextMapPatternLabel,
   lineArrowHeadLabel,
+  connectorStrokeStyleLabel,
   actionItemStatusLabel,
   actionItemAreaLabel,
   workshopFormatLabel,

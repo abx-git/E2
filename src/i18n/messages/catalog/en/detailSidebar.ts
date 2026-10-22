@@ -1,0 +1,223 @@
+export const detailSidebarEn = {
+  detailSidebar: {
+    help: "Help",
+    moreViaContextMenu: "More: right-click",
+    delete: "Delete",
+    optional: "Optional",
+    open: "Open",
+    active: "active",
+    chooseView: "— choose —",
+    currentViewSuffix: " (current)",
+    noCardType: "— no type —",
+
+    titles: {
+      connector: "Connector",
+      relation: "Relation",
+      swimlane: "Swimlane",
+      boundedContext: "Bounded Context",
+      multiElements: "{count} elements",
+    },
+
+    multiSelectHint: "Align, distribute, and delete via right-click.",
+
+    fields: {
+      label: "Label",
+      kind: "Kind",
+      caption: "Caption",
+      line: "Line",
+      arrow: "Arrow",
+      color: "Color",
+      text: "Text",
+      description: "Description",
+      purpose: "Purpose",
+      eventSchema: "Event schema",
+      attributesPerLine: "Attributes (one per line)",
+      methodsPerLine: "Methods (one per line)",
+      invariantsPerLine: "Invariants (one per line)",
+      identityPerLine: "Identity (one per line)",
+      operationsPerLine: "Operations (one per line)",
+      attributesComponentsPerLine: "Attributes / components (one per line)",
+      aggregateRoot: "Aggregate root",
+      creates: "Creates",
+      subdomainKind: "Subdomain kind",
+      ruleCriteriaPerLine: "Criteria / notes (one per line)",
+      givenPerLine: "Given (one per line)",
+      whenPerLine: "When (one per line)",
+      thenPerLine: "Then (one per line)",
+      status: "Status",
+      persona: "Persona",
+      priority: "Priority",
+      estimate: "Estimate",
+      acceptancePerLine: "Acceptance criteria (one per line)",
+      sliceGoal: "Slice goal",
+      releaseGoal: "Release goal",
+      sliceSystemsPerLine: "Systems / lanes (one per line)",
+      processRole: "Role / owner",
+      processSystem: "System",
+      processDuration: "Duration / SLA",
+      processInputsPerLine: "Inputs (one per line)",
+      processOutputsPerLine: "Outputs (one per line)",
+      gatewayKind: "Gateway kind",
+      gatewayConditionsPerLine: "Conditions / paths (one per line)",
+      processTrigger: "Trigger",
+      processResult: "Outcome",
+      dataTableName: "Table name (optional)",
+      dataIdentityPerLine: "Primary key / identity (one per line)",
+      dataAttributesPerLine: "Attributes (one per line, e.g. name: string)",
+      dataUniqueKeysPerLine: "Unique keys (one per line)",
+      dataCardinality: "Cardinality",
+      dataLeftEntity: "Left entity",
+      dataRightEntity: "Right entity",
+      relationAttributesPerLine: "Relationship attributes (one per line)",
+      provider: "Provider",
+      technology: "Technology",
+      linkTargetKind: "Target kind",
+      url: "URL",
+      view: "View",
+    },
+
+    aria: {
+      arrowDirection: "Arrow direction",
+      captionMode: "Caption",
+      lineStyle: "Line style",
+      removeLink: "Remove link",
+    },
+
+    captionMode: {
+      kind: "Kind",
+      freeText: "Free text",
+    },
+
+    relationLabelOnConnector: "On connector: {type}",
+
+    description: {
+      none: "No description",
+      openWysiwyg: "Open WYSIWYG editor",
+    },
+
+    onCard: {
+      sectionTitle: "On card",
+      background: "Background",
+      cardType: "Card type",
+      typeColorAll: "Type color (all {name})",
+      fields: {
+        showDescriptionOnCard: "Description",
+        showAttributesOnCard: "Attributes",
+        showMethodsOnCard: "Methods",
+        showWebLinksOnCard: "Web links",
+      },
+    },
+
+    webLinks: {
+      sectionTitle: "Web links",
+      urlPlaceholder: "https://…",
+      titlePlaceholder: "Title (optional)",
+      addLink: "Add link",
+    },
+
+    positionSize: {
+      sectionTitle: "Position & size",
+      lockedHint: "Locked — position and size are protected.",
+      x: "X",
+      y: "Y",
+      width: "Width",
+      height: "Height",
+      zIndex: "Layer (z)",
+      rotation: "Rotation (°)",
+    },
+
+    boundedContext: {
+      detailExistsHint:
+        "Content was copied when created; changes in the detail view are independent.",
+      detailCreateHint:
+        "Creates a new view with this bounded context’s content and direct references outside.",
+    },
+
+    drilldown: {
+      hintC4SoftwareSystem: "C4 zoom: container diagram — whitebox scope with containers.",
+      hintC4Container: "C4 zoom: component diagram — whitebox scope with components.",
+      hintCloudBoundary: "Cloud zoom: workloads and networks inside the boundary.",
+      hintArchBlackbox: "Opens the whitebox of this building block (C4-style drill-down).",
+      hintDefault: "Zoom into the next refinement level.",
+    },
+
+    flags: {
+      immutable: "Immutable",
+      stateless: "Stateless",
+    },
+
+    jsonSchemaEmptyHint: "No schema fields — typically name → type",
+
+    noteColors: {
+      cream: "Cream",
+      yellow: "Yellow",
+      mint: "Mint",
+      sky: "Sky",
+      lavender: "Lavender",
+      rose: "Rose",
+      peach: "Peach",
+      slate: "Slate",
+    },
+
+    enums: {
+      storyPriority: {
+        must: "Must",
+        should: "Should",
+        could: "Could",
+        wont: "Won't",
+      },
+      subdomainKind: {
+        core: "Core domain",
+        supporting: "Supporting",
+        generic: "Generic",
+      },
+      questionStatus: {
+        open: "Open",
+        resolved: "Resolved",
+      },
+      gatewayKind: {
+        xor: "XOR (exclusive)",
+        and: "AND (parallel)",
+        or: "OR (inclusive)",
+      },
+      linkKind: {
+        external: "External URL",
+        view: "Board view",
+      },
+      dataCardinality: {
+        oneOne: "1:1",
+        oneMany: "1:n",
+        manyOne: "n:1",
+        manyMany: "n:m",
+      },
+    },
+
+    placeholders: {
+      aggregateAttributes: "e.g. status: OrderStatus\ntotal: Money",
+      aggregateInvariants: "e.g. balance must not be negative",
+      entityIdentity: "e.g. id\ncustomerId",
+      entityAttributes: "e.g. name: string\nemail: Email",
+      entityOperations: "e.g. rename(name)\nchangeEmail(email)",
+      valueObjectAttributes: "e.g. amount: decimal\ncurrency: string",
+      domainServiceOperations: "e.g. transfer(from, to, money)\ncalculateRisk(order)",
+      aggregateRootRef: "e.g. Order",
+      repositoryOperations: "e.g. findById(id)\nsave(aggregate)\nnextIdentity()",
+      createsRef: "e.g. Order / Customer",
+      factoryOperations: "e.g. createFromDraft(draft)\nreconstitute(snapshot)",
+      ruleCriteria: "e.g. registered customers only\nmax. 3 returns / year",
+      exampleGiven: "Initial situation",
+      exampleWhen: "Action",
+      exampleThen: "Expected outcome",
+      storyPersona: "e.g. buyer",
+      storyEstimate: "e.g. 3",
+      sliceGoal: "e.g. place order end-to-end",
+      releaseGoal: "e.g. MVP: order & pay",
+      sliceSystems: "e.g. Web UI\nOrder Service",
+      processDuration: "e.g. < 1 day",
+      gatewayConditions: "e.g. approved\nrejected",
+      cloudProvider: "e.g. AWS, Azure, GCP",
+      c4TechnologyCloud: "e.g. Lambda, AKS, Cloud SQL",
+      c4TechnologyDefault: "e.g. Spring Boot, PostgreSQL",
+    },
+  },
+} as const;
