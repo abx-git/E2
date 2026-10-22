@@ -3,7 +3,8 @@ import type { MessageKey } from "@/i18n/types";
 import type { ActionItemArea, ActionItemStatus } from "@/types/action-item";
 import type { LineArrowHead } from "@/types/canvas-annotation";
 import type { ConnectorStrokeStyle } from "@/lib/connector-style";
-import type { ModelingMode } from "@/types/storm-element";
+import type { HotspotPriority, ModelingMode } from "@/types/storm-element";
+import type { ProgressMark } from "@/lib/progress-mark";
 import type { ContextMapPattern, RelationType } from "@/types/storm-relation";
 
 function enumKey<T extends string>(prefix: string, value: T): MessageKey {
@@ -44,4 +45,16 @@ export function actionItemAreaLabel(t: TranslateFn, area: ActionItemArea): strin
 
 export function workshopFormatLabel(t: TranslateFn, format: string): string {
   return t(enumKey("workshopFormat", format));
+}
+
+export function hotspotPriorityLabel(t: TranslateFn, level: HotspotPriority): string {
+  return t(enumKey("hotspotPriority", level));
+}
+
+export function progressMarkShortLabel(t: TranslateFn, mark: ProgressMark): string {
+  return t(enumKey("progressMarkShort", mark));
+}
+
+export function progressMarkLongLabel(t: TranslateFn, mark: ProgressMark): string {
+  return t(enumKey("progressMarkLabel", mark));
 }

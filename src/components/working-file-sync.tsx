@@ -6,6 +6,7 @@ import {
   FileConflictDialog,
   type FileConflictChoice,
 } from "@/components/file-conflict-dialog";
+import { useT } from "@/i18n";
 import {
   applyBoardJsonToStore,
   boardJsonFromStoreState,
@@ -103,6 +104,7 @@ export function WorkingFileSync({
   onPersistPausedChange,
   onMultiTabUnsafeChange,
 }: WorkingFileSyncProps) {
+  const t = useT();
   const [conflictOpen, setConflictOpen] = useState(false);
   const [conflictBusy, setConflictBusy] = useState(false);
 
@@ -577,10 +579,10 @@ export function WorkingFileSync({
       fileName={getWorkingFileLabel()}
       busy={conflictBusy}
       allowLoadFile={!isCollabMode()}
-      title="Datei wurde extern geändert"
-      description="Dein Editor-Stand bleibt erhalten. Du kannst die Datei laden oder den Editor behalten und später unter neuem Namen speichern."
-      keepLocalLabel="Editor behalten (Datei-Kopie laden)"
-      loadFileLabel="Datei in E2 laden"
+      title={t("dialogs.externalFileChangedTitle")}
+      description={t("dialogs.externalFileChangedBody")}
+      keepLocalLabel={t("dialogs.importKeepEditor")}
+      loadFileLabel={t("dialogs.loadFile")}
       onChoose={(choice) => void handleConflictChoice(choice)}
     />
   );

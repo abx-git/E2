@@ -92,4 +92,18 @@ export const enumsEn = {
     medium: "Medium",
     high: "High",
   },
+  progressMarkShort: {
+    ok: "OK",
+    attention: "!",
+    question: "?",
+    working: "Working",
+    neu: "New",
+  },
+  progressMarkLabel: {
+    ok: "OK — done / approved",
+    attention: "! — needs attention",
+    question: "? — clarification open",
+    working: "In progress",
+    neu: "New",
+  },
 } as const;

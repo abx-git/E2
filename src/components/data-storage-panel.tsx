@@ -38,10 +38,9 @@ import {
   type FileLibraryEntry,
 } from "@/lib/file-library";
 import { listRecentWorkingFiles } from "@/lib/working-file";
-import { useI18n, useT } from "@/i18n";
+import { modelingModeLabel, useI18n, useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ModelingMode } from "@/types/storm-element";
-import { MODELING_MODE_LABELS } from "@/types/storm-element";
 
 const STORAGE_TAB_KEY = "e2.storage-panel.tab";
 
@@ -947,27 +946,24 @@ export function DataStoragePanel({
               </Disclosure>
 
               <div className="space-y-2 border-t border-[var(--border)] pt-4">
-                <p className="text-xs text-[var(--muted)]">
-                  E2-Datei oder JSON als neue Sicht(en) — Farben bleiben aus der geöffneten
-                  Datei.
-                </p>
+                <p className="text-xs text-[var(--muted)]">{t("storage.exportImportHint")}</p>
                 <ActionButton onClick={onImportAsNewViews} disabled={busy}>
-                  <Upload className="h-4 w-4" /> Als neue Seite importieren
+                  <Upload className="h-4 w-4" /> {t("storage.importAsNewPage")}
                 </ActionButton>
                 <ActionButton onClick={onPasteJsonAsNewView} disabled={busy}>
-                  <ClipboardPaste className="h-4 w-4" /> JSON als neue Sicht
+                  <ClipboardPaste className="h-4 w-4" /> {t("storage.jsonAsNewViewShort")}
                 </ActionButton>
                 {onOpenBoardShareLink && (
                   <ActionButton
                     onClick={onOpenBoardShareLink}
                     disabled={busy}
                   >
-                    <Share2 className="h-4 w-4" /> Board-Link teilen…
+                    <Share2 className="h-4 w-4" /> {t("storage.shareBoardLink")}
                   </ActionButton>
                 )}
                 {onOpenCollab && (
                   <ActionButton onClick={onOpenCollab}>
-                    <Users className="h-4 w-4" /> Raum erstellen / beitreten
+                    <Users className="h-4 w-4" /> {t("storage.createJoinRoom")}
                   </ActionButton>
                 )}
               </div>
@@ -977,16 +973,16 @@ export function DataStoragePanel({
           {activeTab === "export" && (
             <div className="space-y-3">
               <p className="text-xs text-[var(--muted)]">
-                {MODELING_MODE_LABELS[modelingMode]} — passende Formate sind hervorgehoben.
-                Bild und Prompt der aktiven Sicht auch über das Download-Symbol am Canvas.
+                {t("storage.exportModeHint", { mode: modelingModeLabel(t, modelingMode) })}{" "}
+                {t("storage.exportActiveViewHint")}
               </p>
 
-              <ExportGroup title="Board" hint="Alle Sichten">
+              <ExportGroup title={t("exportPanel.groupBoard")} hint={t("exportPanel.groupBoardHint")}>
                 <ExportTile
                   onClick={onExportJson}
                   disabled={busy}
                   label="JSON"
-                  detail=".storm.json herunterladen"
+                  detail={t("exportPanel.jsonDownloadDetail")}
                 />
                 <ExportTile
                   onClick={() => {
@@ -997,8 +993,8 @@ export function DataStoragePanel({
                     });
                   }}
                   disabled={busy}
-                  label={jsonCopied ? "Kopiert" : "JSON kopieren"}
-                  detail="System-Zwischenablage"
+                  label={jsonCopied ? t("common.copied") : t("exportPanel.jsonCopy")}
+                  detail={t("exportPanel.systemClipboard")}
                   icon={ClipboardCopy}
                   emphasize={jsonCopied}
                 />
@@ -1010,7 +1006,7 @@ export function DataStoragePanel({
                 />
               </ExportGroup>
 
-              <ExportGroup title="Aktive Sicht" hint="Canvas · Bild & Text">
+              <ExportGroup title={t("exportPanel.groupActiveView")} hint={t("exportPanel.groupActiveViewHint")}>
                 <ExportTile
                   onClick={() => {
                     void Promise.resolve(onCopyPromptToClipboard()).then((ok) => {
@@ -1020,8 +1016,8 @@ export function DataStoragePanel({
                     });
                   }}
                   disabled={busy}
-                  label={promptCopied ? "Kopiert" : "Prompt"}
-                  detail="Text für KI-Chat"
+                  label={promptCopied ? t("common.copied") : t("exportPanel.prompt")}
+                  detail={t("chrome.promptDetail")}
                   icon={FileText}
                   emphasize={promptCopied}
                 />
@@ -1029,19 +1025,19 @@ export function DataStoragePanel({
                   onClick={onExportPng}
                   disabled={busy}
                   label="PNG"
-                  detail="Rasterbild"
+                  detail={t("exportPanel.rasterImage")}
                 />
                 <ExportTile
                   onClick={onExportSvg}
                   disabled={busy}
                   label="SVG"
-                  detail="Draw.io-Datei"
+                  detail={t("exportPanel.drawioFile")}
                 />
                 <ExportTile
                   onClick={onExportPdf}
                   disabled={busy}
                   label="PDF"
-                  detail="Eine Seite, wie PNG"
+                  detail={t("exportPanel.pdfOnePage")}
                 />
                 <ExportTile
                   onClick={() => {
@@ -1052,8 +1048,8 @@ export function DataStoragePanel({
                     });
                   }}
                   disabled={busy}
-                  label={drawioCopied ? "Kopiert" : "Draw.io"}
-                  detail="In diagrams.net einfügen"
+                  label={drawioCopied ? t("common.copied") : "Draw.io"}
+                  detail={t("exportPanel.drawioPaste")}
                   icon={ClipboardCopy}
                   emphasize={drawioCopied}
                 />
@@ -1062,12 +1058,12 @@ export function DataStoragePanel({
               <div className="rounded-xl border border-[var(--border)] bg-[var(--control)]/35 p-2.5">
                 <div className="mb-2 flex items-baseline justify-between gap-2 px-0.5">
                   <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    Sicht
+                    {t("exportPanel.viewSection")}
                   </p>
-                  <p className="text-[0.65rem] text-[var(--muted)]">einzeln · zwei Formate</p>
+                  <p className="text-[0.65rem] text-[var(--muted)]">{t("exportPanel.viewSectionHint")}</p>
                 </div>
                 <label className="mb-2 block px-0.5">
-                  <span className="sr-only">Sicht wählen</span>
+                  <span className="sr-only">{t("storage.chooseView")}</span>
                   <select
                     className="dock-control w-full rounded-lg px-2.5 py-1.5 text-sm"
                     value={selectedExportViewId}
@@ -1077,7 +1073,7 @@ export function DataStoragePanel({
                     {views.map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.name}
-                        {v.id === activeViewId ? " (aktiv)" : ""}
+                        {v.id === activeViewId ? t("exportPanel.activeViewSuffix") : ""}
                       </option>
                     ))}
                   </select>
@@ -1087,7 +1083,7 @@ export function DataStoragePanel({
                     onClick={() => onExportViewJson(selectedExportViewId)}
                     disabled={busy || !selectedExportViewId}
                     label="JSON"
-                    detail="kompletter Extract"
+                    detail={t("exportPanel.viewJsonDetail")}
                   />
                   <ExportTile
                     onClick={() => {
@@ -1100,16 +1096,16 @@ export function DataStoragePanel({
                       );
                     }}
                     disabled={busy || !selectedExportViewId}
-                    label={viewJsonCopied ? "Kopiert" : "JSON kopieren"}
-                    detail="kompletter Extract"
+                    label={viewJsonCopied ? t("common.copied") : t("exportPanel.jsonCopy")}
+                    detail={t("exportPanel.viewJsonDetail")}
                     icon={ClipboardCopy}
                     emphasize={viewJsonCopied}
                   />
                   <ExportTile
                     onClick={onPasteJsonAsNewView}
                     disabled={busy}
-                    label="JSON einfügen"
-                    detail="als neue Sicht"
+                    label={t("exportPanel.pasteJson")}
+                    detail={t("exportPanel.pasteJsonAsView")}
                     icon={ClipboardPaste}
                     emphasize
                   />
@@ -1124,16 +1120,16 @@ export function DataStoragePanel({
                       });
                     }}
                     disabled={busy || !selectedExportViewId}
-                    label={aiPackageCopied ? "Kopiert" : "KI kopieren"}
-                    detail="Schema + Daten"
+                    label={aiPackageCopied ? t("common.copied") : t("exportPanel.aiContext")}
+                    detail={t("exportPanel.aiContextDetail")}
                     icon={ClipboardCopy}
                     emphasize={aiPackageCopied}
                   />
                   <ExportTile
                     onClick={onPasteAiContextAsNewView}
                     disabled={busy}
-                    label="KI einfügen"
-                    detail="Daten als neue Sicht"
+                    label={t("exportPanel.pasteAi")}
+                    detail={t("exportPanel.pasteAiDetail")}
                     icon={ClipboardPaste}
                     emphasize
                   />
@@ -1143,19 +1139,19 @@ export function DataStoragePanel({
               <div className="rounded-xl border border-[var(--border)] bg-[var(--control)]/35 p-2.5">
                 <div className="mb-2 flex items-baseline justify-between gap-2 px-0.5">
                   <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    Diagramm
+                    {t("exportPanel.diagramSection")}
                   </p>
-                  <p className="text-[0.65rem] text-[var(--muted)]">Mermaid · PlantUML</p>
+                  <p className="text-[0.65rem] text-[var(--muted)]">{t("exportPanel.diagramSectionHint")}</p>
                 </div>
                 <p className="mb-2 px-0.5 text-[0.65rem] text-[var(--muted)]">
-                  Export der gewählten Sicht; Import mit Auto-Layout als neue Sicht.
+                  {t("storage.exportViewHint")}
                 </p>
                 <div className="grid grid-cols-2 gap-1.5">
                   <ExportTile
                     onClick={() => onExportViewMermaid(selectedExportViewId)}
                     disabled={busy || !selectedExportViewId}
                     label="Mermaid"
-                    detail=".mmd herunterladen"
+                    detail={t("exportPanel.mmdDownload")}
                     emphasize
                   />
                   <ExportTile
@@ -1169,8 +1165,8 @@ export function DataStoragePanel({
                       );
                     }}
                     disabled={busy || !selectedExportViewId}
-                    label={mermaidCopied ? "Kopiert" : "Mermaid kopieren"}
-                    detail="Zwischenablage"
+                    label={mermaidCopied ? t("common.copied") : t("exportPanel.copyMermaid")}
+                    detail={t("exportPanel.clipboard")}
                     icon={ClipboardCopy}
                     emphasize={mermaidCopied}
                   />
@@ -1178,7 +1174,7 @@ export function DataStoragePanel({
                     onClick={() => onExportViewPlantUml(selectedExportViewId)}
                     disabled={busy || !selectedExportViewId}
                     label="PlantUML"
-                    detail=".puml herunterladen"
+                    detail={t("exportPanel.pumlDownload")}
                     emphasize
                   />
                   <ExportTile
@@ -1192,52 +1188,52 @@ export function DataStoragePanel({
                       });
                     }}
                     disabled={busy || !selectedExportViewId}
-                    label={plantUmlCopied ? "Kopiert" : "PlantUML kopieren"}
-                    detail="Zwischenablage"
+                    label={plantUmlCopied ? t("common.copied") : t("exportPanel.copyPlantUml")}
+                    detail={t("exportPanel.clipboard")}
                     icon={ClipboardCopy}
                     emphasize={plantUmlCopied}
                   />
                   <ExportTile
                     onClick={onPasteDiagramAsNewView}
                     disabled={busy}
-                    label="Diagramm einfügen"
-                    detail="Mermaid / PlantUML"
+                    label={t("exportPanel.pasteDiagram")}
+                    detail={t("exportPanel.pasteDiagramDetail")}
                     icon={ClipboardPaste}
                     emphasize
                   />
                 </div>
               </div>
 
-              <ExportGroup title="Berichte" hint="Markdown">
+              <ExportGroup title={t("exportPanel.reports")} hint={t("exportPanel.reportsHint")}>
                 <ExportTile
                   onClick={onExportHotspots}
                   disabled={busy}
-                  label="Hotspots"
-                  detail="Report"
+                  label={t("exportPanel.hotspotsReport")}
+                  detail={t("exportPanel.reportDetail")}
                 />
                 <ExportTile
                   onClick={onExportActionItems}
                   disabled={busy}
-                  label="To-dos"
-                  detail="Action Items"
+                  label={t("exportPanel.todosReport")}
+                  detail={t("exportPanel.actionItemsDetail")}
                 />
                 <ExportTile
                   onClick={onExportGlossary}
                   disabled={busy}
-                  label="Glossary"
-                  detail="Begriffe"
+                  label={t("exportPanel.glossaryReport")}
+                  detail={t("exportPanel.glossaryTermsDetail")}
                 />
                 <ExportTile
                   onClick={onExportContextMap}
                   disabled={busy}
-                  label="Context Map"
-                  detail="BC-Schnittstellen"
+                  label={t("exportPanel.contextMapReport")}
+                  detail={t("exportPanel.contextMapBcDetail")}
                   emphasize={modeMatches(modelingMode, "eventStorming", "domainDrivenDesign")}
                 />
               </ExportGroup>
 
               {matchedMethods.length > 0 && (
-                <ExportGroup title="Methoden" hint="Markdown">
+                <ExportGroup title={t("exportPanel.methodsGroup")} hint={t("exportPanel.markdownDetail")}>
                   {matchedMethods.map((m) => (
                     <ExportTile
                       key={m.id}

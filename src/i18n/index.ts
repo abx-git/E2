@@ -42,4 +42,7 @@ export {
   actionItemStatusLabel,
   actionItemAreaLabel,
   workshopFormatLabel,
+  hotspotPriorityLabel,
+  progressMarkShortLabel,
+  progressMarkLongLabel,
 } from "@/i18n/domain-labels";

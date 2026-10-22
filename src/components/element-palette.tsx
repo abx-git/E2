@@ -66,10 +66,11 @@ function CustomCardTypeEditDialog({
   customType: CustomCardType;
   onClose: () => void;
 }) {
+  const t = useT();
   const updateCustomCardType = useStormBoardStore((s) => s.updateCustomCardType);
   const deleteCustomCardType = useStormBoardStore((s) => s.deleteCustomCardType);
   const liveType =
-    useStormBoardStore((s) => s.customCardTypes.find((t) => t.id === customType.id)) ??
+    useStormBoardStore((s) => s.customCardTypes.find((ct) => ct.id === customType.id)) ??
     customType;
 
   const [nameDraft, setNameDraft] = useState(customType.name);
@@ -104,7 +105,7 @@ function CustomCardTypeEditDialog({
       className="fixed inset-0 z-[1400] flex items-end justify-center bg-black/30 p-3 sm:items-center"
       role="dialog"
       aria-modal="true"
-      aria-label="Kartentyp bearbeiten"
+      aria-label={t("panels.editCardType")}
       // pointerdown on backdrop only — click after text-select drag must not close
       onPointerDown={(e) => {
         if (e.target === e.currentTarget) finish();
@@ -116,15 +117,13 @@ function CustomCardTypeEditDialog({
       >
         <div className="mb-3 flex items-start justify-between gap-2">
           <div>
-            <h3 className="text-sm font-semibold text-[var(--text)]">Kartentyp</h3>
-            <p className="mt-0.5 text-[0.7rem] text-[var(--muted)]">
-              Name und Farbe gelten für alle Karten dieses Typs.
-            </p>
+            <h3 className="text-sm font-semibold text-[var(--text)]">{t("panels.cardTypeTitle")}</h3>
+            <p className="mt-0.5 text-[0.7rem] text-[var(--muted)]">{t("panels.paletteTypeHelp")}</p>
           </div>
           <button
             type="button"
             className="dock-control rounded-md p-1.5"
-            aria-label="Schließen"
+            aria-label={t("common.close")}
             onClick={finish}
           >
             <X className="h-4 w-4" />
@@ -442,8 +441,8 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
         <button
           type="button"
           className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
-          title="Hilfe zu diesem Element"
-          aria-label={`Hilfe für ${type}`}
+          title={t("panels.helpForElement")}
+          aria-label={t("panels.helpForType", { type: style.label })}
           onClick={(e) => {
             e.stopPropagation();
             onRequestHelp?.(type);
@@ -487,7 +486,7 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
         <button
           type="button"
           className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
-          title="Typ bearbeiten"
+          title={t("panels.editType")}
           aria-label={`${customType.name} bearbeiten`}
           onClick={(e) => {
             e.stopPropagation();
@@ -525,7 +524,7 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
         {isFreeform ? (
           <>
             <p className="px-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Kartentypen
+              {t("panels.cardTypesSection")}
             </p>
             {customCardTypes.map((ct) => renderCustomTypeRow(ct))}
             <button
@@ -537,7 +536,7 @@ export function ElementPalette({ onSelectType, onRequestHelp }: ElementPalettePr
               }}
             >
               <Plus className="h-3.5 w-3.5" />
-              Typ hinzufügen
+              {t("panels.addType")}
             </button>
             {customCardTypes.length === 0 && (
               <p className="px-0.5 text-[0.65rem] leading-snug text-[var(--muted)]">

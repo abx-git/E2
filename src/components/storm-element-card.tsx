@@ -30,6 +30,7 @@ import { cssStackingZIndex } from "@/lib/element-z-order";
 import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
 import { hexToRgba } from "@/lib/region-style";
 import { HighlightedText } from "@/components/highlighted-text";
+import { useT } from "@/i18n";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -94,6 +95,7 @@ export function StormElementCard({
   onStartConnect,
   onCompleteConnect,
 }: StormElementCardProps) {
+  const t = useT();
   const customCardTypes = useStormBoardStore((s) => s.customCardTypes);
   const style = resolveElementStyle(element, customCardTypes);
   const w = element.width ?? style.defaultWidth;
@@ -592,27 +594,27 @@ export function StormElementCard({
         }}
         title={
           dimForSearch
-            ? "Kein Suchtreffer"
+            ? t("panels.noSearchHit")
             : dimForFocus
-              ? `Fokus: ${ELEMENT_STYLES[paletteType].label} — anderes Element abgedunkelt`
+              ? t("panels.cardFocusDimmed", { type: ELEMENT_STYLES[paletteType].label })
               : !inActiveMode
-                ? "Element aus dem anderen Methoden-Modus"
+                ? t("panels.cardWrongMode")
                 : isLink
                   ? linkReady
                     ? linkKind === "view"
-                      ? `Doppelklick öffnet Sicht${linkPreview ? `: ${linkPreview}` : ""}`
-                      : `Doppelklick öffnet Link${linkPreview ? `: ${linkPreview}` : ""}`
-                    : "Ziel in der Detailleiste setzen"
+                      ? t("panels.openViewDblClick", { suffix: linkPreview ? `: ${linkPreview}` : "" })
+                      : t("panels.openLinkDblClick", { suffix: linkPreview ? `: ${linkPreview}` : "" })
+                    : t("panels.cardSetLinkTarget")
                   : isAggregate
-                  ? "Aggregate Root — Entity & Value Objects hineinziehen"
+                  ? t("panels.cardAggregateHint")
                   : isSubdomain
-                    ? "Subdomain — Problemraum-Bereich; Elemente hineinziehen"
+                    ? t("panels.cardSubdomainHint")
                     : isWhitebox
-                      ? "Whitebox — geöffneter Scope nach Zoom-in (C4-Grenze)"
+                      ? t("panels.whiteboxScope")
                       : isInstruction
-                        ? "Instruction — Anweisung für die Umsetzung"
+                        ? t("panels.instructionHint")
                         : supportsArchDrilldown(element.type)
-                          ? "Detail-Sicht: Zoom in (C4 / Blackbox→Whitebox)"
+                          ? t("panels.cardDrilldownHint")
                           : undefined
         }
       >
@@ -625,8 +627,8 @@ export function StormElementCard({
             <div className="mt-0.5 flex min-h-0 flex-1 flex-row items-center gap-2 overflow-hidden">
             <button
               type="button"
-              title={linkReady ? "Link öffnen" : "Kein Ziel gesetzt"}
-              aria-label={linkReady ? "Link öffnen" : "Kein Ziel gesetzt"}
+              title={linkReady ? t("panels.openLink") : t("panels.noLinkTarget")}
+              aria-label={linkReady ? t("panels.openLink") : t("panels.noLinkTarget")}
               disabled={!linkReady}
               className={[
                 "flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-current/20",
@@ -667,7 +669,7 @@ export function StormElementCard({
                   linkPreview ? "opacity-75" : "italic opacity-50",
                 ].join(" ")}
               >
-                {linkPreview ?? (linkKind === "view" ? "Sicht wählen…" : "URL setzen…")}
+                {linkPreview ?? (linkKind === "view" ? t("panels.pickView") : t("panels.setUrl"))}
               </span>
             </div>
             </div>
@@ -682,7 +684,7 @@ export function StormElementCard({
               className={editorClass}
               value={draft}
               rows={4}
-              aria-label="Titel bearbeiten"
+              aria-label={t("panels.editTitle")}
               onChange={(e) => setDraftValue(e.target.value)}
               onPointerDown={(e) => e.stopPropagation()}
               onBlur={() => commitLabel(draftRef.current)}
@@ -703,7 +705,7 @@ export function StormElementCard({
               type="text"
               className={editorClass}
               value={draft}
-              aria-label="Titel bearbeiten"
+              aria-label={t("panels.editTitle")}
               onChange={(e) => setDraftValue(e.target.value)}
               onPointerDown={(e) => e.stopPropagation()}
               onBlur={() => commitLabel(draftRef.current)}
@@ -750,7 +752,7 @@ export function StormElementCard({
               </li>
             ))}
             {attrLines.length > 8 && (
-              <li className="opacity-60">+{attrLines.length - 8} weitere</li>
+              <li className="opacity-60">{t("panels.moreLines", { n: attrLines.length - 8 })}</li>
             )}
           </ul>
         )}
@@ -766,7 +768,7 @@ export function StormElementCard({
               </li>
             ))}
             {methodLines.length > 8 && (
-              <li className="opacity-60">+{methodLines.length - 8} weitere</li>
+              <li className="opacity-60">{t("panels.moreLines", { n: methodLines.length - 8 })}</li>
             )}
           </ul>
         )}
@@ -806,7 +808,7 @@ export function StormElementCard({
               );
             })}
             {webLinks.length > 8 && (
-              <li className="opacity-60">+{webLinks.length - 8} weitere</li>
+              <li className="opacity-60">{t("panels.moreLines", { n: webLinks.length - 8 })}</li>
             )}
           </ul>
         )}
@@ -823,17 +825,17 @@ export function StormElementCard({
             type="button"
             title={
               archNav?.direction === "up"
-                ? `Übersicht öffnen (${archNav.targetViewName})`
+                ? t("panels.openOverviewNamed", { name: archNav.targetViewName })
                 : archNav?.direction === "down"
-                  ? `Detail-Sicht öffnen (${archNav.targetViewName})`
-                  : "Detail-Sicht erstellen"
+                  ? t("panels.openDetailNamed", { name: archNav.targetViewName })
+                  : t("panels.cardDrilldownCreate")
             }
             aria-label={
               archNav?.direction === "up"
-                ? `Übersicht öffnen (${archNav.targetViewName})`
+                ? t("panels.openOverviewNamed", { name: archNav.targetViewName })
                 : archNav?.direction === "down"
-                  ? `Detail-Sicht öffnen (${archNav.targetViewName})`
-                  : "Detail-Sicht erstellen"
+                  ? t("panels.openDetailNamed", { name: archNav.targetViewName })
+                  : t("panels.cardDrilldownCreate")
             }
             className="absolute left-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-current/25 bg-white/80 text-current opacity-80 hover:opacity-100"
             onPointerDown={(e) => e.stopPropagation()}
@@ -858,7 +860,7 @@ export function StormElementCard({
           <button
             key={handle}
             type="button"
-            aria-label={`Größe ändern (${handle})`}
+            aria-label={t("panels.resizeHandle", { handle })}
             className={[
               "absolute z-20 rounded-sm border border-sky-600 bg-white shadow-sm",
               isCoarsePointer ? "h-4 w-4" : "h-2.5 w-2.5",
@@ -871,8 +873,8 @@ export function StormElementCard({
       {selected && !editing && (
         <button
           type="button"
-          aria-label="Drehen"
-          title="Drehen (Shift: 15°-Raster)"
+          aria-label={t("panels.rotate")}
+          title={t("panels.rotateShiftSnap")}
           className="absolute left-1/2 top-0 z-20 flex h-5 w-5 -translate-x-1/2 -translate-y-[1.65rem] cursor-grab items-center justify-center rounded-full border border-sky-600 bg-white text-sky-700 shadow-sm active:cursor-grabbing"
           onPointerDown={startRotate}
         >
@@ -895,8 +897,8 @@ export function StormElementCard({
                 ? "border-[var(--accent-2)]/60 bg-[var(--control)] text-[var(--accent-2)]"
                 : "border-[var(--border)] bg-[var(--panel-solid)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]",
           ].join(" ")}
-          title={connecting ? "Als Ziel wählen (Abbrechen: erneut klicken)" : "Relation starten"}
-          aria-label={connecting ? "Als Ziel wählen" : "Relation starten"}
+          title={connecting ? t("panels.pickTarget") : t("panels.relationStart")}
+          aria-label={connecting ? t("panels.pickTargetShort") : t("panels.relationStart")}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
@@ -914,8 +916,8 @@ export function StormElementCard({
             "absolute bottom-1.5 right-1.5 z-30 flex items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel-solid)] text-[var(--muted)] shadow-sm transition-[opacity,colors] hover:border-[var(--accent)] hover:text-[var(--accent)]",
             isCoarsePointer ? "h-7 w-7" : "h-5 w-5",
           ].join(" ")}
-          title="Aktionen"
-          aria-label="Kontextmenü öffnen"
+          title={t("panels.actions")}
+          aria-label={t("panels.openContextMenu")}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();

@@ -43,25 +43,31 @@ import { isOnCardFieldEnabled, onCardDisplayFieldsForType } from "@/lib/card-pre
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import {
   PROGRESS_MARKS,
-  PROGRESS_MARK_LABEL,
-  PROGRESS_MARK_SHORT,
   PROGRESS_MARK_SHORTCUT,
   PROGRESS_MARK_STYLE,
   normalizeProgressMark,
 } from "@/lib/progress-mark";
 import { ProgressMarkGlyph } from "@/components/progress-mark-badge";
-import { contextMapPatternLabel, lineArrowHeadLabel, relationTypeLabel, useT } from "@/i18n";
+import {
+  connectorStrokeStyleLabel,
+  contextMapPatternLabel,
+  hotspotPriorityLabel,
+  lineArrowHeadLabel,
+  progressMarkLongLabel,
+  progressMarkShortLabel,
+  relationTypeLabel,
+  useT,
+} from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { supportsArchDrilldown, type NoteColorId } from "@/types/storm-element";
-import { RELATION_TYPE_LABELS, RELATION_TYPES, CONTEXT_MAP_PATTERN_LABELS, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
+import { RELATION_TYPES, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
 import { resolveBoardConnectorStrokeStyle } from "@/lib/board-connector-style";
 import {
   CONNECTOR_STROKE_STYLES,
-  CONNECTOR_STROKE_STYLE_LABELS,
   resolveRelationStrokeStyle,
 } from "@/lib/connector-style";
 import { defaultRelationType } from "@/lib/relation-validation";
-import { CONNECTOR_ARROW_HEADS, LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
+import { CONNECTOR_ARROW_HEADS } from "@/types/canvas-annotation";
 import { connectorArrowHeadGlyph } from "@/lib/connector-arrow-head";
 import type { BoardConnector } from "@/types/board-connector";
 
@@ -201,10 +207,10 @@ export function CanvasContextMenu({
               icon={LayoutDashboard}
               label={
                 el.detailViewId && views.some((v) => v.id === el.detailViewId)
-                  ? "Detail-Sicht öffnen"
+                  ? t("contextMenu.openDetailView")
                   : resolveBuildingBlockViewNavigation(el, activeViewId, views)?.direction === "up"
-                    ? "Übersicht öffnen"
-                    : "Detail-Sicht erstellen"
+                    ? t("contextMenu.openOverview")
+                    : t("contextMenu.createDetailView")
               }
               onClick={() =>
                 run(() => {
@@ -261,7 +267,7 @@ export function CanvasContextMenu({
         )}
         {el.type === "note" && (
           <>
-            <Section label="Notizfarbe" />
+            <Section label={t("contextMenu.noteColor")} />
             {NOTE_COLOR_IDS.map((id) => (
               <Item
                 key={id}
@@ -280,9 +286,9 @@ export function CanvasContextMenu({
         )}
         {el.type === "hotspot" && (
           <>
-            <Section label="Hotspot" />
+            <Section label={t("contextMenu.hotspot")} />
             <Item
-              label="Status: Offen"
+              label={t("contextMenu.statusOpen")}
               active={(el.metadata?.hotspotStatus ?? "open") === "open"}
               onClick={() =>
                 run(() =>
@@ -306,7 +312,7 @@ export function CanvasContextMenu({
             {(["low", "medium", "high"] as const).map((p) => (
               <Item
                 key={p}
-                label={`Priorität: ${p === "low" ? "Niedrig" : p === "high" ? "Hoch" : "Mittel"}`}
+                label={t("contextMenu.priority", { level: hotspotPriorityLabel(t, p) })}
                 active={(el.metadata?.hotspotPriority ?? "medium") === p}
                 onClick={() =>
                   run(() =>
@@ -320,7 +326,7 @@ export function CanvasContextMenu({
           </>
         )}
         <Item
-          label={el.metadata?.isRecurring ? "Wiederkehrend aus" : "Wiederkehrend an"}
+          label={el.metadata?.isRecurring ? t("contextMenu.recurringOff") : t("contextMenu.recurringOn")}
           onClick={() =>
             run(() =>
               updateElement(el.id, {
@@ -329,7 +335,7 @@ export function CanvasContextMenu({
             )
           }
         />
-        <Submenu label="Auf Karte anzeigen">
+        <Submenu label={t("contextMenu.showOnCard")}>
           {onCardDisplayFieldsForType(el.type).map(({ key, label }) => (
             <Item
               key={key}
@@ -354,10 +360,10 @@ export function CanvasContextMenu({
           onClick={() => run(() => onRequestHelpElementType?.(el.type))}
         />
         <Separator />
-        <Section label="Drehung" />
+        <Section label={t("contextMenu.rotation")} />
         <Item
           icon={RotateCw}
-          label="45° drehen"
+          label={t("contextMenu.rotate45")}
           onClick={() =>
             run(() => {
               const current = effectiveElementRotation(el.rotation, style.rotation);
@@ -369,7 +375,7 @@ export function CanvasContextMenu({
         />
         <Item
           icon={RotateCcw}
-          label="−45° drehen"
+          label={t("contextMenu.rotateMinus45")}
           onClick={() =>
             run(() => {
               const current = effectiveElementRotation(el.rotation, style.rotation);
@@ -380,7 +386,7 @@ export function CanvasContextMenu({
           }
         />
         <Item
-          label="Aufrecht (0°)"
+          label={t("contextMenu.upright0")}
           onClick={() => run(() => updateElement(el.id, { rotation: 0 }))}
         />
         {el.type === "hotspot" && (
@@ -390,31 +396,31 @@ export function CanvasContextMenu({
           />
         )}
         <Separator />
-        <Section label="Ebene" />
+        <Section label={t("contextMenu.layer")} />
         <Item
           icon={BringToFront}
-          label="In den Vordergrund"
+          label={t("contextMenu.bringToFront")}
           onClick={() => run(() => bringElementsToFront([el.id]))}
         />
         <Item
-          label="Eine Ebene nach vorn"
+          label={t("contextMenu.forwardOne")}
           onClick={() => run(() => bringElementsForward([el.id]))}
         />
         <Item
-          label="Eine Ebene nach hinten"
+          label={t("contextMenu.backwardOne")}
           onClick={() => run(() => sendElementsBackward([el.id]))}
         />
         <Item
           icon={SendToBack}
-          label="In den Hintergrund"
+          label={t("contextMenu.sendToBack")}
           onClick={() => run(() => sendElementsToBack([el.id]))}
         />
         <Separator />
-        <Section label="Bearbeitungsstand" />
+        <Section label={t("contextMenu.progressMark")} />
         {PROGRESS_MARKS.map((mark) => (
           <Item
             key={mark}
-            label={PROGRESS_MARK_SHORT[mark]}
+            label={progressMarkShortLabel(t, mark)}
             hint={PROGRESS_MARK_SHORTCUT[mark]}
             active={normalizeProgressMark(el.metadata?.progressMark) === mark}
             leading={
@@ -424,7 +430,7 @@ export function CanvasContextMenu({
                   backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
                   color: PROGRESS_MARK_STYLE[mark].fg,
                 }}
-                title={PROGRESS_MARK_LABEL[mark]}
+                title={progressMarkLongLabel(t, mark)}
               >
                 <ProgressMarkGlyph mark={mark} />
               </span>
@@ -439,7 +445,7 @@ export function CanvasContextMenu({
         ))}
         {normalizeProgressMark(el.metadata?.progressMark) ? (
           <Item
-            label="Stand entfernen"
+            label={t("contextMenu.clearProgressMark")}
             onClick={() =>
               run(() => {
                 useStormBoardStore.getState().setSelectedElementIds([el.id]);
@@ -457,12 +463,12 @@ export function CanvasContextMenu({
         />
         <Item
           icon={ClipboardCopy}
-          label="In Zwischenablage kopieren"
+          label={t("contextMenu.copyToClipboard")}
           onClick={() => run(() => copyToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
           icon={ClipboardList}
-          label="In Zwischenablage verschieben"
+          label={t("contextMenu.moveToClipboard")}
           onClick={() => run(() => moveToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
@@ -482,8 +488,8 @@ export function CanvasContextMenu({
     const selected = elements.filter((e) => target.ids.includes(e.id));
     body = (
       <>
-        <Header title={`${selected.length} Elemente`} subtitle="Ausrichten & bearbeiten" />
-        <Section label="Ausrichten" />
+        <Header title={t("contextMenu.multiElementsHeader", { n: selected.length })} subtitle={t("contextMenu.alignMultiSubtitle")} />
+        <Section label={t("contextMenu.align")} />
         <div className="grid grid-cols-3 gap-1 px-2 pb-1">
           {alignRow.map(({ mode, label, icon: Icon }) => (
             <button
@@ -545,10 +551,10 @@ export function CanvasContextMenu({
           }
         />
         <Separator />
-        <Section label="Drehung" />
+        <Section label={t("contextMenu.rotation")} />
         <Item
           icon={RotateCw}
-          label="Alle 45° drehen"
+          label={t("contextMenu.rotateAll45")}
           onClick={() =>
             run(() => {
               patchElements(
@@ -564,7 +570,7 @@ export function CanvasContextMenu({
         />
         <Item
           icon={RotateCcw}
-          label="Alle −45° drehen"
+          label={t("contextMenu.rotateAllMinus45")}
           onClick={() =>
             run(() => {
               patchElements(
@@ -579,7 +585,7 @@ export function CanvasContextMenu({
           }
         />
         <Item
-          label="Alle aufrecht (0°)"
+          label={t("contextMenu.rotateAllUpright")}
           onClick={() =>
             run(() => {
               patchElements(selected.map((el) => ({ id: el.id, rotation: 0 })));
@@ -587,31 +593,31 @@ export function CanvasContextMenu({
           }
         />
         <Separator />
-        <Section label="Ebene" />
+        <Section label={t("contextMenu.layer")} />
         <Item
           icon={BringToFront}
-          label="In den Vordergrund"
+          label={t("contextMenu.bringToFront")}
           onClick={() => run(() => bringElementsToFront(target.ids))}
         />
         <Item
-          label="Eine Ebene nach vorn"
+          label={t("contextMenu.forwardOne")}
           onClick={() => run(() => bringElementsForward(target.ids))}
         />
         <Item
-          label="Eine Ebene nach hinten"
+          label={t("contextMenu.backwardOne")}
           onClick={() => run(() => sendElementsBackward(target.ids))}
         />
         <Item
           icon={SendToBack}
-          label="In den Hintergrund"
+          label={t("contextMenu.sendToBack")}
           onClick={() => run(() => sendElementsToBack(target.ids))}
         />
         <Separator />
-        <Section label="Bearbeitungsstand" />
+        <Section label={t("contextMenu.progressMark")} />
         {PROGRESS_MARKS.map((mark) => (
           <Item
             key={mark}
-            label={PROGRESS_MARK_SHORT[mark]}
+            label={progressMarkShortLabel(t, mark)}
             hint={PROGRESS_MARK_SHORTCUT[mark]}
             active={target.ids.every(
               (id) =>
@@ -626,7 +632,7 @@ export function CanvasContextMenu({
                   backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
                   color: PROGRESS_MARK_STYLE[mark].fg,
                 }}
-                title={PROGRESS_MARK_LABEL[mark]}
+                title={progressMarkLongLabel(t, mark)}
               >
                 <ProgressMarkGlyph mark={mark} />
               </span>
@@ -648,12 +654,12 @@ export function CanvasContextMenu({
         />
         <Item
           icon={ClipboardCopy}
-          label="In Zwischenablage kopieren"
+          label={t("contextMenu.copyToClipboard")}
           onClick={() => run(() => copyToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
           icon={ClipboardList}
-          label="In Zwischenablage verschieben"
+          label={t("contextMenu.moveToClipboard")}
           onClick={() => run(() => moveToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
@@ -690,10 +696,10 @@ export function CanvasContextMenu({
       body = (
         <>
           <Header
-            title="Context Map"
+            title={t("contextMenu.contextMap")}
             subtitle={contextMapPatternLabel(t, c.contextMapPattern)}
           />
-          <Section label="Muster" />
+          <Section label={t("contextMenu.pattern")} />
           {CONTEXT_PATTERNS.map((pattern) => (
             <Item
               key={pattern}
@@ -719,8 +725,8 @@ export function CanvasContextMenu({
     } else if (relType) {
       body = (
         <>
-          <Header title="Verbinder" subtitle={relationTypeLabel(t, relType)} />
-          <Section label="Typ" />
+          <Header title={t("contextMenu.connector")} subtitle={relationTypeLabel(t, relType)} />
+          <Section label={t("contextMenu.type")} />
           {RELATION_TYPES.map((rel) => (
             <Item
               key={rel}
@@ -735,31 +741,31 @@ export function CanvasContextMenu({
             onClick={() => run(() => onRequestHelpRelationType?.(relType))}
           />
           <Separator />
-          <Section label="Linie" />
+          <Section label={t("contextMenu.line")} />
           {CONNECTOR_STROKE_STYLES.map((style) => (
             <Item
               key={style}
-              label={CONNECTOR_STROKE_STYLE_LABELS[style]}
+              label={connectorStrokeStyleLabel(t, style)}
               active={resolveBoardConnectorStrokeStyle(c) === style}
               onClick={() => run(() => patch({ strokeStyle: style }))}
             />
           ))}
           <Separator />
-          <Section label="Pfeil" />
+          <Section label={t("contextMenu.arrow")} />
           {CONNECTOR_ARROW_HEADS.map((head) => (
             <Item
               key={head}
-              label={`${connectorArrowHeadGlyph(head)} ${LINE_ARROW_HEAD_LABELS[head]}`}
+              label={`${connectorArrowHeadGlyph(head)} ${lineArrowHeadLabel(t, head)}`}
               active={(c.arrowHead ?? "end") === head}
               onClick={() => run(() => patch({ arrowHead: head }))}
             />
           ))}
           <Separator />
-          <Section label="Bearbeitungsstand" />
+          <Section label={t("contextMenu.progressMark")} />
           {PROGRESS_MARKS.map((mark) => (
             <Item
               key={mark}
-              label={PROGRESS_MARK_SHORT[mark]}
+              label={progressMarkShortLabel(t, mark)}
               hint={PROGRESS_MARK_SHORTCUT[mark]}
               active={normalizeProgressMark(c.progressMark) === mark}
               leading={
@@ -798,22 +804,22 @@ export function CanvasContextMenu({
     } else {
       body = (
         <>
-          <Header title="Verbinder" subtitle="Freier Verbinder" />
-          <Section label="Linie" />
+          <Header title={t("contextMenu.connector")} subtitle={t("contextMenu.freeConnector")} />
+          <Section label={t("contextMenu.line")} />
           {CONNECTOR_STROKE_STYLES.map((style) => (
             <Item
               key={style}
-              label={CONNECTOR_STROKE_STYLE_LABELS[style]}
+              label={connectorStrokeStyleLabel(t, style)}
               active={resolveBoardConnectorStrokeStyle(c) === style}
               onClick={() => run(() => patch({ strokeStyle: style }))}
             />
           ))}
           <Separator />
-          <Section label="Pfeil" />
+          <Section label={t("contextMenu.arrow")} />
           {CONNECTOR_ARROW_HEADS.map((head) => (
             <Item
               key={head}
-              label={`${connectorArrowHeadGlyph(head)} ${LINE_ARROW_HEAD_LABELS[head]}`}
+              label={`${connectorArrowHeadGlyph(head)} ${lineArrowHeadLabel(t, head)}`}
               active={(c.arrowHead ?? "end") === head}
               onClick={() => run(() => patch({ arrowHead: head }))}
             />
@@ -848,8 +854,8 @@ export function CanvasContextMenu({
     if (!rel) return null;
     body = (
       <>
-        <Header title="Relation" subtitle={relationTypeLabel(t, rel.type)} />
-        <Section label="Typ" />
+        <Header title={t("contextMenu.relationHeader")} subtitle={relationTypeLabel(t, rel.type)} />
+        <Section label={t("contextMenu.type")} />
         {RELATION_TYPES.map((rt) => (
           <Item
             key={rt}
@@ -864,24 +870,24 @@ export function CanvasContextMenu({
           onClick={() => run(() => onRequestHelpRelationType?.(rel.type))}
         />
         <Separator />
-        <Section label="Linie" />
+        <Section label={t("contextMenu.line")} />
         {CONNECTOR_STROKE_STYLES.map((style) => (
           <Item
             key={style}
-            label={CONNECTOR_STROKE_STYLE_LABELS[style]}
+            label={connectorStrokeStyleLabel(t, style)}
             active={resolveRelationStrokeStyle(rel) === style}
             onClick={() => run(() => updateRelation(rel.id, { strokeStyle: style }))}
           />
         ))}
         <Separator />
-        <Section label="Beschriftung" />
+        <Section label={t("contextMenu.caption")} />
         <Item
-          label={`Art (${RELATION_TYPE_LABELS[rel.type]})`}
+          label={`${t("contextMenu.type")} (${relationTypeLabel(t, rel.type)})`}
           active={rel.labelMode === "type"}
           onClick={() => run(() => updateRelation(rel.id, { labelMode: "type" }))}
         />
         <Item
-          label="Freier Text…"
+          label={t("contextMenu.freeText")}
           active={rel.labelMode === "custom"}
           onClick={() =>
             run(() => {
@@ -892,11 +898,11 @@ export function CanvasContextMenu({
           }
         />
         <Separator />
-        <Section label="Bearbeitungsstand" />
+        <Section label={t("contextMenu.progressMark")} />
         {PROGRESS_MARKS.map((mark) => (
           <Item
             key={mark}
-            label={PROGRESS_MARK_SHORT[mark]}
+            label={progressMarkShortLabel(t, mark)}
             hint={PROGRESS_MARK_SHORTCUT[mark]}
             active={normalizeProgressMark(rel.progressMark) === mark}
             leading={
@@ -906,7 +912,7 @@ export function CanvasContextMenu({
                   backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
                   color: PROGRESS_MARK_STYLE[mark].fg,
                 }}
-                title={PROGRESS_MARK_LABEL[mark]}
+                title={progressMarkLongLabel(t, mark)}
               >
                 <ProgressMarkGlyph mark={mark} />
               </span>
@@ -921,7 +927,7 @@ export function CanvasContextMenu({
         ))}
         {normalizeProgressMark(rel.progressMark) ? (
           <Item
-            label="Stand entfernen"
+            label={t("contextMenu.clearProgressMark")}
             onClick={() =>
               run(() => {
                 useStormBoardStore.getState().selectRelation(rel.id);
@@ -949,8 +955,8 @@ export function CanvasContextMenu({
     if (!rel) return null;
     body = (
       <>
-        <Header title="Context Map" subtitle={contextMapPatternLabel(t, rel.type)} />
-        <Section label="Muster" />
+        <Header title={t("contextMenu.contextMap")} subtitle={contextMapPatternLabel(t, rel.type)} />
+        <Section label={t("contextMenu.pattern")} />
         {CONTEXT_PATTERNS.map((pattern) => (
           <Item
             key={pattern}
@@ -992,41 +998,41 @@ export function CanvasContextMenu({
     if (!lane) return null;
     body = (
       <>
-        <Header title={lane.label} subtitle="Swimlane" />
+        <Header title={lane.label} subtitle={t("contextMenu.swimlane")} />
         <Item
           icon={lane.locked ? Unlock : Lock}
           label={lane.locked ? "Entsperren" : "Sperren"}
           onClick={() => run(() => updateSwimlane(lane.id, { locked: !lane.locked }))}
         />
         <Separator />
-        <Section label="Ebene" />
+        <Section label={t("contextMenu.layer")} />
         <Item
           icon={BringToFront}
-          label="In den Vordergrund"
+          label={t("contextMenu.bringToFront")}
           onClick={() => run(() => bringRegionsToFront([lane.id]))}
         />
         <Item
-          label="Eine Ebene nach vorn"
+          label={t("contextMenu.forwardOne")}
           onClick={() => run(() => bringRegionsForward([lane.id]))}
         />
         <Item
-          label="Eine Ebene nach hinten"
+          label={t("contextMenu.backwardOne")}
           onClick={() => run(() => sendRegionsBackward([lane.id]))}
         />
         <Item
           icon={SendToBack}
-          label="In den Hintergrund"
+          label={t("contextMenu.sendToBack")}
           onClick={() => run(() => sendRegionsToBack([lane.id]))}
         />
         <Separator />
         <Item
           icon={ClipboardCopy}
-          label="In Zwischenablage kopieren"
+          label={t("contextMenu.copyToClipboard")}
           onClick={() => run(() => copyToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
           icon={ClipboardList}
-          label="In Zwischenablage verschieben"
+          label={t("contextMenu.moveToClipboard")}
           onClick={() => run(() => moveToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
@@ -1048,10 +1054,14 @@ export function CanvasContextMenu({
     const detailView = resolveBoundedContextDetailView(bc, views);
     body = (
       <>
-        <Header title={bc.label} subtitle="Bounded Context" />
+        <Header title={bc.label} subtitle={t("contextMenu.boundedContext")} />
         <Item
           icon={LayoutDashboard}
-          label={detailView ? `Detail-Sicht öffnen (${detailView.name})` : "Detail-Sicht erstellen"}
+          label={
+            detailView
+              ? t("contextMenu.openDetailNamed", { name: detailView.name })
+              : t("contextMenu.createDetailView")
+          }
           onClick={() => run(() => openBoundedContextView(bc.id))}
         />
         <Item
@@ -1062,7 +1072,7 @@ export function CanvasContextMenu({
         <Separator />
         <Item
           icon={Link2}
-          label="Context Map verbinden"
+          label={t("contextMenu.connectContextMap")}
           onClick={() =>
             run(() => {
               setContextMapMode(true);
@@ -1071,34 +1081,34 @@ export function CanvasContextMenu({
           }
         />
         <Separator />
-        <Section label="Ebene" />
+        <Section label={t("contextMenu.layer")} />
         <Item
           icon={BringToFront}
-          label="In den Vordergrund"
+          label={t("contextMenu.bringToFront")}
           onClick={() => run(() => bringRegionsToFront([bc.id]))}
         />
         <Item
-          label="Eine Ebene nach vorn"
+          label={t("contextMenu.forwardOne")}
           onClick={() => run(() => bringRegionsForward([bc.id]))}
         />
         <Item
-          label="Eine Ebene nach hinten"
+          label={t("contextMenu.backwardOne")}
           onClick={() => run(() => sendRegionsBackward([bc.id]))}
         />
         <Item
           icon={SendToBack}
-          label="In den Hintergrund"
+          label={t("contextMenu.sendToBack")}
           onClick={() => run(() => sendRegionsToBack([bc.id]))}
         />
         <Separator />
         <Item
           icon={ClipboardCopy}
-          label="In Zwischenablage kopieren"
+          label={t("contextMenu.copyToClipboard")}
           onClick={() => run(() => copyToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
           icon={ClipboardList}
-          label="In Zwischenablage verschieben"
+          label={t("contextMenu.moveToClipboard")}
           onClick={() => run(() => moveToClipboard(clipboardSelectionFromStore()))}
         />
         <Item
@@ -1117,7 +1127,7 @@ export function CanvasContextMenu({
   } else if (target.kind === "timeline") {
     body = (
       <>
-        <Header title="Timeline" subtitle="Position & Beschriftung" />
+        <Header title={t("contextMenu.timeline")} subtitle={t("contextMenu.timelinePosition")} />
         <Item
           label={t("contextMenu.editStartLabel")}
           onClick={() =>
@@ -1137,7 +1147,7 @@ export function CanvasContextMenu({
           }
         />
         <Item
-          label="Ausblenden"
+          label={t("contextMenu.hideTimeline")}
           onClick={() => run(() => setTimeline({ visible: false }))}
         />
       </>
@@ -1145,7 +1155,7 @@ export function CanvasContextMenu({
   } else {
     body = (
       <>
-        <Header title="Canvas" subtitle="Schnellaktionen" />
+        <Header title={t("contextMenu.canvas")} subtitle={t("contextMenu.quickActions")} />
         <Item
           label={`Element hinzufügen (${ELEMENT_STYLES[paletteType].shortLabel})`}
           onClick={() =>
@@ -1161,11 +1171,11 @@ export function CanvasContextMenu({
         )}
         {timeline.visible === false && (
           <Item
-            label="Timeline einblenden"
+            label={t("contextMenu.showTimeline")}
             onClick={() => run(() => setTimeline({ visible: true }))}
           />
         )}
-        <Item label="Auswahl aufheben" onClick={() => run(() => clearSelection())} />
+        <Item label={t("contextMenu.clearSelection")} onClick={() => run(() => clearSelection())} />
       </>
     );
   }

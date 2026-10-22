@@ -33,5 +33,8 @@ export const chromeDe = {
     exportFailed: "{kind}-Export fehlgeschlagen. Bitte erneut versuchen.",
     svgExportFailed: "SVG-Export fehlgeschlagen. Bitte erneut versuchen.",
     arrowHeadTitle: "Pfeiltyp: {label} (Klick zum Wechseln)",
+    connectToolHint:
+      "Objekte anklicken · Shift+Ziehen = Linie · Verbinder wählen und Endpunkt ziehen = umhängen",
+    bcDrawHint: "Rechteck ziehen · Esc beendet",
   },
 } as const;

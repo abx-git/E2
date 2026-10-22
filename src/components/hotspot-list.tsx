@@ -2,9 +2,11 @@
 
 import { ListPlus } from "lucide-react";
 
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 export function HotspotList({ embedded = false }: { embedded?: boolean }) {
+  const t = useT();
   const elements = useStormBoardStore((s) => s.elements);
   const selectElement = useStormBoardStore((s) => s.selectElement);
   const addActionItem = useStormBoardStore((s) => s.addActionItem);
@@ -37,8 +39,8 @@ export function HotspotList({ embedded = false }: { embedded?: boolean }) {
           <button
             type="button"
             className="shrink-0 rounded p-1 text-[var(--muted)] hover:text-[var(--accent)]"
-            title="Als To-do übernehmen"
-            aria-label={`Hotspot „${h.label}“ als To-do übernehmen`}
+            title={t("panels.hotspotToTodo")}
+            aria-label={t("panels.hotspotToTodoNamed", { label: h.label })}
             onClick={() =>
               addActionItem({
                 title: h.label,
@@ -60,7 +62,7 @@ export function HotspotList({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <section className="border-t border-[var(--border)] p-3">
-      <h3 className="group-label">Hotspots</h3>
+      <h3 className="group-label">{t("panels.hotspotsTitle")}</h3>
       {body}
     </section>
   );

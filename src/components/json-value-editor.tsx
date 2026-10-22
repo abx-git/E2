@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Braces, Plus, Trash2 } from "lucide-react";
 
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 type JsonPrimitive = string | number | boolean | null;
@@ -60,8 +61,10 @@ export interface JsonValueEditorProps {
 export function JsonValueEditor({
   value,
   onChange,
-  emptyHint = "Keine Felder — Eigenschaft hinzufügen",
+  emptyHint,
 }: JsonValueEditorProps) {
+  const t = useT();
+  const resolvedEmptyHint = emptyHint ?? t("panels.jsonEditorEmpty");
   const [mode, setMode] = useState<"tree" | "raw">("tree");
   const [rawText, setRawText] = useState("");
   const [rawError, setRawError] = useState<string | null>(null);
@@ -91,13 +94,13 @@ export function JsonValueEditor({
     try {
       const parsed = JSON.parse(trimmed) as unknown;
       if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-        setRawError("Schema muss ein JSON-Objekt sein ({ … }).");
+        setRawError(t("panels.jsonSchemaMustObject"));
         return;
       }
       setRawError(null);
       onChange(parsed as Record<string, unknown>);
     } catch {
-      setRawError("Ungültiges JSON");
+      setRawError(t("panels.jsonInvalid"));
     }
   };
 
@@ -113,7 +116,7 @@ export function JsonValueEditor({
             ].join(" ")}
             onClick={() => setMode("tree")}
           >
-            Werte
+            {t("panels.jsonModeValues")}
           </button>
           <button
             type="button"
@@ -123,7 +126,7 @@ export function JsonValueEditor({
             ].join(" ")}
             onClick={() => setMode("raw")}
           >
-            JSON
+            {t("panels.jsonModeRaw")}
           </button>
         </div>
         {mode === "tree" && (
@@ -136,7 +139,7 @@ export function JsonValueEditor({
             }}
           >
             <Plus className="h-3 w-3" />
-            Feld
+            {t("panels.jsonAddField")}
           </button>
         )}
       </div>
@@ -159,13 +162,13 @@ export function JsonValueEditor({
       ) : entries.length === 0 ? (
         <div className="flex flex-col items-center gap-2 px-3 py-4 text-center">
           <Braces className="h-5 w-5 text-[var(--muted)]" />
-          <p className="text-[0.72rem] text-[var(--muted)]">{emptyHint}</p>
+          <p className="text-[0.72rem] text-[var(--muted)]">{resolvedEmptyHint}</p>
           <button
             type="button"
             className="dock-control rounded-md px-2 py-1 text-[0.72rem]"
             onClick={() => commitObject({ field: "string" })}
           >
-            Erstes Feld hinzufügen
+            {t("panels.jsonAddFirstField")}
           </button>
         </div>
       ) : (
@@ -213,6 +216,7 @@ function ObjectEntryRow({
   onChangeValue: (next: JsonValue) => void;
   onRemove: () => void;
 }) {
+  const t = useT();
   const kind = kindOf(value);
   const [keyDraft, setKeyDraft] = useState(entryKey);
 
@@ -270,8 +274,8 @@ function ObjectEntryRow({
         <button
           type="button"
           className="rounded p-1 text-[var(--muted)] hover:bg-[var(--control-hover)] hover:text-red-300"
-          title="Feld löschen"
-          aria-label="Feld löschen"
+          title={t("panels.jsonDeleteField")}
+          aria-label={t("panels.jsonDeleteField")}
           onClick={onRemove}
         >
           <Trash2 className="h-3.5 w-3.5" />
@@ -398,6 +402,7 @@ function ArrayTextEditor({
   text: string;
   onCommit: (parsed: JsonValue[]) => void;
 }) {
+  const t = useT();
   const [draft, setDraft] = useState(text);
   const [error, setError] = useState<string | null>(null);
 
@@ -417,13 +422,13 @@ function ArrayTextEditor({
           try {
             const parsed = JSON.parse(draft) as unknown;
             if (!Array.isArray(parsed)) {
-              setError("Muss ein JSON-Array sein");
+              setError(t("panels.jsonMustBeArray"));
             } else {
               setError(null);
               onCommit(parsed as JsonValue[]);
             }
           } catch {
-            setError("Ungültiges JSON");
+            setError(t("panels.jsonInvalid"));
           }
           useStormBoardStore.getState().endGesture();
         }}

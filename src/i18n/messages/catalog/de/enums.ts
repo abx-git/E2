@@ -93,4 +93,18 @@ export const enumsDe = {
     medium: "Mittel",
     high: "Hoch",
   },
+  progressMarkShort: {
+    ok: "OK",
+    attention: "!",
+    question: "?",
+    working: "Arbeit",
+    neu: "Neu",
+  },
+  progressMarkLabel: {
+    ok: "OK — erledigt / freigegeben",
+    attention: "! — Aufmerksamkeit nötig",
+    question: "? — Klärung offen",
+    working: "In Arbeit",
+    neu: "Neu",
+  },
 } as const;

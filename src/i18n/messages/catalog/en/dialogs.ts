@@ -101,5 +101,16 @@ export const dialogsEn = {
     jsonPasteDiagramTitle: "Paste diagram",
     jsonPasteDiagramBody:
       "Import Mermaid or PlantUML text as a new view. Elements are auto-arranged.",
+    newFileTitle: "New file",
+    newFileBody: "Create an empty board in this tab. Other tabs are unchanged.",
+    newFileDiscardUnsaved: "Unsaved changes in this tab will be discarded.",
+    newFileDiscardContent: "The current board content in this tab will be discarded.",
+    newFileKeepOnDisk: "The previous file “{file}” remains on disk.",
+    newFileBoardTitle: "Board title",
+    newFileDefaultTitle: "New Event Storming board",
+    newFileSuggestedFilename: "Suggested file name:",
+    newFileCreateWithFile: "Create and choose save location…",
+    newFileEmptyWithoutFile: "Empty board without file",
+    newFileEmptyOnly: "Create empty board",
   },
 } as const;

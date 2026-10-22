@@ -11,6 +11,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 
+import { useT } from "@/i18n";
 import { getFacilitatorFormat, getCurrentPhase, type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { WorkshopFormat } from "@/types/storm-element";
@@ -30,6 +31,7 @@ function formatMmSs(totalSeconds: number): string {
 }
 
 export function FacilitatorPanel({ embedded = false, onRequestHelpPhase }: FacilitatorPanelProps) {
+  const t = useT();
   const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
   const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
   const facilitatorPhase = useStormBoardStore((s) => s.facilitatorPhase);
@@ -82,7 +84,7 @@ export function FacilitatorPanel({ embedded = false, onRequestHelpPhase }: Facil
     <>
       <div className="flex items-start justify-between gap-3">
         {!embedded ? (
-          <h3 className="group-label">Facilitator — {formatDef.label}</h3>
+          <h3 className="group-label">{t("panels.facilitatorTitle", { format: formatDef.label })}</h3>
         ) : (
           <p className="text-xs font-medium text-[var(--muted)]">{formatDef.label}</p>
         )}
@@ -90,14 +92,18 @@ export function FacilitatorPanel({ embedded = false, onRequestHelpPhase }: Facil
           type="button"
           onClick={() => onRequestHelpPhase?.(phase, workshopFormat)}
           className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
-          title="Hilfe zur aktuellen Phase"
-          aria-label="Hilfe zur aktuellen Phase"
+          title={t("panels.facilitatorHelpPhase")}
+          aria-label={t("panels.facilitatorHelpPhase")}
         >
           <HelpCircle className="h-4 w-4" />
         </button>
       </div>
       <p className="mt-1 text-xs font-medium text-[var(--text)]">
-        Phase {facilitatorPhase + 1}/{totalPhases}: {phase.title}
+        {t("panels.facilitatorPhase", {
+          current: facilitatorPhase + 1,
+          total: totalPhases,
+          title: phase.title,
+        })}
       </p>
       <p className="mt-1 text-[11px] leading-relaxed text-[var(--muted)]">{phase.description}</p>
 
@@ -149,13 +155,17 @@ export function FacilitatorPanel({ embedded = false, onRequestHelpPhase }: Facil
           {formatMmSs(remainingSeconds)}
         </span>
         <span className="flex-1 text-[10px] text-[var(--muted)]">
-          {expired ? "Zeit abgelaufen" : `Empfohlen: ${durationMinutes} Min.`}
+          {expired
+            ? t("panels.facilitatorTimeExpired")
+            : t("panels.facilitatorRecommended", { n: durationMinutes })}
         </span>
         <button
           type="button"
           className="dock-control rounded-md p-1"
-          title={running ? "Pause" : "Start"}
-          aria-label={running ? "Timer pausieren" : "Timer starten"}
+          title={running ? t("panels.facilitatorPause") : t("panels.facilitatorStart")}
+          aria-label={
+            running ? t("panels.facilitatorPauseTimer") : t("panels.facilitatorStartTimer")
+          }
           onClick={() => {
             if (remainingSeconds === 0) {
               setRemainingSeconds(initialSeconds);
@@ -168,8 +178,8 @@ export function FacilitatorPanel({ embedded = false, onRequestHelpPhase }: Facil
         <button
           type="button"
           className="dock-control rounded-md p-1"
-          title="Zurücksetzen"
-          aria-label="Timer zurücksetzen"
+          title={t("common.reset")}
+          aria-label={t("panels.facilitatorResetTimer")}
           onClick={() => {
             setRunning(false);
             setRemainingSeconds(initialSeconds);

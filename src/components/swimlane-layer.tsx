@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
 import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
 import { resolveRegionPaint } from "@/lib/region-style";
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { Lock } from "lucide-react";
 
@@ -25,6 +26,7 @@ const HANDLE_POSITIONS: Record<ResizeHandle, string> = {
 };
 
 export function SwimlaneLayer() {
+  const t = useT();
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const selectedSwimlaneIds = useStormBoardStore((s) => s.selectedSwimlaneIds);
   const selectSwimlane = useStormBoardStore((s) => s.selectSwimlane);
@@ -300,7 +302,7 @@ export function SwimlaneLayer() {
             {paint.locked && (
               <div
                 className="pointer-events-none absolute right-2 top-2 rounded bg-slate-100/90 p-1 text-slate-600"
-                title="Gesperrt"
+                title={t("panels.locked")}
               >
                 <Lock className="h-3 w-3" aria-hidden />
               </div>
@@ -311,7 +313,7 @@ export function SwimlaneLayer() {
                 type="text"
                 className="absolute left-3 top-2 z-50 min-w-[8rem] max-w-[min(20rem,calc(100%-1.5rem))] rounded border border-sky-500 bg-white px-2 py-0.5 text-xs font-semibold text-slate-700 outline-none"
                 value={draft}
-                aria-label="Swimlane umbenennen"
+                aria-label={t("panels.renameSwimlane")}
                 onPointerDown={(e) => e.stopPropagation()}
                 onChange={(e) => setDraftValue(e.target.value)}
                 onBlur={() => commitLabel(lane.id, draftRef.current)}

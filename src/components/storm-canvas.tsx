@@ -21,6 +21,7 @@ import { elementsInMarquee, swimlanesInMarquee, boundedContextsInMarquee, type W
 import { lineLength } from "@/lib/canvas-annotations";
 import { sortElementsByZOrder } from "@/lib/element-z-order";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MARQUEE_THRESHOLD_PX = 4;
@@ -60,6 +61,7 @@ function wheelDeltaPixels(e: WheelEvent, fallbackLine = 16): { dx: number; dy: n
 }
 
 export function StormCanvas() {
+  const t = useT();
   const containerRef = useRef<HTMLDivElement>(null);
   const [panning, setPanning] = useState(false);
   const panStart = useRef({ x: 0, y: 0, vx: 0, vy: 0 });
@@ -767,8 +769,7 @@ export function StormCanvas() {
               }
             : connectorTool
               ? {
-                  message:
-                    "Objekte anklicken · Shift+Ziehen = Linie · Verbinder wählen und Endpunkt ziehen = umhängen",
+                  message: t("chrome.connectToolHint"),
                   onCancel: () => {
                     useStormBoardStore.getState().setRelationMode(false);
                     setConnectorDraftSource(null);
@@ -778,7 +779,7 @@ export function StormCanvas() {
                 }
               : bcMode
                 ? {
-                    message: "Rechteck ziehen · Esc beendet",
+                    message: t("chrome.bcDrawHint"),
                     onCancel: () => setBcMode(false),
                   }
                 : null

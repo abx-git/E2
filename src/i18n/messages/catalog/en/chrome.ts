@@ -33,5 +33,8 @@ export const chromeEn = {
     exportFailed: "{kind} export failed. Please try again.",
     svgExportFailed: "SVG export failed. Please try again.",
     arrowHeadTitle: "Arrow: {label} (click to cycle)",
+    connectToolHint:
+      "Click objects · Shift+drag = line · select connector and drag endpoint to reattach",
+    bcDrawHint: "Drag rectangle · Esc to finish",
   },
 } as const;

@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { useT } from "@/i18n";
 import { suggestedWorkingFileName } from "@/lib/working-file";
 
 export type NewWorkingFileChoice =
@@ -30,14 +31,16 @@ export function NewWorkingFileDialog({
   fsAccessSupported = true,
   onChoose,
 }: NewWorkingFileDialogProps) {
+  const t = useT();
   const titleId = useId();
   const nameId = useId();
-  const [title, setTitle] = useState("Neues Event Storming Board");
+  const defaultTitle = t("dialogs.newFileDefaultTitle");
+  const [title, setTitle] = useState(defaultTitle);
 
   useEffect(() => {
     if (!open) return;
-    setTitle("Neues Event Storming Board");
-  }, [open]);
+    setTitle(defaultTitle);
+  }, [open, defaultTitle]);
 
   const suggestedFileName = useMemo(
     () => suggestedWorkingFileName(title || "board"),
@@ -61,28 +64,23 @@ export function NewWorkingFileDialog({
         onPointerDown={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-base font-semibold text-slate-900">
-          Neue Datei
+          {t("dialogs.newFileTitle")}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          Leeres Board in diesem Tab anlegen. Andere Tabs bleiben unverändert.
-        </p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">{t("dialogs.newFileBody")}</p>
 
         {warnDiscard && (
           <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
             {hasUnsavedChanges
-              ? "Ungespeicherte Änderungen in diesem Tab werden verworfen."
-              : "Der aktuelle Board-Inhalt in diesem Tab wird verworfen."}
+              ? t("dialogs.newFileDiscardUnsaved")
+              : t("dialogs.newFileDiscardContent")}
             {currentFileName ? (
-              <>
-                {" "}
-                Die bisherige Datei „{currentFileName}“ bleibt auf dem Datenträger erhalten.
-              </>
+              <> {t("dialogs.newFileKeepOnDisk", { file: currentFileName })}</>
             ) : null}
           </p>
         )}
 
         <label htmlFor={nameId} className="mt-4 block text-xs font-medium text-slate-700">
-          Board-Titel
+          {t("dialogs.newFileBoardTitle")}
         </label>
         <input
           id={nameId}
@@ -91,11 +89,11 @@ export function NewWorkingFileDialog({
           disabled={busy}
           onChange={(e) => setTitle(e.target.value)}
           className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-400"
-          placeholder="Neues Event Storming Board"
+          placeholder={defaultTitle}
           autoFocus
         />
         <p className="mt-1.5 text-[0.7rem] text-slate-500">
-          Vorgeschlagener Dateiname:{" "}
+          {t("dialogs.newFileSuggestedFilename")}{" "}
           <span className="font-medium text-slate-700">{suggestedFileName}</span>
         </p>
 
@@ -107,13 +105,13 @@ export function NewWorkingFileDialog({
               onClick={() =>
                 onChoose({
                   action: "create_with_file",
-                  title: title.trim() || "Neues Event Storming Board",
+                  title: title.trim() || defaultTitle,
                   suggestedFileName,
                 })
               }
               className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-left text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
             >
-              Anlegen und Speicherort wählen…
+              {t("dialogs.newFileCreateWithFile")}
             </button>
           ) : null}
           <button
@@ -122,12 +120,12 @@ export function NewWorkingFileDialog({
             onClick={() =>
               onChoose({
                 action: "empty_without_file",
-                title: title.trim() || "Neues Event Storming Board",
+                title: title.trim() || defaultTitle,
               })
             }
             className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-left text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
           >
-            {fsAccessSupported ? "Leeres Board ohne Datei" : "Leeres Board anlegen"}
+            {fsAccessSupported ? t("dialogs.newFileEmptyWithoutFile") : t("dialogs.newFileEmptyOnly")}
           </button>
           <button
             type="button"
@@ -135,7 +133,7 @@ export function NewWorkingFileDialog({
             onClick={() => onChoose({ action: "cancel" })}
             className="rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-60"
           >
-            Abbrechen
+            {t("common.cancel")}
           </button>
         </div>
       </div>

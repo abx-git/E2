@@ -7,12 +7,14 @@ import { ClipboardList, ClipboardPaste, Trash2 } from "lucide-react";
 import { CLIPBOARD_DROP_ATTR, clipboardItemCount, isPointerOverStormCanvas } from "@/lib/board-clipboard";
 import { styleForElementType } from "@/lib/element-styles";
 import { screenToWorld } from "@/lib/canvas-viewport";
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
 
 const DRAG_THRESHOLD_PX = 5;
 
 export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
+  const t = useT();
   const clipboard = useStormBoardStore((s) => s.clipboard);
   const highlight = useStormBoardStore((s) => s.clipboardDropHighlight);
   const pasteClipboardAt = useStormBoardStore((s) => s.pasteClipboardAt);
@@ -107,7 +109,7 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
           <div className="flex items-center justify-between gap-2">
             <h3 className="group-label flex items-center gap-1.5">
               <ClipboardList className="h-3.5 w-3.5" />
-              Zwischenablage
+              {t("panels.clipboardTitle")}
               {count > 0 && (
                 <span className="rounded bg-[var(--control)] px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-[var(--muted)]">
                   {count}
@@ -116,7 +118,7 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
             </h3>
           </div>
           <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
-            Rein: Rechtsklick oder Drag. Raus: Eintrag auf den Canvas ziehen.
+            {t("panels.clipboardHint")}
           </p>
         </>
       )}
@@ -129,21 +131,21 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
             highlight ? "border-[var(--accent)]" : "border-[var(--border)]",
           ].join(" ")}
         >
-          Leer — Elemente hierher ziehen
+          {t("panels.clipboardEmpty")}
         </p>
       ) : (
         <ul className={["space-y-1 overflow-y-auto", embedded ? "min-h-0 flex-1" : "mt-2 max-h-40"].join(" ")}>
           {(clipboard!.swimlanes ?? []).map((lane) => (
             <li key={lane.id}>
               <div className="truncate rounded-md border border-dashed border-slate-300 bg-slate-100/80 px-2 py-1 text-left text-xs text-slate-700">
-                Swimlane · {lane.label}
+                {t("panels.clipboardSwimlanePrefix", { label: lane.label })}
               </div>
             </li>
           ))}
           {(clipboard!.boundedContexts ?? []).map((bc) => (
             <li key={bc.id}>
               <div className="truncate rounded-md border border-dashed border-blue-300 bg-blue-50/90 px-2 py-1 text-left text-xs text-blue-900">
-                BC · {bc.label}
+                {t("panels.clipboardBcPrefix", { label: bc.label })}
               </div>
             </li>
           ))}
@@ -158,7 +160,7 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
                     backgroundColor: cardStyle.fill,
                     color: cardStyle.ink,
                   }}
-                  title={`${cardStyle.label} — auf Canvas ziehen`}
+                  title={t("panels.clipboardDragItem", { type: cardStyle.label })}
                   onPointerDown={(e) => beginItemDrag(el, e)}
                 >
                   {el.label || cardStyle.shortLabel}
@@ -175,10 +177,10 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
           disabled={count === 0}
           onClick={pasteAtViewportCenter}
           className="dock-control flex items-center gap-1 rounded-md px-2 py-1 text-xs disabled:opacity-40"
-          title="Alle in die aktuelle Sicht einfügen (Viewport-Mitte)"
+          title={t("panels.clipboardPasteAllTitle")}
         >
           <ClipboardPaste className="h-3.5 w-3.5" />
-          Alle einfügen
+          {t("panels.clipboardPasteAll")}
         </button>
         <button
           type="button"
@@ -187,7 +189,7 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
           className="dock-control flex items-center gap-1 rounded-md px-2 py-1 text-xs disabled:opacity-40"
         >
           <Trash2 className="h-3.5 w-3.5" />
-          Leeren
+          {t("panels.clipboardClear")}
         </button>
       </div>
 
@@ -221,7 +223,7 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
           highlight ? "rounded-md bg-[var(--accent)]/15 ring-1 ring-inset ring-[var(--accent)]" : "",
         ].join(" ")}
         {...{ [CLIPBOARD_DROP_ATTR]: "" }}
-        aria-label="Zwischenablage"
+        aria-label={t("panels.clipboardTitle")}
       >
         {body}
       </div>
@@ -235,7 +237,7 @@ export function ClipboardPanel({ embedded = false }: { embedded?: boolean }) {
         highlight ? "bg-[var(--accent)]/15 ring-1 ring-inset ring-[var(--accent)]" : "",
       ].join(" ")}
       {...{ [CLIPBOARD_DROP_ATTR]: "" }}
-      aria-label="Zwischenablage"
+      aria-label={t("panels.clipboardTitle")}
     >
       {body}
     </section>

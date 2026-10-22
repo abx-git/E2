@@ -105,5 +105,16 @@ export const dialogsDe = {
     jsonPasteDiagramTitle: "Diagramm einfügen",
     jsonPasteDiagramBody:
       "Mermaid- oder PlantUML-Text als neue Sicht importieren. Elemente werden automatisch arrangiert.",
+    newFileTitle: "Neue Datei",
+    newFileBody: "Leeres Board in diesem Tab anlegen. Andere Tabs bleiben unverändert.",
+    newFileDiscardUnsaved: "Ungespeicherte Änderungen in diesem Tab werden verworfen.",
+    newFileDiscardContent: "Der aktuelle Board-Inhalt in diesem Tab wird verworfen.",
+    newFileKeepOnDisk: "Die bisherige Datei „{file}“ bleibt auf dem Datenträger erhalten.",
+    newFileBoardTitle: "Board-Titel",
+    newFileDefaultTitle: "Neues Event Storming Board",
+    newFileSuggestedFilename: "Vorgeschlagener Dateiname:",
+    newFileCreateWithFile: "Anlegen und Speicherort wählen…",
+    newFileEmptyWithoutFile: "Leeres Board ohne Datei",
+    newFileEmptyOnly: "Leeres Board anlegen",
   },
 } as const;

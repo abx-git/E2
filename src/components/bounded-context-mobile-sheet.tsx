@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-panel";
 import { MobileSheetOverlay } from "@/components/mobile-sheet";
 import { useIsMobileLayout } from "@/lib/use-media-query";
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 export interface BoundedContextMobileSheetProps {
@@ -16,6 +17,7 @@ export interface BoundedContextMobileSheetProps {
 
 /** Bottom sheet for bounded-context details on narrow viewports. */
 export function BoundedContextMobileSheet({ open, onClose }: BoundedContextMobileSheetProps) {
+  const t = useT();
   const isMobile = useIsMobileLayout();
   const selectedBoundedContextId = useStormBoardStore(
     (s) => s.selectedBoundedContextIds[0] ?? null,
@@ -39,7 +41,7 @@ export function BoundedContextMobileSheet({ open, onClose }: BoundedContextMobil
       <div className="mb-2 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-            Bounded Context
+            {t("contextMenu.boundedContext")}
           </p>
           <h2 className="truncate text-base font-semibold text-[var(--text)]">
             {selectedBoundedContext.label}
@@ -48,7 +50,7 @@ export function BoundedContextMobileSheet({ open, onClose }: BoundedContextMobil
         <button
           type="button"
           className="dock-control shrink-0 rounded-md p-2"
-          aria-label="Schließen"
+          aria-label={t("common.close")}
           onClick={onClose}
         >
           <X className="size-4" />
@@ -70,6 +72,7 @@ export function BoundedContextMobileActions({
 }: {
   onOpenDetails: () => void;
 }) {
+  const t = useT();
   const isMobile = useIsMobileLayout();
   const selectedBoundedContextId = useStormBoardStore(
     (s) => s.selectedBoundedContextIds[0] ?? null,
@@ -94,14 +97,16 @@ export function BoundedContextMobileActions({
           className="rounded-lg border border-[var(--border)] bg-[var(--control)] px-3 py-2 text-xs font-medium text-[var(--text)]"
           onClick={onOpenDetails}
         >
-          Details
+          {t("panels.details")}
         </button>
         <button
           type="button"
           className="rounded-lg border border-[var(--accent)] bg-[rgba(42,157,143,0.15)] px-3 py-2 text-xs font-medium text-[var(--text)]"
           onClick={() => openBoundedContextView(bc.id)}
         >
-          {linkedView ? `Sicht: ${linkedView.name}` : "Detail-Sicht erstellen"}
+          {linkedView
+            ? t("panels.viewNamed", { name: linkedView.name })
+            : t("contextMenu.createDetailView")}
         </button>
       </div>
     </div>

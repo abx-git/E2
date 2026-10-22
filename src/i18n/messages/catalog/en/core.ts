@@ -76,6 +76,10 @@ export const coreEn = {
     exportViewHint: "Export the selected view; import with auto-layout as a new view.",
     moreActions: "More actions",
     recentFiles: "Recently used",
+    importAsNewPage: "Import as new page",
+    jsonAsNewViewShort: "JSON as new view",
+    shareBoardLink: "Share board link…",
+    createJoinRoom: "Create / join room",
   },
   appearance: {
     workspace: "Workspace",

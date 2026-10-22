@@ -1,8 +1,10 @@
 "use client";
 
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 export function TimelineGuide() {
+  const t = useT();
   const timeline = useStormBoardStore((s) => s.timeline);
   const setTimeline = useStormBoardStore((s) => s.setTimeline);
   const openContextMenu = useStormBoardStore((s) => s.openContextMenu);
@@ -50,7 +52,7 @@ export function TimelineGuide() {
         e.stopPropagation();
         openContextMenu(e.clientX, e.clientY, { kind: "timeline" });
       }}
-      title="Timeline ziehen · Rechtsklick für Optionen"
+      title={t("panels.timelineDragHint")}
     >
       <div className="pointer-events-none absolute left-0 right-0 top-1/2 -translate-y-1/2 border-t-2 border-dashed border-[var(--accent-2)]/80" />
       <div className="pointer-events-none absolute left-4 top-0 flex items-center rounded-md border border-[var(--border)] bg-[var(--panel-solid)] px-2 py-0.5 text-[0.72rem] font-medium text-[var(--accent-2)] shadow-dock">

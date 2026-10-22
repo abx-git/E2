@@ -75,6 +75,10 @@ export const coreDe = {
     exportViewHint: "Export der gewählten Sicht; Import mit Auto-Layout als neue Sicht.",
     moreActions: "Weitere Aktionen",
     recentFiles: "Zuletzt verwendet",
+    importAsNewPage: "Als neue Seite importieren",
+    jsonAsNewViewShort: "JSON als neue Sicht",
+    shareBoardLink: "Board-Link teilen…",
+    createJoinRoom: "Raum erstellen / beitreten",
   },
   appearance: {
     workspace: "Arbeitsbereich",

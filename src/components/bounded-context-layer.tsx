@@ -7,6 +7,7 @@ import { resolveBoundedContextViewNavigation } from "@/lib/bounded-context-view"
 import { cssRegionStackingZIndex, sortByZOrder } from "@/lib/element-z-order";
 import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
 import { resolveRegionPaint } from "@/lib/region-style";
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 const MIN_SIZE = 80;
@@ -28,6 +29,7 @@ const HANDLE_POSITIONS: Record<ResizeHandle, string> = {
 };
 
 export function BoundedContextLayer() {
+  const t = useT();
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const selectedBoundedContextIds = useStormBoardStore((s) => s.selectedBoundedContextIds);
   const selectBoundedContext = useStormBoardStore((s) => s.selectBoundedContext);
@@ -363,7 +365,7 @@ export function BoundedContextLayer() {
             {paint.locked && (
               <div
                 className="pointer-events-none absolute right-2 top-2 z-40 rounded bg-blue-100 p-1 text-blue-800"
-                title="Gesperrt"
+                title={t("panels.locked")}
               >
                 <Lock className="h-3 w-3" aria-hidden />
               </div>
@@ -374,7 +376,7 @@ export function BoundedContextLayer() {
                 type="text"
                 className="absolute -top-3 left-3 z-50 min-w-[8rem] max-w-[min(20rem,calc(100%-1.5rem))] rounded border border-blue-500 bg-white px-2 py-0.5 text-xs font-semibold text-blue-900 outline-none"
                 value={draft}
-                aria-label="Bounded Context umbenennen"
+                aria-label={t("panels.renameBoundedContext")}
                 onPointerDown={(e) => e.stopPropagation()}
                 onChange={(e) => setDraftValue(e.target.value)}
                 onBlur={() => commitLabel(bc.id, draftRef.current)}
