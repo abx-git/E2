@@ -44,7 +44,8 @@ interface E2vViewDraft {
 }
 
 import { E2V_FORMAT, E2V_MAGIC } from "@/lib/e2v/constants";
-import { parseCell, splitRow } from "@/lib/e2v/text";
+import { isE2vRelationType, normalizeE2vElementType } from "@/lib/e2v/llm-shorthand";
+import { optionalIdCell, parseCell, splitRow } from "@/lib/e2v/text";
 
 function parseEndpoint(raw: string, idMap: Map<string, string>): ConnectorEndpoint {
   const t = raw.trim();
@@ -247,7 +248,10 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
       const cols = splitRow(trimmed);
       const tag = cols[0]?.slice(1);
       if (tag === "format" && cols[1] !== E2V_FORMAT) return null;
-      if (tag === "title") title = parseCell(cols[1] ?? title);
+      if (tag === "title") {
+        const rest = cols.slice(1).join(" ").trim();
+        if (rest) title = parseCell(rest);
+      }
       if (tag === "activeViewId") activeViewId = cols[1] ?? "";
       if (tag === "workshopMode") workshopMode = cols[1] === "1";
       if (tag === "appearance") {
@@ -294,7 +298,7 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         parseState.viewDraft.customCardTypes = [...(parseState.viewDraft.customCardTypes ?? []), ct];
       }
       if (tag === "desc" && cols[1]) {
-        descPending.set(cols[1], parseCell(cols.slice(2).join("\t")));
+        descPending.set(cols[1], parseCell(cols.slice(2).join(" ")));
       }
       if (tag === "meta" && cols[1]) {
         try {
@@ -310,7 +314,10 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
     const cols = splitRow(trimmed);
     const kind = cols[0];
     if (kind === "g") {
-      glossary.push({ term: parseCell(cols[1] ?? ""), definition: parseCell(cols[2] ?? "") });
+      glossary.push({
+        term: parseCell(cols[1] ?? ""),
+        definition: parseCell(cols.slice(2).join(" ")),
+      });
       continue;
     }
     if (kind === "ai") {
@@ -369,35 +376,41 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         ...(parseState.viewDraft.elements ?? []),
         {
           id: cols[1] ?? generateStormId(),
-          type: cols[2] as StormElement["type"],
+          type: normalizeE2vElementType(cols[2] ?? ""),
           x: num(cols[3] ?? "") ?? 0,
           y: num(cols[4] ?? "") ?? 0,
           width: num(cols[5] ?? ""),
           height: num(cols[6] ?? ""),
           rotation: num(cols[7] ?? ""),
           zIndex: num(cols[8] ?? ""),
-          swimlaneId: cols[9] || undefined,
-          boundedContextId: cols[10] || undefined,
-          aggregateId: cols[11] || undefined,
-          subdomainId: cols[12] || undefined,
-          detailViewId: cols[13] || undefined,
+          swimlaneId: optionalIdCell(cols[9]),
+          boundedContextId: optionalIdCell(cols[10]),
+          aggregateId: optionalIdCell(cols[11]),
+          subdomainId: optionalIdCell(cols[12]),
+          detailViewId: optionalIdCell(cols[13]),
           label: parseCell(cols[14] ?? ""),
         },
       ];
     } else if (kind === "r") {
-      parseState.viewDraft.relations = [
-        ...(parseState.viewDraft.relations ?? []),
-        {
-          id: cols[1] ?? generateStormId(),
-          type: cols[2] as StormRelation["type"],
-          sourceId: cols[3] ?? "",
-          targetId: cols[4] ?? "",
-          label: parseCell(cols[5] ?? "") || undefined,
-          labelMode: (cols[6] as StormRelation["labelMode"]) || undefined,
-          strokeStyle: (cols[7] as StormRelation["strokeStyle"]) || undefined,
-          progressMark: (cols[8] as StormRelation["progressMark"]) || undefined,
-        },
-      ];
+      const relation =
+        cols.length >= 5 && isE2vRelationType(cols[2] ?? "")
+          ? {
+              id: cols[1] ?? generateStormId(),
+              type: cols[2] as StormRelation["type"],
+              sourceId: cols[3] ?? "",
+              targetId: cols[4] ?? "",
+              label: parseCell(cols[5] ?? "") || undefined,
+              labelMode: (cols[6] as StormRelation["labelMode"]) || undefined,
+              strokeStyle: (cols[7] as StormRelation["strokeStyle"]) || undefined,
+              progressMark: (cols[8] as StormRelation["progressMark"]) || undefined,
+            }
+          : {
+              id: generateStormId(),
+              type: "triggers" as StormRelation["type"],
+              sourceId: cols[1] ?? "",
+              targetId: cols[2] ?? "",
+            };
+      parseState.viewDraft.relations = [...(parseState.viewDraft.relations ?? []), relation];
     } else if (kind === "cr") {
       parseState.viewDraft.contextRelations = [
         ...(parseState.viewDraft.contextRelations ?? []),
@@ -410,22 +423,30 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         },
       ];
     } else if (kind === "cn") {
-      parseState.viewDraft.connectors = [
-        ...(parseState.viewDraft.connectors ?? []),
-        {
-          id: cols[1] ?? generateStormId(),
-          source: parseEndpoint(cols[2] ?? "", viewIdMap),
-          target: parseEndpoint(cols[3] ?? "", viewIdMap),
-          arrowHead: (cols[4] as BoardConnector["arrowHead"]) || undefined,
-          relationType: (cols[5] as BoardConnector["relationType"]) || undefined,
-          contextMapPattern: (cols[6] as BoardConnector["contextMapPattern"]) || undefined,
-          strokeStyle: (cols[7] as BoardConnector["strokeStyle"]) || undefined,
-          color: cols[8] || undefined,
-          label: parseCell(cols[9] ?? "") || undefined,
-          labelMode: (cols[10] as BoardConnector["labelMode"]) || undefined,
-          progressMark: (cols[11] as BoardConnector["progressMark"]) || undefined,
-        },
-      ];
+      const shorthand =
+        cols.length === 3 &&
+        (cols[1]?.includes(":") ?? false) &&
+        (cols[2]?.includes(":") ?? false);
+      const connector = shorthand
+        ? {
+            id: generateStormId(),
+            source: parseEndpoint(cols[1] ?? "", viewIdMap),
+            target: parseEndpoint(cols[2] ?? "", viewIdMap),
+          }
+        : {
+            id: cols[1] ?? generateStormId(),
+            source: parseEndpoint(cols[2] ?? "", viewIdMap),
+            target: parseEndpoint(cols[3] ?? "", viewIdMap),
+            arrowHead: (cols[4] as BoardConnector["arrowHead"]) || undefined,
+            relationType: (cols[5] as BoardConnector["relationType"]) || undefined,
+            contextMapPattern: (cols[6] as BoardConnector["contextMapPattern"]) || undefined,
+            strokeStyle: (cols[7] as BoardConnector["strokeStyle"]) || undefined,
+            color: cols[8] || undefined,
+            label: parseCell(cols[9] ?? "") || undefined,
+            labelMode: (cols[10] as BoardConnector["labelMode"]) || undefined,
+            progressMark: (cols[11] as BoardConnector["progressMark"]) || undefined,
+          };
+      parseState.viewDraft.connectors = [...(parseState.viewDraft.connectors ?? []), connector];
     } else if (kind === "ln") {
       parseState.viewDraft.canvasLines = [
         ...(parseState.viewDraft.canvasLines ?? []),

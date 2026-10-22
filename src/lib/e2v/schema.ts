@@ -49,7 +49,10 @@ export const E2V_ENGLISH_LLM_PROMPT = `You are editing an Event Storming / domai
 ## Your task
 - Produce or modify **E2V** (\`# e2v/1\`) text that round-trips into the canvas **with exact layout** (positions, sizes, rotation, z-order, regions, connectors).
 - Do **not** replace layout with auto-layout. Every sticky needs numeric \`x\`, \`y\`; set \`width\`/\`height\` when not default.
-- Use **tab-separated** rows. Put labels with spaces in JSON-quoted strings if needed.
+- Prefer **tab-separated** rows (canonical export). Spaces between columns are accepted; use JSON-quoted strings for labels with spaces.
+- Use canonical \`elementType\` values (\`domainEvent\`, \`command\`, \`actor\`, …) or common aliases (\`event\`, \`role\`).
+- Relations: full row \`r <id> <type> <source> <target>\` or shorthand \`r <source> <target>\` (defaults to \`triggers\`).
+- Connectors: \`cn <id> <sourceEp> <targetEp>\` or shorthand \`cn element:e1 element:e2\`.
 
 ## Wire format
 - First line: \`# e2v/1\`
