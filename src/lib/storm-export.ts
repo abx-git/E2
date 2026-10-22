@@ -1,11 +1,11 @@
 import {
   BC_LABEL_FILL,
-  BOARD_BACKGROUND,
   CARD_PAD_X,
   CARD_PAD_Y,
-  CONNECTOR_STROKE,
-  CONTEXT_MAP_EXPORT_STYLE,
   EXPORT_FONT_FAMILY,
+  exportCanvasBackground,
+  strokeSwimlaneExportBorder,
+  svgSwimlaneExportBorder,
   EXPORT_FONT_STACK,
   LABEL_FONT_PX,
   LABEL_FONT_WEIGHT,
@@ -24,15 +24,12 @@ import {
   elementTypeBadgeLabel,
   elementVerticalAlign,
 } from "@/lib/board-export-visual";
-import { elementRect as geomElementRect, relationAnchors, contextRelationAnchors } from "@/lib/connector-geometry";
 import {
-  connectorCanvasLineDash,
-  connectorMxDash,
-  connectorStrokeDasharray,
-  isConnectorStrokeStyle,
-  relationCanvasCaption,
-  resolveRelationStrokeStyle,
-} from "@/lib/connector-style";
+  drawExportConnectorsOnCanvas,
+  drawioExportConnectorCells,
+  svgExportConnectors,
+} from "@/lib/board-export-connectors";
+import { elementRect as geomElementRect } from "@/lib/connector-geometry";
 import {
   cardAttributeLines,
   cardMethodLines,
@@ -1109,6 +1106,7 @@ function mxPushVertex(
  */
 export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds): string {
   const { width, height, ox, oy } = bounds;
+  const canvasBg = exportCanvasBackground(state.appearance);
   const pageW = Math.max(1, Math.ceil(width));
   const pageH = Math.max(1, Math.ceil(height));
   const cells: string[] = [
@@ -1212,90 +1210,9 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
     );
   }
 
-  for (const rel of state.contextRelations) {
-    const src = state.boundedContexts.find((b) => b.id === rel.sourceContextId);
-    const tgt = state.boundedContexts.find((b) => b.id === rel.targetContextId);
-    if (!src || !tgt) continue;
-    const pattern = CONTEXT_MAP_EXPORT_STYLE[rel.type];
-    const style = mxStyle({
-      endArrow: "block",
-      endFill: 1,
-      endSize: 6,
-      html: 1,
-      rounded: 0,
-      strokeColor: pattern.stroke,
-      strokeWidth: pattern.width,
-      dashed: pattern.dash ? 1 : undefined,
-      dashPattern: pattern.dash?.replace(/\s+/g, " "),
-      fontColor: CONNECTOR_STROKE,
-      fontSize: META_FONT_PX,
-      fontStyle: 0,
-      ...MX_FONT,
-    });
-    const label = rel.label?.trim() || CONTEXT_MAP_PATTERN_LABELS[rel.type];
-    cells.push(
-      `<mxCell id="${mxCellId("ctx", rel.id)}" value="${mxHtmlValue(mxHtmlText(label))}" style="${style}" edge="1" parent="1" source="${mxCellId("bc", rel.sourceContextId)}" target="${mxCellId("bc", rel.targetContextId)}">`,
-      `<mxGeometry relative="1" as="geometry"/>`,
-      `</mxCell>`,
-    );
-  }
-
-  for (const line of state.canvasLines) {
-    const arrow = line.arrowHead ?? "none";
-    const lineStroke = isConnectorStrokeStyle(line.strokeStyle) ? line.strokeStyle : "solid";
-    const style = mxStyle({
-      startArrow: arrow === "start" || arrow === "both" ? "block" : "none",
-      endArrow: arrow === "end" || arrow === "both" ? "block" : "none",
-      startFill: 1,
-      endFill: 1,
-      startSize: 6,
-      endSize: 6,
-      html: 1,
-      rounded: 0,
-      strokeColor: line.color ?? CONNECTOR_STROKE,
-      strokeWidth: 2,
-      ...connectorMxDash(lineStroke),
-      fontColor: CONNECTOR_STROKE,
-      fontSize: META_FONT_PX,
-      fontStyle: 0,
-      ...MX_FONT,
-    });
-    cells.push(
-      `<mxCell id="${mxCellId("line", line.id)}" value="${mxHtmlValue(mxHtmlText(line.label ?? ""))}" style="${style}" edge="1" parent="1">`,
-      `<mxGeometry relative="1" as="geometry">`,
-      `<mxPoint x="${line.x1 + ox}" y="${line.y1 + oy}" as="sourcePoint"/>`,
-      `<mxPoint x="${line.x2 + ox}" y="${line.y2 + oy}" as="targetPoint"/>`,
-      `</mxGeometry>`,
-      `</mxCell>`,
-    );
-  }
-
-  for (const rel of state.relations) {
-    const src = state.elements.find((e) => e.id === rel.sourceId);
-    const tgt = state.elements.find((e) => e.id === rel.targetId);
-    if (!src || !tgt) continue;
-    const dash = connectorMxDash(resolveRelationStrokeStyle(rel));
-    const caption = relationCanvasCaption(rel);
-    const style = mxStyle({
-      endArrow: "block",
-      endFill: 1,
-      endSize: 6,
-      html: 1,
-      rounded: 0,
-      strokeColor: CONNECTOR_STROKE,
-      strokeWidth: 2,
-      ...dash,
-      fontColor: CONNECTOR_STROKE,
-      fontSize: META_FONT_PX,
-      fontStyle: 0,
-      ...MX_FONT,
-    });
-    cells.push(
-      `<mxCell id="${mxCellId("rel", rel.id)}" value="${mxHtmlValue(mxHtmlText(caption))}" style="${style}" edge="1" parent="1" source="${mxCellId("el", rel.sourceId)}" target="${mxCellId("el", rel.targetId)}">`,
-      `<mxGeometry relative="1" as="geometry"/>`,
-      `</mxCell>`,
-    );
-  }
+  cells.push(
+    ...drawioExportConnectorCells(state, bounds, mxCellId, mxStyle, mxHtmlValue, mxHtmlText, MX_FONT),
+  );
 
   for (const el of sortElementsByZOrder(state.elements)) {
     const r = elementRect(el);
@@ -1348,7 +1265,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
   return [
     `<mxfile host="app.diagrams.net" modified="${modified}" agent="E2" version="22.0.0" type="device">`,
     `<diagram id="board" name="${diagramName}">`,
-    `<mxGraphModel dx="${pageW}" dy="${pageH}" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${pageW}" pageHeight="${pageH}" math="0" shadow="0" background="${BOARD_BACKGROUND}">`,
+    `<mxGraphModel dx="${pageW}" dy="${pageH}" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${pageW}" pageHeight="${pageH}" math="0" shadow="0" background="${canvasBg}">`,
     `<root>`,
     ...cells,
     `</root>`,
@@ -1362,6 +1279,7 @@ export function exportBoardSvg(): void {
   const state = boardActiveSliceFromStore();
   const bounds = computeBoardBounds(state);
   const { width, height, ox, oy } = bounds;
+  const canvasBg = exportCanvasBackground(state.appearance);
   const mxfile = buildDrawioMxFile(state, bounds);
 
   // Measure with an offscreen canvas so wrapping matches PNG / UI metrics.
@@ -1376,10 +1294,8 @@ export function exportBoardSvg(): void {
   const parts: string[] = [
     `<?xml version="1.0" encoding="UTF-8"?>`,
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="${width}px" height="${height}px" viewBox="0 0 ${width} ${height}" content="${escapeXml(mxfile)}">`,
-    `<rect width="100%" height="100%" fill="${BOARD_BACKGROUND}"/>`,
+    `<rect width="100%" height="100%" fill="${escapeXml(canvasBg)}"/>`,
     `<defs>`,
-    `<marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="${CONNECTOR_STROKE}"/></marker>`,
-    `<marker id="ctx-arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#457b9d"/></marker>`,
     `<style><![CDATA[
       @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
       .label { font-family: ${EXPORT_FONT_STACK}; font-size: ${LABEL_FONT_PX}px; font-weight: ${LABEL_FONT_WEIGHT}; }
@@ -1399,7 +1315,8 @@ export function exportBoardSvg(): void {
       const h = lane.height;
       const paint = resolveRegionPaint("swimlane", lane);
       parts.push(
-        `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${escapeXml(paint.backgroundColor)}" stroke="${escapeXml(paint.borderColor)}" stroke-width="2"/>`,
+        `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${escapeXml(paint.backgroundColor)}" stroke="none"/>`,
+        svgSwimlaneExportBorder(x, y, w, h, paint.borderColor),
         `<text class="region" x="${x + 12}" y="${y + 18}" fill="${SWIMLANE_LABEL_FILL}">${escapeXml(lane.label)}</text>`,
       );
     } else {
@@ -1419,54 +1336,7 @@ export function exportBoardSvg(): void {
     );
   }
 
-  for (const rel of state.contextRelations) {
-    const src = state.boundedContexts.find((b) => b.id === rel.sourceContextId);
-    const tgt = state.boundedContexts.find((b) => b.id === rel.targetContextId);
-    if (!src || !tgt) continue;
-    const { start, end } = contextRelationAnchors(src, tgt);
-    const pattern = CONTEXT_MAP_EXPORT_STYLE[rel.type];
-    const dash = pattern.dash ? ` stroke-dasharray="${pattern.dash}"` : "";
-    const label = rel.label?.trim() || CONTEXT_MAP_PATTERN_LABELS[rel.type];
-    parts.push(
-      `<line x1="${start.x + ox}" y1="${start.y + oy}" x2="${end.x + ox}" y2="${end.y + oy}" stroke="${pattern.stroke}" stroke-width="${pattern.width}" marker-end="url(#ctx-arrow)"${dash}/>`,
-      `<text class="meta" x="${(start.x + end.x) / 2 + ox}" y="${(start.y + end.y) / 2 + oy - 8}" text-anchor="middle" fill="${CONNECTOR_STROKE}">${escapeXml(label)}</text>`,
-    );
-  }
-
-  for (const line of state.canvasLines) {
-    const arrow = line.arrowHead ?? "none";
-    const markerEnd = arrow === "end" || arrow === "both" ? ` marker-end="url(#arrow)"` : "";
-    const markerStart = arrow === "start" || arrow === "both" ? ` marker-start="url(#arrow)"` : "";
-    const lineStroke = isConnectorStrokeStyle(line.strokeStyle) ? line.strokeStyle : "solid";
-    const dash = connectorStrokeDasharray(lineStroke);
-    const dashAttr = dash ? ` stroke-dasharray="${dash}"` : "";
-    parts.push(
-      `<line x1="${line.x1 + ox}" y1="${line.y1 + oy}" x2="${line.x2 + ox}" y2="${line.y2 + oy}" stroke="${escapeXml(line.color ?? CONNECTOR_STROKE)}" stroke-width="2"${dashAttr}${markerEnd}${markerStart}/>`,
-    );
-    if (line.label?.trim()) {
-      parts.push(
-        `<text class="meta" x="${(line.x1 + line.x2) / 2 + ox}" y="${(line.y1 + line.y2) / 2 + oy - 6}" text-anchor="middle" fill="${CONNECTOR_STROKE}">${escapeXml(line.label)}</text>`,
-      );
-    }
-  }
-
-  for (const rel of state.relations) {
-    const src = state.elements.find((e) => e.id === rel.sourceId);
-    const tgt = state.elements.find((e) => e.id === rel.targetId);
-    if (!src || !tgt) continue;
-    const { start, end } = relationAnchors(src, tgt);
-    const dash = connectorStrokeDasharray(resolveRelationStrokeStyle(rel));
-    const dashAttr = dash ? ` stroke-dasharray="${dash}"` : "";
-    const caption = relationCanvasCaption(rel);
-    parts.push(
-      `<line x1="${start.x + ox}" y1="${start.y + oy}" x2="${end.x + ox}" y2="${end.y + oy}" stroke="${CONNECTOR_STROKE}" stroke-width="2" marker-end="url(#arrow)"${dashAttr}/>`,
-    );
-    if (caption) {
-      parts.push(
-        `<text class="meta" x="${(start.x + end.x) / 2 + ox}" y="${(start.y + end.y) / 2 + oy - 8}" text-anchor="middle" fill="${CONNECTOR_STROKE}">${escapeXml(caption)}</text>`,
-      );
-    }
-  }
+  parts.push(...svgExportConnectors(state, ox, oy, escapeXml));
 
   for (const el of sortElementsByZOrder(state.elements)) {
     const r = elementRect(el);
@@ -1589,7 +1459,7 @@ function renderActiveViewRaster(): {
   canvas.height = Math.ceil(height * scale);
   ctx.scale(scale, scale);
 
-  ctx.fillStyle = BOARD_BACKGROUND;
+  ctx.fillStyle = exportCanvasBackground(state.appearance);
   ctx.fillRect(0, 0, width, height);
 
   for (const entry of sortedRegions(state)) {
@@ -1602,9 +1472,7 @@ function renderActiveViewRaster(): {
       const paint = resolveRegionPaint("swimlane", lane);
       ctx.fillStyle = paint.backgroundColor;
       ctx.fillRect(x, y, w, h);
-      ctx.strokeStyle = paint.borderColor;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x, y, w, h);
+      strokeSwimlaneExportBorder(ctx, x, y, w, h, paint.borderColor);
       ctx.fillStyle = SWIMLANE_LABEL_FILL;
       ctx.font = cssFont(LABEL_FONT_WEIGHT, REGION_LABEL_FONT_PX);
       ctx.textAlign = "left";
@@ -1641,76 +1509,7 @@ function renderActiveViewRaster(): {
     ctx.setLineDash([]);
   }
 
-  for (const rel of state.contextRelations) {
-    const src = state.boundedContexts.find((b) => b.id === rel.sourceContextId);
-    const tgt = state.boundedContexts.find((b) => b.id === rel.targetContextId);
-    if (!src || !tgt) continue;
-    const { start, end } = contextRelationAnchors(src, tgt);
-    const pattern = CONTEXT_MAP_EXPORT_STYLE[rel.type];
-    ctx.strokeStyle = pattern.stroke;
-    ctx.lineWidth = pattern.width;
-    if (pattern.dash) ctx.setLineDash(pattern.dash.split(/\s+/).map(Number));
-    ctx.beginPath();
-    ctx.moveTo(start.x + ox, start.y + oy);
-    ctx.lineTo(end.x + ox, end.y + oy);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    drawArrowHead(ctx, start.x + ox, start.y + oy, end.x + ox, end.y + oy, pattern.stroke);
-    const label = rel.label?.trim() || CONTEXT_MAP_PATTERN_LABELS[rel.type];
-    ctx.fillStyle = CONNECTOR_STROKE;
-    ctx.font = cssFont(500, META_FONT_PX);
-    ctx.textAlign = "center";
-    ctx.fillText(label, (start.x + end.x) / 2 + ox, (start.y + end.y) / 2 + oy - 8);
-  }
-
-  for (const line of state.canvasLines) {
-    const stroke = line.color ?? CONNECTOR_STROKE;
-    const lineStroke = isConnectorStrokeStyle(line.strokeStyle) ? line.strokeStyle : "solid";
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 2;
-    ctx.setLineDash(connectorCanvasLineDash(lineStroke));
-    ctx.beginPath();
-    ctx.moveTo(line.x1 + ox, line.y1 + oy);
-    ctx.lineTo(line.x2 + ox, line.y2 + oy);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    const arrow = line.arrowHead ?? "none";
-    if (arrow === "end" || arrow === "both") {
-      drawArrowHead(ctx, line.x1 + ox, line.y1 + oy, line.x2 + ox, line.y2 + oy, stroke);
-    }
-    if (arrow === "start" || arrow === "both") {
-      drawArrowHead(ctx, line.x2 + ox, line.y2 + oy, line.x1 + ox, line.y1 + oy, stroke);
-    }
-    if (line.label?.trim()) {
-      ctx.fillStyle = CONNECTOR_STROKE;
-      ctx.font = cssFont(500, META_FONT_PX);
-      ctx.textAlign = "center";
-      ctx.fillText(line.label, (line.x1 + line.x2) / 2 + ox, (line.y1 + line.y2) / 2 + oy - 6);
-    }
-  }
-
-  for (const rel of state.relations) {
-    const src = state.elements.find((e) => e.id === rel.sourceId);
-    const tgt = state.elements.find((e) => e.id === rel.targetId);
-    if (!src || !tgt) continue;
-    const { start, end } = relationAnchors(src, tgt);
-    const caption = relationCanvasCaption(rel);
-    ctx.strokeStyle = CONNECTOR_STROKE;
-    ctx.lineWidth = 2;
-    ctx.setLineDash(connectorCanvasLineDash(resolveRelationStrokeStyle(rel)));
-    ctx.beginPath();
-    ctx.moveTo(start.x + ox, start.y + oy);
-    ctx.lineTo(end.x + ox, end.y + oy);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    drawArrowHead(ctx, start.x + ox, start.y + oy, end.x + ox, end.y + oy, CONNECTOR_STROKE);
-    if (caption) {
-      ctx.fillStyle = CONNECTOR_STROKE;
-      ctx.font = cssFont(500, META_FONT_PX);
-      ctx.textAlign = "center";
-      ctx.fillText(caption, (start.x + end.x) / 2 + ox, (start.y + end.y) / 2 + oy - 8);
-    }
-  }
+  drawExportConnectorsOnCanvas(ctx, state, ox, oy, cssFont);
 
   for (const el of sortElementsByZOrder(state.elements)) {
     const r = elementRect(el);
@@ -1868,25 +1667,6 @@ export async function copyBoardDrawioToClipboard(): Promise<boolean> {
   const state = boardActiveSliceFromStore();
   const bounds = computeBoardBounds(state);
   return writeClipboardXml(buildDrawioMxFile(state, bounds));
-}
-
-function drawArrowHead(
-  ctx: CanvasRenderingContext2D,
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number,
-  color: string = CONNECTOR_STROKE,
-): void {
-  const angle = Math.atan2(y2 - y1, x2 - x1);
-  const size = 8;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x2, y2);
-  ctx.lineTo(x2 - size * Math.cos(angle - 0.4), y2 - size * Math.sin(angle - 0.4));
-  ctx.lineTo(x2 - size * Math.cos(angle + 0.4), y2 - size * Math.sin(angle + 0.4));
-  ctx.closePath();
-  ctx.fill();
 }
 
 function roundRect(

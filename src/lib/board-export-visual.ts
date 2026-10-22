@@ -3,7 +3,8 @@ import { cardTypeCaption } from "@/lib/element-styles";
 import { isStackingContainerType } from "@/lib/element-z-order";
 import { hexToRgba } from "@/lib/region-style";
 import type { CustomCardType } from "@/lib/custom-card-types";
-import type { ContextMapPattern } from "@/types/storm-relation";
+import { CONTEXT_MAP_CONNECTOR_STYLE } from "@/lib/board-connector-style";
+import { normalizeAppearance, type BoardAppearance } from "@/lib/board-appearance";
 import {
   isArchBuildingBlockType,
   isC4ElementType,
@@ -27,25 +28,52 @@ export const CARD_PAD_X = 8;
 export const CARD_PAD_Y = 4;
 export const BOUNDARY_FILL_OPACITY = 0.38;
 
+/** @deprecated Use exportCanvasBackground(slice) — canvas color comes from board appearance. */
 export const BOARD_BACKGROUND = "#f4f5f7";
 export const CONNECTOR_STROKE = "#8b9aab";
 export const TIMELINE_STROKE = "#e9c46a";
 export const SWIMLANE_LABEL_FILL = "#475569";
 export const BC_LABEL_FILL = "#1e3a8a";
 
-export const CONTEXT_MAP_EXPORT_STYLE: Record<
-  ContextMapPattern,
-  { stroke: string; dash?: string; width: number }
-> = {
-  partnership: { stroke: "#2a9d8f", width: 3 },
-  sharedKernel: { stroke: "#c9a227", width: 2.5 },
-  customerSupplier: { stroke: "#457b9d", width: 2.5 },
-  conformist: { stroke: "#6c757d", width: 2, dash: "8 4" },
-  antiCorruptionLayer: { stroke: "#e76f51", width: 2.5, dash: "4 3" },
-  openHostService: { stroke: "#2a9d8f", width: 2.5 },
-  publishedLanguage: { stroke: "#264653", width: 2, dash: "2 2" },
-  separateWays: { stroke: "#adb5bd", width: 2, dash: "10 6" },
-};
+/** Same stroke/dash/width/double flags as live context-map connectors. */
+export const CONTEXT_MAP_EXPORT_STYLE = CONTEXT_MAP_CONNECTOR_STYLE;
+
+export function exportCanvasBackground(appearance: BoardAppearance): string {
+  return normalizeAppearance(appearance).canvas;
+}
+
+/** Swimlanes on canvas use horizontal borders only (`border-y-2`). */
+export function strokeSwimlaneExportBorder(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  borderColor: string,
+): void {
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + w, y);
+  ctx.moveTo(x, y + h);
+  ctx.lineTo(x + w, y + h);
+  ctx.stroke();
+}
+
+export function svgSwimlaneExportBorder(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  borderColor: string,
+): string {
+  const stroke = borderColor.replace(/"/g, "&quot;");
+  return [
+    `<line x1="${x}" y1="${y}" x2="${x + w}" y2="${y}" stroke="${stroke}" stroke-width="2"/>`,
+    `<line x1="${x}" y1="${y + h}" x2="${x + w}" y2="${y + h}" stroke="${stroke}" stroke-width="2"/>`,
+  ].join("\n");
+}
 
 export function cssExportFont(weight: number, sizePx: number): string {
   return `${weight} ${sizePx}px ${EXPORT_FONT_STACK}`;

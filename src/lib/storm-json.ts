@@ -151,6 +151,8 @@ export interface BoardActiveSlice {
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
   canvasLines: CanvasLine[];
+  /** Canonical connectors — export uses these for canvas-parity styling and geometry. */
+  connectors?: BoardConnector[];
   timeline: Timeline;
   viewport: Viewport;
   snapToTimeline: boolean;
