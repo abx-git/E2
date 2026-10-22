@@ -13,9 +13,19 @@ export function looksLikeJsonText(text: string): boolean {
   return trimmed.startsWith("{") || trimmed.startsWith("[");
 }
 
+/** True when pasted text is likely E2/AI JSON, E2V, or an E2V LLM package (not Mermaid/PlantUML). */
+export function looksLikePasteImportText(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+  if (looksLikeJsonText(trimmed)) return true;
+  if (isE2vText(trimmed)) return true;
+  if (/##\s*data\s*\n```(?:e2v)?/i.test(trimmed)) return true;
+  return false;
+}
+
 /**
  * Accepts a full `.storm.json` snapshot (v1/v2), reduced AI-context JSON,
- * or an E2 AI clipboard package (schema + data markdown).
+ * E2V compact text / E2V LLM package, or an E2 AI clipboard package (schema + data markdown).
  * Diagram text is intentionally excluded — use `boardImportPayloadFromAnyExportText`.
  */
 export function boardImportPayloadFromE2vPackageText(text: string): BoardImportPayload | null {

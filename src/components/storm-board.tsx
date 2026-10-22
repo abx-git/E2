@@ -100,7 +100,7 @@ import {
 import {
   boardImportPayloadFromAnyExportText,
   boardImportPayloadFromJsonText,
-  looksLikeJsonText,
+  looksLikePasteImportText,
 } from "@/lib/board-import-text";
 import {
   singleViewExportFilename,
@@ -1133,7 +1133,7 @@ export function StormBoard() {
         applyImportedJsonAsNewViews(clip);
         return;
       }
-      setJsonPasteInitial(clip && looksLikeJsonText(clip) ? clip : "");
+      setJsonPasteInitial(clip && looksLikePasteImportText(clip) ? clip : "");
       setJsonPasteMode("json-view");
     })();
   };
@@ -1467,7 +1467,7 @@ export function StormBoard() {
         open={jsonPasteMode === "board"}
         title={t("dialogs.jsonPasteBoardTitle")}
         description={t("dialogs.jsonPasteBoardBody")}
-        placeholder='{ "format": "event-storming-tool", "version": 2, … }'
+        placeholder={'{ "format": "event-storming-tool", … }\n\n# e2v/1\n@format event-storming-tool-e2v\n…'}
         confirmLabel={t("dialogs.jsonPasteBoardConfirm")}
         busy={busy}
         onClose={closeJsonPaste}
@@ -1478,7 +1478,7 @@ export function StormBoard() {
         open={jsonPasteMode === "json-view"}
         title={t("dialogs.jsonPasteViewTitle")}
         description={t("dialogs.jsonPasteViewBody")}
-        placeholder='{ "format": "event-storming-tool", "version": 2, … }'
+        placeholder={'{ "format": "event-storming-tool", … }\n\n# e2v/1\n@format event-storming-tool-e2v\n…'}
         confirmLabel={t("dialogs.jsonPasteViewConfirm")}
         busy={busy}
         initialText={jsonPasteInitial}

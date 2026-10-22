@@ -63,7 +63,7 @@ export const dialogsDe = {
     startWithoutFile: "Ohne Datei starten",
     jsonPasteClipboardEmpty: "Die Zwischenablage ist leer.",
     jsonPasteClipboardButton: "Zwischenablage",
-    jsonPasteJsonLabel: "JSON",
+    jsonPasteJsonLabel: "Import-Text (JSON oder E2V)",
     deleteViewBody: "„{name}“ und der gesamte Inhalt dieser Sicht werden entfernt.",
     addViewTab: "Sicht",
     newViewTitle: "Neue Sicht",
@@ -93,11 +93,11 @@ export const dialogsDe = {
     importTryLoad: "Datei trotzdem versuchen",
     jsonPasteBoardTitle: "JSON einfügen",
     jsonPasteBoardBody:
-      "Vollständiges Board (.storm.json) oder KI-Kontext einfügen. Ersetzt den aktuellen Board-Stand.",
+      "Vollständiges Board (.storm.json), kompaktes E2V (# e2v/1), E2V-Paket oder KI-Kontext einfügen. Ersetzt den aktuellen Board-Stand.",
     jsonPasteBoardConfirm: "Board laden",
     jsonPasteViewTitle: "JSON als neue Sicht",
     jsonPasteViewBody:
-      "E2-JSON (.storm.json) oder KI-Kontext aus der Zwischenablage als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten.",
+      "E2-JSON (.storm.json), E2V (# e2v/1 / E2V-Paket) oder KI-Kontext als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten; E2V behält Layout bei.",
     jsonPasteViewConfirm: "Als Sicht importieren",
     jsonPasteAiTitle: "KI-Kontext einfügen",
     jsonPasteAiBody:

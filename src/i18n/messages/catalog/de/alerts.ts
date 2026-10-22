@@ -57,9 +57,9 @@ export const alertsDe = {
     restorePreCollabFailed: "Vorheriger Stand konnte nicht wiederhergestellt werden.",
     restorePreCollabDone:
       "Stand vor dem Raum wiederhergestellt. Die Arbeitsdatei wurde nicht überschrieben — nutze „Speichern unter…“, wenn du speichern willst.",
-    invalidImportJson: "Ungültiges E2-JSON oder KI-Kontext-JSON.",
+    invalidImportJson: "Ungültiges E2-JSON, E2V oder KI-Kontext.",
     invalidImportFormat:
-      "Ungültiges E2-JSON, KI-Kontext oder Diagramm (Mermaid / PlantUML).",
+      "Ungültiges E2-JSON, E2V, KI-Kontext oder Diagramm (Mermaid / PlantUML).",
     fileReadFailed: "Datei konnte nicht gelesen werden.",
     openFileFailedOpenDialog:
       "Datei konnte nicht geöffnet werden. Bitte Berechtigung erteilen oder die Datei erneut über „Öffnen…“ wählen.",

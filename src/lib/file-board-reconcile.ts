@@ -32,7 +32,7 @@ export function planFileReconcile(localJson: string, fileJson: string): FileReco
   }
 
   const localPayload = boardImportPayloadFromExportText(localJson);
-  const filePayload = boardImportPayloadFromExportText(fileJson);
+  const filePayload = boardImportPayloadFromAnyExportText(fileJson);
 
   if (isEmptyPayload(localPayload) && filePayload && documentHasContent(filePayload)) {
     return { action: "apply_file" };

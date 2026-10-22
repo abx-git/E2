@@ -53,8 +53,8 @@ export const alertsEn = {
     restorePreCollabFailed: "Could not restore the previous state.",
     restorePreCollabDone:
       "Pre-room state restored. The working file was not overwritten — use “Save as…” if you want to save.",
-    invalidImportJson: "Invalid E2 JSON or AI context JSON.",
-    invalidImportFormat: "Invalid E2 JSON, AI context, or diagram (Mermaid / PlantUML).",
+    invalidImportJson: "Invalid E2 JSON, E2V, or AI context.",
+    invalidImportFormat: "Invalid E2 JSON, E2V, AI context, or diagram (Mermaid / PlantUML).",
     fileReadFailed: "Could not read file.",
     openFileFailedOpenDialog:
       "Could not open file. Grant permission or choose the file again via Open…",
