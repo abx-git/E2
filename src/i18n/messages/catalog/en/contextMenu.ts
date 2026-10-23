@@ -45,6 +45,8 @@ export const contextMenuEn = {
     promptConnectorLabel: "Connector text",
     noteColor: "Note color",
     hotspot: "Hotspot",
+    measuresLink: "Measures review",
+    linkExistingMeasure: "Link existing measure…",
     statusOpen: "Status: Open",
     recurringOff: "Turn recurring off",
     recurringOn: "Turn recurring on",

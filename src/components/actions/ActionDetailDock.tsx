@@ -1,9 +1,7 @@
 "use client";
 
-import { Copy, ExternalLink, Trash2 } from "lucide-react";
-import { collectBoardLinkTargets } from "@/lib/architecture-measures";
+import { Copy, ExternalLink, Target, Trash2, X } from "lucide-react";
 import { selectMeasureItem } from "@/lib/select-measure-item";
-import { boardImportPayloadFromStore } from "@/store/storm-board-store";
 import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import {
@@ -30,8 +28,11 @@ export function ActionDetailDock({
   const remove = useStormBoardStore((s) => s.removeMeasureActionItem);
   const duplicate = useStormBoardStore((s) => s.duplicateMeasureActionItem);
   const navigate = useStormBoardStore((s) => s.navigateToMeasureTarget);
-
-  const linkTargets = collectBoardLinkTargets(boardImportPayloadFromStore());
+  const beginHotspotPick = useStormBoardStore((s) => s.beginMeasureHotspotLinkPick);
+  const measureHotspotLinkPick = useStormBoardStore((s) => s.measureHotspotLinkPick);
+  const pickActive =
+    measureHotspotLinkPick?.actionsViewId === viewId &&
+    measureHotspotLinkPick?.measureId === itemId;
 
   if (!item) return null;
 
@@ -208,54 +209,55 @@ export function ActionDetailDock({
           />
         </label>
 
-        <label className="block space-y-1">
+        <div className="block space-y-1.5">
           <span className="text-xs text-[var(--muted)]">{t("actionsView.detail.targetRef")}</span>
-          <select
-            className="dock-control w-full rounded-md px-2 py-1.5 text-xs"
-            value={
-              item.targetRef
-                ? `${item.targetRef.viewId}:${item.targetRef.elementId}`
-                : ""
-            }
-            onChange={(e) => {
-              const val = e.target.value;
-              if (!val) {
-                update(viewId, item.id, { targetRef: undefined });
-                return;
-              }
-              const target = linkTargets.find(
-                (lt) => `${lt.viewId}:${lt.elementId}` === val,
-              );
-              if (!target) return;
-              update(viewId, item.id, {
-                targetRef: {
-                  viewId: target.viewId,
-                  elementId: target.elementId,
-                  elementLabel: `[${target.viewName}] ${target.elementLabel}`,
-                },
-              });
-            }}
-          >
-            <option value="">{t("actionsView.detail.targetNone")}</option>
-            {linkTargets.map((lt) => (
-              <option key={`${lt.viewId}:${lt.elementId}`} value={`${lt.viewId}:${lt.elementId}`}>
-                [{lt.viewName}] {lt.elementLabel}
-              </option>
-            ))}
-          </select>
           {item.targetRef ? (
+            <p className="truncate text-xs text-[var(--text)]">{item.targetRef.elementLabel}</p>
+          ) : (
+            <p className="text-xs italic text-[var(--muted)]">{t("actionsView.detail.targetNone")}</p>
+          )}
+          <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
-              className="mt-1 flex items-center gap-1 text-xs text-[var(--accent-2)] hover:underline"
+              className={[
+                "dock-control flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-xs",
+                pickActive ? "dock-control-active" : "",
+              ].join(" ")}
               onClick={() =>
-                navigate(item.targetRef!.viewId, item.targetRef!.elementId)
+                pickActive
+                  ? useStormBoardStore.getState().cancelMeasureHotspotLinkPick()
+                  : beginHotspotPick(viewId, item.id)
               }
             >
-              <ExternalLink className="h-3 w-3" />
-              {t("actionsView.detail.navigateTarget")}
+              <Target className="h-3.5 w-3.5" />
+              {pickActive
+                ? t("actionsView.detail.cancelHotspotPick")
+                : t("actionsView.detail.pickHotspotOnCanvas")}
             </button>
-          ) : null}
-        </label>
+            {item.targetRef ? (
+              <>
+                <button
+                  type="button"
+                  className="dock-control flex items-center justify-center gap-1 rounded-md px-2 py-1.5 text-xs"
+                  onClick={() =>
+                    navigate(item.targetRef!.viewId, item.targetRef!.elementId)
+                  }
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  {t("actionsView.detail.navigateTarget")}
+                </button>
+                <button
+                  type="button"
+                  className="dock-control flex items-center justify-center rounded-md px-2 py-1.5 text-xs"
+                  title={t("actionsView.detail.clearTargetRef")}
+                  onClick={() => update(viewId, item.id, { targetRef: undefined })}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </>
+            ) : null}
+          </div>
+        </div>
       </div>
       <footer className="flex gap-2 border-t border-[var(--border)] p-2">
         <button

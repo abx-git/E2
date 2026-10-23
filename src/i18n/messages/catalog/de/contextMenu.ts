@@ -45,6 +45,8 @@ export const contextMenuDe = {
     promptConnectorLabel: "Text am Verbinder",
     noteColor: "Notizfarbe",
     hotspot: "Hotspot",
+    measuresLink: "Maßnahmen-Review",
+    linkExistingMeasure: "Bestehende Maßnahme verknüpfen…",
     statusOpen: "Status: Offen",
     recurringOff: "Wiederkehrend aus",
     recurringOn: "Wiederkehrend an",

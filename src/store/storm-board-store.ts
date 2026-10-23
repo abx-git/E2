@@ -60,6 +60,8 @@ import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
 import { normalizeActionItem } from "@/lib/action-items";
 import {
   findMeasureForHotspot,
+  measureTargetsHotspot,
+  patchHotspotMeasuresBacklog,
   type BoardHotspotRef,
 } from "@/lib/board-hotspots";
 import {
@@ -212,6 +214,8 @@ export interface StormBoardState {
   /** Ephemeral cut buffer (not persisted / not in undo domain snapshot as separate field — cut is undoable via board state). */
   clipboard: BoardClipboardPayload | null;
   clipboardDropHighlight: boolean;
+  /** Pick a canvas hotspot to link the open measure (ephemeral). */
+  measureHotspotLinkPick: { actionsViewId: string; measureId: string } | null;
 
   /** Undo stacks (not persisted). */
   past: BoardDomainSnapshot[];
@@ -425,6 +429,23 @@ export interface StormBoardState {
   ) => string;
   /** Create a measure linked to a board hotspot, or return existing measure id. */
   addMeasureFromHotspot: (actionsViewId: string, hotspot: BoardHotspotRef) => string | null;
+  linkMeasureToCanvasHotspot: (
+    actionsViewId: string,
+    measureId: string,
+    hotspotViewId: string,
+    hotspotElementId: string,
+    hotspotViewName: string,
+    hotspotLabel: string,
+  ) => void;
+  setHotspotMeasuresBacklogHidden: (
+    actionsViewId: string,
+    hotspotViewId: string,
+    hotspotElementId: string,
+    hidden: boolean,
+  ) => void;
+  beginMeasureHotspotLinkPick: (actionsViewId: string, measureId: string) => void;
+  cancelMeasureHotspotLinkPick: () => void;
+  completeMeasureHotspotLinkPick: (hotspotElementId: string) => boolean;
   updateMeasureActionItem: (
     viewId: string,
     itemId: string,
@@ -660,6 +681,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   contextMenu: null,
   clipboard: null,
   clipboardDropHighlight: false,
+  measureHotspotLinkPick: null,
   selectedMeasureId: null,
   past: [],
   future: [],
@@ -680,6 +702,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       ...applyViewToFlatPatch(next),
       ...CLEAR_SELECTION_PATCH,
       selectedMeasureId: null,
+      measureHotspotLinkPick: null,
       past: [],
       future: [],
       gestureActive: false,
@@ -2471,7 +2494,18 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       );
       if (existing) {
         resultId = existing.id;
-        return { selectedMeasureId: existing.id };
+        const backlog = patchHotspotMeasuresBacklog(
+          view.config,
+          hotspot.viewId,
+          hotspot.elementId,
+          true,
+        );
+        return {
+          selectedMeasureId: existing.id,
+          views: patchActionsViewInList(views, actionsViewId, {
+            config: { ...view.config, ...backlog },
+          }),
+        };
       }
       const obligation =
         hotspot.priority === "high"
@@ -2493,14 +2527,120 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         },
       });
       resultId = item.id;
+      const backlog = patchHotspotMeasuresBacklog(
+        view.config,
+        hotspot.viewId,
+        hotspot.elementId,
+        true,
+      );
       return {
         views: patchActionsViewInList(views, actionsViewId, {
           items: [...view.items, item],
+          config: { ...view.config, ...backlog },
         }),
         selectedMeasureId: item.id,
       };
     });
     return resultId;
+  },
+
+  linkMeasureToCanvasHotspot: (
+    actionsViewId,
+    measureId,
+    hotspotViewId,
+    hotspotElementId,
+    hotspotViewName,
+    hotspotLabel,
+  ) =>
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const view = views.find((v) => v.id === actionsViewId);
+      if (!view || !isActionsView(view)) return {};
+      const items = view.items.map((item) => {
+        if (item.id === measureId) {
+          return normalizeMeasureActionItem({
+            ...item,
+            targetRef: {
+              viewId: hotspotViewId,
+              elementId: hotspotElementId,
+              elementLabel: `[${hotspotViewName}] ${hotspotLabel}`,
+            },
+            updatedAt: new Date().toISOString(),
+          });
+        }
+        if (measureTargetsHotspot(item, hotspotViewId, hotspotElementId)) {
+          return normalizeMeasureActionItem({
+            ...item,
+            targetRef: undefined,
+            updatedAt: new Date().toISOString(),
+          });
+        }
+        return item;
+      });
+      const backlog = patchHotspotMeasuresBacklog(
+        view.config,
+        hotspotViewId,
+        hotspotElementId,
+        true,
+      );
+      return {
+        views: patchActionsViewInList(views, actionsViewId, {
+          items,
+          config: { ...view.config, ...backlog },
+        }),
+        selectedMeasureId: measureId,
+        measureHotspotLinkPick: null,
+      };
+    }),
+
+  setHotspotMeasuresBacklogHidden: (actionsViewId, hotspotViewId, hotspotElementId, hidden) =>
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const view = views.find((v) => v.id === actionsViewId);
+      if (!view || !isActionsView(view)) return {};
+      const backlog = patchHotspotMeasuresBacklog(
+        view.config,
+        hotspotViewId,
+        hotspotElementId,
+        hidden,
+      );
+      return {
+        views: patchActionsViewInList(views, actionsViewId, {
+          config: { ...view.config, ...backlog },
+        }),
+      };
+    }),
+
+  beginMeasureHotspotLinkPick: (actionsViewId, measureId) =>
+    set({
+      measureHotspotLinkPick: { actionsViewId, measureId },
+      relationMode: false,
+      relationDraftSourceId: null,
+      contextMapMode: false,
+      contextMapDraftSourceId: null,
+      lineDrawMode: false,
+      connectorDraftSource: null,
+    }),
+
+  cancelMeasureHotspotLinkPick: () => set({ measureHotspotLinkPick: null }),
+
+  completeMeasureHotspotLinkPick: (hotspotElementId) => {
+    const s = get();
+    const pick = s.measureHotspotLinkPick;
+    if (!pick) return false;
+    const el = s.elements.find((e) => e.id === hotspotElementId);
+    if (!el || el.type !== "hotspot") return false;
+    const canvasView = s.views.find((v) => v.id === s.activeViewId);
+    const viewName = canvasView?.name ?? "Board";
+    get().linkMeasureToCanvasHotspot(
+      pick.actionsViewId,
+      pick.measureId,
+      s.activeViewId,
+      el.id,
+      viewName,
+      el.label?.trim() || el.id,
+    );
+    return true;
   },
 
   updateMeasureActionItem: (viewId, itemId, patch) =>

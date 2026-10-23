@@ -16,11 +16,13 @@ import {
   ClipboardList,
   ClipboardPaste,
   Copy,
+  EyeOff,
   HelpCircle,
-  LayoutDashboard,
   Link2,
-  Lock,
+  Plus,
   RotateCcw,
+  LayoutDashboard,
+  Lock,
   RotateCw,
   SendToBack,
   StretchHorizontal,
@@ -60,6 +62,12 @@ import {
   elementTypeShortLabel,
   useT,
 } from "@/i18n";
+import {
+  findMeasureForHotspot,
+  isHotspotExcludedFromMeasures,
+} from "@/lib/board-hotspots";
+import { resolveDefaultActionsViewId } from "@/lib/measure-hotspot-ui";
+import { isActionsView } from "@/lib/storm-json";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { supportsArchDrilldown, type NoteColorId } from "@/types/storm-element";
 import { RELATION_TYPES, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
@@ -155,6 +163,11 @@ export function CanvasContextMenu({
   const applyProgressMark = useStormBoardStore((s) => s.applyProgressMark);
   const pasteClipboardAt = useStormBoardStore((s) => s.pasteClipboardAt);
   const clipboard = useStormBoardStore((s) => s.clipboard);
+  const addMeasureFromHotspot = useStormBoardStore((s) => s.addMeasureFromHotspot);
+  const setHotspotBacklogHidden = useStormBoardStore((s) => s.setHotspotMeasuresBacklogHidden);
+  const linkMeasureToHotspot = useStormBoardStore((s) => s.linkMeasureToCanvasHotspot);
+  const setActiveView = useStormBoardStore((s) => s.setActiveView);
+  const selectMeasure = useStormBoardStore((s) => s.selectMeasure);
   const isMobile = useIsMobileLayout();
 
   const ref = useRef<HTMLDivElement>(null);
@@ -326,6 +339,106 @@ export function CanvasContextMenu({
                 }
               />
             ))}
+            {(() => {
+              const actionsViewId = resolveDefaultActionsViewId(views, activeViewId);
+              if (!actionsViewId) return null;
+              const actionsView = views.find((v) => v.id === actionsViewId);
+              const viewName = views.find((v) => v.id === activeViewId)?.name ?? "Board";
+              const items =
+                actionsView && isActionsView(actionsView) ? actionsView.items : [];
+              const config =
+                actionsView && isActionsView(actionsView) ? actionsView.config : undefined;
+              const linked = findMeasureForHotspot(items, activeViewId, el.id);
+              const hidden = config
+                ? isHotspotExcludedFromMeasures(config, activeViewId, el.id)
+                : false;
+              const hotspotRef = {
+                viewId: activeViewId,
+                viewName,
+                elementId: el.id,
+                label: el.label?.trim() || el.id,
+                description: el.description?.trim() || undefined,
+                status: el.metadata?.hotspotStatus ?? ("open" as const),
+                priority: el.metadata?.hotspotPriority ?? ("medium" as const),
+              };
+              const linkableMeasures = items.filter(
+                (m) =>
+                  !m.targetRef ||
+                  (m.targetRef.viewId === activeViewId &&
+                    m.targetRef.elementId === el.id),
+              );
+              return (
+                <>
+                  <Separator />
+                  <Section label={t("contextMenu.measuresLink")} />
+                  {linked ? (
+                    <Item
+                      icon={Link2}
+                      label={t("actionsView.hotspots.openMeasure")}
+                      onClick={() =>
+                        run(() => {
+                          setActiveView(actionsViewId);
+                          selectMeasure(linked.id);
+                        })
+                      }
+                    />
+                  ) : (
+                    <Item
+                      icon={Plus}
+                      label={t("actionsView.hotspots.adoptAsMeasure")}
+                      onClick={() =>
+                        run(() => addMeasureFromHotspot(actionsViewId, hotspotRef))
+                      }
+                    />
+                  )}
+                  {linkableMeasures.length > 0 && !linked ? (
+                    <Submenu label={t("contextMenu.linkExistingMeasure")}>
+                      {linkableMeasures.map((m) => (
+                        <Item
+                          key={m.id}
+                          label={m.title || t("actionsView.detail.titlePlaceholder")}
+                          onClick={() =>
+                            run(() =>
+                              linkMeasureToHotspot(
+                                actionsViewId,
+                                m.id,
+                                activeViewId,
+                                el.id,
+                                viewName,
+                                el.label?.trim() || el.id,
+                              ),
+                            )
+                          }
+                        />
+                      ))}
+                    </Submenu>
+                  ) : null}
+                  <Item
+                    icon={hidden ? RotateCcw : EyeOff}
+                    label={
+                      hidden
+                        ? t("actionsView.hotspots.restoreToBacklog")
+                        : t("actionsView.hotspots.excludeFromBacklog")
+                    }
+                    onClick={() =>
+                      run(() =>
+                        setHotspotBacklogHidden(
+                          actionsViewId,
+                          activeViewId,
+                          el.id,
+                          !hidden,
+                        ),
+                      )
+                    }
+                  />
+                  <Item
+                    icon={ClipboardList}
+                    label={t("actionsView.hotspots.openMeasuresView")}
+                    onClick={() => run(() => setActiveView(actionsViewId))}
+                  />
+                </>
+              );
+            })()}
           </>
         )}
         <Item
