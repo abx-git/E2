@@ -34,7 +34,10 @@ export const actionsViewDe = {
       restoreToBacklog: "Wieder in Liste aufnehmen",
       showExcluded: "Ausgeblendete ({count})",
       hideExcluded: "Ausgeblendete verbergen",
-      backlogEmpty: "Keine Hotspots in der Liste (alle ausgeblendet oder keine vorhanden).",
+      backlogEmpty: "Keine offenen Hotspots in der Liste (alle verknüpft, ausgeblendet oder keine vorhanden).",
+      stats: "{open} offen · {linked} verknüpft · {hidden} ausgeblendet",
+      originChipTitle: "Hotspot {view}: {label} — auf Canvas anzeigen",
+      measurePillTitle: "Verknüpfte Maßnahme: {title} — in Maßnahmen-Sicht öffnen",
     },
     actionType: {
       INTRODUCE: "Einführen",

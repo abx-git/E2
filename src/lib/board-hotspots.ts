@@ -96,6 +96,25 @@ export function findMeasureForHotspot(
   return items.find((item) => measureTargetsHotspot(item, viewId, elementId));
 }
 
+export type HotspotLinkedMeasure = {
+  item: MeasureActionItem;
+  actionsViewId: string;
+};
+
+/** First actions view on the board that links this canvas hotspot. */
+export function findMeasureForHotspotInBoard(
+  views: BoardView[],
+  hotspotViewId: string,
+  elementId: string,
+): HotspotLinkedMeasure | undefined {
+  for (const view of views) {
+    if (!isActionsView(view)) continue;
+    const item = findMeasureForHotspot(view.items, hotspotViewId, elementId);
+    if (item) return { item, actionsViewId: view.id };
+  }
+  return undefined;
+}
+
 export function isHotspotExcludedFromMeasures(
   config: { excludedHotspotRefs?: string[] },
   viewId: string,

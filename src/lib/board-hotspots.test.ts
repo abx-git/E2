@@ -3,10 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   collectBoardHotspots,
   findMeasureForHotspot,
+  findMeasureForHotspotInBoard,
   hotspotRefKey,
   patchHotspotMeasuresBacklog,
   partitionHotspotsForMeasuresView,
 } from "@/lib/board-hotspots";
+import { createEmptyActionsView } from "@/lib/architecture-measures";
 import { createEmptyBoardView, normalizeBoardDocument } from "@/lib/storm-json";
 import type { MeasureActionItem } from "@/types/actions-view";
 import { generateStormId } from "@/lib/storm-id";
@@ -85,5 +87,26 @@ describe("findMeasureForHotspot", () => {
     };
     expect(findMeasureForHotspot([item], "v1", "h1")?.id).toBe(item.id);
     expect(findMeasureForHotspot([item], "v1", "other")).toBeUndefined();
+  });
+});
+
+describe("findMeasureForHotspotInBoard", () => {
+  it("finds a measure in any actions view", () => {
+    const canvas = createEmptyBoardView({ id: "v1", name: "ES" });
+    const actions = createEmptyActionsView({ id: "av1", name: "Measures" });
+    actions.items.push({
+      id: generateStormId(),
+      title: "Fix",
+      actionType: "IMPROVE",
+      obligation: "Recommended",
+      qualities: [],
+      status: "open",
+      targetRef: { viewId: "v1", elementId: "h1", elementLabel: "[ES] Risk" },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    const found = findMeasureForHotspotInBoard([canvas, actions], "v1", "h1");
+    expect(found?.item.title).toBe("Fix");
+    expect(found?.actionsViewId).toBe("av1");
   });
 });

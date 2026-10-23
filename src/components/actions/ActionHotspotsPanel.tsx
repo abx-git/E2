@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { EyeOff, Flame, Link2, Plus, RotateCcw } from "lucide-react";
 import {
   collectBoardHotspots,
-  findMeasureForHotspot,
+  findMeasureForHotspotInBoard,
   hotspotRefKey,
   partitionHotspotsForMeasuresView,
   type BoardHotspotRef,
@@ -20,7 +20,7 @@ import type { ActionsViewConfig, MeasureActionItem } from "@/types/actions-view"
 export function ActionHotspotsPanel({
   actionsViewId,
   config,
-  measureItems,
+  measureItems: _measureItems,
   onConfigChange,
 }: {
   actionsViewId: string;
@@ -33,6 +33,7 @@ export function ActionHotspotsPanel({
   const elements = useStormBoardStore((s) => s.elements);
   const addFromHotspot = useStormBoardStore((s) => s.addMeasureFromHotspot);
   const navigateTarget = useStormBoardStore((s) => s.navigateToMeasureTarget);
+  const setActiveView = useStormBoardStore((s) => s.setActiveView);
   const selectMeasure = useStormBoardStore((s) => s.selectMeasure);
   const [showExcluded, setShowExcluded] = useState(false);
 
@@ -44,6 +45,22 @@ export function ActionHotspotsPanel({
   const { active, excluded } = partitionHotspotsForMeasuresView(
     allHotspots,
     config.excludedHotspotRefs,
+  );
+
+  const linkedCount = useMemo(
+    () =>
+      allHotspots.filter(
+        (h) => findMeasureForHotspotInBoard(views, h.viewId, h.elementId) != null,
+      ).length,
+    [allHotspots, views],
+  );
+
+  const backlog = useMemo(
+    () =>
+      active.filter(
+        (h) => !findMeasureForHotspotInBoard(views, h.viewId, h.elementId),
+      ),
+    [active, views],
   );
 
   if (allHotspots.length === 0) return null;
@@ -59,8 +76,13 @@ export function ActionHotspotsPanel({
     });
   };
 
+  const openLinkedMeasure = (measureId: string, actionsViewIdForMeasure: string) => {
+    setActiveView(actionsViewIdForMeasure);
+    selectMeasure(measureId);
+  };
+
   const renderRow = (h: BoardHotspotRef, isExcludedList: boolean) => {
-    const linked = findMeasureForHotspot(measureItems, h.viewId, h.elementId);
+    const linked = findMeasureForHotspotInBoard(views, h.viewId, h.elementId);
     return (
       <li
         key={hotspotRefKey(h.viewId, h.elementId)}
@@ -94,7 +116,7 @@ export function ActionHotspotsPanel({
             type="button"
             className="shrink-0 rounded p-1 text-[var(--accent-2)]"
             title={t("actionsView.hotspots.openMeasure")}
-            onClick={() => selectMeasure(linked.id)}
+            onClick={() => openLinkedMeasure(linked.item.id, linked.actionsViewId)}
           >
             <Link2 className="h-3.5 w-3.5" />
           </button>
@@ -130,25 +152,31 @@ export function ActionHotspotsPanel({
 
   return (
     <section className="border-b border-[var(--border)] px-3 py-2">
-      <div className="mb-1 flex items-center gap-1.5">
+      <div className="mb-1 flex flex-wrap items-center gap-1.5">
         <Flame className="h-3.5 w-3.5 text-[var(--accent-2)]" aria-hidden />
         <h3 className="text-xs font-semibold text-[var(--text)]">
           {t("actionsView.hotspots.title")}
         </h3>
         <span className="text-[10px] text-[var(--muted)]">
-          {active.length}/{allHotspots.length}
+          {t("actionsView.hotspots.stats", {
+            open: backlog.length,
+            linked: linkedCount,
+            hidden: excluded.length,
+          })}
         </span>
         <HintInfoButton ariaLabel={t("actionsView.hotspots.infoAria")}>
           <p>{t("actionsView.hotspots.hint")}</p>
-          {active.length === 0 ? (
+          {backlog.length === 0 ? (
             <p className="mt-1.5 border-t border-[var(--border)] pt-1.5">
               {t("actionsView.hotspots.backlogEmpty")}
             </p>
           ) : null}
         </HintInfoButton>
       </div>
-      {active.length > 0 ? (
-        <ul className="max-h-32 space-y-0.5 overflow-y-auto">{active.map((h) => renderRow(h, false))}</ul>
+      {backlog.length > 0 ? (
+        <ul className="max-h-32 space-y-0.5 overflow-y-auto">
+          {backlog.map((h) => renderRow(h, false))}
+        </ul>
       ) : (
         <p className="py-0.5 text-center text-[10px] text-[var(--muted)] opacity-60" aria-hidden>
           —

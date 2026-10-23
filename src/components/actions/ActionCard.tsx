@@ -1,6 +1,7 @@
 "use client";
 
-import { GripVertical } from "lucide-react";
+import { useEffect } from "react";
+import { Flame, GripVertical } from "lucide-react";
 import { DescriptionMarkdownContent } from "@/components/description-markdown-content";
 import { useT } from "@/i18n";
 import { selectMeasureItem } from "@/lib/select-measure-item";
@@ -29,8 +30,25 @@ export function ActionCard({
   const t = useT();
   const item = useStormBoardStore((s) => selectMeasureItem(s.views, viewId, itemId));
   const updateMeasure = useStormBoardStore((s) => s.updateMeasureActionItem);
+  const navigateTarget = useStormBoardStore((s) => s.navigateToMeasureTarget);
+  const linkHighlight = useStormBoardStore((s) => s.measureHotspotLinkHighlight);
+  const clearLinkHighlight = useStormBoardStore((s) => s.clearMeasureHotspotLinkHighlight);
+  const originViewName = useStormBoardStore((s) => {
+    const measure = selectMeasureItem(s.views, viewId, itemId);
+    const ref = measure?.targetRef;
+    if (!ref) return undefined;
+    return s.views.find((v) => v.id === ref.viewId)?.name;
+  });
+
+  useEffect(() => {
+    if (linkHighlight?.measureId !== itemId) return;
+    const timer = window.setTimeout(() => clearLinkHighlight(), 1600);
+    return () => window.clearTimeout(timer);
+  }, [linkHighlight?.measureId, itemId, clearLinkHighlight]);
 
   if (!item) return null;
+
+  const linkFlash = linkHighlight?.measureId === itemId;
 
   const accent = ACTION_TYPE_COLORS[item.actionType];
   const ownerInitials = item.owner
@@ -65,6 +83,7 @@ export function ActionCard({
         selected
           ? "border-[var(--accent)] bg-[var(--control)] ring-1 ring-[var(--accent)]"
           : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent-2)]",
+        linkFlash ? "ring-2 ring-[var(--accent-2)]" : "",
       ].join(" ")}
     >
       <div
@@ -151,9 +170,30 @@ export function ActionCard({
         </div>
       ) : null}
       {item.targetRef ? (
-        <span className="truncate pl-6 text-[10px] text-[var(--accent-2)]">
-          ↗ {item.targetRef.elementLabel}
-        </span>
+        <button
+          type="button"
+          className="ml-6 flex max-w-[calc(100%-1.5rem)] items-center gap-1 truncate rounded-md border border-[var(--border)] bg-[var(--control)]/50 px-1.5 py-0.5 text-left text-[10px] text-[var(--accent-2)] hover:border-[var(--accent-2)] hover:bg-[var(--control)]"
+          title={t("actionsView.hotspots.originChipTitle", {
+            view: originViewName ?? item.targetRef.viewId,
+            label: item.targetRef.elementLabel.replace(/^\[[^\]]+\]\s*/, ""),
+          })}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigateTarget(item.targetRef!.viewId, item.targetRef!.elementId);
+          }}
+        >
+          <Flame className="h-3 w-3 shrink-0 text-[#f0a8a0]" aria-hidden />
+          <span className="truncate">
+            {originViewName ? (
+              <>
+                <span className="text-[var(--muted)]">[{originViewName}]</span>{" "}
+                {item.targetRef.elementLabel.replace(/^\[[^\]]+\]\s*/, "")}
+              </>
+            ) : (
+              item.targetRef.elementLabel
+            )}
+          </span>
+        </button>
       ) : null}
     </article>
   );

@@ -2,7 +2,7 @@
 
 import { ClipboardList, EyeOff, Link2, Plus, RotateCcw } from "lucide-react";
 import {
-  findMeasureForHotspot,
+  findMeasureForHotspotInBoard,
   isHotspotExcludedFromMeasures,
 } from "@/lib/board-hotspots";
 import { listActionsViews, resolveDefaultActionsViewId } from "@/lib/measure-hotspot-ui";
@@ -35,8 +35,7 @@ export function HotspotMeasuresActions({
 
   const actionsView = views.find((v) => v.id === actionsViewId);
   const config = actionsView && isActionsView(actionsView) ? actionsView.config : undefined;
-  const items = actionsView && isActionsView(actionsView) ? actionsView.items : [];
-  const linked = findMeasureForHotspot(items, activeViewId, element.id);
+  const linked = findMeasureForHotspotInBoard(views, activeViewId, element.id);
   const hidden = config
     ? isHotspotExcludedFromMeasures(config, activeViewId, element.id)
     : false;
@@ -79,12 +78,12 @@ export function HotspotMeasuresActions({
           type="button"
           className={btnClass}
           onClick={() => {
-            setActiveView(actionsViewId);
-            selectMeasure(linked.id);
+            setActiveView(linked.actionsViewId);
+            selectMeasure(linked.item.id);
           }}
         >
           <Link2 className="h-3.5 w-3.5 shrink-0" />
-          {t("actionsView.hotspots.openMeasure")}
+          {linked.item.title || t("actionsView.hotspots.openMeasure")}
         </button>
       ) : (
         <button

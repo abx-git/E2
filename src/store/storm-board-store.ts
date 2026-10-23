@@ -60,6 +60,7 @@ import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
 import { normalizeActionItem } from "@/lib/action-items";
 import {
   findMeasureForHotspot,
+  hotspotRefKey,
   measureTargetsHotspot,
   patchHotspotMeasuresBacklog,
   type BoardHotspotRef,
@@ -216,6 +217,8 @@ export interface StormBoardState {
   clipboardDropHighlight: boolean;
   /** Pick a canvas hotspot to link the open measure (ephemeral). */
   measureHotspotLinkPick: { actionsViewId: string; measureId: string } | null;
+  /** Brief highlight after linking a hotspot to a measure (ephemeral). */
+  measureHotspotLinkHighlight: { hotspotKey: string; measureId: string } | null;
 
   /** Undo stacks (not persisted). */
   past: BoardDomainSnapshot[];
@@ -446,6 +449,7 @@ export interface StormBoardState {
   beginMeasureHotspotLinkPick: (actionsViewId: string, measureId: string) => void;
   cancelMeasureHotspotLinkPick: () => void;
   completeMeasureHotspotLinkPick: (hotspotElementId: string) => boolean;
+  clearMeasureHotspotLinkHighlight: () => void;
   updateMeasureActionItem: (
     viewId: string,
     itemId: string,
@@ -682,6 +686,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   clipboard: null,
   clipboardDropHighlight: false,
   measureHotspotLinkPick: null,
+  measureHotspotLinkHighlight: null,
   selectedMeasureId: null,
   past: [],
   future: [],
@@ -2502,6 +2507,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         );
         return {
           selectedMeasureId: existing.id,
+          measureHotspotLinkHighlight: {
+            hotspotKey: hotspotRefKey(hotspot.viewId, hotspot.elementId),
+            measureId: existing.id,
+          },
           views: patchActionsViewInList(views, actionsViewId, {
             config: { ...view.config, ...backlog },
           }),
@@ -2539,6 +2548,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           config: { ...view.config, ...backlog },
         }),
         selectedMeasureId: item.id,
+        measureHotspotLinkHighlight: {
+          hotspotKey: hotspotRefKey(hotspot.viewId, hotspot.elementId),
+          measureId: item.id,
+        },
       };
     });
     return resultId;
@@ -2590,6 +2603,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         }),
         selectedMeasureId: measureId,
         measureHotspotLinkPick: null,
+        measureHotspotLinkHighlight: {
+          hotspotKey: hotspotRefKey(hotspotViewId, hotspotElementId),
+          measureId,
+        },
       };
     }),
 
@@ -2623,6 +2640,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     }),
 
   cancelMeasureHotspotLinkPick: () => set({ measureHotspotLinkPick: null }),
+
+  clearMeasureHotspotLinkHighlight: () => set({ measureHotspotLinkHighlight: null }),
 
   completeMeasureHotspotLinkPick: (hotspotElementId) => {
     const s = get();

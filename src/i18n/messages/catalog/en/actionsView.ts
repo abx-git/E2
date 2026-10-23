@@ -34,7 +34,10 @@ export const actionsViewEn = {
       restoreToBacklog: "Restore to backlog",
       showExcluded: "Hidden ({count})",
       hideExcluded: "Hide excluded list",
-      backlogEmpty: "No hotspots in the backlog (all hidden or none on the board).",
+      backlogEmpty: "No unlinked hotspots in the backlog (all linked, hidden, or none on the board).",
+      stats: "{open} open · {linked} linked · {hidden} hidden",
+      originChipTitle: "Hotspot {view}: {label} — show on canvas",
+      measurePillTitle: "Linked measure: {title} — open in measures view",
     },
     actionType: {
       INTRODUCE: "Introduce",

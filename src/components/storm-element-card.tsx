@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Clock, ExternalLink, LayoutDashboard, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
+import { ArrowRight, Clock, ExternalLink, LayoutDashboard, Link2, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
 
 import { ProgressMarkBadge } from "@/components/progress-mark-badge";
 import { DescriptionMarkdownContent } from "@/components/description-markdown-content";
@@ -34,7 +34,12 @@ import { HighlightedText } from "@/components/highlighted-text";
 import { elementCardTypeCaption, elementTypeLabel, useT } from "@/i18n";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
+import {
+  findMeasureForHotspotInBoard,
+  hotspotRefKey,
+} from "@/lib/board-hotspots";
 import { useStormBoardStore } from "@/store/storm-board-store";
+import { ACTION_TYPE_COLORS } from "@/types/actions-view";
 import {
   elementTypesForMode,
   isNoteLike,
@@ -141,6 +146,17 @@ export function StormElementCard({
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const openBuildingBlockView = useStormBoardStore((s) => s.openBuildingBlockView);
   const navigateBuildingBlockViewLink = useStormBoardStore((s) => s.navigateBuildingBlockViewLink);
+  const setActiveView = useStormBoardStore((s) => s.setActiveView);
+  const selectMeasure = useStormBoardStore((s) => s.selectMeasure);
+  const linkHighlight = useStormBoardStore((s) => s.measureHotspotLinkHighlight);
+  const clearLinkHighlight = useStormBoardStore((s) => s.clearMeasureHotspotLinkHighlight);
+  const hotspotLinkedMeasure =
+    element.type === "hotspot"
+      ? findMeasureForHotspotInBoard(views, activeViewId, element.id)
+      : undefined;
+  const hotspotLinkFlash =
+    element.type === "hotspot" &&
+    linkHighlight?.hotspotKey === hotspotRefKey(activeViewId, element.id);
   const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
   const linkPreview = isLink
     ? linkDestinationPreview(element, { viewNameById })
@@ -169,6 +185,9 @@ export function StormElementCard({
   const webLinks = element.metadata?.showWebLinksOnCard ? elementWebLinks(element) : [];
   const showDescription = cardShowsDescription(element);
   const isCoarsePointer = useIsCoarsePointer();
+  const linkedMeasureAccent = hotspotLinkedMeasure
+    ? ACTION_TYPE_COLORS[hotspotLinkedMeasure.item.actionType]
+    : null;
 
   const shapeClass =
     style.shape === "pill"
@@ -226,6 +245,12 @@ export function StormElementCard({
       commitLabel(draftRef.current);
     }
   }, [selected]);
+
+  useEffect(() => {
+    if (!hotspotLinkFlash) return;
+    const timer = window.setTimeout(() => clearLinkHighlight(), 1600);
+    return () => window.clearTimeout(timer);
+  }, [hotspotLinkFlash, clearLinkHighlight]);
 
   useEffect(() => {
     if (!editing) {
@@ -580,6 +605,7 @@ export function StormElementCard({
               : "flex-col items-center justify-center",
           shapeClass,
           selected || editing ? "ring-2 ring-[var(--accent)]" : "",
+          hotspotLinkFlash ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
           connecting ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
           searchEmphasize && !selected && !editing && !connecting
             ? "ring-2 ring-[var(--accent-2)] shadow-md"
@@ -630,6 +656,39 @@ export function StormElementCard({
                           : undefined
         }
       >
+        {hotspotLinkedMeasure && linkedMeasureAccent && !editing ? (
+          <div
+            className={[
+              "pointer-events-none absolute bottom-1.5 left-0 top-1.5 w-1 rounded-full opacity-90",
+              linkedMeasureAccent.bg,
+            ].join(" ")}
+            aria-hidden
+          />
+        ) : null}
+        {hotspotLinkedMeasure && !editing ? (
+          <button
+            type="button"
+            className={[
+              "absolute bottom-0.5 left-1/2 z-10 flex max-w-[calc(100%-0.5rem)] -translate-x-1/2 items-center gap-0.5 truncate rounded-full border border-[var(--border)] bg-white/95 px-1.5 py-0.5 text-[0.58rem] font-medium leading-tight text-[var(--text)] shadow-sm transition",
+              selected
+                ? "opacity-100"
+                : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100",
+            ].join(" ")}
+            title={t("actionsView.hotspots.measurePillTitle", {
+              title: hotspotLinkedMeasure.item.title,
+            })}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setActiveView(hotspotLinkedMeasure.actionsViewId);
+              selectMeasure(hotspotLinkedMeasure.item.id);
+            }}
+          >
+            <Link2 className="h-2.5 w-2.5 shrink-0 text-[var(--accent-2)]" aria-hidden />
+            <span className="truncate">{hotspotLinkedMeasure.item.title}</span>
+          </button>
+        ) : null}
         {element.metadata?.progressMark ? (
           <ProgressMarkBadge mark={element.metadata.progressMark} />
         ) : null}
