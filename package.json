@@ -12,7 +12,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "test:collab-smoke": "vitest run src/lib/collab/session.integration.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
