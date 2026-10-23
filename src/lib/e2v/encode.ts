@@ -51,6 +51,11 @@ function encodeActionsViewBody(view: Extract<BoardView, { type: "actions" }>, ou
   if (view.config.searchQuery?.trim()) {
     out.push(row(["@avq", view.config.searchQuery.trim()]));
   }
+  for (const key of view.config.excludedHotspotRefs ?? []) {
+    const sep = key.indexOf(":");
+    if (sep <= 0) continue;
+    out.push(row(["@avhskip", key.slice(0, sep), key.slice(sep + 1)]));
+  }
   for (const item of view.items) {
     out.push(
       row([

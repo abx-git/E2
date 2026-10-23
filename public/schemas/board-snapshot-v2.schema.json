@@ -1199,7 +1199,11 @@
           "additionalProperties": { "$ref": "#/$defs/tagFilterMode" }
         },
         "showDescriptionsOnCards": { "type": "boolean" },
-        "searchQuery": { "type": "string" }
+        "searchQuery": { "type": "string" },
+        "excludedHotspotRefs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 3 }
+        }
       }
     },
     "actionsView": {

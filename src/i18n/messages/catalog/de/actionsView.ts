@@ -19,6 +19,18 @@ export const actionsViewDe = {
     },
     addViewTab: "Maßnahmen-Sicht",
     viewTabKind: "Maßnahmen-Matrix",
+    hotspots: {
+      title: "Hotspots (alle Sichten)",
+      hint: "Ausgangspunkte für Maßnahmen. Ausblenden entfernt nur aus dieser Liste — der Hotspot bleibt auf dem Canvas.",
+      openOnCanvas: "{view}: {label} — auf Canvas anzeigen",
+      adoptAsMeasure: "Als Maßnahme übernehmen",
+      openMeasure: "Verknüpfte Maßnahme öffnen",
+      excludeFromBacklog: "Aus Betrachtung ausblenden",
+      restoreToBacklog: "Wieder in Liste aufnehmen",
+      showExcluded: "Ausgeblendete ({count})",
+      hideExcluded: "Ausgeblendete verbergen",
+      backlogEmpty: "Keine Hotspots in der Liste (alle ausgeblendet oder keine vorhanden).",
+    },
     actionType: {
       INTRODUCE: "Einführen",
       SCALE: "Skalieren",

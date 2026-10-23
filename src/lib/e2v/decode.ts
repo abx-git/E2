@@ -354,6 +354,17 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
       if (tag === "avq" && parseState.viewDraft?.kind === "actions") {
         parseState.viewDraft.config.searchQuery = parseCell(cols.slice(1).join(" "));
       }
+      if (tag === "avhskip" && parseState.viewDraft?.kind === "actions") {
+        const viewId = cols[1]?.trim();
+        const elementId = cols[2]?.trim();
+        if (viewId && elementId) {
+          const key = `${viewId}:${elementId}`;
+          const list = parseState.viewDraft.config.excludedHotspotRefs ?? [];
+          if (!list.includes(key)) {
+            parseState.viewDraft.config.excludedHotspotRefs = [...list, key];
+          }
+        }
+      }
       if (tag === "v" && parseState.viewDraft?.kind === "canvas") {
         parseState.viewDraft.viewport = {
           x: num(cols[1] ?? "") ?? 0,

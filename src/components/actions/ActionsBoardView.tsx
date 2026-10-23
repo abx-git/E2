@@ -13,6 +13,7 @@ import {
 } from "@/types/actions-view";
 import { ActionCard } from "@/components/actions/ActionCard";
 import { ActionFilters } from "@/components/actions/ActionFilters";
+import { ActionHotspotsPanel } from "@/components/actions/ActionHotspotsPanel";
 
 const DROP_CELL_ATTR = "data-measure-drop-cell";
 
@@ -144,6 +145,12 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
         onAddMeasure={() =>
           addMeasure(viewId, { obligation: "Recommended", actionType: "IMPROVE" })
         }
+      />
+      <ActionHotspotsPanel
+        actionsViewId={viewId}
+        config={actionsView.config}
+        measureItems={actionsView.items}
+        onConfigChange={(patch) => updateConfig(viewId, patch)}
       />
       <div className="min-h-0 flex-1 overflow-auto p-3">
           <div

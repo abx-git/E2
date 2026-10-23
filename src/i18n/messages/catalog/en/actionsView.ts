@@ -19,6 +19,18 @@ export const actionsViewEn = {
     },
     addViewTab: "Measures view",
     viewTabKind: "Measures matrix",
+    hotspots: {
+      title: "Hotspots (all views)",
+      hint: "Starting points for measures. Hiding only removes them from this list — the hotspot stays on the canvas.",
+      openOnCanvas: "{view}: {label} — show on canvas",
+      adoptAsMeasure: "Adopt as measure",
+      openMeasure: "Open linked measure",
+      excludeFromBacklog: "Hide from review backlog",
+      restoreToBacklog: "Restore to backlog",
+      showExcluded: "Hidden ({count})",
+      hideExcluded: "Hide excluded list",
+      backlogEmpty: "No hotspots in the backlog (all hidden or none on the board).",
+    },
     actionType: {
       INTRODUCE: "Introduce",
       SCALE: "Scale",

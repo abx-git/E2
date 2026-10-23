@@ -59,6 +59,10 @@ const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
 import { normalizeActionItem } from "@/lib/action-items";
 import {
+  findMeasureForHotspot,
+  type BoardHotspotRef,
+} from "@/lib/board-hotspots";
+import {
   createEmptyActionsView,
   normalizeMeasureActionItem,
   patchActionsViewInList,
@@ -419,6 +423,8 @@ export interface StormBoardState {
     viewId: string,
     item?: Partial<Omit<MeasureActionItem, "id" | "createdAt" | "updatedAt">>,
   ) => string;
+  /** Create a measure linked to a board hotspot, or return existing measure id. */
+  addMeasureFromHotspot: (actionsViewId: string, hotspot: BoardHotspotRef) => string | null;
   updateMeasureActionItem: (
     viewId: string,
     itemId: string,
@@ -2450,6 +2456,51 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       };
     });
     return createdId;
+  },
+
+  addMeasureFromHotspot: (actionsViewId, hotspot) => {
+    let resultId: string | null = null;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const view = views.find((v) => v.id === actionsViewId);
+      if (!view || !isActionsView(view)) return {};
+      const existing = findMeasureForHotspot(
+        view.items,
+        hotspot.viewId,
+        hotspot.elementId,
+      );
+      if (existing) {
+        resultId = existing.id;
+        return { selectedMeasureId: existing.id };
+      }
+      const obligation =
+        hotspot.priority === "high"
+          ? ("Required" as const)
+          : hotspot.priority === "low"
+            ? ("Optional" as const)
+            : ("Recommended" as const);
+      const item = normalizeMeasureActionItem({
+        title: hotspot.label,
+        description: hotspot.description,
+        actionType: "IMPROVE",
+        obligation,
+        qualities: [],
+        status: hotspot.status === "resolved" ? "done" : "open",
+        targetRef: {
+          viewId: hotspot.viewId,
+          elementId: hotspot.elementId,
+          elementLabel: `[${hotspot.viewName}] ${hotspot.label}`,
+        },
+      });
+      resultId = item.id;
+      return {
+        views: patchActionsViewInList(views, actionsViewId, {
+          items: [...view.items, item],
+        }),
+        selectedMeasureId: item.id,
+      };
+    });
+    return resultId;
   },
 
   updateMeasureActionItem: (viewId, itemId, patch) =>
