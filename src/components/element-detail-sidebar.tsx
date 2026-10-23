@@ -22,6 +22,7 @@ import { resolveBoardConnectorStrokeStyle } from "@/lib/board-connector-style";
 import { defaultRelationType, validateBoard } from "@/lib/relation-validation";
 import { JsonValueEditor } from "@/components/json-value-editor";
 import { DescriptionMarkdownContent } from "@/components/description-markdown-content";
+import { HotspotMeasuresActions } from "@/components/hotspot-measures-actions";
 import { DescriptionEditorDialog } from "@/components/description-editor-dialog";
 import {
   CONNECTOR_STROKE_STYLES,
@@ -598,6 +599,10 @@ export function ElementDetailSidebar({
           onSave={(md) => updateElement(selectedElement.id, { description: md })}
         />
       </div>
+
+      {selectedElement.type === "hotspot" ? (
+        <HotspotMeasuresActions element={selectedElement} />
+      ) : null}
 
       <CollapsibleSection
         title={t("detailSidebar.onCard.sectionTitle")}

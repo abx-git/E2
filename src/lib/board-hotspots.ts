@@ -95,3 +95,42 @@ export function findMeasureForHotspot(
 ): MeasureActionItem | undefined {
   return items.find((item) => measureTargetsHotspot(item, viewId, elementId));
 }
+
+export function isHotspotExcludedFromMeasures(
+  config: { excludedHotspotRefs?: string[] },
+  viewId: string,
+  elementId: string,
+): boolean {
+  const key = hotspotRefKey(viewId, elementId);
+  return (config.excludedHotspotRefs ?? []).includes(key);
+}
+
+export function patchHotspotMeasuresBacklog(
+  config: { excludedHotspotRefs?: string[] },
+  viewId: string,
+  elementId: string,
+  excludedFromBacklog: boolean,
+): { excludedHotspotRefs: string[] | undefined } {
+  const key = hotspotRefKey(viewId, elementId);
+  const current = config.excludedHotspotRefs ?? [];
+  const next = excludedFromBacklog
+    ? Array.from(new Set([...current, key]))
+    : current.filter((k) => k !== key);
+  return { excludedHotspotRefs: next.length ? next : undefined };
+}
+
+export function boardHotspotRefFromElement(
+  viewId: string,
+  viewName: string,
+  el: { id: string; label?: string; description?: string; metadata?: { hotspotStatus?: HotspotStatus; hotspotPriority?: HotspotPriority } },
+): BoardHotspotRef {
+  return {
+    viewId,
+    viewName,
+    elementId: el.id,
+    label: el.label?.trim() || el.id,
+    description: el.description?.trim() || undefined,
+    status: el.metadata?.hotspotStatus ?? "open",
+    priority: el.metadata?.hotspotPriority ?? "medium",
+  };
+}

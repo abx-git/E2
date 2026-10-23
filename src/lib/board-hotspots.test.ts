@@ -4,6 +4,7 @@ import {
   collectBoardHotspots,
   findMeasureForHotspot,
   hotspotRefKey,
+  patchHotspotMeasuresBacklog,
   partitionHotspotsForMeasuresView,
 } from "@/lib/board-hotspots";
 import { createEmptyBoardView, normalizeBoardDocument } from "@/lib/storm-json";
@@ -57,6 +58,15 @@ describe("partitionHotspotsForMeasuresView", () => {
     expect(active[0]?.elementId).toBe("h2");
     expect(excluded).toHaveLength(1);
     expect(excluded[0]?.elementId).toBe("h1");
+  });
+});
+
+describe("patchHotspotMeasuresBacklog", () => {
+  it("adds and removes exclusion keys", () => {
+    let cfg = patchHotspotMeasuresBacklog({}, "v1", "h1", true);
+    expect(cfg.excludedHotspotRefs).toEqual(["v1:h1"]);
+    cfg = patchHotspotMeasuresBacklog(cfg, "v1", "h1", false);
+    expect(cfg.excludedHotspotRefs).toBeUndefined();
   });
 });
 

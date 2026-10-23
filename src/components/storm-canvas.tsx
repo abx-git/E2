@@ -106,6 +106,22 @@ export function StormCanvas() {
 
   const addElement = useStormBoardStore((s) => s.addElement);
   const selectElement = useStormBoardStore((s) => s.selectElement);
+  const measureHotspotLinkPick = useStormBoardStore((s) => s.measureHotspotLinkPick);
+  const completeMeasureHotspotLinkPick = useStormBoardStore(
+    (s) => s.completeMeasureHotspotLinkPick,
+  );
+  const cancelMeasureHotspotLinkPick = useStormBoardStore(
+    (s) => s.cancelMeasureHotspotLinkPick,
+  );
+  const handleSelectElement = useCallback(
+    (id: string, additive?: boolean) => {
+      if (measureHotspotLinkPick) {
+        if (completeMeasureHotspotLinkPick(id)) return;
+      }
+      selectElement(id, additive);
+    },
+    [measureHotspotLinkPick, completeMeasureHotspotLinkPick, selectElement],
+  );
   const setCanvasSelection = useStormBoardStore((s) => s.setCanvasSelection);
   const selectRelation = useStormBoardStore((s) => s.selectRelation);
   const selectContextRelation = useStormBoardStore((s) => s.selectContextRelation);
@@ -737,7 +753,7 @@ export function StormCanvas() {
             )}
             relationMode={connectorTool}
             zoom={viewport.zoom}
-            onSelect={selectElement}
+            onSelect={handleSelectElement}
             onMoveMany={handleMoveCanvasSelection}
             onResize={handleResizeElement}
             onStartConnect={handleStartConnect}
@@ -750,7 +766,12 @@ export function StormCanvas() {
         bcMode={bcMode}
         onToggleBcMode={() => setBcMode((v) => !v)}
         status={
-          connectorDraftSource && connectorDraftLabel
+          measureHotspotLinkPick
+            ? {
+                message: t("actionsView.hotspots.pickModeHint"),
+                onCancel: () => cancelMeasureHotspotLinkPick(),
+              }
+            : connectorDraftSource && connectorDraftLabel
             ? {
                 message: (
                   <>
