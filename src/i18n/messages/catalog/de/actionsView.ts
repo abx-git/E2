@@ -20,6 +20,7 @@ export const actionsViewDe = {
     addViewTab: "Maßnahmen-Sicht",
     viewTabKind: "Maßnahmen-Matrix",
     hotspots: {
+      infoAria: "Hinweis zu Hotspots und Maßnahmen",
       title: "Hotspots (alle Sichten)",
       hint: "Verknüpfte Hotspots verschwinden nach der Zuordnung aus der Liste; unter „Ausgeblendete“ können sie wieder eingeblendet werden. Ausblenden löscht den Hotspot nicht auf dem Canvas.",
       canvasSection: "Maßnahmen-Review",

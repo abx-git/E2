@@ -7,6 +7,7 @@ import {
 } from "@/lib/board-hotspots";
 import { listActionsViews, resolveDefaultActionsViewId } from "@/lib/measure-hotspot-ui";
 import { isActionsView } from "@/lib/storm-json";
+import { HintInfoButton } from "@/components/hint-info-button";
 import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
@@ -57,16 +58,21 @@ export function HotspotMeasuresActions({
   return (
     <div className={compact ? "space-y-1" : "space-y-2 border-t border-[var(--border)] pt-3"}>
       {!compact ? (
-        <p className="text-[0.72rem] font-medium text-[var(--muted)]">
-          {t("actionsView.hotspots.canvasSection")}
-        </p>
-      ) : null}
-      {actionsViews.length > 1 ? (
-        <p className="text-[10px] text-[var(--muted)]">
-          {t("actionsView.hotspots.targetView", {
-            name: actionsView?.name ?? "",
-          })}
-        </p>
+        <div className="flex items-center gap-1">
+          <p className="text-[0.72rem] font-medium text-[var(--muted)]">
+            {t("actionsView.hotspots.canvasSection")}
+          </p>
+          <HintInfoButton ariaLabel={t("actionsView.hotspots.infoAria")}>
+            <p>{t("actionsView.hotspots.hint")}</p>
+            {actionsViews.length > 1 ? (
+              <p className="mt-1.5 border-t border-[var(--border)] pt-1.5">
+                {t("actionsView.hotspots.targetView", {
+                  name: actionsView?.name ?? "",
+                })}
+              </p>
+            ) : null}
+          </HintInfoButton>
+        </div>
       ) : null}
       {linked ? (
         <button
