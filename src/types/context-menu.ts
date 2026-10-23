@@ -7,6 +7,7 @@ export type ContextMenuTarget =
   | { kind: "swimlane"; id: string }
   | { kind: "boundedContext"; id: string }
   | { kind: "timeline" }
+  | { kind: "measure"; viewId: string; itemId: string }
   | { kind: "canvas"; worldX: number; worldY: number };
 
 export interface ContextMenuState {

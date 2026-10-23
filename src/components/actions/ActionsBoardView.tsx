@@ -46,6 +46,7 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
   const addMeasure = useStormBoardStore((s) => s.addMeasureActionItem);
   const moveMeasure = useStormBoardStore((s) => s.moveMeasureActionItem);
   const updateConfig = useStormBoardStore((s) => s.updateActionsViewConfig);
+  const openContextMenu = useStormBoardStore((s) => s.openContextMenu);
 
   const dragRef = useRef<DragState | null>(null);
   const dropHintRef = useRef<{
@@ -223,6 +224,14 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
                             onSelect={() => {
                               if (dragRef.current) return;
                               selectMeasure(item.id);
+                            }}
+                            onContextMenu={(e) => {
+                              selectMeasure(item.id);
+                              openContextMenu(e.clientX, e.clientY, {
+                                kind: "measure",
+                                viewId,
+                                itemId: item.id,
+                              });
                             }}
                             dragProps={{
                               onPointerDown: (e) => beginDrag(item.id, e),

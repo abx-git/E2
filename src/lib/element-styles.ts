@@ -21,6 +21,9 @@ export interface ElementStyle {
   rotation?: number;
 }
 
+/** Default slant for new hotspots (element style + createElement). */
+export const HOTSPOT_DEFAULT_ROTATION_DEG = 15;
+
 /** Soft post-it pastels — shared by palette buttons and canvas stickies. */
 export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
   domainEvent: {
@@ -165,7 +168,7 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     defaultWidth: 120,
     defaultHeight: 120,
     shape: "rectangle",
-    rotation: 45,
+    rotation: HOTSPOT_DEFAULT_ROTATION_DEG,
   },
   link: {
     label: "Link",

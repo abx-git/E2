@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { effectiveElementRotation } from "@/lib/element-rotation";
 import {
+  HOTSPOT_DEFAULT_ROTATION_DEG,
   isKnownElementType,
   resolveElementStyle,
   styleForElementType,
@@ -31,7 +32,9 @@ describe("element-styles lookup", () => {
   });
 
   it("keeps hotspot default rotation", () => {
-    expect(styleForElementType("hotspot").rotation).toBe(45);
-    expect(effectiveElementRotation(undefined, styleForElementType("hotspot").rotation)).toBe(45);
+    expect(styleForElementType("hotspot").rotation).toBe(HOTSPOT_DEFAULT_ROTATION_DEG);
+    expect(effectiveElementRotation(undefined, styleForElementType("hotspot").rotation)).toBe(
+      HOTSPOT_DEFAULT_ROTATION_DEG,
+    );
   });
 });

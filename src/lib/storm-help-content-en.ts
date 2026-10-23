@@ -107,7 +107,7 @@ export const ELEMENT_HELP_EN: Record<ElementType, HelpDialogModel> = {
   },
   hotspot: {
     title: "Hotspot",
-    subtitle: "Red (45°) — “Open question / conflict”",
+    subtitle: "Red (15° slant) — “Open question / conflict”",
     paragraphs: ["Marks uncertainty, contradictions, friction, or rules not yet understood."],
     bullets: [
       "Prioritize hotspots and resolve them at the end",

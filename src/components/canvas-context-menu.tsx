@@ -27,8 +27,10 @@ import {
   SendToBack,
   StretchHorizontal,
   StretchVertical,
+  Target,
   Trash2,
   Unlock,
+  ExternalLink,
 } from "lucide-react";
 
 import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
@@ -40,7 +42,17 @@ import {
   effectiveElementRotation,
   normalizeRotationDegrees,
 } from "@/lib/element-rotation";
-import { ELEMENT_STYLES, styleForElementType } from "@/lib/element-styles";
+import {
+  ELEMENT_STYLES,
+  HOTSPOT_DEFAULT_ROTATION_DEG,
+  styleForElementType,
+} from "@/lib/element-styles";
+import { selectMeasureItem } from "@/lib/select-measure-item";
+import {
+  ACTION_TYPES,
+  MEASURE_STATUSES,
+  OBLIGATION_LEVELS,
+} from "@/types/actions-view";
 import { isOnCardFieldEnabled, onCardDisplayFieldsForType } from "@/lib/card-preview";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import {
@@ -168,6 +180,14 @@ export function CanvasContextMenu({
   const linkMeasureToHotspot = useStormBoardStore((s) => s.linkMeasureToCanvasHotspot);
   const setActiveView = useStormBoardStore((s) => s.setActiveView);
   const selectMeasure = useStormBoardStore((s) => s.selectMeasure);
+  const moveMeasure = useStormBoardStore((s) => s.moveMeasureActionItem);
+  const updateMeasure = useStormBoardStore((s) => s.updateMeasureActionItem);
+  const removeMeasure = useStormBoardStore((s) => s.removeMeasureActionItem);
+  const duplicateMeasure = useStormBoardStore((s) => s.duplicateMeasureActionItem);
+  const beginMeasureHotspotPick = useStormBoardStore((s) => s.beginMeasureHotspotLinkPick);
+  const cancelMeasureHotspotPick = useStormBoardStore((s) => s.cancelMeasureHotspotLinkPick);
+  const measureHotspotLinkPick = useStormBoardStore((s) => s.measureHotspotLinkPick);
+  const navigateMeasureTarget = useStormBoardStore((s) => s.navigateToMeasureTarget);
   const isMobile = useIsMobileLayout();
 
   const ref = useRef<HTMLDivElement>(null);
@@ -508,7 +528,9 @@ export function CanvasContextMenu({
         {el.type === "hotspot" && (
           <Item
             label={t("contextMenu.hotspotSlant")}
-            onClick={() => run(() => updateElement(el.id, { rotation: 45 }))}
+            onClick={() =>
+              run(() => updateElement(el.id, { rotation: HOTSPOT_DEFAULT_ROTATION_DEG }))
+            }
           />
         )}
         <Separator />
@@ -1237,6 +1259,99 @@ export function CanvasContextMenu({
               clearSelection();
             })
           }
+        />
+      </>
+    );
+  } else if (target.kind === "measure") {
+    const item = selectMeasureItem(views, target.viewId, target.itemId);
+    if (!item) return null;
+    const pickActive =
+      measureHotspotLinkPick?.actionsViewId === target.viewId &&
+      measureHotspotLinkPick?.measureId === target.itemId;
+    body = (
+      <>
+        <Header
+          title={item.title.trim() || t("actionsView.detail.titlePlaceholder")}
+          subtitle={t("contextMenu.measureSubtitle")}
+        />
+        <Submenu label={t("contextMenu.measureActionTypes")}>
+          {ACTION_TYPES.map((type) => (
+            <Item
+              key={type}
+              label={t(`actionsView.actionType.${type}`)}
+              active={item.actionType === type}
+              onClick={() =>
+                run(() =>
+                  moveMeasure(target.viewId, target.itemId, item.obligation, type),
+                )
+              }
+            />
+          ))}
+        </Submenu>
+        <Submenu label={t("contextMenu.measureObligations")}>
+          {OBLIGATION_LEVELS.map((level) => (
+            <Item
+              key={level}
+              label={t(`actionsView.obligation.${level}`)}
+              active={item.obligation === level}
+              onClick={() =>
+                run(() =>
+                  moveMeasure(target.viewId, target.itemId, level, item.actionType),
+                )
+              }
+            />
+          ))}
+        </Submenu>
+        <Submenu label={t("contextMenu.measureStatuses")}>
+          {MEASURE_STATUSES.map((status) => (
+            <Item
+              key={status}
+              label={t(`actionsView.status.${status}`)}
+              active={item.status === status}
+              onClick={() =>
+                run(() => updateMeasure(target.viewId, target.itemId, { status }))
+              }
+            />
+          ))}
+        </Submenu>
+        <Separator />
+        <Item
+          icon={Target}
+          label={
+            pickActive
+              ? t("actionsView.detail.cancelHotspotPick")
+              : t("actionsView.detail.pickHotspotOnCanvas")
+          }
+          active={pickActive}
+          onClick={() =>
+            run(() =>
+              pickActive
+                ? cancelMeasureHotspotPick()
+                : beginMeasureHotspotPick(target.viewId, target.itemId),
+            )
+          }
+        />
+        {item.targetRef ? (
+          <Item
+            icon={ExternalLink}
+            label={t("actionsView.detail.navigateTarget")}
+            onClick={() =>
+              run(() =>
+                navigateMeasureTarget(item.targetRef!.viewId, item.targetRef!.elementId),
+              )
+            }
+          />
+        ) : null}
+        <Item
+          icon={Copy}
+          label={t("actionsView.detail.duplicate")}
+          onClick={() => run(() => duplicateMeasure(target.viewId, target.itemId))}
+        />
+        <Item
+          icon={Trash2}
+          label={t("actionsView.detail.delete")}
+          danger
+          onClick={() => run(() => removeMeasure(target.viewId, target.itemId))}
         />
       </>
     );

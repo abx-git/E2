@@ -15,6 +15,7 @@ export function ActionCard({
   selected,
   dragging = false,
   onSelect,
+  onContextMenu,
   dragProps,
 }: {
   viewId: string;
@@ -23,6 +24,7 @@ export function ActionCard({
   selected: boolean;
   dragging?: boolean;
   onSelect: () => void;
+  onContextMenu?: (e: React.MouseEvent) => void;
   dragProps?: {
     onPointerDown: (e: React.PointerEvent) => void;
   };
@@ -76,6 +78,11 @@ export function ActionCard({
           e.preventDefault();
           onSelect();
         }
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onContextMenu?.(e);
       }}
       className={[
         "group relative flex cursor-pointer flex-col gap-2 rounded-lg border p-2.5 text-left shadow-sm transition",
