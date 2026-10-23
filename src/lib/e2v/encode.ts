@@ -1,5 +1,6 @@
 import { normalizeAppearance } from "@/lib/board-appearance";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
+import { pushTagFilterE2vLines } from "@/lib/measure-tag-filters";
 import { isActionsView } from "@/lib/storm-json";
 import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
 import type { CanvasLine } from "@/types/canvas-annotation";
@@ -41,15 +42,9 @@ function pushIdLines(out: string[], maps: AliasMap[]): void {
 function encodeActionsViewBody(view: Extract<BoardView, { type: "actions" }>, out: string[]): void {
   out.push(row(["@view", view.id, view.name, "actions"]));
   out.push(row(["@avcfg", view.config.groupBy]));
-  if (view.config.filterQualities?.length) {
-    out.push(row(["@avfq", ...view.config.filterQualities]));
-  }
-  if (view.config.filterStatus?.length) {
-    out.push(row(["@avfs", ...view.config.filterStatus]));
-  }
-  if (view.config.filterActionTypes?.length) {
-    out.push(row(["@avft", ...view.config.filterActionTypes]));
-  }
+  pushTagFilterE2vLines("avq", view.config.qualityFilters, out, row);
+  pushTagFilterE2vLines("at", view.config.actionTypeFilters, out, row);
+  pushTagFilterE2vLines("st", view.config.statusFilters, out, row);
   if (view.config.searchQuery?.trim()) {
     out.push(row(["@avq", view.config.searchQuery.trim()]));
   }

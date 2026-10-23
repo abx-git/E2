@@ -1,6 +1,7 @@
 import { normalizeAppearance } from "@/lib/board-appearance";
 import { normalizeActionItems } from "@/lib/action-items";
 import { normalizeActionsView, normalizeMeasureActionItem } from "@/lib/architecture-measures";
+import { applyE2vTagFilterLine } from "@/lib/measure-tag-filters";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
 import {
   normalizeBoardDocument,
@@ -311,14 +312,41 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         parseState.viewDraft.config.groupBy =
           cols[1] === "actionType" ? "actionType" : "obligation";
       }
-      if (tag === "avfq" && parseState.viewDraft?.kind === "actions") {
-        parseState.viewDraft.config.filterQualities = cols.slice(1) as ActionsViewConfig["filterQualities"];
-      }
-      if (tag === "avfs" && parseState.viewDraft?.kind === "actions") {
-        parseState.viewDraft.config.filterStatus = cols.slice(1) as ActionsViewConfig["filterStatus"];
-      }
-      if (tag === "avft" && parseState.viewDraft?.kind === "actions") {
-        parseState.viewDraft.config.filterActionTypes = cols.slice(1) as ActionsViewConfig["filterActionTypes"];
+      if (parseState.viewDraft?.kind === "actions") {
+        if (tag === "avqinc" || tag === "avqexc") {
+          parseState.viewDraft.config = applyE2vTagFilterLine(
+            "avq",
+            tag === "avqinc" ? "inc" : "exc",
+            cols,
+            parseState.viewDraft.config,
+          );
+        }
+        if (tag === "atinc" || tag === "atexc") {
+          parseState.viewDraft.config = applyE2vTagFilterLine(
+            "at",
+            tag === "atinc" ? "inc" : "exc",
+            cols,
+            parseState.viewDraft.config,
+          );
+        }
+        if (tag === "stinc" || tag === "stexc") {
+          parseState.viewDraft.config = applyE2vTagFilterLine(
+            "st",
+            tag === "stinc" ? "inc" : "exc",
+            cols,
+            parseState.viewDraft.config,
+          );
+        }
+        // Legacy include-only rows
+        if (tag === "avfq") {
+          parseState.viewDraft.config = applyE2vTagFilterLine("avq", "inc", cols, parseState.viewDraft.config);
+        }
+        if (tag === "avfs") {
+          parseState.viewDraft.config = applyE2vTagFilterLine("st", "inc", cols, parseState.viewDraft.config);
+        }
+        if (tag === "avft") {
+          parseState.viewDraft.config = applyE2vTagFilterLine("at", "inc", cols, parseState.viewDraft.config);
+        }
       }
       if (tag === "avq" && parseState.viewDraft?.kind === "actions") {
         parseState.viewDraft.config.searchQuery = parseCell(cols.slice(1).join(" "));

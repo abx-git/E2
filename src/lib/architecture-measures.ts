@@ -1,3 +1,9 @@
+import {
+  matchesTagFilters,
+  normalizeActionTypeFilters,
+  normalizeQualityFilters,
+  normalizeStatusFilters,
+} from "@/lib/measure-tag-filters";
 import type { BoardImportPayload, BoardView, CanvasBoardView } from "@/lib/storm-json";
 import { generateStormId } from "@/lib/storm-id";
 import type { StormElement } from "@/types/storm-element";
@@ -123,12 +129,9 @@ export function normalizeActionsViewConfig(raw: unknown): ActionsViewConfig {
   const groupBy = r.groupBy === "actionType" ? "actionType" : "obligation";
   return {
     groupBy,
-    filterQualities: asQualities(r.filterQualities),
-    filterStatus: Array.isArray(r.filterStatus)
-      ? r.filterStatus.filter(
-          (s): s is ActionStatus => typeof s === "string" && STATUS_SET.has(s),
-        )
-      : undefined,
+    qualityFilters: normalizeQualityFilters(r),
+    actionTypeFilters: normalizeActionTypeFilters(r),
+    statusFilters: normalizeStatusFilters(r),
     searchQuery:
       typeof r.searchQuery === "string" && r.searchQuery.trim()
         ? r.searchQuery
@@ -207,16 +210,7 @@ export function filterMeasureItems(
 ): MeasureActionItem[] {
   const q = config.searchQuery?.trim().toLowerCase();
   return items.filter((item) => {
-    if (config.filterStatus?.length && !config.filterStatus.includes(item.status)) {
-      return false;
-    }
-    if (config.filterActionTypes?.length && !config.filterActionTypes.includes(item.actionType)) {
-      return false;
-    }
-    if (config.filterQualities?.length) {
-      const hit = config.filterQualities.some((fq) => item.qualities.includes(fq));
-      if (!hit) return false;
-    }
+    if (!matchesTagFilters(config, item)) return false;
     if (!q) return true;
     const hay = [
       item.title,

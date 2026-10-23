@@ -10,6 +10,11 @@ export const actionsViewDe = {
     filterActionType: "Typ",
     searchPlaceholder: "Suche Titel, Beschreibung, Owner…",
     clearFilters: "Filter zurücksetzen",
+    tagFilter: {
+      off: "Kein Filter — erneut klicken für „nur mit“",
+      include: "Nur Maßnahmen mit diesem Merkmal",
+      exclude: "Maßnahmen ohne dieses Merkmal — erneut klicken zum Aufheben",
+    },
     addViewTab: "Maßnahmen-Sicht",
     actionType: {
       INTRODUCE: "Einführen",

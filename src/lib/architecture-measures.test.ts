@@ -40,7 +40,7 @@ describe("architecture measures", () => {
     });
     const filtered = filterMeasureItems(view.items, {
       groupBy: "obligation",
-      filterQualities: ["Security"],
+      qualityFilters: { Security: "include" },
       searchQuery: "tls",
     });
     expect(filtered).toHaveLength(1);

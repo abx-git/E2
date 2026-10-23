@@ -10,6 +10,11 @@ export const actionsViewEn = {
     filterActionType: "Type",
     searchPlaceholder: "Search title, description, owner…",
     clearFilters: "Clear filters",
+    tagFilter: {
+      off: "No filter — click for “must have”",
+      include: "Only measures with this tag",
+      exclude: "Exclude measures with this tag — click again to reset",
+    },
     addViewTab: "Measures view",
     actionType: {
       INTRODUCE: "Introduce",
