@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  isCollabGuestLocalMirror,
+  getCollabGuestLocalPersistMode,
+  isCollabGuestLocalPersistEnabled,
   isWorkingFileToStoreBlocked,
   persistWorkingFileJson,
-  setCollabGuestLocalMirror,
+  setCollabGuestLocalPersistMode,
   setWorkingFileToStoreBlocked,
   shouldSuppressExternalFilePoll,
   suggestedWorkingFileName,
@@ -18,7 +19,7 @@ import {
 describe("working-file collab guards", () => {
   afterEach(() => {
     setWorkingFileToStoreBlocked(false);
-    setCollabGuestLocalMirror(false);
+    setCollabGuestLocalPersistMode("none");
     stopWorkingFileWriter();
   });
 
@@ -34,11 +35,12 @@ describe("working-file collab guards", () => {
     expect(shouldSuppressExternalFilePoll()).toBe(true);
   });
 
-  it("tracks guest local mirror mode", () => {
-    setCollabGuestLocalMirror(true);
-    expect(isCollabGuestLocalMirror()).toBe(true);
-    setCollabGuestLocalMirror(false);
-    expect(isCollabGuestLocalMirror()).toBe(false);
+  it("tracks guest local persist mode", () => {
+    setCollabGuestLocalPersistMode("disk");
+    expect(isCollabGuestLocalPersistEnabled()).toBe(true);
+    expect(getCollabGuestLocalPersistMode()).toBe("disk");
+    setCollabGuestLocalPersistMode("none");
+    expect(isCollabGuestLocalPersistEnabled()).toBe(false);
   });
 
   it("builds room-based guest file names", () => {

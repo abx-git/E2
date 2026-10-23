@@ -13,7 +13,10 @@ export const collabEn = {
     fileNotMirrored: "File not mirrored",
     guestLocalSaved: "Local room copy saved",
     guestLocalSaving: "Writing local room copy…",
-    guestLocalMirrorTitle: "Auto-saving to {file} (this device only)",
+    guestLocalMirrorTitle: "Auto-saving to {file} (in parallel with the room)",
+    guestLocalDisk: "Disk",
+    onlineOnly: "Online sync only",
+    onlineOnlyTitle: "No local working file — changes live in the room only",
     leaveTitle: "Leave room",
     leaveBody:
       "The live connection ends. The current board stays in the editor. The working file was not overwritten during the room — save with “Save as…” if needed.",

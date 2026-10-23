@@ -149,15 +149,30 @@ export function isWorkingFileToStoreBlocked(): boolean {
   return workingFileToStoreBlocked;
 }
 
-/** Guest in a collab room: autosave editor → local Raum-Kopie (host keeps persist paused). */
-let collabGuestLocalMirror = false;
+/** Guest local backup during collab: none = online only; disk / browser = autosave enabled. */
+export type CollabGuestLocalPersistMode = "none" | "disk" | "browser";
 
+let collabGuestLocalPersistMode: CollabGuestLocalPersistMode = "none";
+
+export function setCollabGuestLocalPersistMode(mode: CollabGuestLocalPersistMode): void {
+  collabGuestLocalPersistMode = mode;
+}
+
+export function getCollabGuestLocalPersistMode(): CollabGuestLocalPersistMode {
+  return collabGuestLocalPersistMode;
+}
+
+export function isCollabGuestLocalPersistEnabled(): boolean {
+  return collabGuestLocalPersistMode !== "none";
+}
+
+/** @deprecated Use isCollabGuestLocalPersistEnabled — true when guest opted into local backup. */
 export function setCollabGuestLocalMirror(active: boolean): void {
-  collabGuestLocalMirror = active;
+  setCollabGuestLocalPersistMode(active ? "browser" : "none");
 }
 
 export function isCollabGuestLocalMirror(): boolean {
-  return collabGuestLocalMirror;
+  return isCollabGuestLocalPersistEnabled();
 }
 
 /** Extend external-poll suppression (e.g. after join while mirroring room → file). */
@@ -288,7 +303,7 @@ export function clearWorkingFileSyncState(): void {
 
 export function isWorkingFileDirty(currentJson?: string): boolean {
   if (!isWorkingFileAttached()) return false;
-  if (workingFilePersistPaused) return false;
+  if (workingFilePersistPaused && !isCollabGuestLocalPersistEnabled()) return false;
   const json = currentJson ?? boardJsonFromStoreState();
   const synced = getLastSyncedBoardJson();
   if (!synced) return json.trim().length > 0;
@@ -1281,7 +1296,11 @@ export async function persistWorkingFileJson(
       message: "Dateiwechsel läuft — Speichern in die neue Datei ist blockiert, bis sie geladen ist.",
     };
   }
-  if (workingFilePersistPaused && !options?.skipCas) {
+  if (
+    workingFilePersistPaused &&
+    !options?.skipCas &&
+    !isCollabGuestLocalPersistEnabled()
+  ) {
     return {
       ok: false,
       reason: "persist_paused",
@@ -1367,11 +1386,9 @@ export async function attachGuestCollabRoomCopy(
   roomCode: string,
   boardJson: string,
   options?: { saveToDisk?: boolean },
-): Promise<void> {
+): Promise<boolean> {
   const trimmed = boardJson.trim();
-  if (!trimmed) return;
-
-  setCollabGuestLocalMirror(true);
+  if (!trimmed) return false;
 
   const previousName =
     memoryHandle?.name?.trim() || mobileWorkingFileName?.trim() || null;
@@ -1394,21 +1411,37 @@ export async function attachGuestCollabRoomCopy(
   if (options?.saveToDisk && isWorkingFileSupported()) {
     const handle = await createAndAttachWorkingFile(trimmed, fileName);
     if (handle) {
+      setCollabGuestLocalPersistMode("disk");
+      setWorkingFilePersistPaused(false);
+      if (activeWorkingFileId) {
+        ensureWorkingFileWriter(activeWorkingFileId);
+      } else {
+        ensureWorkingFileWriter(fileName);
+      }
       suppressWorkingFileExternalPoll(15_000);
       notifyWorkingFilePersistPaused();
-      return;
+      return true;
     }
+    setCollabGuestLocalPersistMode("none");
+    return false;
   }
 
+  setCollabGuestLocalPersistMode("browser");
   const sourceLastModified = Date.now();
 
   markWorkingFileSynced(trimmed, sourceLastModified);
   await rememberMobileCopy(trimmed, fileName, sourceLastModified);
   markWorkingFileSessionHydrated();
   setWorkingFilePersistPaused(false);
+  if (activeWorkingFileId) {
+    ensureWorkingFileWriter(activeWorkingFileId);
+  } else {
+    ensureWorkingFileWriter(fileName);
+  }
   suppressWorkingFileExternalPoll(15_000);
   notifyWorkingFileAttached();
   notifyWorkingFilePersistPaused();
+  return true;
 }
 
 export async function createAndAttachWorkingFile(
@@ -1618,7 +1651,7 @@ export async function renameWorkingFile(
 }
 
 export async function detachWorkingFile(): Promise<void> {
-  setCollabGuestLocalMirror(false);
+  setCollabGuestLocalPersistMode("none");
   const name =
     memoryHandle?.name?.trim() ||
     mobileWorkingFileName?.trim() ||

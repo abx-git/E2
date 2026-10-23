@@ -42,7 +42,7 @@ import {
   WORKING_FILE_DETACHED_EVENT,
   WORKING_FILE_PERSIST_PAUSED_EVENT,
   setWorkingFilePersistPaused,
-  isCollabGuestLocalMirror,
+  isCollabGuestLocalPersistEnabled,
   pauseWorkingFilePersistForCollab,
 } from "@/lib/working-file";
 import { mayAutoRestoreWorkingFileFromStorage } from "@/lib/working-file-safety";
@@ -72,14 +72,15 @@ function isCollabRoomActive(): boolean {
 
 /** Block autosave — except guest local Raum-Kopie during collab. */
 function blocksWorkingFileAutosave(): boolean {
-  if (
-    isCollabGuestLocalMirror() &&
-    isWorkingFileAttached() &&
-    !isWorkingFilePersistPaused()
-  ) {
+  if (isCollabGuestLocalPersistEnabled() && isWorkingFileAttached()) {
     return false;
   }
   return isCollabRoomActive();
+}
+
+function isWorkingFileAutosavePaused(): boolean {
+  if (isCollabGuestLocalPersistEnabled()) return false;
+  return isWorkingFilePersistPaused();
 }
 
 function ensureWriterForAttachedFile(): void {
@@ -221,7 +222,7 @@ export function WorkingFileSync({
     const flushPersist = async (): Promise<boolean> => {
       if (
         !isWorkingFileAttached() ||
-        isWorkingFilePersistPaused() ||
+        isWorkingFileAutosavePaused() ||
         isWorkingFileSwitchInProgress() ||
         blocksWorkingFileAutosave() ||
         !isWorkingFileWriterLeader() ||
@@ -302,13 +303,15 @@ export function WorkingFileSync({
                 downloadWorkingFileSafetyCopy(retryEditorJson, "editor");
               }
             }
-            suspendAutoPersistRef.current = true;
-            try {
-              if (snap.text.trim()) applyBoardJsonToStore(snap.text);
-              markWorkingFileSynced(snap.text, snap.lastModified);
-              lastPersistKeyRef.current = boardPersistKeyFromStoreState();
-            } finally {
-              suspendAutoPersistRef.current = false;
+            if (!isCollabRoomActive()) {
+              suspendAutoPersistRef.current = true;
+              try {
+                if (snap.text.trim()) applyBoardJsonToStore(snap.text);
+                markWorkingFileSynced(snap.text, snap.lastModified);
+                lastPersistKeyRef.current = boardPersistKeyFromStoreState();
+              } finally {
+                suspendAutoPersistRef.current = false;
+              }
             }
           }
           syncDirty();
@@ -332,7 +335,7 @@ export function WorkingFileSync({
     const schedulePersistOnChange = () => {
       if (
         !isWorkingFileAttached() ||
-        isWorkingFilePersistPaused() ||
+        isWorkingFileAutosavePaused() ||
         isWorkingFileSwitchInProgress() ||
         blocksWorkingFileAutosave() ||
         !isWorkingFileWriterLeader() ||
@@ -364,7 +367,7 @@ export function WorkingFileSync({
 
     const onPersistedBoardChanged = () => {
       if (suspendAutoPersistRef.current) return;
-      if (isWorkingFilePersistPaused() || blocksWorkingFileAutosave()) {
+      if (isWorkingFileAutosavePaused() || blocksWorkingFileAutosave()) {
         syncDirty();
         return;
       }
@@ -450,8 +453,9 @@ export function WorkingFileSync({
         markWorkingFileSessionHydrated();
 
         if (isCollabRoomActive()) {
-          if (isCollabGuestLocalMirror()) {
+          if (isCollabGuestLocalPersistEnabled()) {
             markWorkingFileSynced(boardJsonFromStoreState(), snap.lastModified);
+            setWorkingFilePersistPaused(false);
             syncPaused();
             syncDirty();
             return;
@@ -484,7 +488,8 @@ export function WorkingFileSync({
         }
         markWorkingFileSessionHydrated();
         if (isCollabRoomActive()) {
-          if (isCollabGuestLocalMirror()) {
+          if (isCollabGuestLocalPersistEnabled()) {
+            setWorkingFilePersistPaused(false);
             syncPaused();
             syncDirty();
             return;
@@ -533,7 +538,7 @@ export function WorkingFileSync({
         if (role !== "leader") return;
         void (async () => {
           await applyExternalFileIfNeeded();
-          if (conflictActiveRef.current || isWorkingFilePersistPaused() || blocksWorkingFileAutosave())
+          if (conflictActiveRef.current || isWorkingFileAutosavePaused() || blocksWorkingFileAutosave())
             return;
           void flushPersist();
         })();
@@ -561,7 +566,7 @@ export function WorkingFileSync({
       }, EXTERNAL_WORKING_FILE_POLL_MS);
 
       const onPageHide = () => {
-        if (conflictActiveRef.current || isWorkingFilePersistPaused() || blocksWorkingFileAutosave())
+        if (conflictActiveRef.current || isWorkingFileAutosavePaused() || blocksWorkingFileAutosave())
           return;
         flushPersistNow();
       };
@@ -574,7 +579,11 @@ export function WorkingFileSync({
         syncFileLabel();
         syncDirty();
         syncPaused();
-        void applyExternalFileIfNeeded();
+        if (isCollabGuestLocalPersistEnabled()) {
+          schedulePersistOnChange();
+        } else {
+          void applyExternalFileIfNeeded();
+        }
       };
       addExternalListener(window, WORKING_FILE_ATTACHED_EVENT, onWorkingFileAttached);
       addExternalListener(window, WORKING_FILE_DETACHED_EVENT, onWorkingFileAttached);

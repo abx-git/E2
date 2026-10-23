@@ -6,7 +6,8 @@ import { useT } from "@/i18n";
 import { useCollabStore } from "@/lib/collab/session";
 import {
   getWorkingFileLabel,
-  isCollabGuestLocalMirror,
+  getCollabGuestLocalPersistMode,
+  isCollabGuestLocalPersistEnabled,
   isWorkingFileAttached,
   isWorkingFileDirty,
 } from "@/lib/working-file";
@@ -28,7 +29,8 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
   const syncConflict = useCollabStore((s) => s.syncConflict);
   const fileAttached = isWorkingFileAttached();
   const fileDirty = fileAttached && isWorkingFileDirty();
-  const guestLocalMirror = isCollabGuestLocalMirror();
+  const guestLocalPersist = isCollabGuestLocalPersistEnabled();
+  const guestPersistMode = getCollabGuestLocalPersistMode();
   const localFileLabel = getWorkingFileLabel();
 
   if (!active || !room) return null;
@@ -83,15 +85,21 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
         </span>
       )}
       <span className="text-[var(--muted)]">{t("collab.online", { n: peers.length })}</span>
-      {fileAttached && guestLocalMirror && (
+      {fileAttached && guestLocalPersist && (
         <span
           className={fileDirty ? "text-[var(--accent-2)]" : "text-[var(--accent)]"}
           title={t("collab.guestLocalMirrorTitle", { file: localFileLabel ?? "" })}
         >
           {fileDirty ? t("collab.guestLocalSaving") : t("collab.guestLocalSaved")}
+          {guestPersistMode === "disk" ? ` · ${t("collab.guestLocalDisk")}` : null}
         </span>
       )}
-      {fileAttached && isHost && !guestLocalMirror && (
+      {!isHost && !guestLocalPersist && (
+        <span className="text-[var(--muted)]" title={t("collab.onlineOnlyTitle")}>
+          {t("collab.onlineOnly")}
+        </span>
+      )}
+      {fileAttached && isHost && !guestLocalPersist && (
         <span
           className="text-[var(--muted)]"
           title={t("panels.collabNoMirror")}

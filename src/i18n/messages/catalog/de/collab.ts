@@ -13,7 +13,10 @@ export const collabDe = {
     fileNotMirrored: "Datei nicht gespiegelt",
     guestLocalSaved: "Lokale Raum-Kopie gesichert",
     guestLocalSaving: "Lokale Raum-Kopie wird geschrieben…",
-    guestLocalMirrorTitle: "Automatische Sicherung in {file} (nur auf diesem Gerät)",
+    guestLocalMirrorTitle: "Automatische Sicherung in {file} (parallel zum Raum)",
+    guestLocalDisk: "Platte",
+    onlineOnly: "Nur Online-Sync",
+    onlineOnlyTitle: "Keine lokale Arbeitsdatei — Änderungen nur im Raum",
     leaveTitle: "Raum verlassen",
     leaveBody:
       "Die Live-Verbindung endet. Der aktuelle Board-Stand bleibt im Editor. Die Arbeitsdatei wurde während des Raums nicht überschrieben — speichere bei Bedarf mit „Speichern unter…“.",

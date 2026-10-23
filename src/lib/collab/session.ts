@@ -38,10 +38,12 @@ import {
 import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
 import {
   attachGuestCollabRoomCopy,
-  isCollabGuestLocalMirror,
+  getCollabGuestLocalPersistMode,
+  isCollabGuestLocalPersistEnabled,
   isWorkingFileAttached,
   pauseWorkingFilePersistForCollab,
-  setCollabGuestLocalMirror,
+  persistWorkingFileJson,
+  setCollabGuestLocalPersistMode,
   setWorkingFilePersistPaused,
   setWorkingFileToStoreBlocked,
   suppressWorkingFileExternalPoll,
@@ -720,13 +722,10 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
     // Block disk→editor for the whole join + session (prevents old file overwriting the room).
     setWorkingFileToStoreBlocked(true);
-    pauseWorkingFilePersistForCollab();
     suppressWorkingFileExternalPoll(15_000);
     set({ connecting: true, error: null, status: "connecting" });
     teardownSession();
-    // teardown clears the block — re-assert for the new session.
     setWorkingFileToStoreBlocked(true);
-    pauseWorkingFilePersistForCollab();
     suppressWorkingFileExternalPoll(15_000);
 
     const hostToken =
@@ -738,7 +737,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     if ("error" in result) {
       setWorkingFileToStoreBlocked(false);
       setWorkingFilePersistPaused(false);
-      setCollabGuestLocalMirror(false);
+      setCollabGuestLocalPersistMode("none");
       set({ connecting: false, status: "error", error: result.error });
       return { ok: false, error: result.error };
     }
@@ -842,13 +841,20 @@ export const useCollabStore = create<CollabState>((set, get) => ({
         pauseWorkingFilePersistForCollab();
         suppressWorkingFileExternalPoll(10_000);
       }
-    } else {
-      await attachGuestCollabRoomCopy(
+    } else if (options?.guestSaveToDisk === true) {
+      const attached = await attachGuestCollabRoomCopy(
         result.room.title,
         result.room.code,
         boardJsonFromStoreState(),
-        { saveToDisk: options?.guestSaveToDisk === true },
+        { saveToDisk: true },
       );
+      if (!attached) {
+        setCollabGuestLocalPersistMode("none");
+        pauseWorkingFilePersistForCollab();
+      }
+    } else {
+      setCollabGuestLocalPersistMode("none");
+      pauseWorkingFilePersistForCollab();
     }
 
     syncPeers(set);
@@ -856,6 +862,10 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     bindStoreToYjs(result.room.id, get, set);
     startSnapshotSync(result.room.id, get, set);
     bindPageHideFlush();
+
+    if (getCollabGuestLocalPersistMode() === "disk" && isWorkingFileAttached()) {
+      void persistWorkingFileJson(boardJsonFromStoreState());
+    }
 
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
@@ -868,14 +878,14 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
   leaveRoom: () => {
     const wasHost = get().isHost;
-    const hadGuestMirror = isCollabGuestLocalMirror();
+    const hadGuestLocal = isCollabGuestLocalPersistEnabled();
     teardownSession();
-    setCollabGuestLocalMirror(false);
+    setCollabGuestLocalPersistMode("none");
     if (isWorkingFileAttached()) {
       if (wasHost) {
         // Host: room content must not silently overwrite the pre-room file.
         setWorkingFilePersistPaused(true, "after_collab");
-      } else if (hadGuestMirror) {
+      } else if (hadGuestLocal) {
         // Guest: keep autosaving the local Raum-Kopie after leave.
         setWorkingFilePersistPaused(false);
       }
