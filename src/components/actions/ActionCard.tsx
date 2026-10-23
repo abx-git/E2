@@ -10,12 +10,14 @@ import {
 export function ActionCard({
   item,
   selected,
+  dragging = false,
   onSelect,
   onTitleCommit,
   dragProps,
 }: {
   item: MeasureActionItem;
   selected: boolean;
+  dragging?: boolean;
   onSelect: () => void;
   onTitleCommit: (title: string) => void;
   dragProps?: {
@@ -40,6 +42,7 @@ export function ActionCard({
       tabIndex={0}
       onClick={onSelect}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onSelect();
@@ -47,6 +50,7 @@ export function ActionCard({
       }}
       className={[
         "group relative flex cursor-pointer flex-col gap-2 rounded-lg border p-2.5 text-left shadow-sm transition",
+        dragging ? "opacity-60 ring-1 ring-[var(--accent-2)]" : "",
         selected
           ? "border-[var(--accent)] bg-[var(--control)] ring-1 ring-[var(--accent)]"
           : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent-2)]",
@@ -77,6 +81,7 @@ export function ActionCard({
               if (next && next !== item.title) onTitleCommit(next);
             }}
             onKeyDown={(e) => {
+              e.stopPropagation();
               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
             }}
           />
