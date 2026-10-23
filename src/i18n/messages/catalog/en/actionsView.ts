@@ -20,6 +20,7 @@ export const actionsViewEn = {
     addViewTab: "Measures view",
     viewTabKind: "Measures matrix",
     hotspots: {
+      infoAria: "About hotspots and measures",
       title: "Hotspots (all views)",
       hint: "Linked hotspots leave the backlog after assignment; restore them under “Hidden”. Hiding never deletes the canvas hotspot.",
       canvasSection: "Measures review",
