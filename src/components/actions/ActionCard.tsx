@@ -1,32 +1,38 @@
 "use client";
 
 import { GripVertical } from "lucide-react";
+import { DescriptionMarkdownContent } from "@/components/description-markdown-content";
 import { useT } from "@/i18n";
-import {
-  ACTION_TYPE_COLORS,
-  type MeasureActionItem,
-} from "@/types/actions-view";
+import { selectMeasureItem } from "@/lib/select-measure-item";
+import { useStormBoardStore } from "@/store/storm-board-store";
+import { ACTION_TYPE_COLORS } from "@/types/actions-view";
 
 export function ActionCard({
-  item,
+  viewId,
+  itemId,
+  showDescriptionsOnCards,
   selected,
   dragging = false,
   onSelect,
-  onTitleChange,
   dragProps,
 }: {
-  item: MeasureActionItem;
+  viewId: string;
+  itemId: string;
+  showDescriptionsOnCards: boolean;
   selected: boolean;
   dragging?: boolean;
   onSelect: () => void;
-  onTitleChange: (title: string) => void;
   dragProps?: {
     onPointerDown: (e: React.PointerEvent) => void;
   };
 }) {
   const t = useT();
-  const colors = ACTION_TYPE_COLORS[item.actionType];
+  const item = useStormBoardStore((s) => selectMeasureItem(s.views, viewId, itemId));
+  const updateMeasure = useStormBoardStore((s) => s.updateMeasureActionItem);
 
+  if (!item) return null;
+
+  const accent = ACTION_TYPE_COLORS[item.actionType];
   const ownerInitials = item.owner
     ? item.owner
         .trim()
@@ -35,6 +41,11 @@ export function ActionCard({
         .slice(0, 2)
         .join("")
     : null;
+
+  const showDescription =
+    showDescriptionsOnCards &&
+    item.showDescriptionOnCard !== false &&
+    Boolean(item.description?.trim());
 
   return (
     <article
@@ -56,7 +67,11 @@ export function ActionCard({
           : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent-2)]",
       ].join(" ")}
     >
-      <div className="flex items-start gap-1">
+      <div
+        className={["absolute bottom-2 left-0 top-2 w-1 rounded-full opacity-80", accent.bg].join(" ")}
+        aria-hidden
+      />
+      <div className="flex items-start gap-1 pl-1">
         <span
           className="mt-0.5 cursor-grab touch-none text-[var(--muted)] active:cursor-grabbing"
           title="Drag"
@@ -79,11 +94,13 @@ export function ActionCard({
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => {
               e.stopPropagation();
-              onTitleChange(e.target.value);
+              updateMeasure(viewId, itemId, { title: e.target.value });
             }}
             onBlur={(e) => {
               const trimmed = e.target.value.trim();
-              if (trimmed !== e.target.value) onTitleChange(trimmed);
+              if (trimmed !== e.target.value) {
+                updateMeasure(viewId, itemId, { title: trimmed });
+              }
             }}
             onKeyDown={(e) => {
               e.stopPropagation();
@@ -92,20 +109,15 @@ export function ActionCard({
           />
         </div>
       </div>
-      <div className="flex flex-wrap gap-1">
-        <span
-          className={[
-            "rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-            colors.bg,
-            colors.text,
-            colors.border,
-          ].join(" ")}
+      {showDescription ? (
+        <div
+          className="line-clamp-4 pl-6 text-[11px] leading-snug text-[var(--muted)]"
+          onClick={(e) => e.stopPropagation()}
         >
-          {t(`actionsView.actionType.${item.actionType}`)}
-        </span>
-        <span className="rounded border border-[var(--border)] bg-[var(--control)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted)]">
-          {t(`actionsView.obligation.${item.obligation}`)}
-        </span>
+          <DescriptionMarkdownContent markdown={item.description!} compact />
+        </div>
+      ) : null}
+      <div className="flex flex-wrap gap-1 pl-6">
         {item.effort ? (
           <span className="rounded bg-[var(--control)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--muted)]">
             {t(`actionsView.effort.${item.effort}`)}
@@ -119,9 +131,14 @@ export function ActionCard({
             {ownerInitials}
           </span>
         ) : null}
+        {item.status !== "open" ? (
+          <span className="rounded-full bg-[var(--control)] px-2 py-0.5 text-[10px] text-[var(--muted)]">
+            {t(`actionsView.status.${item.status}`)}
+          </span>
+        ) : null}
       </div>
       {item.qualities.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 pl-6">
           {item.qualities.map((q) => (
             <span
               key={q}
@@ -134,7 +151,7 @@ export function ActionCard({
         </div>
       ) : null}
       {item.targetRef ? (
-        <span className="truncate text-[10px] text-[var(--accent-2)]">
+        <span className="truncate pl-6 text-[10px] text-[var(--accent-2)]">
           ↗ {item.targetRef.elementLabel}
         </span>
       ) : null}

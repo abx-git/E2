@@ -32,6 +32,8 @@ export interface MeasureActionItem {
     elementId: string;
     elementLabel: string;
   };
+  /** When false, hide description on card even if view toggle is on. */
+  showDescriptionOnCard?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +52,8 @@ export interface ActionsViewConfig {
   qualityFilters?: Partial<Record<ArchitectureQuality, TagFilterMode>>;
   actionTypeFilters?: Partial<Record<ActionType, TagFilterMode>>;
   statusFilters?: Partial<Record<ActionStatus, TagFilterMode>>;
+  /** Show measure descriptions on board cards when enabled. */
+  showDescriptionsOnCards?: boolean;
   searchQuery?: string;
 }
 

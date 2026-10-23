@@ -312,6 +312,9 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         parseState.viewDraft.config.groupBy =
           cols[1] === "actionType" ? "actionType" : "obligation";
       }
+      if (tag === "avshowdesc" && parseState.viewDraft?.kind === "actions") {
+        parseState.viewDraft.config.showDescriptionsOnCards = cols[1] !== "0";
+      }
       if (parseState.viewDraft?.kind === "actions") {
         if (tag === "avqinc" || tag === "avqexc") {
           parseState.viewDraft.config = applyE2vTagFilterLine(

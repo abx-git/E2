@@ -9,6 +9,8 @@ export const actionsViewDe = {
     filterStatus: "Status",
     filterActionType: "Typ",
     searchPlaceholder: "Suche Titel, Beschreibung, Owner…",
+    showDescriptionsOnCards: "Beschreibung auf Karten",
+    showDescriptionsOnCardsHint: "Kurztext der Maßnahmen auf den Karten einblenden",
     clearFilters: "Filter zurücksetzen",
     tagFilter: {
       off: "Kein Filter — erneut klicken für „nur mit“",
@@ -64,6 +66,7 @@ export const actionsViewDe = {
       delete: "Löschen",
       duplicate: "Duplizieren",
       navigateTarget: "Zum Element springen",
+      showDescriptionOnCard: "Beschreibung auf Karte anzeigen",
     },
     exportReport: "Maßnahmen-Report (MD)",
     exportReportDetail: "Review-Protokoll",

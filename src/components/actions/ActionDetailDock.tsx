@@ -18,9 +18,11 @@ import {
 export function ActionDetailDock({
   viewId,
   itemId,
+  embedded = false,
 }: {
   viewId: string;
   itemId: string;
+  embedded?: boolean;
 }) {
   const t = useT();
   const item = useStormBoardStore((s) => selectMeasureItem(s.views, viewId, itemId));
@@ -34,7 +36,12 @@ export function ActionDetailDock({
   if (!item) return null;
 
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col border-l border-[var(--border)] bg-[var(--sidebar)]">
+    <aside
+      className={[
+        "flex h-full min-h-0 w-full flex-col bg-[var(--sidebar)]",
+        embedded ? "" : "border-l border-[var(--border)]",
+      ].join(" ")}
+    >
       <header className="border-b border-[var(--border)] px-3 py-2">
         <h2 className="text-sm font-semibold text-[var(--text)]">
           {t("actionsView.detail.title")}
@@ -64,10 +71,21 @@ export function ActionDetailDock({
           <textarea
             className="dock-control min-h-[8rem] w-full rounded-md px-2 py-1.5 text-xs font-mono"
             value={item.description ?? ""}
+            onChange={(e) => update(viewId, item.id, { description: e.target.value })}
+          />
+        </label>
+
+        <label className="flex items-center gap-2 text-xs text-[var(--muted)]">
+          <input
+            type="checkbox"
+            checked={item.showDescriptionOnCard !== false}
             onChange={(e) =>
-              update(viewId, item.id, { description: e.target.value || undefined })
+              update(viewId, item.id, {
+                showDescriptionOnCard: e.target.checked ? undefined : false,
+              })
             }
           />
+          {t("actionsView.detail.showDescriptionOnCard")}
         </label>
 
         <div className="grid grid-cols-2 gap-2">
