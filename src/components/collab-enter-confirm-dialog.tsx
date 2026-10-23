@@ -5,8 +5,13 @@ import { createPortal } from "react-dom";
 import { Download } from "lucide-react";
 
 import { useT } from "@/i18n";
+import { isWorkingFileSupported } from "@/lib/working-file";
 
-export type CollabEnterChoice = "proceed" | "save_and_proceed" | "cancel";
+export type CollabEnterChoice =
+  | "proceed"
+  | "save_and_proceed"
+  | "join_with_disk"
+  | "cancel";
 
 export interface CollabEnterConfirmDialogProps {
   open: boolean;
@@ -35,7 +40,8 @@ export function CollabEnterConfirmDialog({
 
   const isJoin = mode === "join";
   const showSaveAndProceed = workingFileAttached && workingFileDirty;
-  const showProceed = isJoin || (workingFileAttached && !workingFileDirty);
+  const showCreateProceed = !isJoin && (workingFileAttached ? !workingFileDirty : false);
+  const diskJoinAvailable = isJoin && isWorkingFileSupported();
 
   const layer = (
     <div
@@ -64,6 +70,9 @@ export function CollabEnterConfirmDialog({
               </p>
             )
           )}
+          {isJoin ? (
+            <p className="text-slate-500">{t("dialogs.collabEnterGuestLocalHint")}</p>
+          ) : null}
           <p className="text-slate-500">{t("dialogs.collabEnterExportOptional")}</p>
         </div>
         <div className="mt-5 flex flex-col gap-2">
@@ -86,14 +95,34 @@ export function CollabEnterConfirmDialog({
               {isJoin ? t("collab.saveAndJoin") : t("collab.saveAndCreate")}
             </button>
           )}
-          {showProceed && (
+          {diskJoinAvailable && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onChoose("join_with_disk")}
+              className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-950 hover:bg-emerald-100 disabled:opacity-60"
+            >
+              {t("collab.joinWithDisk")}
+            </button>
+          )}
+          {isJoin && (
             <button
               type="button"
               disabled={busy}
               onClick={() => onChoose("proceed")}
               className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
             >
-              {isJoin ? t("collab.joinRoom") : t("collab.createRoom")}
+              {t("collab.joinWithoutSave")}
+            </button>
+          )}
+          {showCreateProceed && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onChoose("proceed")}
+              className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-medium text-sky-950 hover:bg-sky-100 disabled:opacity-60"
+            >
+              {t("collab.createRoom")}
             </button>
           )}
           <button

@@ -38,6 +38,8 @@ export const collabDe = {
     saveAndJoin: "Speichern & Raum laden",
     saveAndCreate: "Speichern & Raum starten",
     joinRoom: "Raum laden",
+    joinWithDisk: "Beitreten und auf Platte speichern…",
+    joinWithoutSave: "Beitreten ohne Speichern",
     createRoom: "Raum starten",
     connectionFromEnv: "aus .env / Build",
     connectionLocal: "lokal im Browser",

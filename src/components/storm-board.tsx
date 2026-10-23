@@ -16,7 +16,10 @@ import { progressMarkFromDigit } from "@/lib/progress-mark";
 import { BoardDockReopenButton } from "@/components/board-dock-toggle";
 import { BoardSideRail } from "@/components/board-side-rail";
 import { MobileBoardBar } from "@/components/mobile-board-bar";
-import { CollabEnterConfirmDialog } from "@/components/collab-enter-confirm-dialog";
+import {
+  CollabEnterConfirmDialog,
+  type CollabEnterChoice,
+} from "@/components/collab-enter-confirm-dialog";
 import { CollabLeaveDialog, type CollabLeaveChoice } from "@/components/collab-leave-dialog";
 import { CollabPresenceBanner } from "@/components/collab-presence-banner";
 import { CollabRoomDialog } from "@/components/collab-room-dialog";
@@ -272,14 +275,7 @@ export function StormBoard() {
     if (!room || useCollabStore.getState().active) return;
     setPendingRoomCode(room.trim().toUpperCase());
     setCollabOpen(true);
-    if (shouldConfirmCollabEnter()) {
-      setUrlJoinConfirm(true);
-    } else {
-      const name = useCollabStore.getState().displayName || t("common.guest");
-      backupBeforeSuspiciousSwitch("room");
-      capturePreCollabStash();
-      void joinRoom(room, name);
-    }
+    setUrlJoinConfirm(true);
   }, [joinRoom]);
 
   useEffect(() => {
@@ -1077,9 +1073,10 @@ export function StormBoard() {
   };
 
   const beginCollabEnter = async (
-    choice: "proceed" | "save_and_proceed",
-    enter: () => Promise<void>,
+    choice: CollabEnterChoice,
+    enter: (opts: { guestSaveToDisk: boolean }) => Promise<void>,
   ) => {
+    if (choice === "cancel") return;
     if (choice === "save_and_proceed" && isWorkingFileAttached()) {
       const result = await persistWorkingFileJson(boardJsonFromStoreState());
       if (!result.ok) {
@@ -1089,7 +1086,7 @@ export function StormBoard() {
     }
     backupBeforeSuspiciousSwitch("room");
     capturePreCollabStash();
-    await enter();
+    await enter({ guestSaveToDisk: choice === "join_with_disk" });
   };
 
   const handleBrowserFile = () => fileInputRef.current?.click();
@@ -1525,8 +1522,8 @@ export function StormBoard() {
           }
           const name = useCollabStore.getState().displayName || t("common.guest");
           const code = pendingRoomCode;
-          void beginCollabEnter(choice, async () => {
-            await joinRoom(code, name);
+          void beginCollabEnter(choice, async ({ guestSaveToDisk }) => {
+            await joinRoom(code, name, { guestSaveToDisk });
           });
         }}
       />

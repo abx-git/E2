@@ -102,6 +102,7 @@ interface CollabState {
   joinRoom: (
     code: string,
     displayName?: string,
+    options?: { guestSaveToDisk?: boolean },
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
   leaveRoom: () => void;
   pushLocalToYjs: () => void;
@@ -710,7 +711,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     return { ok: true, code: result.room.code };
   },
 
-  joinRoom: async (code, displayName) => {
+  joinRoom: async (code, displayName, options) => {
     if (!isCollabConfigured()) {
       return { ok: false, error: "Supabase nicht konfiguriert" };
     }
@@ -846,6 +847,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
         result.room.title,
         result.room.code,
         boardJsonFromStoreState(),
+        { saveToDisk: options?.guestSaveToDisk === true },
       );
     }
 

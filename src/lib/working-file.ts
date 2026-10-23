@@ -1366,6 +1366,7 @@ export async function attachGuestCollabRoomCopy(
   roomTitle: string,
   roomCode: string,
   boardJson: string,
+  options?: { saveToDisk?: boolean },
 ): Promise<void> {
   const trimmed = boardJson.trim();
   if (!trimmed) return;
@@ -1389,6 +1390,16 @@ export async function attachGuestCollabRoomCopy(
 
   const label = `${roomTitle.trim() || "Raum"}-${roomCode.trim().toUpperCase()}`;
   const fileName = suggestedWorkingFileName(label);
+
+  if (options?.saveToDisk && isWorkingFileSupported()) {
+    const handle = await createAndAttachWorkingFile(trimmed, fileName);
+    if (handle) {
+      suppressWorkingFileExternalPoll(15_000);
+      notifyWorkingFilePersistPaused();
+      return;
+    }
+  }
+
   const sourceLastModified = Date.now();
 
   markWorkingFileSynced(trimmed, sourceLastModified);

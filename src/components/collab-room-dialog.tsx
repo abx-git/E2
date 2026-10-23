@@ -134,7 +134,7 @@ export function CollabRoomDialog({
 
   const runEnter = async (
     mode: "create" | "join",
-    options?: { saveFirst?: boolean },
+    options?: { saveFirst?: boolean; guestSaveToDisk?: boolean },
   ) => {
     setLocalError(null);
     setDisplayName(name);
@@ -151,7 +151,9 @@ export function CollabRoomDialog({
       const r = await createRoom();
       if (!r.ok) setLocalError(r.error);
     } else {
-      const r = await joinRoom(code, name);
+      const r = await joinRoom(code, name, {
+        guestSaveToDisk: options?.guestSaveToDisk === true,
+      });
       if (!r.ok) setLocalError(r.error);
     }
   };
@@ -163,7 +165,7 @@ export function CollabRoomDialog({
       setTab("create");
       return;
     }
-    if (shouldConfirmCollabEnter()) {
+    if (mode === "join" || shouldConfirmCollabEnter()) {
       setEnterConfirm(mode);
       return;
     }
@@ -438,7 +440,10 @@ export function CollabRoomDialog({
           const mode = enterConfirm;
           setEnterConfirm(null);
           if (choice === "cancel" || !mode) return;
-          void runEnter(mode, { saveFirst: choice === "save_and_proceed" });
+          void runEnter(mode, {
+            saveFirst: choice === "save_and_proceed",
+            guestSaveToDisk: choice === "join_with_disk",
+          });
         }}
       />
     </>

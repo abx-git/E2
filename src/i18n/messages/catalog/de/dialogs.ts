@@ -82,6 +82,8 @@ export const dialogsDe = {
     shareLinkTitle: "Board-Link teilen",
     collabEnterJoinReplace:
       "Der Editor wird durch den Raum-Stand ersetzt. Alle Teilnehmer arbeiten danach live am selben Board — ohne weitere Nachfragen.",
+    collabEnterGuestLocalHint:
+      "Als Gast kannst du eine lokale Raum-Kopie auf der Platte anlegen (empfohlen) oder nur im Browser-Zwischenspeicher mit automatischer Sicherung arbeiten.",
     collabEnterExportOptional: "Optional: JSON exportieren als zusätzliche Kopie.",
     exportJsonButton: "JSON exportieren",
     remoteBoardLoadQuestion: "Remote-Board laden?",

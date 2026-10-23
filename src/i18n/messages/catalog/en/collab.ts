@@ -38,6 +38,8 @@ export const collabEn = {
     saveAndJoin: "Save & load room",
     saveAndCreate: "Save & start room",
     joinRoom: "Load room",
+    joinWithDisk: "Join and save to disk…",
+    joinWithoutSave: "Join without saving",
     createRoom: "Start room",
     connectionFromEnv: "from .env / build",
     connectionLocal: "local in browser",

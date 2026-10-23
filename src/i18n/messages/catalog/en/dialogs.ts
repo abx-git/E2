@@ -78,6 +78,8 @@ export const dialogsEn = {
     shareLinkTitle: "Share board link",
     collabEnterJoinReplace:
       "The editor will be replaced by the room state. All participants then work live on the same board — without further prompts.",
+    collabEnterGuestLocalHint:
+      "As a guest you can save a local room copy to disk (recommended) or work with automatic backup in the browser store only.",
     collabEnterExportOptional: "Optional: export JSON as an extra copy.",
     exportJsonButton: "Export JSON",
     remoteBoardLoadQuestion: "Load remote board?",
