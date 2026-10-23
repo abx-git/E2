@@ -9,6 +9,8 @@ export const actionsViewEn = {
     filterStatus: "Status",
     filterActionType: "Type",
     searchPlaceholder: "Search title, description, owner…",
+    showDescriptionsOnCards: "Descriptions on cards",
+    showDescriptionsOnCardsHint: "Show measure descriptions on board cards",
     clearFilters: "Clear filters",
     tagFilter: {
       off: "No filter — click for “must have”",
@@ -64,6 +66,7 @@ export const actionsViewEn = {
       delete: "Delete",
       duplicate: "Duplicate",
       navigateTarget: "Jump to element",
+      showDescriptionOnCard: "Show description on card",
     },
     exportReport: "Measures report (MD)",
     exportReportDetail: "Review protocol",

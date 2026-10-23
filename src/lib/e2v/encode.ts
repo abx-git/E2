@@ -42,6 +42,9 @@ function pushIdLines(out: string[], maps: AliasMap[]): void {
 function encodeActionsViewBody(view: Extract<BoardView, { type: "actions" }>, out: string[]): void {
   out.push(row(["@view", view.id, view.name, "actions"]));
   out.push(row(["@avcfg", view.config.groupBy]));
+  if (view.config.showDescriptionsOnCards) {
+    out.push(row(["@avshowdesc", 1]));
+  }
   pushTagFilterE2vLines("avq", view.config.qualityFilters, out, row);
   pushTagFilterE2vLines("at", view.config.actionTypeFilters, out, row);
   pushTagFilterE2vLines("st", view.config.statusFilters, out, row);

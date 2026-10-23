@@ -105,10 +105,7 @@ export function normalizeMeasureActionItem(
   return {
     id,
     title: typeof raw.title === "string" ? raw.title : "",
-    description:
-      typeof raw.description === "string" && raw.description.trim()
-        ? raw.description
-        : undefined,
+    description: typeof raw.description === "string" ? raw.description : undefined,
     actionType: asActionType(raw.actionType),
     obligation: asObligation(raw.obligation),
     qualities: asQualities(raw.qualities),
@@ -117,6 +114,10 @@ export function normalizeMeasureActionItem(
     owner:
       typeof raw.owner === "string" && raw.owner.trim() ? raw.owner.trim() : undefined,
     targetRef,
+    showDescriptionOnCard:
+      typeof raw.showDescriptionOnCard === "boolean"
+        ? raw.showDescriptionOnCard
+        : undefined,
     createdAt,
     updatedAt,
   };
@@ -132,6 +133,8 @@ export function normalizeActionsViewConfig(raw: unknown): ActionsViewConfig {
     qualityFilters: normalizeQualityFilters(r),
     actionTypeFilters: normalizeActionTypeFilters(r),
     statusFilters: normalizeStatusFilters(r),
+    showDescriptionsOnCards:
+      r.showDescriptionsOnCards === true ? true : undefined,
     searchQuery:
       typeof r.searchQuery === "string" && r.searchQuery.trim()
         ? r.searchQuery

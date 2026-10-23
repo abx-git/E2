@@ -66,18 +66,19 @@ export function ActionFilters({
 }) {
   const t = useT();
 
-  const cycleMapFilter = <T extends string>(
-    key: T,
+  const cycleMapFilter = (
+    key: string,
     mapKey: "qualityFilters" | "actionTypeFilters" | "statusFilters",
   ) => {
-    const current = config[mapKey] as Partial<Record<T, TagFilterMode>> | undefined;
-    const next = { ...current };
+    const current = config[mapKey] as Partial<Record<string, TagFilterMode>> | undefined;
+    const next: Partial<Record<string, TagFilterMode>> = { ...current };
     const cycled = cycleTagFilterMode(next[key]);
     if (cycled) next[key] = cycled;
     else delete next[key];
-    onConfigChange({
+    const patch: Partial<ActionsViewConfig> = {
       [mapKey]: Object.keys(next).length ? next : undefined,
-    });
+    };
+    onConfigChange(patch);
   };
 
   const hasFilters = tagFiltersActive(config);
@@ -96,7 +97,24 @@ export function ActionFilters({
         <span className="text-xs text-[var(--muted)]">
           {visibleCount}/{totalCount}
         </span>
-        <div className="ml-auto flex flex-wrap gap-1">
+        <div className="ml-auto flex flex-wrap items-center gap-1">
+          <button
+            type="button"
+            className={[
+              "rounded-md px-2 py-1 text-xs",
+              config.showDescriptionsOnCards
+                ? "dock-control-active"
+                : "dock-control text-[var(--muted)]",
+            ].join(" ")}
+            onClick={() =>
+              onConfigChange({
+                showDescriptionsOnCards: config.showDescriptionsOnCards ? undefined : true,
+              })
+            }
+            title={t("actionsView.showDescriptionsOnCardsHint")}
+          >
+            {t("actionsView.showDescriptionsOnCards")}
+          </button>
           <button
             type="button"
             className={[

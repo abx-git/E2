@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 
 import { BoardDockHideButton } from "@/components/board-dock-toggle";
+import { ActionDetailDock } from "@/components/actions/ActionDetailDock";
 import { ActionItemsPanel } from "@/components/action-items-panel";
+import { isActionsView } from "@/lib/storm-json";
 import { BookmarksPanel } from "@/components/bookmarks-panel";
 import { ClipboardPanel } from "@/components/clipboard-panel";
 import { ElementDetailSidebar } from "@/components/element-detail-sidebar";
@@ -104,8 +106,15 @@ export function BoardSideRailContent({
   const selectedCanvasLineId = useStormBoardStore((s) => s.selectedCanvasLineId);
   const selectedBoundedContextIds = useStormBoardStore((s) => s.selectedBoundedContextIds);
   const selectedSwimlaneIds = useStormBoardStore((s) => s.selectedSwimlaneIds);
+  const activeViewId = useStormBoardStore((s) => s.activeViewId);
+  const views = useStormBoardStore((s) => s.views);
+  const selectedMeasureId = useStormBoardStore((s) => s.selectedMeasureId);
+  const activeView = views.find((v) => v.id === activeViewId);
+  const actionsViewActive = activeView ? isActionsView(activeView) : false;
+  const showMeasureDetail = actionsViewActive && Boolean(selectedMeasureId);
 
   const hasInspectorSelection =
+    !actionsViewActive &&
     selectedElementIds.length > 0 ||
     Boolean(selectedRelationId) ||
     Boolean(selectedCanvasLineId) ||
@@ -192,6 +201,21 @@ export function BoardSideRailContent({
 
   return (
     <>
+      {showMeasureDetail && selectedMeasureId ? (
+        <div
+          className={[
+            "flex min-h-0 flex-col overflow-hidden border-b border-[var(--border)]",
+            touchFriendly ? "max-h-[50%]" : "max-h-[55%]",
+          ].join(" ")}
+        >
+          <ActionDetailDock
+            key={selectedMeasureId}
+            embedded
+            viewId={activeViewId}
+            itemId={selectedMeasureId}
+          />
+        </div>
+      ) : null}
       {hasInspectorSelection && (
         <div
           className={[

@@ -9,11 +9,9 @@ import {
   ACTION_TYPES,
   OBLIGATION_LEVELS,
   type ActionType,
-  type MeasureActionItem,
   type ObligationLevel,
 } from "@/types/actions-view";
 import { ActionCard } from "@/components/actions/ActionCard";
-import { ActionDetailDock } from "@/components/actions/ActionDetailDock";
 import { ActionFilters } from "@/components/actions/ActionFilters";
 
 const DROP_CELL_ATTR = "data-measure-drop-cell";
@@ -45,10 +43,8 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
   const selectedMeasureId = useStormBoardStore((s) => s.selectedMeasureId);
   const selectMeasure = useStormBoardStore((s) => s.selectMeasure);
   const addMeasure = useStormBoardStore((s) => s.addMeasureActionItem);
-  const updateMeasure = useStormBoardStore((s) => s.updateMeasureActionItem);
   const moveMeasure = useStormBoardStore((s) => s.moveMeasureActionItem);
   const updateConfig = useStormBoardStore((s) => s.updateActionsViewConfig);
-  const propertiesPanelOpen = useStormBoardStore((s) => s.propertiesPanelOpen);
 
   const dragRef = useRef<DragState | null>(null);
   const dropHintRef = useRef<{
@@ -93,11 +89,11 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
     [],
   );
 
-  const beginDrag = useCallback((item: MeasureActionItem, e: React.PointerEvent) => {
+  const beginDrag = useCallback((itemId: string, e: React.PointerEvent) => {
     if (e.button !== 0) return;
     e.preventDefault();
-    dragRef.current = { itemId: item.id, pointerId: e.pointerId };
-    setDraggingId(item.id);
+    dragRef.current = { itemId, pointerId: e.pointerId };
+    setDraggingId(itemId);
     setHint(null);
   }, [setHint]);
 
@@ -149,8 +145,7 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
           addMeasure(viewId, { obligation: "Recommended", actionType: "IMPROVE" })
         }
       />
-      <div className="flex min-h-0 flex-1">
-        <div className="min-h-0 flex-1 overflow-auto p-3">
+      <div className="min-h-0 flex-1 overflow-auto p-3">
           <div
             className="grid gap-2"
             style={{
@@ -211,17 +206,20 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
                         cell.map((item) => (
                           <ActionCard
                             key={item.id}
-                            item={item}
+                            viewId={viewId}
+                            itemId={item.id}
+                            showDescriptionsOnCards={
+                              actionsView.config.showDescriptionsOnCards === true
+                            }
                             selected={item.id === selectedMeasureId}
                             dragging={draggingId === item.id}
                             onSelect={() => {
                               if (dragRef.current) return;
                               selectMeasure(item.id);
                             }}
-                            onTitleChange={(title) =>
-                              updateMeasure(viewId, item.id, { title })
-                            }
-                            dragProps={{ onPointerDown: (e) => beginDrag(item, e) }}
+                            dragProps={{
+                              onPointerDown: (e) => beginDrag(item.id, e),
+                            }}
                           />
                         ))
                       )}
@@ -236,12 +234,6 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
               {t("actionsView.emptyBoard")}
             </p>
           ) : null}
-        </div>
-        {propertiesPanelOpen && selectedMeasureId ? (
-          <div className="hidden w-[min(22rem,38%)] shrink-0 lg:flex">
-            <ActionDetailDock viewId={viewId} itemId={selectedMeasureId} />
-          </div>
-        ) : null}
       </div>
     </div>
   );
