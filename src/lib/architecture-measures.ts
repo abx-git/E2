@@ -98,7 +98,7 @@ export function normalizeMeasureActionItem(
 
   return {
     id,
-    title: typeof raw.title === "string" ? raw.title.trim() || "Neue Maßnahme" : "Neue Maßnahme",
+    title: typeof raw.title === "string" ? raw.title : "",
     description:
       typeof raw.description === "string" && raw.description.trim()
         ? raw.description

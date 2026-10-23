@@ -42,7 +42,14 @@ export function ActionDetailDock({
           <input
             className="dock-control w-full rounded-md px-2 py-1.5 text-sm"
             value={item.title}
+            placeholder={t("actionsView.detail.titlePlaceholder")}
             onChange={(e) => update(viewId, item.id, { title: e.target.value })}
+            onBlur={(e) => {
+              const trimmed = e.target.value.trim();
+              if (trimmed !== e.target.value) {
+                update(viewId, item.id, { title: trimmed });
+              }
+            }}
           />
         </label>
 

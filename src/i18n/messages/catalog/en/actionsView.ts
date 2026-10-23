@@ -46,6 +46,7 @@ export const actionsViewEn = {
     },
     detail: {
       title: "Measure",
+      titlePlaceholder: "Measure title…",
       description: "Rationale / description",
       actionType: "Action type",
       obligation: "Obligation",
