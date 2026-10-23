@@ -146,11 +146,15 @@ export function matchesTagFilters(
   return true;
 }
 
+type E2vRowFn = (
+  cols: Array<string | number | boolean | null | undefined>,
+) => string;
+
 export function pushTagFilterE2vLines(
   prefix: "avq" | "at" | "st",
   filters: Partial<Record<string, TagFilterMode>> | undefined,
   out: string[],
-  row: (...cells: string[]) => string,
+  row: E2vRowFn,
 ): void {
   if (!filters) return;
   const inc: string[] = [];
