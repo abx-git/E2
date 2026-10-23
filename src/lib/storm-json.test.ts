@@ -13,8 +13,12 @@ import {
   buildBoardSnapshot,
   createDefaultBoardDocument,
   createEmptyBoardView,
+  coerceBoardExportVersion,
+  isBoardSnapshot,
+  isBoardSnapshotV2,
   migrateV1ToDocument,
   normalizeStormElement,
+  boardImportPayloadFromExportText,
   stableBoardStateKey,
   stringifyExportedDocument,
   type BoardImportPayload,
@@ -54,6 +58,42 @@ describe("storm-json multi-view", () => {
     expect(stableBoardStateKey(boardSnapshotToReplacePayload(a))).toBe(
       stableBoardStateKey(boardSnapshotToReplacePayload(b)),
     );
+  });
+
+  it("accepts legacy export metadata (string version, omitted format)", () => {
+    expect(coerceBoardExportVersion("2")).toBe(2);
+    expect(coerceBoardExportVersion(2.0)).toBe(2);
+    const loose = {
+      version: "2",
+      title: "Loose",
+      glossary: [],
+      workshopMode: false,
+      activeViewId: "v1",
+      views: [
+        {
+          id: "v1",
+          name: "Board",
+          modelingMode: "eventStorming",
+          workshopFormat: "free",
+          facilitatorEnabled: false,
+          facilitatorPhase: 0,
+          elements: [{ id: "e1", type: "note", label: "N", x: 0, y: 0 }],
+          relations: [],
+          contextRelations: [],
+          swimlanes: [],
+          boundedContexts: [],
+          timeline: { y: 400 },
+          viewport: { x: 0, y: 0, zoom: 1 },
+          snapToTimeline: true,
+          snapToGrid: false,
+        },
+      ],
+      appearance: { ...DEFAULT_APPEARANCE },
+    };
+    expect(isBoardSnapshotV2(loose)).toBe(true);
+    const payload = boardImportPayloadFromExportText(JSON.stringify(loose));
+    expect(payload?.views[0]?.name).toBe("Board");
+    expect(isBoardSnapshot(loose)).toBe(true);
   });
 
   it("migrates v1 flat snapshot into a single view", () => {
