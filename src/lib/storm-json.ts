@@ -386,19 +386,18 @@ export function normalizeDocumentView(
 export function normalizeBoardDocument(raw: Partial<BoardImportPayload>): BoardImportPayload {
   const rawViews = Array.isArray(raw.views) ? raw.views : [];
   const liftedBookmarks: ViewBookmark[] = [];
-  const views = rawViews.map((entry) => {
+  const views: BoardView[] = [];
+  for (const entry of rawViews) {
+    if (!entry || typeof entry !== "object") continue;
     const legacyBookmarks = (entry as { bookmarks?: unknown }).bookmarks;
     const view = normalizeDocumentView(
-      (entry && typeof entry === "object" ? entry : {}) as Record<string, unknown> & {
-        id?: string;
-        name?: string;
-      },
+      entry as unknown as Parameters<typeof normalizeDocumentView>[0],
     );
     if (Array.isArray(legacyBookmarks) && isCanvasBoardView(view)) {
       liftedBookmarks.push(...normalizeViewBookmarks(legacyBookmarks, view.id));
     }
-    return view;
-  });
+    views.push(view);
+  }
   if (views.length === 0) {
     return createDefaultBoardDocument({
       title: raw.title ?? "Board",
@@ -506,24 +505,66 @@ export function buildBoardSnapshot(state: BoardImportPayload): BoardSnapshotV2 {
 }
 
 export function parseExportedDocument(text: string): unknown {
-  return JSON.parse(text) as unknown;
+  const trimmed = text.trim();
+  const withoutBom =
+    trimmed.charCodeAt(0) === 0xfeff ? trimmed.slice(1) : trimmed;
+  return JSON.parse(withoutBom) as unknown;
+}
+
+/** Accepts 1/2 as number or string (common in hand-edited or older exports). */
+export function coerceBoardExportVersion(value: unknown): 1 | 2 | null {
+  if (value === 1 || value === 2) return value;
+  if (value === "1") return 1;
+  if (value === "2") return 2;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const n = Math.trunc(value);
+    if (n === 1 || n === 2) return n;
+  }
+  return null;
+}
+
+function boardSnapshotFormatOk(doc: Record<string, unknown>): boolean {
+  const format = doc.format;
+  return format === undefined || format === null || format === EXPORT_FORMAT;
+}
+
+function looksLikeV2MultiView(doc: Record<string, unknown>): boolean {
+  if (!Array.isArray(doc.views) || doc.views.length === 0) return false;
+  return doc.views.every((entry) => {
+    if (!entry || typeof entry !== "object") return false;
+    const id = (entry as { id?: unknown }).id;
+    return typeof id === "string" && id.trim().length > 0;
+  });
+}
+
+function looksLikeV1FlatBoard(doc: Record<string, unknown>): boolean {
+  return Array.isArray(doc.elements) && !Array.isArray(doc.views);
 }
 
 export function isBoardSnapshotV1(doc: unknown): doc is BoardSnapshotV1 {
   if (!doc || typeof doc !== "object") return false;
   const d = doc as Record<string, unknown>;
-  return d.format === EXPORT_FORMAT && d.version === EXPORT_VERSION_V1;
+  if (!boardSnapshotFormatOk(d)) return false;
+  const version = coerceBoardExportVersion(d.version);
+  if (version === 1) return true;
+  if (version === null && looksLikeV1FlatBoard(d)) return true;
+  return false;
 }
 
 export function isBoardSnapshotV2(doc: unknown): doc is BoardSnapshotV2 {
   if (!doc || typeof doc !== "object") return false;
   const d = doc as Record<string, unknown>;
-  return d.format === EXPORT_FORMAT && d.version === EXPORT_VERSION;
+  if (!boardSnapshotFormatOk(d)) return false;
+  const version = coerceBoardExportVersion(d.version);
+  if (version === 2 && Array.isArray(d.views)) return true;
+  if (version === null && looksLikeV2MultiView(d)) return true;
+  if (version === 2 && looksLikeV2MultiView(d)) return true;
+  return false;
 }
 
 /** Accepts v1 or v2 on-disk snapshots. */
 export function isBoardSnapshot(doc: unknown): doc is BoardSnapshotV1 | BoardSnapshotV2 {
-  return isBoardSnapshotV1(doc) || isBoardSnapshotV2(doc);
+  return isBoardSnapshotV2(doc) || isBoardSnapshotV1(doc);
 }
 
 export function boardSnapshotToReplacePayload(
@@ -542,7 +583,10 @@ export function boardImportPayloadFromExportText(text: string): BoardImportPaylo
     const doc = parseExportedDocument(trimmed);
     if (!isBoardSnapshot(doc)) return null;
     return boardSnapshotToReplacePayload(doc);
-  } catch {
+  } catch (err) {
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      console.warn("E2 board import failed:", err);
+    }
     return null;
   }
 }
