@@ -11,6 +11,9 @@ export const collabEn = {
     snapshotActive: "Snapshot sync active",
     localDrift: "Local drift",
     fileNotMirrored: "File not mirrored",
+    guestLocalSaved: "Local room copy saved",
+    guestLocalSaving: "Writing local room copy…",
+    guestLocalMirrorTitle: "Auto-saving to {file} (this device only)",
     leaveTitle: "Leave room",
     leaveBody:
       "The live connection ends. The current board stays in the editor. The working file was not overwritten during the room — save with “Save as…” if needed.",

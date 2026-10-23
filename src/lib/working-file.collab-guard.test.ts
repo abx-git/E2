@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  isCollabGuestLocalMirror,
   isWorkingFileToStoreBlocked,
   persistWorkingFileJson,
+  setCollabGuestLocalMirror,
   setWorkingFileToStoreBlocked,
   shouldSuppressExternalFilePoll,
+  suggestedWorkingFileName,
   suppressWorkingFileExternalPoll,
 } from "@/lib/working-file";
 import {
@@ -15,6 +18,7 @@ import {
 describe("working-file collab guards", () => {
   afterEach(() => {
     setWorkingFileToStoreBlocked(false);
+    setCollabGuestLocalMirror(false);
     stopWorkingFileWriter();
   });
 
@@ -28,6 +32,19 @@ describe("working-file collab guards", () => {
   it("extends external poll suppression", () => {
     suppressWorkingFileExternalPoll(5_000);
     expect(shouldSuppressExternalFilePoll()).toBe(true);
+  });
+
+  it("tracks guest local mirror mode", () => {
+    setCollabGuestLocalMirror(true);
+    expect(isCollabGuestLocalMirror()).toBe(true);
+    setCollabGuestLocalMirror(false);
+    expect(isCollabGuestLocalMirror()).toBe(false);
+  });
+
+  it("builds room-based guest file names", () => {
+    expect(suggestedWorkingFileName("Architektur-Review-XY12")).toBe(
+      "architektur-review-xy12.storm.json",
+    );
   });
 
   it("persistWorkingFileJson refuses when this tab is not the file writer", async () => {

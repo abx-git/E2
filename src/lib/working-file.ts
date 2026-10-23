@@ -149,6 +149,17 @@ export function isWorkingFileToStoreBlocked(): boolean {
   return workingFileToStoreBlocked;
 }
 
+/** Guest in a collab room: autosave editor → local Raum-Kopie (host keeps persist paused). */
+let collabGuestLocalMirror = false;
+
+export function setCollabGuestLocalMirror(active: boolean): void {
+  collabGuestLocalMirror = active;
+}
+
+export function isCollabGuestLocalMirror(): boolean {
+  return collabGuestLocalMirror;
+}
+
 /** Extend external-poll suppression (e.g. after join while mirroring room → file). */
 export function suppressWorkingFileExternalPoll(ms: number): void {
   suppressExternalPollUntil = Math.max(suppressExternalPollUntil, Date.now() + Math.max(0, ms));
@@ -1347,6 +1358,48 @@ export async function persistWorkingFileJson(
   }
 }
 
+/**
+ * Guest join: new local copy named after the room (IndexedDB / mobile mirror).
+ * Does not overwrite the host's pre-room file; host keeps collab persist paused.
+ */
+export async function attachGuestCollabRoomCopy(
+  roomTitle: string,
+  roomCode: string,
+  boardJson: string,
+): Promise<void> {
+  const trimmed = boardJson.trim();
+  if (!trimmed) return;
+
+  setCollabGuestLocalMirror(true);
+
+  const previousName =
+    memoryHandle?.name?.trim() || mobileWorkingFileName?.trim() || null;
+  const previousWf = activeWorkingFileId;
+  memoryHandle = null;
+  try {
+    await idbClearHandle(previousWf, previousName);
+  } catch {
+    /* ignore */
+  }
+
+  activeWorkingFileId = createWorkingFileId();
+  clearWorkingFileSyncState();
+  mobileWorkingFileName = null;
+  workingFileSwitchInProgress = false;
+
+  const label = `${roomTitle.trim() || "Raum"}-${roomCode.trim().toUpperCase()}`;
+  const fileName = suggestedWorkingFileName(label);
+  const sourceLastModified = Date.now();
+
+  markWorkingFileSynced(trimmed, sourceLastModified);
+  await rememberMobileCopy(trimmed, fileName, sourceLastModified);
+  markWorkingFileSessionHydrated();
+  setWorkingFilePersistPaused(false);
+  suppressWorkingFileExternalPoll(15_000);
+  notifyWorkingFileAttached();
+  notifyWorkingFilePersistPaused();
+}
+
 export async function createAndAttachWorkingFile(
   initialJson: string,
   suggestedName: string = STANDARD_WORKING_FILENAME,
@@ -1554,6 +1607,7 @@ export async function renameWorkingFile(
 }
 
 export async function detachWorkingFile(): Promise<void> {
+  setCollabGuestLocalMirror(false);
   const name =
     memoryHandle?.name?.trim() ||
     mobileWorkingFileName?.trim() ||

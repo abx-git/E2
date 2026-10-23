@@ -4,7 +4,12 @@ import { EyeOff, Wifi, WifiOff } from "lucide-react";
 
 import { useT } from "@/i18n";
 import { useCollabStore } from "@/lib/collab/session";
-import { isWorkingFileAttached, isWorkingFileDirty } from "@/lib/working-file";
+import {
+  getWorkingFileLabel,
+  isCollabGuestLocalMirror,
+  isWorkingFileAttached,
+  isWorkingFileDirty,
+} from "@/lib/working-file";
 
 export interface CollabPresenceBannerProps {
   onRequestLeave: () => void;
@@ -23,6 +28,8 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
   const syncConflict = useCollabStore((s) => s.syncConflict);
   const fileAttached = isWorkingFileAttached();
   const fileDirty = fileAttached && isWorkingFileDirty();
+  const guestLocalMirror = isCollabGuestLocalMirror();
+  const localFileLabel = getWorkingFileLabel();
 
   if (!active || !room) return null;
 
@@ -76,12 +83,20 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
         </span>
       )}
       <span className="text-[var(--muted)]">{t("collab.online", { n: peers.length })}</span>
-      {fileAttached && (
+      {fileAttached && guestLocalMirror && (
         <span
-          className={fileDirty ? "text-[var(--accent-2)]" : "text-[var(--muted)]"}
-          title={fileDirty ? t("panels.collabEditorDrift") : t("panels.collabNoMirror")}
+          className={fileDirty ? "text-[var(--accent-2)]" : "text-[var(--accent)]"}
+          title={t("collab.guestLocalMirrorTitle", { file: localFileLabel ?? "" })}
         >
-          {fileDirty ? t("collab.localDrift") : t("collab.fileNotMirrored")}
+          {fileDirty ? t("collab.guestLocalSaving") : t("collab.guestLocalSaved")}
+        </span>
+      )}
+      {fileAttached && isHost && !guestLocalMirror && (
+        <span
+          className="text-[var(--muted)]"
+          title={t("panels.collabNoMirror")}
+        >
+          {t("collab.fileNotMirrored")}
         </span>
       )}
       <div className="flex -space-x-1">

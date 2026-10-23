@@ -13,8 +13,8 @@ export function shouldConfirmCollabEnter(): boolean {
 }
 
 /**
- * Same idea as must-save-before-open: create room only with a secured board
- * (Arbeitsdatei attached + clean). That file is then written in parallel during collab.
+ * Create room only with a secured board (Arbeitsdatei attached + clean).
+ * Host: that file is not overwritten during collab. Guests get a separate Raum-Kopie on join.
  */
 export function mustSecureBeforeCreateRoom(): boolean {
   return !isWorkingFileAttached() || isWorkingFileDirty();

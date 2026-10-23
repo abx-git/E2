@@ -139,6 +139,7 @@ import {
   getActiveWorkingFileId,
   getWorkingFileLabel,
   hydrateStoreFromWorkingFile,
+  isCollabGuestLocalMirror,
   isWorkingFileAttached,
   isWorkingFileDirty,
   isWorkingFilePersistPaused,
@@ -1051,6 +1052,9 @@ export function StormBoard() {
       }
 
       await flushCollabSnapshotNow();
+      if (isCollabGuestLocalMirror() && isWorkingFileAttached()) {
+        await persistWorkingFileJson(boardJsonFromStoreState());
+      }
       leaveRoom();
 
       if (choice === "restore_pre_collab") {

@@ -42,6 +42,7 @@ import {
   WORKING_FILE_DETACHED_EVENT,
   WORKING_FILE_PERSIST_PAUSED_EVENT,
   setWorkingFilePersistPaused,
+  isCollabGuestLocalMirror,
   pauseWorkingFilePersistForCollab,
 } from "@/lib/working-file";
 import { mayAutoRestoreWorkingFileFromStorage } from "@/lib/working-file-safety";
@@ -64,9 +65,21 @@ function urlHasPendingRoomJoin(): boolean {
   return Boolean(new URLSearchParams(window.location.search).get("room")?.trim());
 }
 
-/** Collab / pending join: room owns the editor; never write Arbeitsdatei. */
-function isCollabMode(): boolean {
+/** Collab / pending join: room owns the editor (never pull disk → store). */
+function isCollabRoomActive(): boolean {
   return isWorkingFileToStoreBlocked() || urlHasPendingRoomJoin();
+}
+
+/** Block autosave — except guest local Raum-Kopie during collab. */
+function blocksWorkingFileAutosave(): boolean {
+  if (
+    isCollabGuestLocalMirror() &&
+    isWorkingFileAttached() &&
+    !isWorkingFilePersistPaused()
+  ) {
+    return false;
+  }
+  return isCollabRoomActive();
 }
 
 function ensureWriterForAttachedFile(): void {
@@ -160,7 +173,7 @@ export function WorkingFileSync({
       setConflictOpen(false);
 
       try {
-        if (choice === "load_file" && handle && !isCollabMode()) {
+        if (choice === "load_file" && handle && !isCollabRoomActive()) {
           const snap = await readWorkingFileSnapshot(handle);
           if (!snap) return;
           setWorkingFilePersistPaused(false);
@@ -210,7 +223,7 @@ export function WorkingFileSync({
         !isWorkingFileAttached() ||
         isWorkingFilePersistPaused() ||
         isWorkingFileSwitchInProgress() ||
-        isCollabMode() ||
+        blocksWorkingFileAutosave() ||
         !isWorkingFileWriterLeader() ||
         conflictActiveRef.current ||
         suspendAutoPersistRef.current
@@ -321,7 +334,7 @@ export function WorkingFileSync({
         !isWorkingFileAttached() ||
         isWorkingFilePersistPaused() ||
         isWorkingFileSwitchInProgress() ||
-        isCollabMode() ||
+        blocksWorkingFileAutosave() ||
         !isWorkingFileWriterLeader() ||
         conflictActiveRef.current ||
         suspendAutoPersistRef.current
@@ -351,7 +364,7 @@ export function WorkingFileSync({
 
     const onPersistedBoardChanged = () => {
       if (suspendAutoPersistRef.current) return;
-      if (isWorkingFilePersistPaused() || isCollabMode()) {
+      if (isWorkingFilePersistPaused() || blocksWorkingFileAutosave()) {
         syncDirty();
         return;
       }
@@ -369,7 +382,7 @@ export function WorkingFileSync({
 
     const applyExternalFileIfNeeded = async () => {
       if (isMobileWorkingFileMode()) return;
-      if (isCollabMode() || isWorkingFileToStoreBlocked()) return;
+      if (isCollabRoomActive() || isWorkingFileToStoreBlocked()) return;
       if (
         isWorkingFilePersistPaused() ||
         isWorkingFileSwitchInProgress() ||
@@ -436,9 +449,14 @@ export function WorkingFileSync({
         if (!snap || !mountedRef.current) return;
         markWorkingFileSessionHydrated();
 
-        if (isCollabMode()) {
-          // Room owns editor — do NOT sync markers to disk (would dirty empty editor → wipe).
-          // Pause persist so nothing writes until after leave + Speichern unter.
+        if (isCollabRoomActive()) {
+          if (isCollabGuestLocalMirror()) {
+            markWorkingFileSynced(boardJsonFromStoreState(), snap.lastModified);
+            syncPaused();
+            syncDirty();
+            return;
+          }
+          // Host: room owns editor — do not hydrate disk over the room.
           pauseWorkingFilePersistForCollab();
           syncPaused();
           return;
@@ -465,7 +483,12 @@ export function WorkingFileSync({
           return;
         }
         markWorkingFileSessionHydrated();
-        if (isCollabMode()) {
+        if (isCollabRoomActive()) {
+          if (isCollabGuestLocalMirror()) {
+            syncPaused();
+            syncDirty();
+            return;
+          }
           pauseWorkingFilePersistForCollab();
           syncPaused();
           return;
@@ -510,7 +533,8 @@ export function WorkingFileSync({
         if (role !== "leader") return;
         void (async () => {
           await applyExternalFileIfNeeded();
-          if (conflictActiveRef.current || isWorkingFilePersistPaused() || isCollabMode()) return;
+          if (conflictActiveRef.current || isWorkingFilePersistPaused() || blocksWorkingFileAutosave())
+            return;
           void flushPersist();
         })();
       });
@@ -537,7 +561,8 @@ export function WorkingFileSync({
       }, EXTERNAL_WORKING_FILE_POLL_MS);
 
       const onPageHide = () => {
-        if (conflictActiveRef.current || isWorkingFilePersistPaused() || isCollabMode()) return;
+        if (conflictActiveRef.current || isWorkingFilePersistPaused() || blocksWorkingFileAutosave())
+          return;
         flushPersistNow();
       };
       window.addEventListener("pagehide", onPageHide);
@@ -578,7 +603,7 @@ export function WorkingFileSync({
       open={conflictOpen}
       fileName={getWorkingFileLabel()}
       busy={conflictBusy}
-      allowLoadFile={!isCollabMode()}
+      allowLoadFile={!isCollabRoomActive()}
       title={t("dialogs.externalFileChangedTitle")}
       description={t("dialogs.externalFileChangedBody")}
       keepLocalLabel={t("dialogs.importKeepEditor")}

@@ -35,9 +35,13 @@ import {
   type RoomTabWriterController,
   type TabWriterRole,
 } from "@/lib/collab/tab-writer";
+import { boardJsonFromStoreState } from "@/lib/file-board-reconcile";
 import {
+  attachGuestCollabRoomCopy,
+  isCollabGuestLocalMirror,
   isWorkingFileAttached,
   pauseWorkingFilePersistForCollab,
+  setCollabGuestLocalMirror,
   setWorkingFilePersistPaused,
   setWorkingFileToStoreBlocked,
   suppressWorkingFileExternalPoll,
@@ -733,6 +737,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
     if ("error" in result) {
       setWorkingFileToStoreBlocked(false);
       setWorkingFilePersistPaused(false);
+      setCollabGuestLocalMirror(false);
       set({ connecting: false, status: "error", error: result.error });
       return { ok: false, error: result.error };
     }
@@ -830,10 +835,18 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       syncConflict: null,
     });
 
-    // Do not write room state into the Arbeitsdatei — pause autosave for the session.
-    if (isWorkingFileAttached()) {
-      pauseWorkingFilePersistForCollab();
-      suppressWorkingFileExternalPoll(10_000);
+    if (result.isHost) {
+      // Host: do not mirror room into the pre-room Arbeitsdatei during the session.
+      if (isWorkingFileAttached()) {
+        pauseWorkingFilePersistForCollab();
+        suppressWorkingFileExternalPoll(10_000);
+      }
+    } else {
+      await attachGuestCollabRoomCopy(
+        result.room.title,
+        result.room.code,
+        boardJsonFromStoreState(),
+      );
     }
 
     syncPeers(set);
@@ -852,11 +865,18 @@ export const useCollabStore = create<CollabState>((set, get) => ({
   },
 
   leaveRoom: () => {
+    const wasHost = get().isHost;
+    const hadGuestMirror = isCollabGuestLocalMirror();
     teardownSession();
-    // Keep persist paused after leave if a file is attached — room stand must not
-    // silently overwrite disk. User uses Speichern / Speichern unter… deliberately.
+    setCollabGuestLocalMirror(false);
     if (isWorkingFileAttached()) {
-      setWorkingFilePersistPaused(true, "after_collab");
+      if (wasHost) {
+        // Host: room content must not silently overwrite the pre-room file.
+        setWorkingFilePersistPaused(true, "after_collab");
+      } else if (hadGuestMirror) {
+        // Guest: keep autosaving the local Raum-Kopie after leave.
+        setWorkingFilePersistPaused(false);
+      }
     }
     set({
       active: false,
