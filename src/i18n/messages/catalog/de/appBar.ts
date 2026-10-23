@@ -2,6 +2,8 @@ export const appBarDe = {
   appBar: {
     boardTitle: "Board-Titel",
     modelingMode: "Modellierungsmodus",
+    viewKindMeasures: "Maßnahmen-Matrix",
+    viewKindMeasuresHint: "Kein Canvas — Modus gilt für Canvas-Sichten",
     workshopFacilitator: "Workshop & Facilitator",
     sessionSettings: "Session-Einstellungen",
     session: "Session",

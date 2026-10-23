@@ -18,6 +18,7 @@ export const actionsViewEn = {
       exclude: "Exclude measures with this tag — click again to reset",
     },
     addViewTab: "Measures view",
+    viewTabKind: "Measures matrix",
     actionType: {
       INTRODUCE: "Introduce",
       SCALE: "Scale",

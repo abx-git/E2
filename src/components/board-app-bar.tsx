@@ -13,6 +13,7 @@ import {
 
 import { BoardViewTabs } from "@/components/board-view-tabs";
 import { getFacilitatorFormatsForMode } from "@/lib/facilitator-phases";
+import { isActionsView } from "@/lib/storm-json";
 import { useCollabStore } from "@/lib/collab/session";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ModelingMode, WorkshopFormat } from "@/types/storm-element";
@@ -97,6 +98,10 @@ export function BoardAppBar({
   const redo = useStormBoardStore((s) => s.redo);
   const pastLen = useStormBoardStore((s) => s.past.length);
   const futureLen = useStormBoardStore((s) => s.future.length);
+  const activeView = useStormBoardStore((s) =>
+    s.views.find((v) => v.id === s.activeViewId),
+  );
+  const isActionsActive = activeView ? isActionsView(activeView) : false;
 
   const collabActive = useCollabStore((s) => s.active);
 
@@ -144,21 +149,32 @@ export function BoardAppBar({
           placeholder={t("common.unnamedBoard")}
         />
 
-        <label className="sr-only" htmlFor="modeling-mode">
-          {t("appBar.modelingMode")}
-        </label>
-        <select
-          id="modeling-mode"
-          className="dock-control max-w-[9.5rem] shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium md:max-w-[12rem]"
-          value={modelingMode}
-          onChange={(e) => setModelingMode(e.target.value as ModelingMode)}
-        >
-          {MODELING_MODES.map((mode) => (
-            <option key={mode} value={mode}>
-              {modelingModeLabel(t, mode)}
-            </option>
-          ))}
-        </select>
+        {isActionsActive ? (
+          <span
+            className="dock-control max-w-[12rem] shrink-0 truncate rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--muted)]"
+            title={t("appBar.viewKindMeasuresHint")}
+          >
+            {t("appBar.viewKindMeasures")}
+          </span>
+        ) : (
+          <>
+            <label className="sr-only" htmlFor="modeling-mode">
+              {t("appBar.modelingMode")}
+            </label>
+            <select
+              id="modeling-mode"
+              className="dock-control max-w-[9.5rem] shrink-0 rounded-lg px-2 py-1.5 text-xs font-medium md:max-w-[12rem]"
+              value={modelingMode}
+              onChange={(e) => setModelingMode(e.target.value as ModelingMode)}
+            >
+              {MODELING_MODES.map((mode) => (
+                <option key={mode} value={mode}>
+                  {modelingModeLabel(t, mode)}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
 
         <div className="relative shrink-0">
           <button

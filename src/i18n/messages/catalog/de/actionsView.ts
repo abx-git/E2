@@ -18,6 +18,7 @@ export const actionsViewDe = {
       exclude: "Maßnahmen ohne dieses Merkmal — erneut klicken zum Aufheben",
     },
     addViewTab: "Maßnahmen-Sicht",
+    viewTabKind: "Maßnahmen-Matrix",
     actionType: {
       INTRODUCE: "Einführen",
       SCALE: "Skalieren",
