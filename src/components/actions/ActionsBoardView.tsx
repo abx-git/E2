@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { filterMeasureItems } from "@/lib/architecture-measures";
 import { isActionsView } from "@/lib/storm-json";
 import { useT } from "@/i18n";
@@ -16,10 +16,28 @@ import { ActionCard } from "@/components/actions/ActionCard";
 import { ActionDetailDock } from "@/components/actions/ActionDetailDock";
 import { ActionFilters } from "@/components/actions/ActionFilters";
 
+const DROP_CELL_ATTR = "data-measure-drop-cell";
+
 type DragState = {
   itemId: string;
   pointerId: number;
 };
+
+function readDropTarget(clientX: number, clientY: number): {
+  obligation: ObligationLevel;
+  actionType: ActionType;
+} | null {
+  const hit = document.elementFromPoint(clientX, clientY);
+  const cell = hit?.closest(`[${DROP_CELL_ATTR}]`);
+  if (!cell) return null;
+  const obligation = cell.getAttribute("data-obligation");
+  const actionType = cell.getAttribute("data-action-type");
+  if (!obligation || !actionType) return null;
+  return {
+    obligation: obligation as ObligationLevel,
+    actionType: actionType as ActionType,
+  };
+}
 
 export function ActionsBoardView({ viewId }: { viewId: string }) {
   const t = useT();
@@ -33,10 +51,15 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
   const propertiesPanelOpen = useStormBoardStore((s) => s.propertiesPanelOpen);
 
   const dragRef = useRef<DragState | null>(null);
+  const dropHintRef = useRef<{
+    obligation: ObligationLevel;
+    actionType: ActionType;
+  } | null>(null);
   const [dropHint, setDropHint] = useState<{
     obligation: ObligationLevel;
     actionType: ActionType;
   } | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   const actionsView = view && isActionsView(view) ? view : null;
 
@@ -58,34 +81,56 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
       return items.filter((item) => {
         const obligation = actionsView.config.groupBy === "obligation" ? col : row;
         const actionType = actionsView.config.groupBy === "obligation" ? row : col;
-        return (
-          item.obligation === obligation &&
-          item.actionType === actionType
-        );
+        return item.obligation === obligation && item.actionType === actionType;
       });
     },
     [actionsView, items],
   );
 
-  const beginDrag = (item: MeasureActionItem, e: React.PointerEvent) => {
+  const setHint = useCallback(
+    (hint: { obligation: ObligationLevel; actionType: ActionType } | null) => {
+      dropHintRef.current = hint;
+      setDropHint(hint);
+    },
+    [],
+  );
+
+  const beginDrag = useCallback((item: MeasureActionItem, e: React.PointerEvent) => {
     if (e.button !== 0) return;
+    e.preventDefault();
     dragRef.current = { itemId: item.id, pointerId: e.pointerId };
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-  };
+    setDraggingId(item.id);
+    setHint(null);
+  }, [setHint]);
 
-  const onDragMove = (obligation: ObligationLevel, actionType: ActionType) => {
-    if (dragRef.current) setDropHint({ obligation, actionType });
-  };
+  useEffect(() => {
+    const onPointerMove = (e: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag || e.pointerId !== drag.pointerId) return;
+      setHint(readDropTarget(e.clientX, e.clientY));
+    };
 
-  const onDragEnd = () => {
-    const drag = dragRef.current;
-    const hint = dropHint;
-    dragRef.current = null;
-    setDropHint(null);
-    if (drag && hint) {
-      moveMeasure(viewId, drag.itemId, hint.obligation, hint.actionType);
-    }
-  };
+    const finishDrag = (e: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag || e.pointerId !== drag.pointerId) return;
+      const hint = dropHintRef.current;
+      dragRef.current = null;
+      setDraggingId(null);
+      setHint(null);
+      if (hint) {
+        moveMeasure(viewId, drag.itemId, hint.obligation, hint.actionType);
+      }
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", finishDrag);
+    window.addEventListener("pointercancel", finishDrag);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", finishDrag);
+      window.removeEventListener("pointercancel", finishDrag);
+    };
+  }, [moveMeasure, setHint, viewId]);
 
   if (!actionsView) {
     return (
@@ -148,27 +193,33 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
                   return (
                     <div
                       key={`${col}-${row}`}
+                      {...{
+                        [DROP_CELL_ATTR]: "",
+                        "data-obligation": obligation,
+                        "data-action-type": actionType,
+                      }}
                       className={[
                         "min-h-[5rem] space-y-2 rounded-lg border border-dashed p-1.5 transition",
                         highlight
                           ? "border-[var(--accent)] bg-[var(--accent)]/10"
                           : "border-[var(--border)]/60 bg-[var(--surface)]/40",
                       ].join(" ")}
-                      onPointerEnter={() => onDragMove(obligation, actionType)}
-                      onPointerUp={onDragEnd}
-                      onPointerLeave={() => {
-                        if (dragRef.current) setDropHint(null);
-                      }}
                     >
                       {cell.length === 0 ? (
-                        <p className="px-1 py-2 text-[10px] text-[var(--muted)] opacity-60">—</p>
+                        <p className="pointer-events-none px-1 py-2 text-[10px] text-[var(--muted)] opacity-60">
+                          —
+                        </p>
                       ) : (
                         cell.map((item) => (
                           <ActionCard
                             key={item.id}
                             item={item}
                             selected={item.id === selectedMeasureId}
-                            onSelect={() => selectMeasure(item.id)}
+                            dragging={draggingId === item.id}
+                            onSelect={() => {
+                              if (dragRef.current) return;
+                              selectMeasure(item.id);
+                            }}
                             onTitleCommit={(title) =>
                               updateMeasure(viewId, item.id, { title })
                             }
