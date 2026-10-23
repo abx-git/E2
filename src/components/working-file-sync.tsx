@@ -70,7 +70,7 @@ function isCollabRoomActive(): boolean {
   return isWorkingFileToStoreBlocked() || urlHasPendingRoomJoin();
 }
 
-/** Block autosave — except guest local Raum-Kopie during collab. */
+/** Block autosave during collab unless this tab mirrors to a local file (host or guest). */
 function blocksWorkingFileAutosave(): boolean {
   if (isCollabGuestLocalPersistEnabled() && isWorkingFileAttached()) {
     return false;

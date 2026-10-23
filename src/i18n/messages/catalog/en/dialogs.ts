@@ -37,18 +37,18 @@ export const dialogsEn = {
     shareLinkCors:
       "The source must allow CORS for the E2 origin. Opening the link loads the board after confirmation and continues locally.",
     collabLeaveHint:
-      "The linked working file was not overwritten during the room — save with “Save as…” if needed.",
+      "If a working file was linked, it contains the last state synced from the room.",
     collabEnterDirty: "Use “Save as…” first — the room needs a file as local backup.",
     collabEnterBoardAdopted: "Your current board becomes the initial content of the new room.",
     collabEnterFileSafe:
-      "Your linked file stays intact and is not overwritten during the room. New/Open is disabled until you leave.",
+      "The board syncs with all participants via the room. Your linked file is updated continuously in parallel (your edits and incoming sync). New/Open is disabled during the room.",
     collabRoomTitle: "Collaboration room",
     collabRoomSupabase: "Shared room via Supabase free tier",
     collabSaveFailed: "Saving to the working file failed.",
     collabSaveFirst: "Please save first.",
     collabEnvLocked: "Connection comes from the environment (.env) and cannot be overridden here.",
     collabValidUntil: "Valid until {when}",
-    collabFileNotOverwritten: "Working file is not overwritten during the room",
+    collabFileNotOverwritten: "Working file is saved continuously in parallel with the room",
     newWorkingFileTitle: "New working file",
     unsavedTitle: "Save changes?",
     unsavedThisBoard: "this board",
@@ -79,7 +79,7 @@ export const dialogsEn = {
     collabEnterJoinReplace:
       "The editor will be replaced by the room state. All participants then work live on the same board — without further prompts.",
     collabEnterGuestLocalHint:
-      "As a guest you can save a local room copy to disk (recommended) or work with automatic backup in the browser store only.",
+      "As a guest: “Online sync only” works detached without a local file. “Join and save to disk…” creates a room copy that is updated continuously.",
     collabEnterExportOptional: "Optional: export JSON as an extra copy.",
     exportJsonButton: "Export JSON",
     remoteBoardLoadQuestion: "Load remote board?",

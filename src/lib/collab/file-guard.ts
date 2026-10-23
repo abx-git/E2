@@ -14,7 +14,7 @@ export function shouldConfirmCollabEnter(): boolean {
 
 /**
  * Create room only with a secured board (Arbeitsdatei attached + clean).
- * Host: that file is not overwritten during collab. Guests get a separate Raum-Kopie on join.
+ * Host: that file is mirrored continuously while the room syncs. Guests choose disk copy or online-only.
  */
 export function mustSecureBeforeCreateRoom(): boolean {
   return !isWorkingFileAttached() || isWorkingFileDirty();

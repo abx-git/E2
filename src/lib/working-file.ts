@@ -149,8 +149,13 @@ export function isWorkingFileToStoreBlocked(): boolean {
   return workingFileToStoreBlocked;
 }
 
-/** Guest local backup during collab: none = online only; disk / browser = autosave enabled. */
-export type CollabGuestLocalPersistMode = "none" | "disk" | "browser";
+/**
+ * Local backup during collab:
+ * - none: online-only (no attached file / no autosave)
+ * - attached: host (or existing Arbeitsdatei) mirrored continuously
+ * - disk / browser: guest room copy
+ */
+export type CollabGuestLocalPersistMode = "none" | "attached" | "disk" | "browser";
 
 let collabGuestLocalPersistMode: CollabGuestLocalPersistMode = "none";
 
@@ -164,6 +169,28 @@ export function getCollabGuestLocalPersistMode(): CollabGuestLocalPersistMode {
 
 export function isCollabGuestLocalPersistEnabled(): boolean {
   return collabGuestLocalPersistMode !== "none";
+}
+
+/** Host or guest: continuous local file mirror while the room is active. */
+export function isCollabRoomLocalPersistEnabled(): boolean {
+  return isCollabGuestLocalPersistEnabled();
+}
+
+/** Enable autosave into the already attached Arbeitsdatei for the collab session (host). */
+export function startCollabLocalMirrorOnAttachedFile(): boolean {
+  if (!isWorkingFileAttached()) return false;
+  setCollabGuestLocalPersistMode("attached");
+  setWorkingFilePersistPaused(false);
+  const wf = activeWorkingFileId;
+  const label = getWorkingFileLabel();
+  if (wf) {
+    ensureWorkingFileWriter(wf);
+  } else if (label) {
+    ensureWorkingFileWriter(label);
+  }
+  suppressWorkingFileExternalPoll(15_000);
+  notifyWorkingFilePersistPaused();
+  return true;
 }
 
 /** @deprecated Use isCollabGuestLocalPersistEnabled — true when guest opted into local backup. */

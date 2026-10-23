@@ -39,12 +39,12 @@ export const dialogsDe = {
     shareLinkCors:
       "Die Quelle muss CORS für die E2-Origin erlauben. Wer den Link öffnet, lädt das Board nach Bestätigung und arbeitet danach lokal weiter.",
     collabLeaveHint:
-      "Die verknüpfte Arbeitsdatei wurde während des Raums nicht überschrieben — speichere bei Bedarf mit „Speichern unter…“.",
+      "War eine Arbeitsdatei verknüpft, enthält sie den zuletzt synchronisierten Stand aus dem Raum.",
     collabEnterDirty:
       "Zuerst „Speichern unter…“ — der Raum braucht eine Datei als lokales Backup.",
     collabEnterBoardAdopted: "Dein aktuelles Board wird als Startinhalt in den neuen Raum übernommen.",
     collabEnterFileSafe:
-      "Deine verknüpfte Datei bleibt erhalten und wird während des Raums nicht überschrieben. Neu/Öffnen ist im Raum nicht möglich — erst nach dem Verlassen.",
+      "Das Board wird über den Raum mit allen Teilnehmern synchronisiert. Deine verknüpfte Datei wird parallel fortlaufend aktualisiert (eigene Änderungen und empfangener Sync). Neu/Öffnen ist im Raum gesperrt.",
     collabRoomTitle: "Kollaborations-Raum",
     collabRoomSupabase: "Geteilter Raum über Supabase Free Tier",
     collabSaveFailed: "Speichern in die Arbeitsdatei fehlgeschlagen.",
@@ -52,7 +52,7 @@ export const dialogsDe = {
     collabEnvLocked:
       "Verbindung kommt aus der Umgebung (.env) und kann hier nicht überschrieben werden.",
     collabValidUntil: "Gültig bis {when}",
-    collabFileNotOverwritten: "Arbeitsdatei wird während des Raums nicht überschrieben",
+    collabFileNotOverwritten: "Arbeitsdatei wird parallel zum Raum fortlaufend mitgeschrieben",
     newWorkingFileTitle: "Neue Arbeitsdatei",
     unsavedTitle: "Änderungen speichern?",
     unsavedThisBoard: "dieses Board",
@@ -83,7 +83,7 @@ export const dialogsDe = {
     collabEnterJoinReplace:
       "Der Editor wird durch den Raum-Stand ersetzt. Alle Teilnehmer arbeiten danach live am selben Board — ohne weitere Nachfragen.",
     collabEnterGuestLocalHint:
-      "Als Gast kannst du eine lokale Raum-Kopie auf der Platte anlegen (empfohlen) oder nur im Browser-Zwischenspeicher mit automatischer Sicherung arbeiten.",
+      "Als Gast: „Nur Online-Sync“ arbeitet detached ohne lokale Datei. „Beitreten und auf Platte speichern…“ legt eine Raum-Kopie an, die fortlaufend aktualisiert wird.",
     collabEnterExportOptional: "Optional: JSON exportieren als zusätzliche Kopie.",
     exportJsonButton: "JSON exportieren",
     remoteBoardLoadQuestion: "Remote-Board laden?",

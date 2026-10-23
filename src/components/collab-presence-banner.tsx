@@ -88,23 +88,19 @@ export function CollabPresenceBanner({ onRequestLeave }: CollabPresenceBannerPro
       {fileAttached && guestLocalPersist && (
         <span
           className={fileDirty ? "text-[var(--accent-2)]" : "text-[var(--accent)]"}
-          title={t("collab.guestLocalMirrorTitle", { file: localFileLabel ?? "" })}
+          title={t("collab.roomLocalMirrorTitle", { file: localFileLabel ?? "" })}
         >
-          {fileDirty ? t("collab.guestLocalSaving") : t("collab.guestLocalSaved")}
-          {guestPersistMode === "disk" ? ` · ${t("collab.guestLocalDisk")}` : null}
+          {fileDirty ? t("collab.roomLocalSaving") : t("collab.roomLocalSaved")}
+          {guestPersistMode === "disk"
+            ? ` · ${t("collab.guestLocalDisk")}`
+            : guestPersistMode === "attached"
+              ? ` · ${t("collab.roomLocalAttached")}`
+              : null}
         </span>
       )}
-      {!isHost && !guestLocalPersist && (
+      {!guestLocalPersist && (
         <span className="text-[var(--muted)]" title={t("collab.onlineOnlyTitle")}>
           {t("collab.onlineOnly")}
-        </span>
-      )}
-      {fileAttached && isHost && !guestLocalPersist && (
-        <span
-          className="text-[var(--muted)]"
-          title={t("panels.collabNoMirror")}
-        >
-          {t("collab.fileNotMirrored")}
         </span>
       )}
       <div className="flex -space-x-1">

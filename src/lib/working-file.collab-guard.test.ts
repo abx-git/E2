@@ -35,9 +35,11 @@ describe("working-file collab guards", () => {
     expect(shouldSuppressExternalFilePoll()).toBe(true);
   });
 
-  it("tracks guest local persist mode", () => {
-    setCollabGuestLocalPersistMode("disk");
+  it("tracks collab local persist mode", () => {
+    setCollabGuestLocalPersistMode("attached");
     expect(isCollabGuestLocalPersistEnabled()).toBe(true);
+    expect(getCollabGuestLocalPersistMode()).toBe("attached");
+    setCollabGuestLocalPersistMode("disk");
     expect(getCollabGuestLocalPersistMode()).toBe("disk");
     setCollabGuestLocalPersistMode("none");
     expect(isCollabGuestLocalPersistEnabled()).toBe(false);
