@@ -1160,6 +1160,10 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       }
     },
+    "tagFilterMode": {
+      "type": "string",
+      "enum": ["include", "exclude"]
+    },
     "actionsViewConfig": {
       "type": "object",
       "additionalProperties": false,
@@ -1180,6 +1184,18 @@
         "filterActionTypes": {
           "type": "array",
           "items": { "$ref": "#/$defs/measureActionType" }
+        },
+        "qualityFilters": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/tagFilterMode" }
+        },
+        "actionTypeFilters": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/tagFilterMode" }
+        },
+        "statusFilters": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/tagFilterMode" }
         },
         "searchQuery": { "type": "string" }
       }

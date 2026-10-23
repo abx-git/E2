@@ -36,11 +36,20 @@ export interface MeasureActionItem {
   updatedAt: string;
 }
 
+/** Tri-state tag filter: include = must match, exclude = must not match. */
+export type TagFilterMode = "include" | "exclude";
+
 export interface ActionsViewConfig {
   groupBy: "obligation" | "actionType";
+  /** @deprecated Legacy include-only; migrated to `qualityFilters`. */
   filterQualities?: ArchitectureQuality[];
+  /** @deprecated Legacy include-only; migrated to `statusFilters`. */
   filterStatus?: ActionStatus[];
+  /** @deprecated Legacy include-only; migrated to `actionTypeFilters`. */
   filterActionTypes?: ActionType[];
+  qualityFilters?: Partial<Record<ArchitectureQuality, TagFilterMode>>;
+  actionTypeFilters?: Partial<Record<ActionType, TagFilterMode>>;
+  statusFilters?: Partial<Record<ActionStatus, TagFilterMode>>;
   searchQuery?: string;
 }
 
