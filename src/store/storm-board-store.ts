@@ -218,7 +218,7 @@ export interface StormBoardState {
   setTitle: (title: string) => void;
   setWorkshopMode: (enabled: boolean) => void;
   setActiveView: (id: string) => void;
-  addView: (name?: string) => string;
+  addView: (name?: string, modelingMode?: ModelingMode) => string;
   addActionsView: (name?: string) => string;
   renameView: (id: string, name: string) => void;
   duplicateView: (id: string) => string | null;
@@ -681,16 +681,17 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     });
   },
 
-  addView: (name) => {
+  addView: (name, modelingModeOverride) => {
     let createdId = "";
     commit(set, get, (s) => {
       const views = flushActiveViewIntoViews(s);
       createdId = generateStormId();
+      const modelingMode = modelingModeOverride ?? s.modelingMode;
       const view = createEmptyBoardView({
         id: createdId,
         name: name?.trim() || `Sicht ${views.length + 1}`,
-        modelingMode: s.modelingMode,
-        workshopFormat: isWorkshopFormatForMode(s.workshopFormat, s.modelingMode)
+        modelingMode,
+        workshopFormat: isWorkshopFormatForMode(s.workshopFormat, modelingMode)
           ? s.workshopFormat
           : "free",
       });

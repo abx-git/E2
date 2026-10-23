@@ -2,6 +2,8 @@ export const appBarEn = {
   appBar: {
     boardTitle: "Board title",
     modelingMode: "Modeling mode",
+    viewKindMeasures: "Measures matrix",
+    viewKindMeasuresHint: "Not a canvas — modeling mode applies to canvas views",
     workshopFacilitator: "Workshop & facilitator",
     sessionSettings: "Session settings",
     session: "Session",

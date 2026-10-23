@@ -2,9 +2,20 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ClipboardList, Copy, ClipboardPaste, Plus, Trash2, X } from "lucide-react";
-import { useT } from "@/i18n";
+import {
+  ChevronDown,
+  ClipboardList,
+  Copy,
+  ClipboardPaste,
+  LayoutGrid,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
+import { modelingModeLabel, useT } from "@/i18n";
+import { isActionsView } from "@/lib/storm-json";
 import { useStormBoardStore } from "@/store/storm-board-store";
+import { MODELING_MODES, type ModelingMode } from "@/types/storm-element";
 
 export function BoardViewTabs({
   onPasteJsonAsNewView,
@@ -27,6 +38,8 @@ export function BoardViewTabs({
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(
     null,
   );
+  const [newViewMenu, setNewViewMenu] = useState<{ x: number; y: number } | null>(null);
+  const newViewBtnRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const beginRename = (id: string, name: string) => {
@@ -63,10 +76,28 @@ export function BoardViewTabs({
 
   const canDelete = views.length > 1;
 
+  const openNewViewMenu = () => {
+    const btn = newViewBtnRef.current;
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    setNewViewMenu({ x: rect.left, y: rect.bottom + 4 });
+  };
+
+  const addCanvasView = (mode: ModelingMode) => {
+    addView(undefined, mode);
+    setNewViewMenu(null);
+  };
+
+  const addMeasuresView = () => {
+    addActionsView();
+    setNewViewMenu(null);
+  };
+
   return (
     <div className="relative flex min-h-0 items-center gap-1 overflow-x-auto px-1 py-1">
       {views.map((view) => {
         const active = view.id === activeViewId;
+        const measures = isActionsView(view);
         return (
           <div key={view.id} className="group relative shrink-0">
             {editingId === view.id ? (
@@ -104,12 +135,21 @@ export function BoardViewTabs({
                     setMenu({ id: view.id, x: e.clientX, y: e.clientY });
                   }}
                   className={[
-                    "min-w-0 flex-1 truncate px-2.5 text-left text-xs font-medium",
-                    canDelete ? "pr-1" : "",
+                    "flex min-w-0 flex-1 items-center gap-1 truncate pl-1.5 text-left text-xs font-medium",
+                    canDelete ? "pr-1" : "pr-2",
                   ].join(" ")}
-                  title={t("dialogs.viewTabTitle", { name: view.name })}
+                  title={
+                    measures
+                      ? `${view.name} — ${t("actionsView.viewTabKind")}`
+                      : t("dialogs.viewTabTitle", { name: view.name })
+                  }
                 >
-                  {view.name}
+                  {measures ? (
+                    <ClipboardList className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                  ) : (
+                    <LayoutGrid className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+                  )}
+                  <span className="truncate">{view.name}</span>
                 </button>
                 {canDelete && (
                   <button
@@ -135,22 +175,17 @@ export function BoardViewTabs({
       })}
 
       <button
+        ref={newViewBtnRef}
         type="button"
-        onClick={() => addView()}
-        className="dock-control flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[var(--muted)]"
-        title={t("dialogs.newViewTitle")}
+        onClick={openNewViewMenu}
+        className="dock-control flex h-7 shrink-0 items-center gap-0.5 rounded-md px-2 text-xs text-[var(--muted)]"
+        title={t("dialogs.newViewMenuTitle")}
+        aria-haspopup="menu"
+        aria-expanded={Boolean(newViewMenu)}
       >
         <Plus className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">{t("dialogs.addViewTab")}</span>
-      </button>
-      <button
-        type="button"
-        onClick={() => addActionsView()}
-        className="dock-control flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[var(--muted)]"
-        title={t("actionsView.addViewTab")}
-      >
-        <ClipboardList className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">{t("actionsView.addViewTab")}</span>
+        <ChevronDown className="h-3 w-3 opacity-70" aria-hidden />
       </button>
 
       {onPasteJsonAsNewView ? (
@@ -165,6 +200,45 @@ export function BoardViewTabs({
           <span className="hidden sm:inline">JSON</span>
         </button>
       ) : null}
+
+      {newViewMenu && (
+        <div
+          className="fixed inset-0 z-[1200]"
+          role="presentation"
+          onPointerDown={() => setNewViewMenu(null)}
+        >
+          <div
+            className="dock-surface absolute max-h-[min(24rem,70vh)] min-w-[14rem] overflow-y-auto rounded-lg py-1 text-sm shadow-lg"
+            style={{ left: newViewMenu.x, top: newViewMenu.y }}
+            role="menu"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <p className="group-label px-3 py-1.5">{t("dialogs.newViewCanvasGroup")}</p>
+            {MODELING_MODES.map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[var(--control)]"
+                onClick={() => addCanvasView(mode)}
+              >
+                <LayoutGrid className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                {modelingModeLabel(t, mode)}
+              </button>
+            ))}
+            <div className="my-1 border-t border-[var(--border)]" role="separator" />
+            <button
+              type="button"
+              role="menuitem"
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-[var(--control)]"
+              onClick={addMeasuresView}
+            >
+              <ClipboardList className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+              {t("dialogs.newViewMeasuresOption")}
+            </button>
+          </div>
+        </div>
+      )}
 
       {menu && (
         <div
