@@ -13,7 +13,9 @@
     "lint": "next lint",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:collab-smoke": "vitest run src/lib/collab/session.integration.test.ts"
+    "test:collab-smoke": "vitest run src/lib/collab/session.integration.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:collab": "playwright test e2e/collab-smoke.spec.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -34,6 +36,7 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.1",
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",
