@@ -70,7 +70,10 @@
       "type": "array",
       "minItems": 1,
       "items": {
-        "$ref": "#/$defs/boardView"
+        "oneOf": [
+          { "$ref": "#/$defs/boardView" },
+          { "$ref": "#/$defs/actionsView" }
+        ]
       }
     }
   },
@@ -1087,6 +1090,112 @@
         },
         "viewport": {
           "$ref": "#/$defs/viewport"
+        }
+      }
+    },
+    "architectureQuality": {
+      "type": "string",
+      "enum": [
+        "Security",
+        "Maintainability",
+        "Resilience",
+        "Performance",
+        "Observability",
+        "Interoperability"
+      ]
+    },
+    "measureActionType": {
+      "type": "string",
+      "enum": ["INTRODUCE", "SCALE", "IMPROVE", "HOLD", "CUT"]
+    },
+    "obligationLevel": {
+      "type": "string",
+      "enum": ["Required", "Recommended", "Optional"]
+    },
+    "measureActionStatus": {
+      "type": "string",
+      "enum": ["open", "in_progress", "done", "discarded"]
+    },
+    "effortEstimate": {
+      "type": "string",
+      "enum": ["XS", "S", "M", "L", "XL"]
+    },
+    "measureActionItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "actionType",
+        "obligation",
+        "qualities",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "actionType": { "$ref": "#/$defs/measureActionType" },
+        "obligation": { "$ref": "#/$defs/obligationLevel" },
+        "qualities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/architectureQuality" }
+        },
+        "status": { "$ref": "#/$defs/measureActionStatus" },
+        "effort": { "$ref": "#/$defs/effortEstimate" },
+        "owner": { "type": "string" },
+        "targetRef": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["viewId", "elementId", "elementLabel"],
+          "properties": {
+            "viewId": { "type": "string", "minLength": 1 },
+            "elementId": { "type": "string", "minLength": 1 },
+            "elementLabel": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "actionsViewConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["groupBy"],
+      "properties": {
+        "groupBy": {
+          "type": "string",
+          "enum": ["obligation", "actionType"]
+        },
+        "filterQualities": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/architectureQuality" }
+        },
+        "filterStatus": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/measureActionStatus" }
+        },
+        "filterActionTypes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/measureActionType" }
+        },
+        "searchQuery": { "type": "string" }
+      }
+    },
+    "actionsView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "type", "config", "items"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string" },
+        "type": { "const": "actions" },
+        "config": { "$ref": "#/$defs/actionsViewConfig" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/measureActionItem" }
         }
       }
     }

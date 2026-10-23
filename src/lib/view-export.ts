@@ -14,7 +14,8 @@ import {
   stringifyExportedDocument,
   type BoardImportPayload,
   type BoardSnapshotV2,
-  type BoardView,
+  type CanvasBoardView,
+  isCanvasBoardView,
 } from "@/lib/storm-json";
 
 export const AI_CONTEXT_FORMAT = "event-storming-tool-ai-context" as const;
@@ -116,8 +117,9 @@ export interface AiBoardContext {
   }>;
 }
 
-function resolveView(doc: BoardImportPayload, viewId: string): BoardView | null {
-  return doc.views.find((v) => v.id === viewId) ?? null;
+function resolveView(doc: BoardImportPayload, viewId: string): CanvasBoardView | null {
+  const view = doc.views.find((v) => v.id === viewId);
+  return view && isCanvasBoardView(view) ? view : null;
 }
 
 function viewNameMap(doc: BoardImportPayload): Map<string, string> {

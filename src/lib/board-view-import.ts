@@ -1,6 +1,9 @@
 import { legacyToConnectors } from "@/lib/board-connector-migrate";
 import { generateStormId } from "@/lib/storm-id";
+import { normalizeActionsView } from "@/lib/architecture-measures";
 import {
+  isActionsView,
+  isCanvasBoardView,
   normalizeBoardDocument,
   normalizeBoardView,
   type BoardImportPayload,
@@ -138,6 +141,29 @@ export function remapBoardViewIds(
   const newViewId = options.viewIdMap.get(view.id) ?? generateStormId();
   if (!options.viewIdMap.has(view.id)) {
     options.viewIdMap.set(view.id, newViewId);
+  }
+
+  if (isActionsView(clone)) {
+    const measureIdMap = new Map<string, string>();
+    for (const item of clone.items) measureIdMap.set(item.id, generateStormId());
+    const items = clone.items.map((item) => {
+      const next = { ...item, id: measureIdMap.get(item.id)! };
+      if (item.targetRef) {
+        const viewId = options.viewIdMap.get(item.targetRef.viewId) ?? item.targetRef.viewId;
+        next.targetRef = { ...item.targetRef, viewId };
+      }
+      return next;
+    });
+    return normalizeActionsView({
+      ...clone,
+      id: newViewId,
+      name: options.newName ?? clone.name,
+      items,
+    });
+  }
+
+  if (!isCanvasBoardView(clone)) {
+    return normalizeBoardView({ id: newViewId, name: options.newName ?? "Board" });
   }
 
   const idMap = new Map<string, string>();

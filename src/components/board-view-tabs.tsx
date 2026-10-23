@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Copy, ClipboardPaste, Plus, Trash2, X } from "lucide-react";
+import { ClipboardList, Copy, ClipboardPaste, Plus, Trash2, X } from "lucide-react";
 import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -16,6 +16,7 @@ export function BoardViewTabs({
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const setActiveView = useStormBoardStore((s) => s.setActiveView);
   const addView = useStormBoardStore((s) => s.addView);
+  const addActionsView = useStormBoardStore((s) => s.addActionsView);
   const renameView = useStormBoardStore((s) => s.renameView);
   const duplicateView = useStormBoardStore((s) => s.duplicateView);
   const deleteView = useStormBoardStore((s) => s.deleteView);
@@ -141,6 +142,15 @@ export function BoardViewTabs({
       >
         <Plus className="h-3.5 w-3.5" />
         <span className="hidden sm:inline">{t("dialogs.addViewTab")}</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => addActionsView()}
+        className="dock-control flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-[var(--muted)]"
+        title={t("actionsView.addViewTab")}
+      >
+        <ClipboardList className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">{t("actionsView.addViewTab")}</span>
       </button>
 
       {onPasteJsonAsNewView ? (

@@ -93,7 +93,10 @@ function summarizePayload(payload: BoardImportPayload): {
   elementCount: number;
 } {
   const viewCount = payload.views.length;
-  const elementCount = payload.views.reduce((n, v) => n + v.elements.length, 0);
+  const elementCount = payload.views.reduce(
+    (n, v) => n + (v.type === "actions" ? 0 : v.elements.length),
+    0,
+  );
   return {
     title: payload.title?.trim() || "Unbenanntes Board",
     viewCount,

@@ -10,6 +10,8 @@ import type {
   WorkshopFormat,
 } from "@/types/storm-element";
 import type { ActionItem } from "@/types/action-item";
+import type { ActionsView } from "@/types/actions-view";
+import { normalizeActionsView } from "@/lib/architecture-measures";
 import { normalizeActionItems } from "@/lib/action-items";
 import type { CanvasLine, ViewBookmark } from "@/types/canvas-annotation";
 import { normalizeCanvasLines, normalizeViewBookmarks } from "@/lib/canvas-annotations";
@@ -101,10 +103,12 @@ export const BOARD_SNAPSHOT_SCHEMA_FILENAME = "board-snapshot-v2.schema.json" as
 /** JSON Schema document for BoardSnapshotV2 (for download / tooling). */
 export const boardSnapshotSchema = boardSnapshotV2Schema;
 
-/** One diagram tab / view inside a board document. */
-export interface BoardView {
+/** One canvas diagram tab inside a board document. */
+export interface CanvasBoardView {
   id: string;
   name: string;
+  /** Omitted or `canvas` for legacy snapshots. */
+  type?: "canvas";
   modelingMode: ModelingMode;
   workshopFormat: WorkshopFormat;
   facilitatorEnabled: boolean;
@@ -122,6 +126,17 @@ export interface BoardView {
   snapToGrid: boolean;
   /** Freeform mode: user-defined card types (stereotypes) for this view. */
   customCardTypes: CustomCardType[];
+}
+
+/** Canvas tab or architecture-measures (`actions`) tab. */
+export type BoardView = CanvasBoardView | ActionsView;
+
+export function isActionsView(view: BoardView): view is ActionsView {
+  return (view as ActionsView).type === "actions";
+}
+
+export function isCanvasBoardView(view: BoardView): view is CanvasBoardView {
+  return !isActionsView(view);
 }
 
 /** Runtime / on-disk document body (multi-view). */
@@ -205,8 +220,8 @@ export interface BoardSnapshotV1 {
 export type BoardSnapshot = BoardSnapshotV2;
 
 export function createEmptyBoardView(
-  overrides: Partial<BoardView> & Pick<BoardView, "id" | "name">,
-): BoardView {
+  overrides: Partial<CanvasBoardView> & Pick<CanvasBoardView, "id" | "name">,
+): CanvasBoardView {
   const modelingMode = overrides.modelingMode ?? DEFAULT_MODELING_MODE;
   const seededTypes =
     overrides.customCardTypes !== undefined
@@ -278,7 +293,9 @@ export function normalizeTimeline(timeline: Timeline, modelingMode: ModelingMode
   };
 }
 
-export function normalizeBoardView(raw: Partial<BoardView> & { id?: string; name?: string }): BoardView {
+export function normalizeBoardView(
+  raw: Partial<CanvasBoardView> & { id?: string; name?: string },
+): CanvasBoardView {
   const id = raw.id?.trim() || generateStormId();
   const modelingMode = normalizeModelingMode(raw.modelingMode, raw.workshopFormat);
   const workshopFormat = normalizeWorkshopFormatForMode(raw.workshopFormat ?? "free", modelingMode);
@@ -357,13 +374,27 @@ export function migrateV1ToDocument(snap: BoardSnapshotV1): BoardImportPayload {
   };
 }
 
+export function normalizeDocumentView(
+  entry: Record<string, unknown> & { id?: string; name?: string },
+): BoardView {
+  if (entry.type === "actions") {
+    return normalizeActionsView(entry as Partial<ActionsView>);
+  }
+  return normalizeBoardView(entry as Partial<CanvasBoardView>);
+}
+
 export function normalizeBoardDocument(raw: Partial<BoardImportPayload>): BoardImportPayload {
   const rawViews = Array.isArray(raw.views) ? raw.views : [];
   const liftedBookmarks: ViewBookmark[] = [];
   const views = rawViews.map((entry) => {
     const legacyBookmarks = (entry as { bookmarks?: unknown }).bookmarks;
-    const view = normalizeBoardView(entry);
-    if (Array.isArray(legacyBookmarks)) {
+    const view = normalizeDocumentView(
+      (entry && typeof entry === "object" ? entry : {}) as Record<string, unknown> & {
+        id?: string;
+        name?: string;
+      },
+    );
+    if (Array.isArray(legacyBookmarks) && isCanvasBoardView(view)) {
       liftedBookmarks.push(...normalizeViewBookmarks(legacyBookmarks, view.id));
     }
     return view;
@@ -405,8 +436,13 @@ export function getActiveView(doc: BoardImportPayload): BoardView {
   return doc.views.find((v) => v.id === doc.activeViewId) ?? doc.views[0]!;
 }
 
-export function activeSliceFromDocument(doc: BoardImportPayload): BoardActiveSlice {
+export function getActiveCanvasView(doc: BoardImportPayload): CanvasBoardView | null {
   const view = getActiveView(doc);
+  return isCanvasBoardView(view) ? view : null;
+}
+
+export function activeSliceFromDocument(doc: BoardImportPayload): BoardActiveSlice {
+  const view = getActiveCanvasView(doc) ?? createEmptyBoardView({ id: "export", name: "Board" });
   return {
     title: doc.title,
     glossary: doc.glossary,
@@ -431,6 +467,9 @@ export function activeSliceFromDocument(doc: BoardImportPayload): BoardActiveSli
 }
 
 export function viewHasContent(view: BoardView): boolean {
+  if (isActionsView(view)) {
+    return view.items.length > 0;
+  }
   return (
     view.elements.length > 0 ||
     view.connectors.length > 0 ||
@@ -518,7 +557,17 @@ export function stringifyBoardSnapshotSchema(): string {
 }
 
 function stableViewKey(view: BoardView): unknown {
+  if (isActionsView(view)) {
+    return {
+      type: "actions",
+      id: view.id,
+      name: view.name,
+      config: view.config,
+      items: [...view.items].sort((a, b) => a.id.localeCompare(b.id)),
+    };
+  }
   return {
+    type: "canvas",
     id: view.id,
     name: view.name,
     modelingMode: view.modelingMode,
