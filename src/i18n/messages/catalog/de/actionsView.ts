@@ -46,6 +46,7 @@ export const actionsViewDe = {
     },
     detail: {
       title: "Maßnahme",
+      titlePlaceholder: "Bezeichnung der Maßnahme…",
       description: "Begründung / Beschreibung",
       actionType: "Maßnahmentyp",
       obligation: "Verbindlichkeit",

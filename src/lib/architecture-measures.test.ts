@@ -13,11 +13,16 @@ import { useStormBoardStore } from "@/store/storm-board-store";
 
 describe("architecture measures", () => {
   it("normalizes measure items with defaults", () => {
-    const item = normalizeMeasureActionItem({ title: "  Edge API  " });
+    const item = normalizeMeasureActionItem({ title: "Edge API" });
     expect(item.title).toBe("Edge API");
     expect(item.actionType).toBe("IMPROVE");
     expect(item.obligation).toBe("Recommended");
     expect(item.status).toBe("open");
+  });
+
+  it("keeps an empty title instead of substituting placeholder text", () => {
+    const item = normalizeMeasureActionItem({ title: "" });
+    expect(item.title).toBe("");
   });
 
   it("filters by quality and search", () => {

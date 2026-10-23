@@ -72,9 +72,10 @@ export function ActionCard({
           onDoubleClick={(e) => e.stopPropagation()}
         >
           <input
-            className="w-full bg-transparent outline-none"
+            className="w-full bg-transparent outline-none placeholder:text-[var(--muted)]"
             defaultValue={item.title}
-            aria-label={item.title}
+            placeholder={t("actionsView.detail.titlePlaceholder")}
+            aria-label={item.title || t("actionsView.detail.titlePlaceholder")}
             onClick={(e) => e.stopPropagation()}
             onBlur={(e) => {
               const next = e.target.value.trim();
