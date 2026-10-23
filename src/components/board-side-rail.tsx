@@ -14,6 +14,7 @@ import {
 import { BoardDockHideButton } from "@/components/board-dock-toggle";
 import { ActionDetailDock } from "@/components/actions/ActionDetailDock";
 import { ActionItemsPanel } from "@/components/action-items-panel";
+import { collectBoardHotspots } from "@/lib/board-hotspots";
 import { selectMeasureItem } from "@/lib/select-measure-item";
 import { isActionsView } from "@/lib/storm-json";
 import { BookmarksPanel } from "@/components/bookmarks-panel";
@@ -25,7 +26,10 @@ import { HotspotList } from "@/components/hotspot-list";
 import { clipboardItemCount } from "@/lib/board-clipboard";
 import type { FacilitatorPhase } from "@/lib/facilitator-phases";
 import { useT } from "@/i18n";
-import { useStormBoardStore } from "@/store/storm-board-store";
+import {
+  boardImportPayloadFromStore,
+  useStormBoardStore,
+} from "@/store/storm-board-store";
 import type { ElementType, WorkshopFormat } from "@/types/storm-element";
 import type { RelationType } from "@/types/storm-relation";
 
@@ -129,7 +133,10 @@ export function BoardSideRailContent({
 
   const clipboardCount = clipboardItemCount(clipboard);
   const openTodoCount = actionItems.filter((i) => i.status !== "done").length;
-  const hotspotCount = elements.filter((e) => e.type === "hotspot").length;
+  const hotspotCount = useMemo(
+    () => collectBoardHotspots(boardImportPayloadFromStore()).length,
+    [views, elements],
+  );
   const facilitatorActive = facilitatorEnabled && workshopFormat !== "free";
 
   const tabs = useMemo<TabDef[]>(() => {

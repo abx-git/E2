@@ -4,6 +4,7 @@ import {
   normalizeQualityFilters,
   normalizeStatusFilters,
 } from "@/lib/measure-tag-filters";
+import { normalizeExcludedHotspotRefs } from "@/lib/board-hotspots";
 import type { BoardImportPayload, BoardView, CanvasBoardView } from "@/lib/storm-json";
 import { generateStormId } from "@/lib/storm-id";
 import type { StormElement } from "@/types/storm-element";
@@ -139,6 +140,7 @@ export function normalizeActionsViewConfig(raw: unknown): ActionsViewConfig {
       typeof r.searchQuery === "string" && r.searchQuery.trim()
         ? r.searchQuery
         : undefined,
+    excludedHotspotRefs: normalizeExcludedHotspotRefs(r.excludedHotspotRefs),
   };
 }
 

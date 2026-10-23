@@ -55,6 +55,8 @@ export interface ActionsViewConfig {
   /** Show measure descriptions on board cards when enabled. */
   showDescriptionsOnCards?: boolean;
   searchQuery?: string;
+  /** Hotspot keys (`viewId:elementId`) hidden from the measures backlog, not deleted on canvas. */
+  excludedHotspotRefs?: string[];
 }
 
 export interface ActionsView {
