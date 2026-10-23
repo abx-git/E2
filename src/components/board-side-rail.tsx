@@ -14,6 +14,7 @@ import {
 import { BoardDockHideButton } from "@/components/board-dock-toggle";
 import { ActionDetailDock } from "@/components/actions/ActionDetailDock";
 import { ActionItemsPanel } from "@/components/action-items-panel";
+import { selectMeasureItem } from "@/lib/select-measure-item";
 import { isActionsView } from "@/lib/storm-json";
 import { BookmarksPanel } from "@/components/bookmarks-panel";
 import { ClipboardPanel } from "@/components/clipboard-panel";
@@ -109,17 +110,22 @@ export function BoardSideRailContent({
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const views = useStormBoardStore((s) => s.views);
   const selectedMeasureId = useStormBoardStore((s) => s.selectedMeasureId);
+  const selectedMeasureItem = useStormBoardStore((s) =>
+    selectedMeasureId && activeViewId
+      ? selectMeasureItem(s.views, activeViewId, selectedMeasureId)
+      : null,
+  );
   const activeView = views.find((v) => v.id === activeViewId);
   const actionsViewActive = activeView ? isActionsView(activeView) : false;
-  const showMeasureDetail = actionsViewActive && Boolean(selectedMeasureId);
+  const showMeasureDetail = actionsViewActive && selectedMeasureItem !== null;
 
   const hasInspectorSelection =
     !actionsViewActive &&
-    selectedElementIds.length > 0 ||
-    Boolean(selectedRelationId) ||
-    Boolean(selectedCanvasLineId) ||
-    selectedBoundedContextIds.length > 0 ||
-    selectedSwimlaneIds.length > 0;
+    (selectedElementIds.length > 0 ||
+      Boolean(selectedRelationId) ||
+      Boolean(selectedCanvasLineId) ||
+      selectedBoundedContextIds.length > 0 ||
+      selectedSwimlaneIds.length > 0);
 
   const clipboardCount = clipboardItemCount(clipboard);
   const openTodoCount = actionItems.filter((i) => i.status !== "done").length;

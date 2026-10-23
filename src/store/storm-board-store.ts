@@ -2413,7 +2413,15 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       actionItems: s.actionItems.filter((item) => item.id !== id),
     })),
 
-  selectMeasure: (id) => set({ selectedMeasureId: id }),
+  selectMeasure: (id) =>
+    set(
+      id
+        ? {
+            selectedMeasureId: id,
+            ...CLEAR_SELECTION_PATCH,
+          }
+        : { selectedMeasureId: null },
+    ),
 
   addMeasureActionItem: (viewId, partial) => {
     let createdId = "";
