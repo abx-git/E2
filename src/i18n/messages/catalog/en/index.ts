@@ -12,6 +12,7 @@ import { sideRailEn } from "@/i18n/messages/catalog/en/sideRail";
 import { collabEn } from "@/i18n/messages/catalog/en/collab";
 import { mobileEn } from "@/i18n/messages/catalog/en/mobile";
 import { detailSidebarEn } from "@/i18n/messages/catalog/en/detailSidebar";
+import { actionsViewEn } from "@/i18n/messages/catalog/en/actionsView";
 
 export const catalogEn = {
   ...coreEn,
@@ -28,4 +29,5 @@ export const catalogEn = {
   ...panelsEn,
   ...footerEn,
   ...detailSidebarEn,
+  ...actionsViewEn,
 };

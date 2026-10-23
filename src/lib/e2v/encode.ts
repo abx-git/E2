@@ -1,5 +1,6 @@
 import { normalizeAppearance } from "@/lib/board-appearance";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
+import { isActionsView } from "@/lib/storm-json";
 import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
 import type { CanvasLine } from "@/types/canvas-annotation";
 import type { ActionItem } from "@/types/action-item";
@@ -37,7 +38,50 @@ function pushIdLines(out: string[], maps: AliasMap[]): void {
   }
 }
 
+function encodeActionsViewBody(view: Extract<BoardView, { type: "actions" }>, out: string[]): void {
+  out.push(row(["@view", view.id, view.name, "actions"]));
+  out.push(row(["@avcfg", view.config.groupBy]));
+  if (view.config.filterQualities?.length) {
+    out.push(row(["@avfq", ...view.config.filterQualities]));
+  }
+  if (view.config.filterStatus?.length) {
+    out.push(row(["@avfs", ...view.config.filterStatus]));
+  }
+  if (view.config.filterActionTypes?.length) {
+    out.push(row(["@avft", ...view.config.filterActionTypes]));
+  }
+  if (view.config.searchQuery?.trim()) {
+    out.push(row(["@avq", view.config.searchQuery.trim()]));
+  }
+  for (const item of view.items) {
+    out.push(
+      row([
+        "am",
+        item.id,
+        item.title,
+        item.actionType,
+        item.obligation,
+        item.status,
+        item.effort ?? "",
+        item.owner ?? "",
+        item.description ?? "",
+        item.qualities.join(","),
+        item.targetRef?.viewId ?? "",
+        item.targetRef?.elementId ?? "",
+        item.targetRef?.elementLabel ?? "",
+        item.createdAt,
+        item.updatedAt,
+      ]),
+    );
+  }
+  out.push("@endview");
+}
+
 function encodeViewBody(view: BoardView, out: string[]): void {
+  if (isActionsView(view)) {
+    encodeActionsViewBody(view, out);
+    return;
+  }
   const eMap = new AliasMap("e");
   const sMap = new AliasMap("s");
   const bMap = new AliasMap("b");

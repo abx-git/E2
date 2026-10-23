@@ -1,5 +1,10 @@
-import type { BoardView } from "@/lib/storm-json";
-import { createEmptyBoardView, normalizeBoardView } from "@/lib/storm-json";
+import type { BoardView, CanvasBoardView } from "@/lib/storm-json";
+import {
+  createEmptyBoardView,
+  isActionsView,
+  isCanvasBoardView,
+  normalizeBoardView,
+} from "@/lib/storm-json";
 import { generateStormId } from "@/lib/storm-id";
 import type { CustomCardType } from "@/lib/custom-card-types";
 import { defaultPaletteTypeForMode } from "@/types/storm-element";
@@ -50,7 +55,7 @@ export interface ViewDocumentState extends ActiveViewFlatState {
   views: BoardView[];
 }
 
-export function flatFieldsFromView(view: BoardView): ActiveViewFlatState {
+export function flatFieldsFromView(view: CanvasBoardView): ActiveViewFlatState {
   return {
     modelingMode: view.modelingMode,
     workshopFormat: view.workshopFormat,
@@ -75,7 +80,7 @@ export function viewFromFlat(
   id: string,
   name: string,
   flat: ActiveViewFlatState,
-): BoardView {
+): CanvasBoardView {
   return normalizeBoardView({
     id,
     name,
@@ -85,8 +90,12 @@ export function viewFromFlat(
 
 /** Write current flat canvas fields back into the active entry of `views`. */
 export function flushActiveViewIntoViews(state: ViewDocumentState): BoardView[] {
+  const active = resolveActiveView(state.views, state.activeViewId);
+  if (isActionsView(active)) {
+    return state.views;
+  }
   return state.views.map((v) =>
-    v.id === state.activeViewId
+    v.id === state.activeViewId && isCanvasBoardView(v)
       ? viewFromFlat(v.id, v.name, state)
       : v,
   );
@@ -99,10 +108,16 @@ export function resolveActiveView(
   return views.find((v) => v.id === activeViewId) ?? views[0]!;
 }
 
-export function applyViewToFlatPatch(view: BoardView): ActiveViewFlatState & {
+export function applyViewToFlatPatch(view: BoardView): Partial<ActiveViewFlatState> & {
   paletteType: ReturnType<typeof defaultPaletteTypeForMode>;
   paletteCustomTypeId: string | null;
 } {
+  if (isActionsView(view)) {
+    return {
+      paletteType: defaultPaletteTypeForMode("eventStorming"),
+      paletteCustomTypeId: null,
+    };
+  }
   return {
     ...flatFieldsFromView(view),
     paletteType: defaultPaletteTypeForMode(view.modelingMode),

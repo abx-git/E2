@@ -116,6 +116,7 @@ export interface DataStoragePanelProps {
   onCopyDrawioToClipboard: () => boolean | Promise<boolean>;
   onExportHotspots: () => void;
   onExportActionItems: () => void;
+  onExportArchitectureMeasures: () => void;
   onExportGlossary: () => void;
   onExportContextMap: () => void;
   onExportEventCatalog: () => void;
@@ -371,6 +372,7 @@ export function DataStoragePanel({
   onCopyDrawioToClipboard,
   onExportHotspots,
   onExportActionItems,
+  onExportArchitectureMeasures,
   onExportGlossary,
   onExportContextMap,
   onExportEventCatalog,
@@ -1252,6 +1254,12 @@ export function DataStoragePanel({
                   disabled={busy}
                   label={t("exportPanel.todosReport")}
                   detail={t("exportPanel.actionItemsDetail")}
+                />
+                <ExportTile
+                  onClick={onExportArchitectureMeasures}
+                  disabled={busy}
+                  label={t("exportPanel.measuresReport")}
+                  detail={t("exportPanel.measuresReportDetail")}
                 />
                 <ExportTile
                   onClick={onExportGlossary}

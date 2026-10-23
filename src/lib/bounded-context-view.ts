@@ -46,7 +46,7 @@ export function resolveBoundedContextViewNavigation(
   if (!label) return null;
 
   for (const view of views) {
-    if (view.id === activeViewId) continue;
+    if (view.id === activeViewId || view.type === "actions") continue;
     for (const parentBc of view.boundedContexts) {
       if (parentBc.detailViewId?.trim() !== activeViewId) continue;
       if (parentBc.label.trim() === label) {

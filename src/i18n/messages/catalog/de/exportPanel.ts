@@ -83,6 +83,8 @@ export const exportPanelDe = {
     contextMapReport: "Context Map",
     reportDetail: "Report",
     actionItemsDetail: "Action Items",
+    measuresReport: "Maßnahmen-Report (MD)",
+    measuresReportDetail: "Architektur-Review",
     glossaryTermsDetail: "Begriffe",
     contextMapBcDetail: "BC-Schnittstellen",
     methodsGroup: "Methoden",

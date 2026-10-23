@@ -58,8 +58,24 @@ import { normalizeProgressMark } from "@/lib/progress-mark";
 const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
 import { normalizeActionItem } from "@/lib/action-items";
+import {
+  createEmptyActionsView,
+  normalizeMeasureActionItem,
+  patchActionsViewInList,
+} from "@/lib/architecture-measures";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
-import { createEmptyBoardView, normalizeBoardDocument } from "@/lib/storm-json";
+import {
+  createEmptyBoardView,
+  isActionsView,
+  isCanvasBoardView,
+  normalizeBoardDocument,
+} from "@/lib/storm-json";
+import type {
+  ActionType,
+  ActionsViewConfig,
+  MeasureActionItem,
+  ObligationLevel,
+} from "@/types/actions-view";
 import {
   applyViewToFlatPatch,
   CLEAR_CONNECTOR_FOCUS_PATCH,
@@ -203,6 +219,7 @@ export interface StormBoardState {
   setWorkshopMode: (enabled: boolean) => void;
   setActiveView: (id: string) => void;
   addView: (name?: string) => string;
+  addActionsView: (name?: string) => string;
   renameView: (id: string, name: string) => void;
   duplicateView: (id: string) => string | null;
   deleteView: (id: string) => boolean;
@@ -394,6 +411,30 @@ export interface StormBoardState {
   ) => string | null;
   updateActionItem: (id: string, patch: Partial<Omit<ActionItem, "id">>) => void;
   deleteActionItem: (id: string) => void;
+
+  /** Selected architecture measure in an actions view (not persisted separately). */
+  selectedMeasureId: string | null;
+  selectMeasure: (id: string | null) => void;
+  addMeasureActionItem: (
+    viewId: string,
+    item?: Partial<Omit<MeasureActionItem, "id" | "createdAt" | "updatedAt">>,
+  ) => string;
+  updateMeasureActionItem: (
+    viewId: string,
+    itemId: string,
+    patch: Partial<Omit<MeasureActionItem, "id" | "createdAt">>,
+  ) => void;
+  removeMeasureActionItem: (viewId: string, itemId: string) => void;
+  duplicateMeasureActionItem: (viewId: string, itemId: string) => string | null;
+  moveMeasureActionItem: (
+    viewId: string,
+    itemId: string,
+    targetObligation: ObligationLevel,
+    targetActionType: ActionType,
+  ) => void;
+  updateActionsViewConfig: (viewId: string, patch: Partial<ActionsViewConfig>) => void;
+  /** Switch tab and focus a canvas sticky from a measure link. */
+  navigateToMeasureTarget: (viewId: string, elementId: string) => void;
 
   replaceBoardFromImport: (payload: BoardImportPayload) => void;
   /**
@@ -613,6 +654,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   contextMenu: null,
   clipboard: null,
   clipboardDropHighlight: false,
+  selectedMeasureId: null,
   past: [],
   future: [],
   gestureActive: false,
@@ -631,6 +673,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       activeViewId: next.id,
       ...applyViewToFlatPatch(next),
       ...CLEAR_SELECTION_PATCH,
+      selectedMeasureId: null,
       past: [],
       future: [],
       gestureActive: false,
@@ -656,6 +699,27 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         activeViewId: createdId,
         ...applyViewToFlatPatch(view),
         ...CLEAR_SELECTION_PATCH,
+        selectedMeasureId: null,
+      };
+    });
+    return createdId;
+  },
+
+  addActionsView: (name) => {
+    let createdId = "";
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      createdId = generateStormId();
+      const view = createEmptyActionsView({
+        id: createdId,
+        name: name?.trim() || `Maßnahmen ${views.length + 1}`,
+      });
+      return {
+        views: [...views, view],
+        activeViewId: createdId,
+        ...applyViewToFlatPatch(view),
+        ...CLEAR_SELECTION_PATCH,
+        selectedMeasureId: null,
       };
     });
     return createdId;
@@ -2060,6 +2124,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => {
       const views = flushActiveViewIntoViews(s);
       const activeView = resolveActiveView(views, s.activeViewId);
+      if (!isCanvasBoardView(activeView)) return {};
       const bc = activeView.boundedContexts.find((b) => b.id === bcId);
       if (!bc) return {};
 
@@ -2100,16 +2165,15 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         workshopFormat: activeView.workshopFormat,
       });
 
-      const updatedViews = views.map((v) =>
-        v.id === activeView.id
-          ? {
-              ...v,
-              boundedContexts: v.boundedContexts.map((b) =>
-                b.id === bcId ? { ...b, detailViewId: newViewId } : b,
-              ),
-            }
-          : v,
-      );
+      const updatedViews = views.map((v) => {
+        if (v.id !== activeView.id || !isCanvasBoardView(v)) return v;
+        return {
+          ...v,
+          boundedContexts: v.boundedContexts.map((b) =>
+            b.id === bcId ? { ...b, detailViewId: newViewId } : b,
+          ),
+        };
+      });
 
       resultId = newViewId;
       return {
@@ -2177,6 +2241,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => {
       const views = flushActiveViewIntoViews(s);
       const activeView = resolveActiveView(views, s.activeViewId);
+      if (!isCanvasBoardView(activeView)) return {};
       const el = activeView.elements.find((e) => e.id === elementId);
       if (!el || !supportsArchDrilldown(el.type)) return {};
 
@@ -2214,16 +2279,15 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         workshopFormat: activeView.workshopFormat,
       });
 
-      const updatedViews = views.map((v) =>
-        v.id === activeView.id
-          ? {
-              ...v,
-              elements: v.elements.map((e) =>
-                e.id === elementId ? { ...e, detailViewId: newViewId } : e,
-              ),
-            }
-          : v,
-      );
+      const updatedViews = views.map((v) => {
+        if (v.id !== activeView.id || !isCanvasBoardView(v)) return v;
+        return {
+          ...v,
+          elements: v.elements.map((e) =>
+            e.id === elementId ? { ...e, detailViewId: newViewId } : e,
+          ),
+        };
+      });
 
       resultId = newViewId;
       return {
@@ -2348,6 +2412,148 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => ({
       actionItems: s.actionItems.filter((item) => item.id !== id),
     })),
+
+  selectMeasure: (id) => set({ selectedMeasureId: id }),
+
+  addMeasureActionItem: (viewId, partial) => {
+    let createdId = "";
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const view = views.find((v) => v.id === viewId);
+      if (!view || !isActionsView(view)) return {};
+      const item = normalizeMeasureActionItem({
+        title: partial?.title,
+        description: partial?.description,
+        actionType: partial?.actionType,
+        obligation: partial?.obligation ?? "Recommended",
+        qualities: partial?.qualities ?? [],
+        status: partial?.status ?? "open",
+        effort: partial?.effort,
+        owner: partial?.owner,
+        targetRef: partial?.targetRef,
+      });
+      createdId = item.id;
+      return {
+        views: patchActionsViewInList(views, viewId, {
+          items: [...view.items, item],
+        }),
+        selectedMeasureId: item.id,
+      };
+    });
+    return createdId;
+  },
+
+  updateMeasureActionItem: (viewId, itemId, patch) =>
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const view = views.find((v) => v.id === viewId);
+      if (!view || !isActionsView(view)) return {};
+      const items = view.items.map((item) => {
+        if (item.id !== itemId) return item;
+        return normalizeMeasureActionItem({
+          ...item,
+          ...patch,
+          id: item.id,
+          createdAt: item.createdAt,
+          updatedAt: new Date().toISOString(),
+        });
+      });
+      return { views: patchActionsViewInList(views, viewId, { items }) };
+    }),
+
+  removeMeasureActionItem: (viewId, itemId) =>
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const view = views.find((v) => v.id === viewId);
+      if (!view || !isActionsView(view)) return {};
+      return {
+        views: patchActionsViewInList(views, viewId, {
+          items: view.items.filter((i) => i.id !== itemId),
+        }),
+        selectedMeasureId: s.selectedMeasureId === itemId ? null : s.selectedMeasureId,
+      };
+    }),
+
+  duplicateMeasureActionItem: (viewId, itemId) => {
+    let createdId: string | null = null;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const view = views.find((v) => v.id === viewId);
+      if (!view || !isActionsView(view)) return {};
+      const source = view.items.find((i) => i.id === itemId);
+      if (!source) return {};
+      const copy = normalizeMeasureActionItem({
+        ...structuredClone(source),
+        id: generateStormId(),
+        title: `${source.title} (Kopie)`,
+      });
+      createdId = copy.id;
+      return {
+        views: patchActionsViewInList(views, viewId, {
+          items: [...view.items, copy],
+        }),
+        selectedMeasureId: copy.id,
+      };
+    });
+    return createdId;
+  },
+
+  moveMeasureActionItem: (viewId, itemId, targetObligation, targetActionType) =>
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const view = views.find((v) => v.id === viewId);
+      if (!view || !isActionsView(view)) return {};
+      const items = view.items.map((item) =>
+        item.id === itemId
+          ? normalizeMeasureActionItem({
+              ...item,
+              obligation: targetObligation,
+              actionType: targetActionType,
+              updatedAt: new Date().toISOString(),
+            })
+          : item,
+      );
+      return { views: patchActionsViewInList(views, viewId, { items }) };
+    }),
+
+  updateActionsViewConfig: (viewId, patch) =>
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const view = views.find((v) => v.id === viewId);
+      if (!view || !isActionsView(view)) return {};
+      return {
+        views: patchActionsViewInList(views, viewId, {
+          config: { ...view.config, ...patch },
+        }),
+      };
+    }),
+
+  navigateToMeasureTarget: (targetViewId, elementId) => {
+    const s = get();
+    const views = flushActiveViewIntoViews(s);
+    const targetView = views.find((v) => v.id === targetViewId);
+    if (!targetView || !isCanvasBoardView(targetView)) return;
+    const hasElement =
+      targetView.elements.some((e) => e.id === elementId) ||
+      targetView.boundedContexts.some((bc) => bc.id === elementId);
+    if (!hasElement) return;
+    const next = resolveActiveView(views, targetViewId);
+    set({
+      views,
+      activeViewId: next.id,
+      ...applyViewToFlatPatch(next),
+      ...CLEAR_SELECTION_PATCH,
+      selectedMeasureId: null,
+      selectedElementIds: targetView.elements.some((e) => e.id === elementId)
+        ? [elementId]
+        : [],
+      selectedBoundedContextIds: targetView.boundedContexts.some((bc) => bc.id === elementId)
+        ? [elementId]
+        : [],
+      past: [],
+      future: [],
+    });
+  },
 
   replaceBoardFromImport: (payload) => {
     const s = get();

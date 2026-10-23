@@ -1,11 +1,13 @@
 import { normalizeAppearance } from "@/lib/board-appearance";
 import { normalizeActionItems } from "@/lib/action-items";
+import { normalizeActionsView, normalizeMeasureActionItem } from "@/lib/architecture-measures";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
 import {
   normalizeBoardDocument,
   normalizeBoardView,
   normalizeStormElement,
 } from "@/lib/storm-json";
+import type { ActionsViewConfig, MeasureActionItem } from "@/types/actions-view";
 import {
   DEFAULT_VIEWPORT,
   defaultTimelineForModelingMode,
@@ -20,10 +22,26 @@ import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector"
 import type { CanvasLine } from "@/types/canvas-annotation";
 import type { CustomCardType } from "@/lib/custom-card-types";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
-import type { GlossaryEntry, StormElement, Timeline, Viewport } from "@/types/storm-element";
+import type {
+  BoundedContext,
+  GlossaryEntry,
+  StormElement,
+  Swimlane,
+  Timeline,
+  Viewport,
+} from "@/types/storm-element";
 
 /** Mutable parse buffer for one `@view` … `@endview` block. */
+interface E2vActionsViewDraft {
+  kind: "actions";
+  id: string;
+  name: string;
+  config: ActionsViewConfig;
+  items: MeasureActionItem[];
+}
+
 interface E2vViewDraft {
+  kind: "canvas";
   id: string;
   name: string;
   modelingMode: ModelingMode;
@@ -31,8 +49,8 @@ interface E2vViewDraft {
   facilitatorEnabled: boolean;
   facilitatorPhase: number;
   elements: StormElement[];
-  swimlanes: BoardView["swimlanes"];
-  boundedContexts: BoardView["boundedContexts"];
+  swimlanes: Swimlane[];
+  boundedContexts: BoundedContext[];
   relations: StormRelation[];
   contextRelations: ContextRelation[];
   connectors: BoardConnector[];
@@ -109,13 +127,21 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
   const views: BoardView[] = [];
 
   const globalIdMap = new Map<string, string>();
-  const parseState = { viewDraft: null as E2vViewDraft | null };
+  const parseState = {
+    viewDraft: null as E2vViewDraft | E2vActionsViewDraft | null,
+  };
   let viewIdMap = new Map<string, string>();
   const descPending = new Map<string, string>();
   const metaPending = new Map<string, Record<string, unknown>>();
 
   const flushView = () => {
     if (!parseState.viewDraft) return;
+    if (parseState.viewDraft.kind === "actions") {
+      views.push(normalizeActionsView(parseState.viewDraft));
+      parseState.viewDraft = null;
+      viewIdMap = new Map(globalIdMap);
+      return;
+    }
     const idRemap = new Map<string, string>();
     const resolve = (alias: string) => mapId(alias, viewIdMap, idRemap);
 
@@ -218,9 +244,20 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
 
   const startView = (cols: string[]) => {
     flushView();
+    if (cols[3] === "actions") {
+      parseState.viewDraft = {
+        kind: "actions",
+        id: cols[1] ?? generateStormId(),
+        name: parseCell(cols[2] ?? "Maßnahmen"),
+        config: { groupBy: "obligation" },
+        items: [],
+      };
+      return;
+    }
     const modelingMode = normalizeModelingMode(cols[3] ?? "eventStorming", cols[4]);
     const workshopFormat = normalizeWorkshopFormatForMode(cols[4] ?? "free", modelingMode);
     parseState.viewDraft = {
+      kind: "canvas",
       id: cols[1] ?? generateStormId(),
       name: parseCell(cols[2] ?? "Board"),
       modelingMode,
@@ -270,14 +307,30 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         viewIdMap.set(cols[1], cols[2]);
       }
       if (tag === "view") startView(cols);
-      if (tag === "v" && parseState.viewDraft) {
+      if (tag === "avcfg" && parseState.viewDraft?.kind === "actions") {
+        parseState.viewDraft.config.groupBy =
+          cols[1] === "actionType" ? "actionType" : "obligation";
+      }
+      if (tag === "avfq" && parseState.viewDraft?.kind === "actions") {
+        parseState.viewDraft.config.filterQualities = cols.slice(1) as ActionsViewConfig["filterQualities"];
+      }
+      if (tag === "avfs" && parseState.viewDraft?.kind === "actions") {
+        parseState.viewDraft.config.filterStatus = cols.slice(1) as ActionsViewConfig["filterStatus"];
+      }
+      if (tag === "avft" && parseState.viewDraft?.kind === "actions") {
+        parseState.viewDraft.config.filterActionTypes = cols.slice(1) as ActionsViewConfig["filterActionTypes"];
+      }
+      if (tag === "avq" && parseState.viewDraft?.kind === "actions") {
+        parseState.viewDraft.config.searchQuery = parseCell(cols.slice(1).join(" "));
+      }
+      if (tag === "v" && parseState.viewDraft?.kind === "canvas") {
         parseState.viewDraft.viewport = {
           x: num(cols[1] ?? "") ?? 0,
           y: num(cols[2] ?? "") ?? 0,
           zoom: num(cols[3] ?? "") ?? 1,
         };
       }
-      if (tag === "t" && parseState.viewDraft) {
+      if (tag === "t" && parseState.viewDraft?.kind === "canvas") {
         const visCol = cols[3];
         parseState.viewDraft.timeline = {
           ...parseState.viewDraft.timeline,
@@ -289,11 +342,11 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
               : parseState.viewDraft.timeline.visible,
         };
       }
-      if (tag === "snap" && parseState.viewDraft) {
+      if (tag === "snap" && parseState.viewDraft?.kind === "canvas") {
         parseState.viewDraft.snapToTimeline = cols[1] !== "0";
         parseState.viewDraft.snapToGrid = cols[2] === "1";
       }
-      if (tag === "ct" && parseState.viewDraft) {
+      if (tag === "ct" && parseState.viewDraft?.kind === "canvas") {
         const ct: CustomCardType = {
           id: cols[1] ?? generateStormId(),
           name: parseCell(cols[2] ?? "Type"),
@@ -340,6 +393,40 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
     }
 
     if (!parseState.viewDraft) continue;
+
+    if (kind === "am" && parseState.viewDraft.kind === "actions") {
+      const qualities = (cols[9] ?? "")
+        .split(",")
+        .map((q) => q.trim())
+        .filter(Boolean);
+      const targetViewId = cols[10]?.trim();
+      const targetElementId = cols[11]?.trim();
+      const item = normalizeMeasureActionItem({
+        id: cols[1],
+        title: parseCell(cols[2] ?? ""),
+        actionType: cols[3] as MeasureActionItem["actionType"],
+        obligation: cols[4] as MeasureActionItem["obligation"],
+        status: cols[5] as MeasureActionItem["status"],
+        effort: (cols[6] || undefined) as MeasureActionItem["effort"],
+        owner: cols[7] || undefined,
+        description: parseCell(cols[8] ?? "") || undefined,
+        qualities: qualities as MeasureActionItem["qualities"],
+        targetRef:
+          targetViewId && targetElementId
+            ? {
+                viewId: targetViewId,
+                elementId: targetElementId,
+                elementLabel: parseCell(cols[12] ?? "") || targetElementId,
+              }
+            : undefined,
+        createdAt: cols[13],
+        updatedAt: cols[14],
+      });
+      parseState.viewDraft.items = [...parseState.viewDraft.items, item];
+      continue;
+    }
+
+    if (parseState.viewDraft.kind !== "canvas") continue;
 
     if (kind === "s") {
       parseState.viewDraft.swimlanes = [

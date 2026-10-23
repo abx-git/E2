@@ -15,7 +15,7 @@ export function buildE2vClipboardPackage(
   const data = encodeE2vSingleView(doc, viewId);
   if (!data) return null;
   const view = doc.views.find((v) => v.id === viewId);
-  const mode = view?.modelingMode ?? "eventStorming";
+  const mode = view && view.type !== "actions" ? view.modelingMode : "actions";
 
   return [
     "E2 compact view package (E2V)",

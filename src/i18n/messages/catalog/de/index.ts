@@ -12,6 +12,7 @@ import { sideRailDe } from "@/i18n/messages/catalog/de/sideRail";
 import { collabDe } from "@/i18n/messages/catalog/de/collab";
 import { mobileDe } from "@/i18n/messages/catalog/de/mobile";
 import { detailSidebarDe } from "@/i18n/messages/catalog/de/detailSidebar";
+import { actionsViewDe } from "@/i18n/messages/catalog/de/actionsView";
 
 export const catalogDe = {
   ...coreDe,
@@ -28,4 +29,5 @@ export const catalogDe = {
   ...panelsDe,
   ...footerDe,
   ...detailSidebarDe,
+  ...actionsViewDe,
 };

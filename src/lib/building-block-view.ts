@@ -58,7 +58,7 @@ export function resolveBuildingBlockViewNavigation(
   if (!label) return null;
 
   for (const view of views) {
-    if (view.id === activeViewId) continue;
+    if (view.id === activeViewId || view.type === "actions") continue;
     for (const parent of view.elements) {
       if (!supportsArchDrilldown(parent.type)) continue;
       if (parent.detailViewId?.trim() !== activeViewId) continue;

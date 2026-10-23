@@ -30,7 +30,9 @@ import {
   FileConflictDialog,
   type FileConflictChoice,
 } from "@/components/file-conflict-dialog";
+import { ActionsBoardView } from "@/components/actions/ActionsBoardView";
 import { StormCanvas } from "@/components/storm-canvas";
+import { isActionsView } from "@/lib/storm-json";
 import { WorkingFileSetupDialog } from "@/components/working-file-setup-dialog";
 import {
   NewWorkingFileDialog,
@@ -88,6 +90,7 @@ import {
   exportGlossaryMarkdown,
   exportHotspotReportMarkdown,
   exportActionItemsMarkdown,
+  exportArchitectureMeasuresMarkdown,
   exportProcessMarkdown,
   exportDataModelMarkdown,
   exportArchitectureDocumentationMarkdown,
@@ -245,6 +248,11 @@ export function StormBoard() {
   const redo = useStormBoardStore((s) => s.redo);
   const elementsPanelOpen = useStormBoardStore((s) => s.elementsPanelOpen);
   const propertiesPanelOpen = useStormBoardStore((s) => s.propertiesPanelOpen);
+  const activeViewId = useStormBoardStore((s) => s.activeViewId);
+  const activeView = useStormBoardStore((s) =>
+    s.views.find((v) => v.id === s.activeViewId),
+  );
+  const isActionsActive = activeView ? isActionsView(activeView) : false;
   const setElementsPanelOpen = useStormBoardStore((s) => s.setElementsPanelOpen);
   const setPropertiesPanelOpen = useStormBoardStore((s) => s.setPropertiesPanelOpen);
   const duplicateElements = useStormBoardStore((s) => s.duplicateElements);
@@ -1244,7 +1252,7 @@ export function StormBoard() {
       />
 
       <div className="mx-2 mb-2 mt-2 flex min-h-0 flex-1 gap-2 lg:mx-3 lg:mb-3">
-        {elementsPanelOpen ? (
+        {elementsPanelOpen && !isActionsActive ? (
           <div className="dock-surface hidden overflow-hidden rounded-dock lg:flex">
             <ElementPalette
               onSelectType={() => {}}
@@ -1283,7 +1291,7 @@ export function StormBoard() {
             void applyDroppedFilesAsNewViews(files);
           }}
         >
-          {!elementsPanelOpen ? (
+          {!elementsPanelOpen && !isActionsActive ? (
             <BoardDockReopenButton side="left" onOpen={() => setElementsPanelOpen(true)} />
           ) : null}
           {!propertiesPanelOpen ? (
@@ -1299,13 +1307,19 @@ export function StormBoard() {
               </p>
             </div>
           ) : null}
-          <StormCanvas />
-          <BoundedContextMobileActions onOpenDetails={() => setBcMobileSheetOpen(true)} />
-          <MobileBoardBar
-            onRequestHelpElementType={openElementHelp}
-            onRequestHelpRelationType={openRelationHelp}
-            onRequestHelpPhase={openPhaseHelp}
-          />
+          {isActionsActive ? (
+            <ActionsBoardView viewId={activeViewId} />
+          ) : (
+            <>
+              <StormCanvas />
+              <BoundedContextMobileActions onOpenDetails={() => setBcMobileSheetOpen(true)} />
+              <MobileBoardBar
+                onRequestHelpElementType={openElementHelp}
+                onRequestHelpRelationType={openRelationHelp}
+                onRequestHelpPhase={openPhaseHelp}
+              />
+            </>
+          )}
         </div>
         {propertiesPanelOpen ? (
           <BoardSideRail
@@ -1451,6 +1465,7 @@ export function StormBoard() {
         onCopyDrawioToClipboard={copyBoardDrawioToClipboard}
         onExportHotspots={exportHotspotReportMarkdown}
         onExportActionItems={exportActionItemsMarkdown}
+        onExportArchitectureMeasures={exportArchitectureMeasuresMarkdown}
         onExportGlossary={exportGlossaryMarkdown}
         onExportContextMap={exportContextMapMarkdown}
         onExportEventCatalog={exportEventCatalogMarkdown}

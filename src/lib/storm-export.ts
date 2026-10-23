@@ -50,14 +50,36 @@ import { downloadCanvasAsPdf } from "@/lib/canvas-pdf-export";
 import { resolveRegionPaint } from "@/lib/region-style";
 import { writeClipboardText, writeClipboardXml } from "@/lib/system-clipboard";
 import { slugForExportFilename } from "@/lib/view-export";
-import { boardActiveSliceFromStore, useStormBoardStore } from "@/store/storm-board-store";
-import type { BoardActiveSlice } from "@/lib/storm-json";
+import {
+  generateActionsMarkdownReport,
+  type ActionsMarkdownLabels,
+} from "@/lib/architecture-measures";
+import { isActionsView, type BoardActiveSlice } from "@/lib/storm-json";
+import { translate } from "@/i18n/translate";
+import { resolveInitialLocale } from "@/i18n/resolve-locale";
+import {
+  boardActiveSliceFromStore,
+  boardImportPayloadFromStore,
+  useStormBoardStore,
+} from "@/store/storm-board-store";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 import type { CustomCardType } from "@/lib/custom-card-types";
 import {
   ACTION_ITEM_AREA_LABELS,
   ACTION_ITEM_STATUS_LABELS,
 } from "@/types/action-item";
+import {
+  ACTION_TYPES,
+  ARCHITECTURE_QUALITIES,
+  EFFORT_ESTIMATES,
+  MEASURE_STATUSES,
+  OBLIGATION_LEVELS,
+  type ActionStatus,
+  type ActionType,
+  type ArchitectureQuality,
+  type EffortEstimate,
+  type ObligationLevel,
+} from "@/types/actions-view";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
 
 function elementExportRotation(el: StormElement): number {
@@ -117,6 +139,69 @@ export function exportHotspotReportMarkdown(): void {
 }
 
 /** Action-item register: status, notes, problem areas. */
+function actionsMarkdownLabels(): ActionsMarkdownLabels {
+  const locale = resolveInitialLocale();
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
+  const actionType = Object.fromEntries(
+    ACTION_TYPES.map((k) => [k, t(`actionsView.actionType.${k}` as const)]),
+  ) as Record<ActionType, string>;
+  const obligation = Object.fromEntries(
+    OBLIGATION_LEVELS.map((k) => [k, t(`actionsView.obligation.${k}` as const)]),
+  ) as Record<ObligationLevel, string>;
+  const quality = Object.fromEntries(
+    ARCHITECTURE_QUALITIES.map((k) => [k, t(`actionsView.quality.${k}` as const)]),
+  ) as Record<ArchitectureQuality, string>;
+  const status = Object.fromEntries(
+    MEASURE_STATUSES.map((k) => [k, t(`actionsView.status.${k}` as const)]),
+  ) as Record<ActionStatus, string>;
+  const effort = Object.fromEntries(
+    EFFORT_ESTIMATES.map((k) => [k, t(`actionsView.effort.${k}` as const)]),
+  ) as Record<EffortEstimate, string>;
+  return {
+    title: t("actionsView.reportTitle"),
+    created: t("actionsView.reportCreated"),
+    overview: t("actionsView.reportOverview"),
+    total: t("actionsView.reportTotal"),
+    byObligation: t("actionsView.reportByObligation"),
+    byActionType: t("actionsView.reportByActionType"),
+    tableHeaders: {
+      type: t("actionsView.tableType"),
+      measure: t("actionsView.tableMeasure"),
+      obligation: t("actionsView.tableObligation"),
+      qualities: t("actionsView.tableQualities"),
+      effort: t("actionsView.tableEffort"),
+      owner: t("actionsView.tableOwner"),
+      reference: t("actionsView.tableReference"),
+    },
+    details: t("actionsView.reportDetails"),
+    none: t("actionsView.reportNone"),
+    actionType,
+    obligation,
+    quality,
+    status,
+    effort,
+  };
+}
+
+/** Architecture measures view — review protocol (active or first actions tab). */
+export function exportArchitectureMeasuresMarkdown(): void {
+  const payload = boardImportPayloadFromStore();
+  const view =
+    payload.views.find(
+      (v): v is import("@/types/actions-view").ActionsView =>
+        v.id === payload.activeViewId && isActionsView(v),
+    ) ??
+    payload.views.find((v): v is import("@/types/actions-view").ActionsView => isActionsView(v)) ??
+    null;
+  const title = payload.title;
+  if (!view) {
+    downloadText(`${slugTitle(title)}-architektur-massnahmen.md`, "_No actions view._\n");
+    return;
+  }
+  const md = generateActionsMarkdownReport(view, title, actionsMarkdownLabels());
+  downloadText(`${slugTitle(title)}-architektur-massnahmen.md`, md);
+}
+
 export function exportActionItemsMarkdown(): void {
   const { actionItems, title } = boardActiveSliceFromStore();
   const lines = [
