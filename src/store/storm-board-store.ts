@@ -1,10 +1,6 @@
 import { create } from "zustand";
 
-import {
-  defaultLabelForType,
-  elementDimensions,
-  HOTSPOT_DEFAULT_ROTATION_DEG,
-} from "@/lib/element-styles";
+import { defaultLabelForType, elementDimensions } from "@/lib/element-styles";
 import { defaultRelationType } from "@/lib/relation-validation";
 import {
   applyContainmentAssignments,
@@ -519,7 +515,7 @@ function createElement(
     width: dims.width,
     height: dims.height,
     zIndex,
-    rotation: type === "hotspot" ? HOTSPOT_DEFAULT_ROTATION_DEG : undefined,
+    rotation: undefined,
     metadata: type === "hotspot"
       ? { hotspotStatus: "open", hotspotPriority: "medium" }
       : type === "note"

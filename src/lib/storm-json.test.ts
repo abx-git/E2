@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { effectiveElementRotation } from "@/lib/element-rotation";
-import { resolveElementStyle } from "@/lib/element-styles";
+import { resolveElementStyle, styleForElementType } from "@/lib/element-styles";
 import {
   BOARD_SNAPSHOT_SCHEMA_ID,
   EXPORT_VERSION,
@@ -220,6 +220,20 @@ describe("storm-json multi-view", () => {
       name: "Alt",
       viewId: "view-a",
     });
+  });
+
+  it("drops legacy 45° hotspot rotation so style default (15°) applies", () => {
+    const legacy = normalizeStormElement({
+      id: "h",
+      type: "hotspot",
+      label: "Risk",
+      x: 0,
+      y: 0,
+      rotation: 45,
+    });
+    expect(legacy.rotation).toBeUndefined();
+    const styled = styleForElementType("hotspot");
+    expect(effectiveElementRotation(legacy.rotation, styled.rotation)).toBe(15);
   });
 
   it("migrates arc42Section stickies and maps unknown types to notes", () => {

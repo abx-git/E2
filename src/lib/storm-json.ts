@@ -42,7 +42,7 @@ import {
   createDefaultCustomCardTypes,
   normalizeCustomCardTypes,
 } from "@/lib/custom-card-types";
-import { isKnownElementType } from "@/lib/element-styles";
+import { HOTSPOT_DEFAULT_ROTATION_DEG, isKnownElementType } from "@/lib/element-styles";
 import boardSnapshotV2Schema from "../../public/schemas/board-snapshot-v2.schema.json";
 
 function asFiniteNumber(value: unknown): number | undefined {
@@ -75,7 +75,14 @@ export function normalizeStormElement(raw: StormElement | Record<string, unknown
     metadata: Object.keys(meta).length ? (meta as StormElement["metadata"]) : undefined,
   };
 
-  const rotation = asFiniteNumber(el.rotation);
+  let rotation = asFiniteNumber(el.rotation);
+  if (type === "hotspot") {
+    if (rotation === 45) {
+      rotation = undefined;
+    } else if (rotation === HOTSPOT_DEFAULT_ROTATION_DEG) {
+      rotation = undefined;
+    }
+  }
   if (rotation !== undefined) next.rotation = rotation;
   else delete next.rotation;
 
