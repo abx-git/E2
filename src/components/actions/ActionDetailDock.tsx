@@ -2,6 +2,7 @@
 
 import { Copy, ExternalLink, Trash2 } from "lucide-react";
 import { collectBoardLinkTargets } from "@/lib/architecture-measures";
+import { selectMeasureItem } from "@/lib/select-measure-item";
 import { boardImportPayloadFromStore } from "@/store/storm-board-store";
 import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -16,18 +17,21 @@ import {
 
 export function ActionDetailDock({
   viewId,
-  item,
+  itemId,
 }: {
   viewId: string;
-  item: MeasureActionItem;
+  itemId: string;
 }) {
   const t = useT();
+  const item = useStormBoardStore((s) => selectMeasureItem(s.views, viewId, itemId));
   const update = useStormBoardStore((s) => s.updateMeasureActionItem);
   const remove = useStormBoardStore((s) => s.removeMeasureActionItem);
   const duplicate = useStormBoardStore((s) => s.duplicateMeasureActionItem);
   const navigate = useStormBoardStore((s) => s.navigateToMeasureTarget);
 
   const linkTargets = collectBoardLinkTargets(boardImportPayloadFromStore());
+
+  if (!item) return null;
 
   return (
     <aside className="flex h-full min-h-0 w-full flex-col border-l border-[var(--border)] bg-[var(--sidebar)]">
