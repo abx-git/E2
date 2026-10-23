@@ -68,8 +68,6 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
     [actionsView],
   );
 
-  const selectedItem = actionsView?.items.find((i) => i.id === selectedMeasureId) ?? null;
-
   const columns =
     actionsView?.config.groupBy === "actionType" ? ACTION_TYPES : OBLIGATION_LEVELS;
   const rows =
@@ -220,7 +218,7 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
                               if (dragRef.current) return;
                               selectMeasure(item.id);
                             }}
-                            onTitleCommit={(title) =>
+                            onTitleChange={(title) =>
                               updateMeasure(viewId, item.id, { title })
                             }
                             dragProps={{ onPointerDown: (e) => beginDrag(item, e) }}
@@ -239,9 +237,9 @@ export function ActionsBoardView({ viewId }: { viewId: string }) {
             </p>
           ) : null}
         </div>
-        {propertiesPanelOpen && selectedItem ? (
+        {propertiesPanelOpen && selectedMeasureId ? (
           <div className="hidden w-[min(22rem,38%)] shrink-0 lg:flex">
-            <ActionDetailDock viewId={viewId} item={selectedItem} />
+            <ActionDetailDock viewId={viewId} itemId={selectedMeasureId} />
           </div>
         ) : null}
       </div>

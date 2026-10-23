@@ -12,14 +12,14 @@ export function ActionCard({
   selected,
   dragging = false,
   onSelect,
-  onTitleCommit,
+  onTitleChange,
   dragProps,
 }: {
   item: MeasureActionItem;
   selected: boolean;
   dragging?: boolean;
   onSelect: () => void;
-  onTitleCommit: (title: string) => void;
+  onTitleChange: (title: string) => void;
   dragProps?: {
     onPointerDown: (e: React.PointerEvent) => void;
   };
@@ -73,13 +73,17 @@ export function ActionCard({
         >
           <input
             className="w-full bg-transparent outline-none placeholder:text-[var(--muted)]"
-            defaultValue={item.title}
+            value={item.title}
             placeholder={t("actionsView.detail.titlePlaceholder")}
             aria-label={item.title || t("actionsView.detail.titlePlaceholder")}
             onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              e.stopPropagation();
+              onTitleChange(e.target.value);
+            }}
             onBlur={(e) => {
-              const next = e.target.value.trim();
-              if (next && next !== item.title) onTitleCommit(next);
+              const trimmed = e.target.value.trim();
+              if (trimmed !== e.target.value) onTitleChange(trimmed);
             }}
             onKeyDown={(e) => {
               e.stopPropagation();
