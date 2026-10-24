@@ -169,10 +169,11 @@ import {
   UnsavedChangesDialog,
   type UnsavedChangesChoice,
 } from "@/components/unsaved-changes-dialog";
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
 
 export function StormBoard() {
   const t = useT();
+  const locale = useLocale();
   const [storageOpen, setStorageOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [newFileOpen, setNewFileOpen] = useState(false);
