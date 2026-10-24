@@ -28,6 +28,12 @@ import {
   type ClipboardSelection,
 } from "@/lib/board-clipboard";
 import {
+  extractElementAttributeClipboard,
+  planElementAttributePaste,
+  type ElementAttributeClipboard,
+  type ElementAttributePastePlan,
+} from "@/lib/element-attribute-clipboard";
+import {
   bringElementsForward as computeBringForward,
   bringElementsToFront as computeBringToFront,
   bringForward as computeBringRegionsForward,
@@ -215,6 +221,9 @@ export interface StormBoardState {
   /** Ephemeral cut buffer (not persisted / not in undo domain snapshot as separate field — cut is undoable via board state). */
   clipboard: BoardClipboardPayload | null;
   clipboardDropHighlight: boolean;
+  /** Copied label, description, metadata, and source type for attribute paste (not persisted). */
+  elementAttributeClipboard: ElementAttributeClipboard | null;
+  elementAttributeClipboardSourceId: string | null;
   /** Pick a canvas hotspot to link the open measure (ephemeral). */
   measureHotspotLinkPick: { actionsViewId: string; measureId: string } | null;
   /** Brief highlight after linking a hotspot to a measure (ephemeral). */
@@ -262,6 +271,9 @@ export interface StormBoardState {
   /** Paste subset from clipboard onto the board and remove those items from the clipboard. */
   takeClipboardElementsAt: (ids: string[], worldX: number, worldY: number) => string[];
   clearClipboard: () => void;
+  copyElementAttributes: (elementId: string) => boolean;
+  getElementAttributePastePlan: (targetId: string) => ElementAttributePastePlan | null;
+  applyElementAttributePaste: (targetId: string, plan: ElementAttributePastePlan) => void;
   selectElement: (id: string | null, additive?: boolean) => void;
   setSelectedElementIds: (ids: string[], additive?: boolean) => void;
   /** Marquee / multi-select including regions. */
@@ -685,6 +697,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   contextMenu: null,
   clipboard: null,
   clipboardDropHighlight: false,
+  elementAttributeClipboard: null,
+  elementAttributeClipboardSourceId: null,
   measureHotspotLinkPick: null,
   measureHotspotLinkHighlight: null,
   selectedMeasureId: null,
@@ -934,6 +948,41 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     if (!extracted) return false;
     set({ clipboard: mergeClipboardPayloads(s.clipboard, extracted) });
     return true;
+  },
+
+  copyElementAttributes: (elementId) => {
+    const el = get().elements.find((e) => e.id === elementId);
+    if (!el) return false;
+    set({
+      elementAttributeClipboard: extractElementAttributeClipboard(el),
+      elementAttributeClipboardSourceId: elementId,
+    });
+    return true;
+  },
+
+  getElementAttributePastePlan: (targetId) => {
+    const s = get();
+    const clip = s.elementAttributeClipboard;
+    if (!clip) return null;
+    const target = s.elements.find((e) => e.id === targetId);
+    if (!target) return null;
+    return planElementAttributePaste(target, clip);
+  },
+
+  applyElementAttributePaste: (targetId, plan) => {
+    commit(set, get, (s) => {
+      const elements = s.elements.map((e) => {
+        if (e.id !== targetId) return e;
+        return {
+          ...e,
+          type: plan.patch.type ?? e.type,
+          label: plan.patch.label ?? e.label,
+          description: plan.patch.description,
+          metadata: plan.patch.metadata,
+        };
+      });
+      return { elements: settleElements(elements, s.swimlanes, s.boundedContexts) };
+    });
   },
 
   duplicateElements: (ids) => {

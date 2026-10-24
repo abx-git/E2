@@ -37,6 +37,10 @@ import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
 import { resolveBoundedContextDetailView } from "@/lib/bounded-context-view";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
 import { clipboardItemCount, isClipboardEmpty } from "@/lib/board-clipboard";
+import {
+  runElementAttributeCopy,
+  runElementAttributePaste,
+} from "@/lib/element-attribute-clipboard-ui";
 import { useIsMobileLayout } from "@/lib/use-media-query";
 import {
   effectiveElementRotation,
@@ -175,6 +179,10 @@ export function CanvasContextMenu({
   const applyProgressMark = useStormBoardStore((s) => s.applyProgressMark);
   const pasteClipboardAt = useStormBoardStore((s) => s.pasteClipboardAt);
   const clipboard = useStormBoardStore((s) => s.clipboard);
+  const elementAttributeClipboard = useStormBoardStore((s) => s.elementAttributeClipboard);
+  const elementAttributeClipboardSourceId = useStormBoardStore(
+    (s) => s.elementAttributeClipboardSourceId,
+  );
   const addMeasureFromHotspot = useStormBoardStore((s) => s.addMeasureFromHotspot);
   const setHotspotBacklogHidden = useStormBoardStore((s) => s.setHotspotMeasuresBacklogHidden);
   const linkMeasureToHotspot = useStormBoardStore((s) => s.linkMeasureToCanvasHotspot);
@@ -601,6 +609,32 @@ export function CanvasContextMenu({
         />
         <Item
           icon={ClipboardCopy}
+          label={t("contextMenu.copyElementAttributes")}
+          hint={t("contextMenu.copyElementAttributesHint")}
+          onClick={() => run(() => runElementAttributeCopy(el.id))}
+        />
+        {elementAttributeClipboard ? (
+          <Item
+            icon={ClipboardPaste}
+            label={t("contextMenu.pasteElementAttributes")}
+            hint={t("contextMenu.pasteElementAttributesHint")}
+            disabled={elementAttributeClipboardSourceId === el.id}
+            onClick={() =>
+              run(() => {
+                const outcome = runElementAttributePaste(t, el.id);
+                if (outcome.status === "error") {
+                  if (outcome.reason === "no_clipboard") {
+                    window.alert(t("alerts.elementAttributesPasteNoClipboard"));
+                  } else if (outcome.reason === "same_element") {
+                    window.alert(t("alerts.elementAttributesPasteSameElement"));
+                  }
+                }
+              })
+            }
+          />
+        ) : null}
+        <Item
+          icon={ClipboardCopy}
           label={t("contextMenu.copyToClipboard")}
           onClick={() => run(() => copyToClipboard(clipboardSelectionFromStore()))}
         />
@@ -790,6 +824,36 @@ export function CanvasContextMenu({
           hint="⌘D / Ctrl+D"
           onClick={() => run(() => duplicateElements(target.ids))}
         />
+        {target.ids.length === 1 ? (
+          <>
+            <Item
+              icon={ClipboardCopy}
+              label={t("contextMenu.copyElementAttributes")}
+              hint={t("contextMenu.copyElementAttributesHint")}
+              onClick={() => run(() => runElementAttributeCopy(target.ids[0]!))}
+            />
+            {elementAttributeClipboard ? (
+              <Item
+                icon={ClipboardPaste}
+                label={t("contextMenu.pasteElementAttributes")}
+                hint={t("contextMenu.pasteElementAttributesHint")}
+                disabled={elementAttributeClipboardSourceId === target.ids[0]}
+                onClick={() =>
+                  run(() => {
+                    const outcome = runElementAttributePaste(t, target.ids[0]!);
+                    if (outcome.status === "error") {
+                      if (outcome.reason === "no_clipboard") {
+                        window.alert(t("alerts.elementAttributesPasteNoClipboard"));
+                      } else if (outcome.reason === "same_element") {
+                        window.alert(t("alerts.elementAttributesPasteSameElement"));
+                      }
+                    }
+                  })
+                }
+              />
+            ) : null}
+          </>
+        ) : null}
         <Item
           icon={ClipboardCopy}
           label={t("contextMenu.copyToClipboard")}

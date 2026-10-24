@@ -5,6 +5,10 @@ export const alertsDe = {
     jsonClipboardFailed:
       "JSON konnte nicht in die System-Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen oder JSON herunterladen.",
     viewExportFailed: "Sicht konnte nicht exportiert werden.",
+    elementAttributesCopied: "Kartenattribute kopiert.",
+    elementAttributesPasteNoClipboard: "Keine kopierten Kartenattribute.",
+    elementAttributesPasteNoTarget: "Zielkarte wählen (genau ein Element).",
+    elementAttributesPasteSameElement: "Attribute können nicht auf dieselbe Karte eingefügt werden.",
     aiContextExportFailed: "KI-Paket konnte nicht exportiert werden.",
     aiContextClipboardFailed:
       "KI-Paket konnte nicht in die Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen.",

@@ -169,6 +169,10 @@ import {
   UnsavedChangesDialog,
   type UnsavedChangesChoice,
 } from "@/components/unsaved-changes-dialog";
+import {
+  runElementAttributeCopy,
+  runElementAttributePaste,
+} from "@/lib/element-attribute-clipboard-ui";
 import { useLocale, useT } from "@/i18n";
 
 export function StormBoard() {
@@ -336,6 +340,34 @@ export function StormBoard() {
         return;
       }
 
+      if (e.shiftKey && (e.key === "c" || e.key === "C")) {
+        const ids = useStormBoardStore.getState().selectedElementIds;
+        if (ids.length !== 1) return;
+        e.preventDefault();
+        runElementAttributeCopy(ids[0]!);
+        return;
+      }
+
+      if (e.shiftKey && (e.key === "v" || e.key === "V")) {
+        const ids = useStormBoardStore.getState().selectedElementIds;
+        if (ids.length !== 1) {
+          window.alert(t("alerts.elementAttributesPasteNoTarget"));
+          return;
+        }
+        e.preventDefault();
+        const outcome = runElementAttributePaste(t, ids[0]!);
+        if (outcome.status === "error") {
+          if (outcome.reason === "no_clipboard") {
+            window.alert(t("alerts.elementAttributesPasteNoClipboard"));
+          } else if (outcome.reason === "same_element") {
+            window.alert(t("alerts.elementAttributesPasteSameElement"));
+          } else {
+            window.alert(t("alerts.elementAttributesPasteNoTarget"));
+          }
+        }
+        return;
+      }
+
       const progressMark = progressMarkFromDigit(e.key);
       if (progressMark) {
         const s = useStormBoardStore.getState();
@@ -358,7 +390,7 @@ export function StormBoard() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [undo, redo, duplicateElements, applyProgressMark]);
+  }, [undo, redo, duplicateElements, applyProgressMark, t]);
 
   const downloadJson = useCallback(() => {
     const json = boardJsonFromStoreState();

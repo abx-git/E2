@@ -124,5 +124,14 @@ export const dialogsDe = {
     newFileCreateWithFile: "Anlegen und Speicherort wählen…",
     newFileEmptyWithoutFile: "Leeres Board ohne Datei",
     newFileEmptyOnly: "Leeres Board anlegen",
+    elementAttributePaste: {
+      intro: "Inhalte auf die Zielkarte übertragen?",
+      typeChange: "Kartentyp: {from} → {to}",
+      labelOverwrite: "Titel des Ziels wird ersetzt.",
+      descriptionOverwrite: "Beschreibung des Ziels wird ersetzt.",
+      targetLost: "Am Ziel entfernt: {fields}",
+      sourceDropped: "Vom Ursprung nicht übernommen: {fields}",
+      proceed: "Fortfahren?",
+    },
   },
 } as const;

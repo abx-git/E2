@@ -120,5 +120,14 @@ export const dialogsEn = {
     newFileCreateWithFile: "Create and choose save location…",
     newFileEmptyWithoutFile: "Empty board without file",
     newFileEmptyOnly: "Create empty board",
+    elementAttributePaste: {
+      intro: "Apply copied content to the target card?",
+      typeChange: "Card type: {from} → {to}",
+      labelOverwrite: "Target title will be replaced.",
+      descriptionOverwrite: "Target description will be replaced.",
+      targetLost: "Removed on target: {fields}",
+      sourceDropped: "Not applied from source: {fields}",
+      proceed: "Continue?",
+    },
   },
 } as const;

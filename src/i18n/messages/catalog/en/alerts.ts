@@ -5,6 +5,10 @@ export const alertsEn = {
     jsonClipboardFailed:
       "Could not copy JSON to the system clipboard. Check browser permissions or download JSON.",
     viewExportFailed: "Could not export view.",
+    elementAttributesCopied: "Card attributes copied.",
+    elementAttributesPasteNoClipboard: "No copied card attributes.",
+    elementAttributesPasteNoTarget: "Select a target card (exactly one element).",
+    elementAttributesPasteSameElement: "Cannot paste attributes onto the same card.",
     aiContextExportFailed: "Could not export AI package.",
     aiContextClipboardFailed:
       "Could not copy the AI package to the clipboard. Check browser permissions.",
