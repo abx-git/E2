@@ -17,6 +17,7 @@ import { SwimlaneLayer } from "@/components/swimlane-layer";
 import { TimelineGuide } from "@/components/timeline-guide";
 import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint, ZOOM_STEP } from "@/lib/canvas-viewport";
 import { deleteCurrentSelection } from "@/lib/board-delete-selection";
+import { isTypingTarget, shouldSuppressBoardDeleteKey } from "@/lib/keyboard-input-guard";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { elementsInMarquee, swimlanesInMarquee, boundedContextsInMarquee, type WorldRect } from "@/lib/selection-geometry";
 import { lineLength } from "@/lib/canvas-annotations";
@@ -31,12 +32,6 @@ const MIN_LINE_LENGTH_WORLD = 8;
 
 function isCanvasChromeTarget(target: EventTarget | null): boolean {
   return Boolean((target as Element | null)?.closest?.("[data-canvas-chrome]"));
-}
-
-function isTypingTarget(target: EventTarget | null): boolean {
-  const el = target as HTMLElement | null;
-  const tag = el?.tagName?.toLowerCase();
-  return tag === "input" || tag === "textarea" || Boolean(el?.isContentEditable);
 }
 
 function shouldIgnoreSpaceForPan(target: EventTarget | null): boolean {
@@ -200,6 +195,11 @@ export function StormCanvas() {
 
       if (e.key === "Delete" || e.key === "Backspace") {
         const store = useStormBoardStore.getState();
+        if (
+          shouldSuppressBoardDeleteKey(e, { editingElementId: store.editingElementId })
+        ) {
+          return;
+        }
         if (deleteCurrentSelection(store)) {
           e.preventDefault();
         }

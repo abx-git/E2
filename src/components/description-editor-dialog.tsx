@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import type { MDXEditorMethods } from "@mdxeditor/editor";
 
+import { isTypingTarget } from "@/lib/keyboard-input-guard";
 import { normalizeDescriptionMarkdown } from "@/lib/description-markdown";
 import { DescriptionMarkdownEditor } from "@/components/description-markdown-editor";
 import { useT } from "@/i18n";
@@ -78,6 +79,11 @@ export function DescriptionEditorDialog({
         aria-labelledby={titleId}
         className="flex h-[min(92dvh,44rem)] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-slate-200/90 bg-white text-slate-900 shadow-2xl shadow-slate-900/20 sm:h-[min(88vh,44rem)] sm:rounded-2xl"
         onPointerDown={(e) => e.stopPropagation()}
+        onKeyDownCapture={(e) => {
+          if (e.key !== "Delete" && e.key !== "Backspace") return;
+          if (isTypingTarget(e.target)) return;
+          e.stopPropagation();
+        }}
         onSubmit={onSubmit}
       >
         <div className="flex shrink-0 items-start gap-3 border-b border-slate-100 px-4 pb-3 pt-3.5">

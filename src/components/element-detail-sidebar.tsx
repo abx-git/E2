@@ -15,6 +15,7 @@ import {
   onCardDisplayFieldsForType,
   type OnCardDisplayKey,
 } from "@/lib/card-preview";
+import { isTypingTarget } from "@/lib/keyboard-input-guard";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { connectorToCanvasLine } from "@/lib/board-connector-migrate";
@@ -1788,7 +1789,15 @@ function DockPanel({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 flex-col">
+    <div
+      className="flex min-h-0 flex-col"
+      data-board-inspector
+      onKeyDownCapture={(e) => {
+        if (e.key !== "Delete" && e.key !== "Backspace") return;
+        if (isTypingTarget(e.target)) return;
+        e.stopPropagation();
+      }}
+    >
       <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] px-4 py-3">
         <h2 className="text-sm font-semibold tracking-tight text-[var(--text)]">{title}</h2>
         {onHelp && (
