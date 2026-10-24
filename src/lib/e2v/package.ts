@@ -8,6 +8,51 @@ import { E2V_FORMAT, E2V_VERSION } from "@/lib/e2v/constants";
 /**
  * Clipboard / LLM roundtrip: English prompt + compact schema + E2V data (full layout).
  */
+/**
+ * Prompt + compact E2V schema only (no view data). Reuse in LLM system prompts.
+ */
+export function buildE2vSchemaPromptPackage(modelingMode?: string): string {
+  const modeLine = modelingMode ? `Typical modelingMode for this chat: ${modelingMode}.` : "";
+  return [
+    "E2V schema prompt package",
+    "No board data — generate E2V text that conforms to the schema below.",
+    `Wire format: ${E2V_FORMAT} v${E2V_VERSION}. Layout is explicit — do not auto-layout.`,
+    modeLine,
+    "Paste generated data into E2 (Daten → E2V einfügen).",
+    "",
+    "## prompt",
+    E2V_ENGLISH_LLM_PROMPT.trim(),
+    "",
+    "## schema",
+    "```json",
+    stringifyE2vSchema(),
+    "```",
+    "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function buildE2vSchemaPromptPackageForView(
+  doc: BoardImportPayload,
+  viewId: string,
+): string | null {
+  const view = doc.views.find((v) => v.id === viewId);
+  if (!view) return null;
+  const mode = view.type !== "actions" ? view.modelingMode : "actions";
+  return buildE2vSchemaPromptPackage(mode);
+}
+
+export function e2vSchemaPromptExportFilename(title: string, viewName: string): string {
+  const slug = (s: string) =>
+    s
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "board";
+  return `${slug(title)}-${slug(viewName)}-e2v-schema-prompt.md`;
+}
+
 export function buildE2vClipboardPackage(
   doc: BoardImportPayload,
   viewId: string,

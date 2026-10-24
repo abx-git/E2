@@ -322,6 +322,7 @@ Im Facilitator-Modus:
 | **JSON** | Vollständiger Board-Stand inkl. Schema-Verweis | alle |
 | **JSON Schema** | Für andere Tools, die gültige Boards erzeugen | alle |
 | **KI kopieren** | Mode-Schema + Sicht-Daten (mit Layout) in die Zwischenablage — ein Prompt-Paket für KI; Rückweg: Daten-JSON → KI einfügen | alle |
+| **E2V-Schema** | Englischer LLM-Prompt + E2V-Format-Spec **ohne** Sicht-Daten — wiederverwendbar in Prompts | alle |
 | **Mermaid / PlantUML** | Diagramm-Text pro Sicht; Import mit Auto-Layout | alle |
 | **SVG / PNG** | Visueller Snapshot; SVG als `.drawio.svg` mit eingebettetem Diagramm — in [diagrams.net](https://app.diagrams.net) / Draw.io bearbeitbar | alle |
 | **Hotspot-Report (MD)** | Offene Punkte | alle |

@@ -20,6 +20,9 @@ export {
 } from "@/lib/e2v/schema";
 export {
   buildE2vClipboardPackage,
+  buildE2vSchemaPromptPackage,
+  buildE2vSchemaPromptPackageForView,
+  e2vSchemaPromptExportFilename,
   extractE2vFromClipboardText,
   e2vExportFilename,
 } from "@/lib/e2v/package";

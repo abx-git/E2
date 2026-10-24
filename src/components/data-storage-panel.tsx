@@ -94,6 +94,9 @@ export interface DataStoragePanelProps {
   onCopyViewJsonToClipboard: (viewId: string) => boolean | Promise<boolean>;
   /** Mode schema + AI context data (with layout) for the system clipboard. */
   onCopyAiPackageToClipboard: (viewId: string) => boolean | Promise<boolean>;
+  /** E2V: prompt + schema without view data. */
+  onCopyE2vSchemaPromptPackageToClipboard: (viewId: string) => boolean | Promise<boolean>;
+  onExportE2vSchemaPromptPackage: (viewId: string) => void;
   /** Paste AI-context JSON as a new view (layout when present, else auto-layout). */
   onPasteAiContextAsNewView: () => void;
   /** Mermaid / PlantUML for the selected view. */
@@ -353,6 +356,8 @@ export function DataStoragePanel({
   onExportViewJson,
   onCopyViewJsonToClipboard,
   onCopyAiPackageToClipboard,
+  onCopyE2vSchemaPromptPackageToClipboard,
+  onExportE2vSchemaPromptPackage,
   onPasteAiContextAsNewView,
   onExportViewMermaid,
   onCopyViewMermaidToClipboard,
@@ -407,6 +412,7 @@ export function DataStoragePanel({
   const [viewJsonCopied, setViewJsonCopied] = useState(false);
   const [aiPackageCopied, setAiPackageCopied] = useState(false);
   const [e2vPackageCopied, setE2vPackageCopied] = useState(false);
+  const [e2vSchemaPromptCopied, setE2vSchemaPromptCopied] = useState(false);
   const [mermaidCopied, setMermaidCopied] = useState(false);
   const [plantUmlCopied, setPlantUmlCopied] = useState(false);
   const [exportViewId, setExportViewId] = useState<string | null>(null);
@@ -1182,6 +1188,32 @@ export function DataStoragePanel({
                       emphasize={e2vPackageCopied}
                     />
                   ) : null}
+                  <ExportTile
+                    onClick={() => {
+                      void Promise.resolve(
+                        onCopyE2vSchemaPromptPackageToClipboard(selectedExportViewId),
+                      ).then((ok) => {
+                        if (!ok) return;
+                        setE2vSchemaPromptCopied(true);
+                        window.setTimeout(() => setE2vSchemaPromptCopied(false), 2000);
+                      });
+                    }}
+                    disabled={busy || !selectedExportViewId}
+                    label={
+                      e2vSchemaPromptCopied
+                        ? t("common.copied")
+                        : t("exportPanel.e2vSchemaPrompt")
+                    }
+                    detail={t("exportPanel.e2vSchemaPromptDetail")}
+                    icon={ClipboardCopy}
+                    emphasize={e2vSchemaPromptCopied}
+                  />
+                  <ExportTile
+                    onClick={() => onExportE2vSchemaPromptPackage(selectedExportViewId)}
+                    disabled={busy || !selectedExportViewId}
+                    label={t("exportPanel.e2vSchemaPrompt")}
+                    detail={t("exportPanel.e2vSchemaPromptDownload")}
+                  />
                 </div>
               </div>
 

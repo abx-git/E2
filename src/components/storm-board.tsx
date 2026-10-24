@@ -121,9 +121,11 @@ import {
 import { buildAiClipboardPackage } from "@/lib/ai-context-mode-schema";
 import {
   buildE2vClipboardPackage,
+  buildE2vSchemaPromptPackageForView,
   encodeE2vDocument,
   encodeE2vSingleView,
   e2vExportFilename,
+  e2vSchemaPromptExportFilename,
   E2V_SCHEMA_FILENAME,
   stringifyE2vSchema,
 } from "@/lib/e2v";
@@ -167,11 +169,10 @@ import {
   UnsavedChangesDialog,
   type UnsavedChangesChoice,
 } from "@/components/unsaved-changes-dialog";
-import { useLocale, useT } from "@/i18n";
+import { useT } from "@/i18n";
 
 export function StormBoard() {
   const t = useT();
-  const locale = useLocale();
   const [storageOpen, setStorageOpen] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [newFileOpen, setNewFileOpen] = useState(false);
@@ -467,6 +468,43 @@ export function StormBoard() {
         window.alert(t("alerts.aiContextClipboardFailed"));
         return false;
       }
+    },
+    [t],
+  );
+
+  const copyE2vSchemaPromptPackageToClipboard = useCallback(
+    async (viewId: string): Promise<boolean> => {
+      const payload = boardImportPayloadFromStore();
+      const pack = buildE2vSchemaPromptPackageForView(payload, viewId);
+      if (!pack) {
+        window.alert(t("alerts.viewExportFailed"));
+        return false;
+      }
+      try {
+        await navigator.clipboard.writeText(pack);
+        return true;
+      } catch {
+        window.alert(t("alerts.aiContextClipboardFailed"));
+        return false;
+      }
+    },
+    [t],
+  );
+
+  const downloadE2vSchemaPromptPackage = useCallback(
+    (viewId: string) => {
+      const payload = boardImportPayloadFromStore();
+      const view = payload.views.find((v) => v.id === viewId);
+      const pack = buildE2vSchemaPromptPackageForView(payload, viewId);
+      if (!pack || !view) {
+        window.alert(t("alerts.viewExportFailed"));
+        return;
+      }
+      downloadTextFile(
+        e2vSchemaPromptExportFilename(payload.title, view.name),
+        pack,
+        "text/markdown;charset=utf-8",
+      );
     },
     [t],
   );
@@ -1447,6 +1485,8 @@ export function StormBoard() {
         onExportViewJson={downloadViewJson}
         onCopyViewJsonToClipboard={copyViewJsonToClipboard}
         onCopyAiPackageToClipboard={copyAiPackageToClipboard}
+        onCopyE2vSchemaPromptPackageToClipboard={copyE2vSchemaPromptPackageToClipboard}
+        onExportE2vSchemaPromptPackage={downloadE2vSchemaPromptPackage}
         onPasteAiContextAsNewView={handlePasteAiContextAsNewView}
         onExportE2vDocument={downloadE2vDocument}
         onExportViewE2v={downloadViewE2v}

@@ -4,6 +4,7 @@ import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
 import {
   boardImportPayloadFromE2vText,
   buildE2vClipboardPackage,
+  buildE2vSchemaPromptPackageForView,
   decodeE2vText,
   encodeE2vDocument,
   encodeE2vSingleView,
@@ -72,6 +73,16 @@ describe("e2v codec", () => {
     expect(back?.glossary).toHaveLength(1);
     expect(back!.views[0]!.relations[0]?.type).toBe("triggers");
     expect(back!.views[0]!.connectors.length).toBeGreaterThan(0);
+  });
+
+  it("builds schema prompt package without view data", () => {
+    const pack = buildE2vSchemaPromptPackageForView(doc, "view-a");
+    expect(pack).toContain("E2V schema prompt package");
+    expect(pack).toContain("## prompt");
+    expect(pack).toContain("## schema");
+    expect(pack).not.toMatch(/\n## data\n/);
+    expect(pack).not.toContain("Order Placed");
+    expect(pack).toContain("eventStorming");
   });
 
   it("builds LLM package with prompt, schema, and data", () => {
