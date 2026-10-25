@@ -25,7 +25,7 @@ Related: [introduction.md](introduction.md) · [solution-strategy.md](solution-s
 | R-06 | **Silent data loss if conflict UX ignored / misunderstood** | User keeps wrong side of file or room revision | Low–medium in workshops | Explicit conflict dialogs; CAS; no “fetch latest then overwrite” | Training / facilitator awareness still needed |
 | R-07 | **No product observability** | Production issues hard to diagnose for operators | High for ops, low for solo local use | CI artifact checks; in-app collab status | No APM/metrics — accepted gap until a Decision adds one |
 | R-08 | **Domain content sensitivity** on disk / in Supabase snapshots | Business knowledge exposure via file share or project misconfig | Context-dependent | Local-first ownership; operator-controlled Supabase | No app-level encryption at rest |
-| R-09 | **README links to deleted docs** (`BOARD-JSON-SCHEMA`, `COLLABORATION`, `GITHUB-PAGES`) | Onboarding confusion; broken relative links | Certain until README updated | Content covered by arc42 + `public/schemas` / SQL / workflow | README still points at missing files |
+| R-09 | **README links to ancillary docs** (`BOARD-JSON-SCHEMA`, `COLLABORATION`, `GITHUB-PAGES`) | Onboarding confusion if docs drift from product | Low | English guides under `docs/`; arc42 + `public/schemas` / SQL / workflow | Keep README links in sync when behavior changes |
 
 ## 11.2 Technical debt / known weaknesses
 
