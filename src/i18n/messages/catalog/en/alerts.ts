@@ -64,5 +64,66 @@ export const alertsEn = {
       "Could not open file. Grant permission or choose the file again via Open…",
     pasteFileName: "Paste",
     dropImportKind: "a file",
+    collabSupabaseNotConfigured: "Supabase is not configured",
+    collabSupabaseNotConfiguredDocs:
+      "Supabase is not configured (see docs/COLLABORATION.md)",
+    collabRoomCreateFailed: "Room could not be created",
+    collabRoomNotFound: "Room not found or expired",
+    collabRoomExpired: "Room has expired",
+    collabInvalidRoomSnapshot: "No valid board snapshot in the room",
+    collabPassiveTabNoWrite: "This tab cannot write right now (passive).",
+    collabNoSession: "No session",
+    collabServerChangedAgain: "The server changed again — please choose again.",
+    collabPushLocalConfirm:
+      "Push my state to the server?\n\nThis overwrites the current server state for all participants. Export JSON first if you want a backup.",
+    collabRealtimeLimited: "Realtime broadcast limited",
+    collabCreateNeedsSaveAs:
+      "Use Save as… first — the room needs a sync target that is written in parallel.",
+    collabCreateNeedsSave: "Save first — create a room only with a secured state.",
+    collabUrlKeyRequired: "URL and key are required",
+    collabUrlHttps: "URL must start with https://",
+    collabBrowserOnly: "Can only be saved in the browser",
+    collabAnonAuthFailed: "Anonymous sign-in failed",
+    collabAnonAuthDisabled:
+      "Anonymous Auth is disabled in Supabase. Dashboard: Authentication → Providers → enable Anonymous.",
+    collabBroadcastFailed: "Broadcast failed: {detail}",
+    collabBroadcastError: "Broadcast error",
+    fileNoViews: "The file contains no views.",
+    fileNotLinked: "No working file linked.",
+    wfFileExternallyChanged: "The file was changed externally.",
+    wfWriteIoFailed: "Write failed — check the file if needed.",
+    wfImportFailed: "Import failed.",
+    wfFileSwitchBlocked:
+      "Switching files — saving to the new file is blocked until it is loaded.",
+    wfMobileCopyChanged: "The mobile copy was changed externally.",
+    wfRenameNotSupported: "Rename is not supported in this browser. Use Save as…",
+    wfFilePermissionDenied: "No write permission for the file.",
+    wfRenameFailed: "Rename failed.",
+    wfNotWriterTab: "This tab is not writing the file (another tab is active).",
+    wfUrlContextMismatch: "URL and linked file do not match.",
+    wfFenceEmptyOverNonempty:
+      "An empty or contentless state is not written over a non-empty working file.",
+    wfUnknownDiskBaseline:
+      "Unknown file state — save aborted (no overwrite without a baseline).",
+    wfUnknownSyncBaseline:
+      "No known sync baseline for the file — save aborted. Reopen the file or use Save as…",
+    wfContentCasMismatch:
+      "The file was changed outside this tab. Local state not overwritten — Save as… or reload the file.",
+    linkNoViewSelected: "No view selected.",
+    linkViewNotFound: "View not found (deleted?).",
+    linkInvalidUrl: "Not a valid URL.",
+    remoteInvalidHttpUrl: "Not a valid http(s) URL.",
+    remoteHttpsOnly: "Only HTTPS URLs (or http://localhost) are allowed.",
+    remoteCheckAborted: "Check cancelled.",
+    remoteLoadFailedCors:
+      "Could not load the file (network or CORS). The source must allow cross-origin access from E2.",
+    remoteHttpStatus: "HTTP {status} — file not reachable.",
+    remoteResponseUnreadable: "Could not read the response.",
+    remoteFileEmpty: "The file is empty.",
+    remoteInvalidBoard:
+      "Not a valid E2 board (.storm.json). Format/version do not match the schema.",
+    remoteUnnamedBoard: "Untitled board",
+    wfPersistPaused:
+      "Saving to the working file is paused (foreign state or collaboration). Use Save as…",
   },
 } as const;

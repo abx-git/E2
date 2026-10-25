@@ -65,6 +65,9 @@ timestamp: "2026-08-06"
 | Runtime (arc42 §6) | [arc42/runtime.md](arc42/runtime.md) |
 | Risks and debt (arc42 §11) | [arc42/risks.md](arc42/risks.md) |
 | Feature / method coverage | [../README.md](../README.md) |
+| Board JSON format | [BOARD-JSON-SCHEMA.md](BOARD-JSON-SCHEMA.md) |
+| Optional Supabase collab | [COLLABORATION.md](COLLABORATION.md) |
+| GitHub Pages deploy | [GITHUB-PAGES.md](GITHUB-PAGES.md) |
 | UI internationalization (de/en) | [i18n.md](i18n.md) |
 | Board snapshot schema (v2) | [../public/schemas/board-snapshot-v2.schema.json](../public/schemas/board-snapshot-v2.schema.json) |
 | Collab SQL / RLS | [../supabase/schema.sql](../supabase/schema.sql) |

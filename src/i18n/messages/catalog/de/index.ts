@@ -13,6 +13,8 @@ import { collabDe } from "@/i18n/messages/catalog/de/collab";
 import { mobileDe } from "@/i18n/messages/catalog/de/mobile";
 import { detailSidebarDe } from "@/i18n/messages/catalog/de/detailSidebar";
 import { actionsViewDe } from "@/i18n/messages/catalog/de/actionsView";
+import { exportsMdDe } from "@/i18n/messages/catalog/de/exportsMd";
+import { facilitatorPhasesDe } from "@/i18n/messages/catalog/de/facilitatorPhases";
 
 export const catalogDe = {
   ...coreDe,
@@ -30,4 +32,6 @@ export const catalogDe = {
   ...footerDe,
   ...detailSidebarDe,
   ...actionsViewDe,
+  ...exportsMdDe,
+  ...facilitatorPhasesDe,
 };

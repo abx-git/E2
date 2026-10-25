@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import { DEFAULT_LOCALE, readStoredLocale, translate } from "@/i18n";
 import { defaultLabelForType, elementDimensions } from "@/lib/element-styles";
 import { defaultRelationType } from "@/lib/relation-validation";
 import {
@@ -2852,7 +2853,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       get().views.map((v) => v.name),
     );
     if (prepared.views.length === 0) {
-      return { ok: false, error: "Die Datei enthält keine Sichten." };
+      return {
+        ok: false,
+        error: translate(readStoredLocale() ?? DEFAULT_LOCALE, "alerts.fileNoViews"),
+      };
     }
     commit(set, get, (s) => {
       const views = [...flushActiveViewIntoViews(s), ...prepared.views];

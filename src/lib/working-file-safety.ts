@@ -3,6 +3,7 @@
  * Identity is `wf` only — missing URL is healed by rebind; mismatch is blocked.
  */
 
+import { localeT } from "@/lib/locale-t";
 import { readWorkingFileIdFromUrl } from "@/lib/working-file-tab-context";
 
 export type WorkingFileWriteBlockReason =
@@ -61,14 +62,14 @@ export function evaluateWorkingFileWriteGate(input: {
   requireWriter?: boolean;
 }): WorkingFileWriteGate {
   if (!input.attached) {
-    return { ok: false, reason: "not_attached", message: "Keine Arbeitsdatei verknüpft." };
+    return { ok: false, reason: "not_attached", message: localeT("alerts.fileNotLinked") };
   }
 
   if (input.requireWriter !== false && !input.isWriterLeader) {
     return {
       ok: false,
       reason: "not_writer",
-      message: "Dieser Tab schreibt die Datei gerade nicht (anderer Tab ist aktiv).",
+      message: localeT("alerts.wfNotWriterTab"),
     };
   }
 
@@ -83,7 +84,7 @@ export function evaluateWorkingFileWriteGate(input: {
     return {
       ok: false,
       reason: "url_context_mismatch",
-      message: "URL und verknüpfte Datei stimmen nicht überein.",
+      message: localeT("alerts.wfUrlContextMismatch"),
     };
   }
 

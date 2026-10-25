@@ -1,5 +1,8 @@
 export const chromeDe = {
   chrome: {
+    betaHint: "Beta — Dateiformat kann geändert werden und inkompatibel werden.",
+    offlineTitle: "E2 — Offline",
+    offlineMessage: "Keine Netzwerkverbindung. Bitte später erneut versuchen.",
     viewSection: "Ansicht",
     showTimeline: "Timeline anzeigen",
     snapToTimeline: "An Timeline einrasten",

@@ -55,6 +55,11 @@ import {
   type ActionsMarkdownLabels,
 } from "@/lib/architecture-measures";
 import { isActionsView, type BoardActiveSlice } from "@/lib/storm-json";
+import { LOCALE_BCP47, type Locale } from "@/i18n/config";
+import {
+  actionItemAreaLabel,
+  actionItemStatusLabel,
+} from "@/i18n/domain-labels";
 import { translate } from "@/i18n/translate";
 import { resolveInitialLocale } from "@/i18n/resolve-locale";
 import {
@@ -64,10 +69,6 @@ import {
 } from "@/store/storm-board-store";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 import type { CustomCardType } from "@/lib/custom-card-types";
-import {
-  ACTION_ITEM_AREA_LABELS,
-  ACTION_ITEM_STATUS_LABELS,
-} from "@/types/action-item";
 import {
   ACTION_TYPES,
   ARCHITECTURE_QUALITIES,
@@ -81,6 +82,19 @@ import {
   type ObligationLevel,
 } from "@/types/actions-view";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
+
+type ExportMdKey = `exportsMd.${keyof typeof import("@/i18n/messages/catalog/en/exportsMd").exportsMdEn.exportsMd}`;
+
+function exportMarkdownI18n(locale: Locale = resolveInitialLocale()) {
+  const t = (key: ExportMdKey, params?: Record<string, string | number>) =>
+    translate(locale, key, params);
+  const createdLine = () =>
+    t("exportsMd.created", {
+      when: new Date().toLocaleString(LOCALE_BCP47[locale]),
+    });
+  const emDash = () => t("exportsMd.emDash");
+  return { locale, t, createdLine, emDash };
+}
 
 function elementExportRotation(el: StormElement): number {
   return effectiveElementRotation(el.rotation, styleForElementType(el.type).rotation);
@@ -120,17 +134,22 @@ function downloadText(filename: string, content: string, mime = "text/plain;char
 
 export function exportHotspotReportMarkdown(): void {
   const { elements, title } = boardActiveSliceFromStore();
+  const { t, createdLine } = exportMarkdownI18n();
   const hotspots = elements.filter((e) => e.type === "hotspot");
-  const lines = [`# Hotspot Report — ${title}`, "", `Erstellt: ${new Date().toLocaleString("de-DE")}`, ""];
+  const lines = [`# Hotspot Report — ${title}`, "", createdLine(), ""];
 
   if (hotspots.length === 0) {
-    lines.push("_Keine Hotspots._");
+    lines.push(t("exportsMd.noHotspots"));
   } else {
     for (const h of hotspots) {
       const status = h.metadata?.hotspotStatus ?? "open";
       const priority = h.metadata?.hotspotPriority ?? "medium";
-      lines.push(`## ${h.label}`, `- Status: ${status}`, `- Priorität: ${priority}`);
-      if (h.description) lines.push(`- Beschreibung: ${h.description}`);
+      lines.push(
+        `## ${h.label}`,
+        t("exportsMd.statusLine", { status }),
+        t("exportsMd.priorityLine", { priority }),
+      );
+      if (h.description) lines.push(t("exportsMd.descriptionLine", { text: h.description }));
       lines.push("");
     }
   }
@@ -194,8 +213,9 @@ export function exportArchitectureMeasuresMarkdown(): void {
     payload.views.find((v): v is import("@/types/actions-view").ActionsView => isActionsView(v)) ??
     null;
   const title = payload.title;
+  const { t } = exportMarkdownI18n();
   if (!view) {
-    downloadText(`${slugTitle(title)}-architektur-massnahmen.md`, "_No actions view._\n");
+    downloadText(`${slugTitle(title)}-architektur-massnahmen.md`, `${t("exportsMd.noActionsView")}\n`);
     return;
   }
   const md = generateActionsMarkdownReport(view, title, actionsMarkdownLabels());
@@ -204,15 +224,16 @@ export function exportArchitectureMeasuresMarkdown(): void {
 
 export function exportActionItemsMarkdown(): void {
   const { actionItems, title } = boardActiveSliceFromStore();
-  const lines = [
-    `# To-dos & Problemfelder — ${title}`,
-    "",
-    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
-    "",
-  ];
+  const { locale, t, createdLine } = exportMarkdownI18n();
+  const panelT = (key: "panels.actionItemsTitle") => translate(locale, key);
+  const statusLabel = (status: (typeof actionItems)[number]["status"]) =>
+    actionItemStatusLabel((k) => translate(locale, k), status);
+  const areaLabel = (area: (typeof actionItems)[number]["area"]) =>
+    actionItemAreaLabel((k) => translate(locale, k), area);
+  const lines = [`# ${panelT("panels.actionItemsTitle")} — ${title}`, "", createdLine(), ""];
 
   if (actionItems.length === 0) {
-    lines.push("_Keine Einträge._");
+    lines.push(t("exportsMd.noEntries"));
     downloadText(`${slugTitle(title)}-action-items.md`, lines.join("\n"));
     return;
   }
@@ -225,10 +246,9 @@ export function exportActionItemsMarkdown(): void {
   }
 
   for (const [area, items] of byArea) {
-    const areaLabel = ACTION_ITEM_AREA_LABELS[area as keyof typeof ACTION_ITEM_AREA_LABELS] ?? area;
-    lines.push(`## ${areaLabel}`, "");
+    lines.push(`## ${areaLabel(area as (typeof actionItems)[number]["area"])}`, "");
     for (const item of items) {
-      lines.push(`- **${item.title}** — ${ACTION_ITEM_STATUS_LABELS[item.status]}`);
+      lines.push(`- **${item.title}** — ${statusLabel(item.status)}`);
       if (item.notes?.trim()) lines.push(`  - ${item.notes.trim()}`);
     }
     lines.push("");
@@ -239,30 +259,40 @@ export function exportActionItemsMarkdown(): void {
 
 export function exportGlossaryMarkdown(): void {
   const { glossary, title } = boardActiveSliceFromStore();
-  const lines = [`# Ubiquitous Language — ${title}`, "", "| Begriff | Definition |", "| --- | --- |"];
+  const { t } = exportMarkdownI18n();
+  const empty = t("exportsMd.glossaryEmpty");
+  const termHeader = t("exportsMd.glossaryTerm");
+  const defHeader = t("exportsMd.glossaryDefinition");
+  const lines = [
+    `# Ubiquitous Language — ${title}`,
+    "",
+    `| ${termHeader} | ${defHeader} |`,
+    "| --- | --- |",
+  ];
   for (const g of glossary) {
     lines.push(`| ${g.term} | ${g.definition.replace(/\|/g, "\\|")} |`);
   }
-  if (glossary.length === 0) lines.push("| _leer_ | _leer_ |");
+  if (glossary.length === 0) lines.push(`| ${empty} | ${empty} |`);
   downloadText(`${title.replace(/\s+/g, "-").toLowerCase()}-glossary.md`, lines.join("\n"));
 }
 
 export function exportContextMapMarkdown(): void {
   const { boundedContexts, elements, relations, contextRelations, title } =
     boardActiveSliceFromStore();
+  const { t } = exportMarkdownI18n();
   const lines = [`# Context Map — ${title}`, ""];
 
   for (const bc of boundedContexts) {
     const inside = elements.filter((e) => e.boundedContextId === bc.id);
     lines.push(`## ${bc.label}`);
     if (bc.purpose) lines.push(bc.purpose);
-    lines.push("", "**Elemente:**");
+    lines.push("", t("exportsMd.contextMapElements"));
     for (const el of inside) lines.push(`- ${styleForElementType(el.type).shortLabel}: ${el.label}`);
     lines.push("");
   }
 
   if (contextRelations.length > 0) {
-    lines.push("## Context-Map-Muster", "");
+    lines.push(t("exportsMd.contextMapPatternsHeading"), "");
     for (const r of contextRelations) {
       const src = boundedContexts.find((b) => b.id === r.sourceContextId);
       const tgt = boundedContexts.find((b) => b.id === r.targetContextId);
@@ -281,7 +311,7 @@ export function exportContextMapMarkdown(): void {
   });
 
   if (crossBoundary.length > 0) {
-    lines.push("## Integrationspunkte (Element-Relationen)", "");
+    lines.push(t("exportsMd.integrationPointsHeading"), "");
     for (const r of crossBoundary) {
       const src = elements.find((e) => e.id === r.sourceId)!;
       const tgt = elements.find((e) => e.id === r.targetId)!;
@@ -294,17 +324,25 @@ export function exportContextMapMarkdown(): void {
 
 export function exportEventCatalogMarkdown(): void {
   const { elements, title } = boardActiveSliceFromStore();
+  const { t, emDash } = exportMarkdownI18n();
   const events = elements.filter((e) => e.type === "domainEvent");
-  const lines = [`# Event Catalog — ${title}`, "", "| Event | Schema | Beschreibung |", "| --- | --- | --- |"];
+  const descHeader = t("exportsMd.eventCatalogHeaderDescription");
+  const dash = emDash();
+  const lines = [
+    `# Event Catalog — ${title}`,
+    "",
+    `| Event | Schema | ${descHeader} |`,
+    "| --- | --- | --- |",
+  ];
 
   for (const e of events) {
     const schema = e.metadata?.eventSchema
       ? `\`${JSON.stringify(e.metadata.eventSchema)}\``
-      : "_—_";
-    lines.push(`| ${e.label} | ${schema} | ${e.description ?? "—"} |`);
+      : `_${dash}_`;
+    lines.push(`| ${e.label} | ${schema} | ${e.description ?? dash} |`);
   }
 
-  if (events.length === 0) lines.push("| _keine Events_ | — | — |");
+  if (events.length === 0) lines.push(`| ${t("exportsMd.noEventsRow")} | ${dash} | ${dash} |`);
   downloadText(`${title.replace(/\s+/g, "-").toLowerCase()}-events.md`, lines.join("\n"));
 }
 
@@ -312,27 +350,29 @@ function slugTitle(title: string): string {
   return title.replace(/\s+/g, "-").toLowerCase();
 }
 
-function mdBulletList(items: string[], empty = "_—_"): string[] {
+function mdBulletList(items: string[], empty: string): string[] {
   if (items.length === 0) return [`- ${empty}`];
   return items.map((i) => `- ${i}`);
 }
 
-function mdMetaBlock(el: StormElement): string[] {
+function mdMetaBlock(el: StormElement, t: ReturnType<typeof exportMarkdownI18n>["t"]): string[] {
   const lines: string[] = [];
-  if (el.description?.trim()) lines.push(`- Beschreibung: ${el.description.trim()}`);
+  if (el.description?.trim()) {
+    lines.push(t("exportsMd.metaDescriptionLine", { text: el.description.trim() }));
+  }
   const attrs = cardAttributeLines(el);
   if (attrs.length) {
-    lines.push("- Attribute:");
+    lines.push(t("exportsMd.metaAttributesHeading"));
     for (const a of attrs) lines.push(`  - ${a}`);
   }
   const methods = cardMethodLines(el);
   if (methods.length) {
-    lines.push("- Methoden / Operationen:");
+    lines.push(t("exportsMd.metaMethodsHeading"));
     for (const m of methods) lines.push(`  - ${m}`);
   }
   const links = cardWebLinkLines(el);
   if (links.length) {
-    lines.push("- Web-Links:");
+    lines.push(t("exportsMd.metaWebLinksHeading"));
     for (const l of links) lines.push(`  - ${l}`);
   }
   return lines;
@@ -341,12 +381,8 @@ function mdMetaBlock(el: StormElement): string[] {
 /** DDD: Subdomains, Aggregates, Entities, VOs, Services, Repositories, Factories. */
 export function exportDomainModelMarkdown(): void {
   const { elements, title, boundedContexts, glossary } = boardActiveSliceFromStore();
-  const lines = [
-    `# Domain Model — ${title}`,
-    "",
-    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
-    "",
-  ];
+  const { t, createdLine } = exportMarkdownI18n();
+  const lines = [`# Domain Model — ${title}`, "", createdLine(), ""];
 
   const subdomains = elements.filter((e) => e.type === "subdomain");
   if (subdomains.length > 0) {
@@ -354,7 +390,7 @@ export function exportDomainModelMarkdown(): void {
     for (const s of subdomains) {
       const kind = s.metadata?.subdomainKind ?? "core";
       lines.push(`### ${s.label} (${kind})`);
-      lines.push(...mdMetaBlock(s), "");
+      lines.push(...mdMetaBlock(s, t), "");
     }
   }
 
@@ -365,7 +401,7 @@ export function exportDomainModelMarkdown(): void {
       if (bc.purpose) lines.push(bc.purpose);
       const inside = elements.filter((e) => e.boundedContextId === bc.id);
       if (inside.length) {
-        lines.push("", "**Bausteine:**");
+        lines.push("", t("exportsMd.dddBlocks"));
         for (const el of inside) {
           lines.push(`- ${styleForElementType(el.type).label}: ${el.label}`);
         }
@@ -390,26 +426,26 @@ export function exportDomainModelMarkdown(): void {
     for (const el of items) {
       lines.push(`### ${el.label}`);
       if (el.type === "repository" && el.metadata?.aggregateRootRef) {
-        lines.push(`- Aggregate Root: ${el.metadata.aggregateRootRef}`);
+        lines.push(t("exportsMd.aggregateRootLine", { ref: el.metadata.aggregateRootRef }));
       }
       if (el.type === "factory" && el.metadata?.createsRef) {
-        lines.push(`- Erzeugt: ${el.metadata.createsRef}`);
+        lines.push(t("exportsMd.createsLine", { ref: el.metadata.createsRef }));
       }
       if (el.type === "valueObject" && el.metadata?.immutable !== false) {
-        lines.push("- Unveränderlich: ja");
+        lines.push(t("exportsMd.immutableYes"));
       }
       if (el.type === "domainService" && el.metadata?.stateless !== false) {
-        lines.push("- Zustandslos: ja");
+        lines.push(t("exportsMd.statelessYes"));
       }
       if (el.metadata?.identityFields?.length) {
-        lines.push(`- Identität: ${el.metadata.identityFields.join(", ")}`);
+        lines.push(t("exportsMd.identityLine", { fields: el.metadata.identityFields.join(", ") }));
       }
-      lines.push(...mdMetaBlock(el), "");
+      lines.push(...mdMetaBlock(el, t), "");
     }
   }
 
   if (glossary.length > 0) {
-    lines.push("## Ubiquitous Language (Auszug)", "");
+    lines.push(t("exportsMd.ubiquitousLanguageExcerpt"), "");
     for (const g of glossary) {
       lines.push(`- **${g.term}**: ${g.definition}`);
     }
@@ -417,7 +453,7 @@ export function exportDomainModelMarkdown(): void {
   }
 
   if (lines.length <= 5) {
-    lines.push("_Keine DDD-Bausteine auf dem Board._", "");
+    lines.push(t("exportsMd.noDddOnBoard"), "");
   }
 
   downloadText(`${slugTitle(title)}-domain-model.md`, lines.join("\n"));
@@ -426,12 +462,9 @@ export function exportDomainModelMarkdown(): void {
 /** BDD / Example Mapping: Rules, Examples (Given/When/Then), Questions. */
 export function exportExampleMappingMarkdown(): void {
   const { elements, title } = boardActiveSliceFromStore();
-  const lines = [
-    `# Example Mapping — ${title}`,
-    "",
-    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
-    "",
-  ];
+  const { t, createdLine, emDash } = exportMarkdownI18n();
+  const dash = emDash();
+  const lines = [`# Example Mapping — ${title}`, "", createdLine(), ""];
 
   const rules = elements.filter((e) => e.type === "rule");
   const examples = elements.filter((e) => e.type === "example");
@@ -439,15 +472,15 @@ export function exportExampleMappingMarkdown(): void {
 
   lines.push("## Rules", "");
   if (rules.length === 0) {
-    lines.push("_Keine Rules._", "");
+    lines.push(t("exportsMd.noRules"), "");
   } else {
     for (const r of rules) {
       lines.push(`### ${r.label}`);
       if (r.description) lines.push(r.description);
       const criteria = r.metadata?.ruleCriteria ?? [];
       if (criteria.length) {
-        lines.push("", "**Kriterien:**");
-        lines.push(...mdBulletList(criteria));
+        lines.push("", t("exportsMd.criteriaHeading"));
+        lines.push(...mdBulletList(criteria, dash));
       }
       lines.push("");
     }
@@ -455,28 +488,30 @@ export function exportExampleMappingMarkdown(): void {
 
   lines.push("## Examples", "");
   if (examples.length === 0) {
-    lines.push("_Keine Examples._", "");
+    lines.push(t("exportsMd.noExamples"), "");
   } else {
     for (const ex of examples) {
       lines.push(`### ${ex.label}`);
       if (ex.description) lines.push(ex.description, "");
       lines.push("**Given**");
-      lines.push(...mdBulletList(ex.metadata?.exampleGiven ?? []));
+      lines.push(...mdBulletList(ex.metadata?.exampleGiven ?? [], dash));
       lines.push("", "**When**");
-      lines.push(...mdBulletList(ex.metadata?.exampleWhen ?? []));
+      lines.push(...mdBulletList(ex.metadata?.exampleWhen ?? [], dash));
       lines.push("", "**Then**");
-      lines.push(...mdBulletList(ex.metadata?.exampleThen ?? []));
+      lines.push(...mdBulletList(ex.metadata?.exampleThen ?? [], dash));
       lines.push("");
     }
   }
 
   lines.push("## Questions", "");
   if (questions.length === 0) {
-    lines.push("_Keine Questions._", "");
+    lines.push(t("exportsMd.noQuestions"), "");
   } else {
     for (const q of questions) {
       const status = q.metadata?.questionStatus ?? "open";
-      lines.push(`- **${q.label}** (${status === "resolved" ? "geklärt" : "offen"})`);
+      const statusLabel =
+        status === "resolved" ? t("exportsMd.questionResolved") : t("exportsMd.questionOpen");
+      lines.push(`- **${q.label}** (${statusLabel})`);
       if (q.description) lines.push(`  - ${q.description}`);
     }
     lines.push("");
@@ -495,12 +530,9 @@ const STORY_PRIORITY_LABEL: Record<string, string> = {
 /** User Story Mapping: Activities → Tasks → Stories, Releases. */
 export function exportStoryMapMarkdown(): void {
   const { elements, title } = boardActiveSliceFromStore();
-  const lines = [
-    `# Story Map — ${title}`,
-    "",
-    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
-    "",
-  ];
+  const { t, createdLine, emDash } = exportMarkdownI18n();
+  const dash = emDash();
+  const lines = [`# Story Map — ${title}`, "", createdLine(), ""];
 
   const activities = [...elements.filter((e) => e.type === "activity")].sort(
     (a, b) => a.x - b.x || a.y - b.y,
@@ -513,33 +545,33 @@ export function exportStoryMapMarkdown(): void {
 
   lines.push("## Backbone (Activities)", "");
   if (activities.length === 0) {
-    lines.push("_Keine Activities._", "");
+    lines.push(t("exportsMd.noActivities"), "");
   } else {
     for (const act of activities) {
       lines.push(`### ${act.label}`);
       if (act.description) lines.push(act.description);
       const nearbyTasks = tasks
-        .filter((t) => t.x + (t.width ?? 140) > act.x && t.x < act.x + (act.width ?? 160) + 40)
+        .filter((task) => task.x + (task.width ?? 140) > act.x && task.x < act.x + (act.width ?? 160) + 40)
         .sort((a, b) => a.y - b.y);
       if (nearbyTasks.length) {
-        lines.push("", "**Tasks:**");
-        for (const t of nearbyTasks) {
-          lines.push(`- ${t.label}`);
+        lines.push("", t("exportsMd.tasksHeading"));
+        for (const task of nearbyTasks) {
+          lines.push(`- ${task.label}`);
           const underStories = stories
             .filter(
               (s) =>
-                s.x + (s.width ?? 160) > t.x &&
-                s.x < t.x + (t.width ?? 140) + 40 &&
-                s.y >= t.y,
+                s.x + (s.width ?? 160) > task.x &&
+                s.x < task.x + (task.width ?? 140) + 40 &&
+                s.y >= task.y,
             )
             .sort((a, b) => a.y - b.y);
           for (const st of underStories) {
             const prio = STORY_PRIORITY_LABEL[st.metadata?.storyPriority ?? "must"] ?? "Must";
             const persona = st.metadata?.storyPersona ? ` · ${st.metadata.storyPersona}` : "";
             const est = st.metadata?.storyEstimate ? ` · ${st.metadata.storyEstimate}` : "";
-            lines.push(`  - Story: ${st.label} (${prio}${persona}${est})`);
+            lines.push(t("exportsMd.storyLine", { label: st.label, details: `${prio}${persona}${est}` }));
             const acc = st.metadata?.storyAcceptance ?? [];
-            for (const a of acc) lines.push(`    - AC: ${a}`);
+            for (const a of acc) lines.push(t("exportsMd.acceptanceLine", { text: a }));
           }
         }
       }
@@ -552,14 +584,11 @@ export function exportStoryMapMarkdown(): void {
     return true;
   });
   if (orphanStories.length > 0) {
-    lines.push("## Alle User Stories", "");
-    lines.push(
-      "| Story | Persona | Priorität | Schätzung |",
-      "| --- | --- | --- | --- |",
-    );
+    lines.push(t("exportsMd.allUserStories"), "");
+    lines.push(t("exportsMd.storyTableHeader"), "| --- | --- | --- | --- |");
     for (const st of orphanStories.sort((a, b) => a.y - b.y || a.x - b.x)) {
       lines.push(
-        `| ${st.label} | ${st.metadata?.storyPersona ?? "—"} | ${STORY_PRIORITY_LABEL[st.metadata?.storyPriority ?? "must"] ?? "Must"} | ${st.metadata?.storyEstimate ?? "—"} |`,
+        `| ${st.label} | ${st.metadata?.storyPersona ?? dash} | ${STORY_PRIORITY_LABEL[st.metadata?.storyPriority ?? "must"] ?? "Must"} | ${st.metadata?.storyEstimate ?? dash} |`,
       );
     }
     lines.push("");
@@ -567,11 +596,13 @@ export function exportStoryMapMarkdown(): void {
 
   lines.push("## Releases", "");
   if (releases.length === 0) {
-    lines.push("_Keine Release-Linien._", "");
+    lines.push(t("exportsMd.noReleases"), "");
   } else {
     for (const r of releases) {
       lines.push(`### ${r.label}`);
-      if (r.metadata?.releaseGoal) lines.push(`- Ziel: ${r.metadata.releaseGoal}`);
+      if (r.metadata?.releaseGoal) {
+        lines.push(t("exportsMd.goalLine", { goal: r.metadata.releaseGoal }));
+      }
       if (r.description) lines.push(`- ${r.description}`);
       lines.push("");
     }
@@ -583,12 +614,9 @@ export function exportStoryMapMarkdown(): void {
 /** Event Modeling: Slices + Commands / Events / Views / UI / Policies. */
 export function exportEventModelMarkdown(): void {
   const { elements, title, swimlanes } = boardActiveSliceFromStore();
-  const lines = [
-    `# Event Model — ${title}`,
-    "",
-    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
-    "",
-  ];
+  const { t, createdLine, emDash } = exportMarkdownI18n();
+  const dash = emDash();
+  const lines = [`# Event Model — ${title}`, "", createdLine(), ""];
 
   const slices = [...elements.filter((e) => e.type === "slice")].sort(
     (a, b) => a.x - b.x || a.y - b.y,
@@ -596,16 +624,18 @@ export function exportEventModelMarkdown(): void {
 
   lines.push("## Vertical Slices", "");
   if (slices.length === 0) {
-    lines.push("_Keine Slices._", "");
+    lines.push(t("exportsMd.noSlices"), "");
   } else {
     for (const sl of slices) {
       lines.push(`### ${sl.label}`);
-      if (sl.metadata?.releaseGoal) lines.push(`- Ziel: ${sl.metadata.releaseGoal}`);
+      if (sl.metadata?.releaseGoal) {
+        lines.push(t("exportsMd.goalLine", { goal: sl.metadata.releaseGoal }));
+      }
       if (sl.description) lines.push(`- ${sl.description}`);
       const systems = sl.metadata?.sliceSystems ?? [];
       if (systems.length) {
-        lines.push("- Systeme / Lanes:");
-        lines.push(...mdBulletList(systems));
+        lines.push(t("exportsMd.systemsLanes"));
+        lines.push(...mdBulletList(systems, dash));
       }
       // Elements roughly under/near the slice on the timeline (same x-band).
       const bandLeft = sl.x - 40;
@@ -618,7 +648,7 @@ export function exportEventModelMarkdown(): void {
           e.x < bandRight,
       );
       if (inBand.length) {
-        lines.push("", "**Bausteine in der Slice-Spalte:**");
+        lines.push("", t("exportsMd.blocksInSliceColumn"));
         for (const el of inBand.sort((a, b) => a.y - b.y)) {
           lines.push(`- ${styleForElementType(el.type).label}: ${el.label}`);
         }
@@ -652,7 +682,7 @@ export function exportEventModelMarkdown(): void {
     for (const lane of swimlanes) {
       const inside = elements.filter((e) => e.swimlaneId === lane.id);
       lines.push(`### ${lane.label}`);
-      if (inside.length === 0) lines.push("- _(leer)_");
+      if (inside.length === 0) lines.push(t("exportsMd.emptyLane"));
       else for (const el of inside) lines.push(`- ${styleForElementType(el.type).shortLabel}: ${el.label}`);
       lines.push("");
     }
@@ -664,12 +694,9 @@ export function exportEventModelMarkdown(): void {
 /** Process flow (BPMN-lite): Start, Activities, Gateways, End. */
 export function exportProcessMarkdown(): void {
   const { elements, title, swimlanes } = boardActiveSliceFromStore();
-  const lines = [
-    `# Prozessmodell — ${title}`,
-    "",
-    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
-    "",
-  ];
+  const { t, createdLine, emDash } = exportMarkdownI18n();
+  const dash = emDash();
+  const lines = [`# ${t("exportsMd.processModelTitle")} — ${title}`, "", createdLine(), ""];
 
   const starts = elements.filter((e) => e.type === "processStart");
   const activities = elements.filter((e) => e.type === "processActivity");
@@ -677,51 +704,59 @@ export function exportProcessMarkdown(): void {
   const ends = elements.filter((e) => e.type === "processEnd");
 
   if (starts.length) {
-    lines.push("## Start", "");
+    lines.push(t("exportsMd.startHeading"), "");
     for (const s of starts) {
       lines.push(`### ${s.label}`);
-      if (s.metadata?.processTrigger) lines.push(`- Auslöser: ${s.metadata.processTrigger}`);
-      lines.push(...mdMetaBlock(s), "");
+      if (s.metadata?.processTrigger) {
+        lines.push(t("exportsMd.triggerLine", { text: s.metadata.processTrigger }));
+      }
+      lines.push(...mdMetaBlock(s, t), "");
     }
   }
 
   if (activities.length) {
-    lines.push("## Aktivitäten", "");
+    lines.push(t("exportsMd.activitiesHeading"), "");
     for (const a of [...activities].sort((x, y) => x.x - y.x || x.y - y.y)) {
       lines.push(`### ${a.label}`);
-      if (a.metadata?.processRole) lines.push(`- Rolle: ${a.metadata.processRole}`);
-      if (a.metadata?.processSystem) lines.push(`- System: ${a.metadata.processSystem}`);
-      if (a.metadata?.processDuration) lines.push(`- Dauer: ${a.metadata.processDuration}`);
+      if (a.metadata?.processRole) lines.push(t("exportsMd.roleLine", { text: a.metadata.processRole }));
+      if (a.metadata?.processSystem) {
+        lines.push(t("exportsMd.systemLine", { text: a.metadata.processSystem }));
+      }
+      if (a.metadata?.processDuration) {
+        lines.push(t("exportsMd.durationLine", { text: a.metadata.processDuration }));
+      }
       if (a.metadata?.processInputs?.length) {
-        lines.push("- Eingaben:");
-        lines.push(...mdBulletList(a.metadata.processInputs));
+        lines.push(t("exportsMd.inputsHeading"));
+        lines.push(...mdBulletList(a.metadata.processInputs, dash));
       }
       if (a.metadata?.processOutputs?.length) {
-        lines.push("- Ausgaben:");
-        lines.push(...mdBulletList(a.metadata.processOutputs));
+        lines.push(t("exportsMd.outputsHeading"));
+        lines.push(...mdBulletList(a.metadata.processOutputs, dash));
       }
-      lines.push(...mdMetaBlock(a), "");
+      lines.push(...mdMetaBlock(a, t), "");
     }
   }
 
   if (gateways.length) {
-    lines.push("## Gateways", "");
+    lines.push(t("exportsMd.gatewaysHeading"), "");
     for (const g of gateways) {
       lines.push(`### ${g.label} (${(g.metadata?.gatewayKind ?? "xor").toUpperCase()})`);
       if (g.metadata?.gatewayConditions?.length) {
-        lines.push("- Pfade / Bedingungen:");
-        lines.push(...mdBulletList(g.metadata.gatewayConditions));
+        lines.push(t("exportsMd.pathsConditions"));
+        lines.push(...mdBulletList(g.metadata.gatewayConditions, dash));
       }
-      lines.push(...mdMetaBlock(g), "");
+      lines.push(...mdMetaBlock(g, t), "");
     }
   }
 
   if (ends.length) {
-    lines.push("## Ende", "");
+    lines.push(t("exportsMd.endHeading"), "");
     for (const e of ends) {
       lines.push(`### ${e.label}`);
-      if (e.metadata?.processResult) lines.push(`- Ergebnis: ${e.metadata.processResult}`);
-      lines.push(...mdMetaBlock(e), "");
+      if (e.metadata?.processResult) {
+        lines.push(t("exportsMd.resultLine", { text: e.metadata.processResult }));
+      }
+      lines.push(...mdMetaBlock(e, t), "");
     }
   }
 
@@ -730,14 +765,14 @@ export function exportProcessMarkdown(): void {
     for (const lane of swimlanes) {
       const inside = elements.filter((el) => el.swimlaneId === lane.id);
       lines.push(`### ${lane.label}`);
-      if (inside.length === 0) lines.push("- _(leer)_");
+      if (inside.length === 0) lines.push(t("exportsMd.emptyLane"));
       else for (const el of inside) lines.push(`- ${styleForElementType(el.type).shortLabel}: ${el.label}`);
       lines.push("");
     }
   }
 
   if (starts.length + activities.length + gateways.length + ends.length === 0) {
-    lines.push("_Keine Prozess-Bausteine auf dem Board._", "");
+    lines.push(t("exportsMd.noProcessOnBoard"), "");
   }
 
   downloadText(`${slugTitle(title)}-process.md`, lines.join("\n"));
@@ -746,41 +781,40 @@ export function exportProcessMarkdown(): void {
 /** Conceptual data model: entities, associations, attributes/keys. */
 export function exportDataModelMarkdown(): void {
   const { elements, title, relations } = boardActiveSliceFromStore();
-  const lines = [
-    `# Datenmodell — ${title}`,
-    "",
-    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
-    "",
-  ];
+  const { t, createdLine, emDash } = exportMarkdownI18n();
+  const dash = emDash();
+  const lines = [`# ${t("exportsMd.dataModelTitle")} — ${title}`, "", createdLine(), ""];
 
   const entities = elements.filter((e) => e.type === "dataEntity");
   const associations = elements.filter((e) => e.type === "dataAssociation");
 
-  lines.push("## Entitäten", "");
+  lines.push(t("exportsMd.entitiesHeading"), "");
   if (entities.length === 0) {
-    lines.push("_Keine Entitäten._", "");
+    lines.push(t("exportsMd.noEntities"), "");
   } else {
     for (const ent of entities) {
       lines.push(`### ${ent.label}`);
-      if (ent.metadata?.dataTableName) lines.push(`- Tabelle: \`${ent.metadata.dataTableName}\``);
+      if (ent.metadata?.dataTableName) {
+        lines.push(t("exportsMd.tableLine", { name: ent.metadata.dataTableName }));
+      }
       if (ent.metadata?.identityFields?.length) {
-        lines.push("- Primärschlüssel / Identität:");
-        lines.push(...mdBulletList(ent.metadata.identityFields));
+        lines.push(t("exportsMd.primaryKeyHeading"));
+        lines.push(...mdBulletList(ent.metadata.identityFields, dash));
       }
       if (ent.metadata?.attributes?.length) {
-        lines.push("- Attribute:");
-        lines.push(...mdBulletList(ent.metadata.attributes));
+        lines.push(t("exportsMd.attributesHeading"));
+        lines.push(...mdBulletList(ent.metadata.attributes, dash));
       }
       if (ent.metadata?.dataUniqueKeys?.length) {
-        lines.push("- Unique Keys:");
-        lines.push(...mdBulletList(ent.metadata.dataUniqueKeys));
+        lines.push(t("exportsMd.uniqueKeysHeading"));
+        lines.push(...mdBulletList(ent.metadata.dataUniqueKeys, dash));
       }
-      lines.push(...mdMetaBlock(ent), "");
+      lines.push(...mdMetaBlock(ent, t), "");
     }
   }
 
   if (associations.length) {
-    lines.push("## Assoziationen", "");
+    lines.push(t("exportsMd.associationsHeading"), "");
     for (const a of associations) {
       const card = a.metadata?.dataCardinality ?? "1:n";
       const left = a.metadata?.dataLeftEntity ?? "?";
@@ -788,10 +822,10 @@ export function exportDataModelMarkdown(): void {
       lines.push(`### ${a.label} (${card})`);
       lines.push(`- ${left} — ${right}`);
       if (a.metadata?.attributes?.length) {
-        lines.push("- Beziehungsattribute:");
-        lines.push(...mdBulletList(a.metadata.attributes));
+        lines.push(t("exportsMd.relationAttributesHeading"));
+        lines.push(...mdBulletList(a.metadata.attributes, dash));
       }
-      lines.push(...mdMetaBlock(a), "");
+      lines.push(...mdMetaBlock(a, t), "");
     }
   }
 
@@ -803,7 +837,7 @@ export function exportDataModelMarkdown(): void {
       (entityIds.has(r.targetId) || assocIds.has(r.targetId)),
   );
   if (dataRels.length) {
-    lines.push("## Relationen auf dem Board", "");
+    lines.push(t("exportsMd.boardRelationsHeading"), "");
     for (const r of dataRels) {
       const src = elements.find((e) => e.id === r.sourceId);
       const tgt = elements.find((e) => e.id === r.targetId);
@@ -820,46 +854,44 @@ export function exportDataModelMarkdown(): void {
 /** Architecture documentation: Bausteinsicht, C4, Cloud, ERM. */
 export function exportArchitectureDocumentationMarkdown(): void {
   const { elements, title, relations, boundedContexts } = boardActiveSliceFromStore();
-  const lines = [
-    `# Architektur Dokumentation — ${title}`,
-    "",
-    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
-    "",
-  ];
+  const { t, createdLine, emDash } = exportMarkdownI18n();
+  const dash = emDash();
+  const detailSuffix = t("exportsMd.detailViewSuffix");
+  const lines = [`# ${t("exportsMd.architectureDocTitle")} — ${title}`, "", createdLine(), ""];
 
   const blackboxes = elements.filter((e) => e.type === "archBlackbox");
   const whiteboxes = elements.filter((e) => e.type === "archWhitebox");
   const components = elements.filter((e) => e.type === "archComponent");
-  lines.push("## Bausteinsicht (Blackbox / Whitebox)", "");
+  lines.push(t("exportsMd.buildingBlockView"), "");
   if (blackboxes.length + whiteboxes.length + components.length === 0) {
-    lines.push("_Keine Architektur-Bausteine._", "");
+    lines.push(t("exportsMd.noArchitectureBlocks"), "");
   } else {
     if (blackboxes.length) {
-      lines.push("### Blackboxes", "");
+      lines.push(t("exportsMd.blackboxesHeading"), "");
       for (const el of blackboxes) {
-        lines.push(`- **${el.label}**${el.detailViewId ? " _(Detail-Sicht)_" : ""}`);
+        lines.push(`- **${el.label}**${el.detailViewId ? detailSuffix : ""}`);
         if (el.description?.trim()) lines.push(`  - ${el.description.trim()}`);
       }
       lines.push("");
     }
     if (whiteboxes.length) {
-      lines.push("### Whiteboxes", "");
+      lines.push(t("exportsMd.whiteboxesHeading"), "");
       for (const el of whiteboxes) {
-        lines.push(`- **${el.label}**${el.detailViewId ? " _(Detail-Sicht)_" : ""}`);
-        lines.push(...mdMetaBlock(el), "");
+        lines.push(`- **${el.label}**${el.detailViewId ? detailSuffix : ""}`);
+        lines.push(...mdMetaBlock(el, t), "");
       }
     }
     if (components.length) {
-      lines.push("### Komponenten", "");
+      lines.push(t("exportsMd.componentsHeading"), "");
       for (const el of components) {
         lines.push(`- **${el.label}**`);
-        lines.push(...mdMetaBlock(el));
+        lines.push(...mdMetaBlock(el, t));
       }
       lines.push("");
     }
     const contains = relations.filter((r) => r.type === "contains");
     if (contains.length) {
-      lines.push("### contains-Relationen", "");
+      lines.push(t("exportsMd.containsRelationsHeading"), "");
       for (const r of contains) {
         const src = elements.find((e) => e.id === r.sourceId);
         const tgt = elements.find((e) => e.id === r.targetId);
@@ -871,7 +903,7 @@ export function exportArchitectureDocumentationMarkdown(): void {
   }
 
   const c4Types = ["c4Person", "c4SoftwareSystem", "c4Container", "c4Component"] as const;
-  lines.push("## C4 Modell", "");
+  lines.push(t("exportsMd.c4ModelHeading"), "");
   let hasC4 = false;
   for (const type of c4Types) {
     const items = elements.filter((e) => e.type === type);
@@ -880,12 +912,14 @@ export function exportArchitectureDocumentationMarkdown(): void {
     lines.push(`### ${styleForElementType(type).label}`, "");
     for (const el of items) {
       lines.push(`- **${el.label}**`);
-      if (el.metadata?.c4Technology) lines.push(`  - Technologie: ${el.metadata.c4Technology}`);
+      if (el.metadata?.c4Technology) {
+        lines.push(t("exportsMd.technologyLine", { text: el.metadata.c4Technology }));
+      }
       if (el.description?.trim()) lines.push(`  - ${el.description.trim()}`);
     }
     lines.push("");
   }
-  if (!hasC4) lines.push("_Keine C4-Elemente._", "");
+  if (!hasC4) lines.push(t("exportsMd.noC4Elements"), "");
 
   const cloudTypes = [
     "cloudBoundary",
@@ -897,7 +931,7 @@ export function exportArchitectureDocumentationMarkdown(): void {
     "cloudEdge",
     "cloudManagedService",
   ] as const;
-  lines.push("## Cloud Architektur", "");
+  lines.push(t("exportsMd.cloudArchitectureHeading"), "");
   let hasCloud = false;
   for (const type of cloudTypes) {
     const items = elements.filter((e) => e.type === type);
@@ -905,35 +939,39 @@ export function exportArchitectureDocumentationMarkdown(): void {
     hasCloud = true;
     lines.push(`### ${styleForElementType(type).label}`, "");
     for (const el of items) {
-      lines.push(`- **${el.label}**${el.detailViewId ? " _(Detail-Sicht)_" : ""}`);
-      if (el.metadata?.cloudProvider) lines.push(`  - Provider: ${el.metadata.cloudProvider}`);
-      if (el.metadata?.c4Technology) lines.push(`  - Technologie / Dienst: ${el.metadata.c4Technology}`);
+      lines.push(`- **${el.label}**${el.detailViewId ? detailSuffix : ""}`);
+      if (el.metadata?.cloudProvider) {
+        lines.push(t("exportsMd.providerLine", { text: el.metadata.cloudProvider }));
+      }
+      if (el.metadata?.c4Technology) {
+        lines.push(t("exportsMd.cloudTechnologyLine", { text: el.metadata.c4Technology }));
+      }
       if (el.description?.trim()) lines.push(`  - ${el.description.trim()}`);
     }
     lines.push("");
   }
-  if (!hasCloud) lines.push("_Keine Cloud-Bausteine._", "");
+  if (!hasCloud) lines.push(t("exportsMd.noCloudBlocks"), "");
 
   const entities = elements.filter((e) => e.type === "dataEntity");
   const associations = elements.filter((e) => e.type === "dataAssociation");
-  lines.push("## ERM (Entitäten)", "");
+  lines.push(t("exportsMd.ermEntitiesHeading"), "");
   if (entities.length === 0) {
-    lines.push("_Keine Entitäten._", "");
+    lines.push(t("exportsMd.noEntities"), "");
   } else {
     for (const ent of entities) {
       lines.push(`### ${ent.label}`);
       if (ent.metadata?.identityFields?.length) {
-        lines.push("- Identität:", ...mdBulletList(ent.metadata.identityFields));
+        lines.push(t("exportsMd.identityHeading"), ...mdBulletList(ent.metadata.identityFields, dash));
       }
       if (ent.metadata?.attributes?.length) {
-        lines.push("- Attribute:", ...mdBulletList(ent.metadata.attributes));
+        lines.push(t("exportsMd.attributesHeading"), ...mdBulletList(ent.metadata.attributes, dash));
       }
-      lines.push(...mdMetaBlock(ent), "");
+      lines.push(...mdMetaBlock(ent, t), "");
     }
   }
 
   if (associations.length) {
-    lines.push("## ERM (Beziehungen)", "");
+    lines.push(t("exportsMd.ermRelationsHeading"), "");
     for (const a of associations) {
       const card = a.metadata?.dataCardinality ?? "1:n";
       lines.push(`- **${a.label}** (${card}): ${a.metadata?.dataLeftEntity ?? "?"} — ${a.metadata?.dataRightEntity ?? "?"}`);
@@ -946,10 +984,10 @@ export function exportArchitectureDocumentationMarkdown(): void {
     for (const bc of boundedContexts) {
       const inside = elements.filter((e) => e.boundedContextId === bc.id);
       lines.push(`### ${bc.label}`);
-      if (bc.purpose?.trim()) lines.push(`- Zweck: ${bc.purpose.trim()}`);
-      if (bc.detailViewId) lines.push("- Detail-Sicht verknüpft");
+      if (bc.purpose?.trim()) lines.push(t("exportsMd.purposeLine", { text: bc.purpose.trim() }));
+      if (bc.detailViewId) lines.push(t("exportsMd.detailViewLinked"));
       if (inside.length) {
-        lines.push("- Inhalte:");
+        lines.push(t("exportsMd.contentsHeading"));
         for (const el of inside) lines.push(`  - ${styleForElementType(el.type).shortLabel}: ${el.label}`);
       }
       lines.push("");
@@ -959,7 +997,7 @@ export function exportArchitectureDocumentationMarkdown(): void {
   const archIds = new Set(elements.map((e) => e.id));
   const archRels = relations.filter((r) => archIds.has(r.sourceId) && archIds.has(r.targetId));
   if (archRels.length) {
-    lines.push("## Relationen", "");
+    lines.push(t("exportsMd.relationsHeading"), "");
     for (const r of archRels) {
       const src = elements.find((e) => e.id === r.sourceId);
       const tgt = elements.find((e) => e.id === r.targetId);

@@ -1,3 +1,4 @@
+import { localeT } from "@/lib/locale-t";
 import type { StormElement } from "@/types/storm-element";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
@@ -66,10 +67,10 @@ export function activateBoardLink(el: StormElement): ActivateLinkResult {
 
   if (kind === "view") {
     const viewId = el.metadata?.linkViewId?.trim();
-    if (!viewId) return { ok: false, reason: "Keine Sicht gewählt." };
+    if (!viewId) return { ok: false, reason: localeT("alerts.linkNoViewSelected") };
     const store = useStormBoardStore.getState();
     const view = store.views.find((v) => v.id === viewId);
-    if (!view) return { ok: false, reason: "Sicht nicht gefunden (gelöscht?)." };
+    if (!view) return { ok: false, reason: localeT("alerts.linkViewNotFound") };
     if (store.activeViewId !== viewId) {
       store.setActiveView(viewId);
     }
@@ -77,7 +78,7 @@ export function activateBoardLink(el: StormElement): ActivateLinkResult {
   }
 
   const url = normalizeExternalUrl(el.metadata?.linkUrl);
-  if (!url) return { ok: false, reason: "Keine gültige URL." };
+  if (!url) return { ok: false, reason: localeT("alerts.linkInvalidUrl") };
   window.open(url, "_blank", "noopener,noreferrer");
   return { ok: true, kind: "external", url };
 }

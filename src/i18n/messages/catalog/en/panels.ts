@@ -12,6 +12,13 @@ export const panelsEn = {
     paletteTypeHelp: "Name and color apply to all cards of this type.",
     deleteTypeConfirm:
       "Delete type “{name}”? Existing cards keep the reference but lose the type color.",
+    customTypeSampleCard: "Sample card",
+    customTypeDone: "Done",
+    customTypeName: "Name",
+    customTypeNamePlaceholder: "e.g. Interface",
+    customTypePreviewLabel: "Preview: {name}",
+    customTypeColor: "Color",
+    customTypeFallbackName: "Type",
     addType: "Add type",
     helpForType: "Help for {type}",
     mobileInsertHint: "{mode} · Tap to insert at canvas center",

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { collabT } from "@/lib/collab/i18n";
 import { getSupabaseConnection, isCollabConfigured } from "@/lib/collab/config";
 import { createClient } from "@/utils/supabase/client";
 
@@ -33,7 +34,7 @@ export function getSupabase(): SupabaseClient | null {
 /** Ensure anonymous session for Awareness user id. */
 export async function ensureAnonSession(): Promise<{ userId: string } | { error: string }> {
   const sb = getSupabase();
-  if (!sb) return { error: "Supabase nicht konfiguriert" };
+  if (!sb) return { error: collabT("alerts.collabSupabaseNotConfigured") };
 
   const { data: existing } = await sb.auth.getSession();
   if (existing.session?.user?.id) {
@@ -42,11 +43,10 @@ export async function ensureAnonSession(): Promise<{ userId: string } | { error:
 
   const { data, error } = await sb.auth.signInAnonymously();
   if (error || !data.user) {
-    const msg = error?.message ?? "Anonymous Auth fehlgeschlagen";
+    const msg = error?.message ?? collabT("alerts.collabAnonAuthFailed");
     if (/anonymous sign-ins are disabled/i.test(msg)) {
       return {
-        error:
-          "Anonymous Auth ist in Supabase deaktiviert. Dashboard: Authentication → Providers → Anonymous aktivieren.",
+        error: collabT("alerts.collabAnonAuthDisabled"),
       };
     }
     return { error: msg };

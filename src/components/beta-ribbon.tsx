@@ -1,13 +1,14 @@
 "use client";
 
-const BETA_HINT =
-  "Beta — Dateiformat kann geändert werden und inkompatibel werden.";
+import { useT } from "@/i18n";
 
 /** Corner ribbon; tooltip warns that the file format may break compatibility. */
 export function BetaRibbon() {
+  const t = useT();
+  const hint = t("chrome.betaHint");
   return (
     <div className="beta-ribbon" aria-hidden={false}>
-      <span title={BETA_HINT} aria-label={BETA_HINT} tabIndex={0} role="note">
+      <span title={hint} aria-label={hint} tabIndex={0} role="note">
         Beta
       </span>
     </div>

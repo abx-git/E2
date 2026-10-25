@@ -10,6 +10,7 @@ import {
   boardStatesEquivalent,
   planFileReconcile,
 } from "@/lib/file-board-reconcile";
+import { localeT } from "@/lib/locale-t";
 import { boardImportPayloadFromAnyExportText } from "@/lib/board-import-text";
 import { createDefaultBoardDocument } from "@/lib/storm-json";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -949,7 +950,12 @@ export async function writeWorkingFileJson(
             ? lastKnownFileModified
             : undefined;
     if (expected !== undefined && before.lastModified !== expected) {
-      return { ok: false, reason: "conflict", diskJson: diskText, message: "Datei wurde extern geändert." };
+      return {
+        ok: false,
+        reason: "conflict",
+        diskJson: diskText,
+        message: localeT("alerts.wfFileExternallyChanged"),
+      };
     }
     // Without mtime baseline, content fence already ran; still refuse mtime-unknown + skipCas false
     // if disk content hash diverges from synced (handled above).
@@ -962,7 +968,7 @@ export async function writeWorkingFileJson(
     return { ok: true, lastModified: file.lastModified };
   } catch (e) {
     console.error("Arbeitsdatei schreiben:", e);
-    return { ok: false, reason: "io_error", message: "Schreiben fehlgeschlagen — Datei ggf. prüfen." };
+    return { ok: false, reason: "io_error", message: localeT("alerts.wfWriteIoFailed") };
   }
 }
 
@@ -1067,8 +1073,7 @@ async function attachWorkingFileFromText(
   if (text.trim() && !boardImportPayloadFromAnyExportText(text)) {
     return {
       status: "read_error",
-      message:
-        'Die Datei ist kein gültiges E2-JSON, E2V, KI-Kontext oder Mermaid-/PlantUML-Diagramm.',
+      message: localeT("alerts.invalidImportFormat"),
     };
   }
 
@@ -1275,7 +1280,10 @@ export async function attachWorkingFileFromBrowserFile(
     return await attachWorkingFileFromText(text, fileName, file.lastModified);
   } catch (e) {
     console.error("Arbeitsdatei aus Datei-Dialog:", e);
-    return { status: "read_error", message: e instanceof Error ? e.message : "Datei konnte nicht gelesen werden." };
+    return {
+      status: "read_error",
+      message: e instanceof Error ? e.message : localeT("alerts.fileReadFailed"),
+    };
   }
 }
 
@@ -1286,7 +1294,10 @@ export async function attachWorkingFileFromPastedText(
   try {
     return await attachWorkingFileFromText(normalizeImportedFileText(rawText), fileName, Date.now());
   } catch (e) {
-    return { status: "read_error", message: e instanceof Error ? e.message : "Import fehlgeschlagen." };
+    return {
+      status: "read_error",
+      message: e instanceof Error ? e.message : localeT("alerts.wfImportFailed"),
+    };
   }
 }
 
@@ -1320,7 +1331,7 @@ export async function persistWorkingFileJson(
     return {
       ok: false,
       reason: "persist_paused",
-      message: "Dateiwechsel läuft — Speichern in die neue Datei ist blockiert, bis sie geladen ist.",
+      message: localeT("alerts.wfFileSwitchBlocked"),
     };
   }
   if (
@@ -1331,8 +1342,7 @@ export async function persistWorkingFileJson(
     return {
       ok: false,
       reason: "persist_paused",
-      message:
-        "Speichern in die Arbeitsdatei ist pausiert (fremder Stand oder Kollaboration). Nutze Speichern unter…",
+      message: localeT("alerts.wfPersistPaused"),
     };
   }
 
@@ -1392,7 +1402,12 @@ export async function persistWorkingFileJson(
         existing.sourceLastModified > 0 &&
         existing.sourceLastModified !== lastKnownFileModified
       ) {
-        return { ok: false, reason: "conflict", diskJson, message: "Mobile-Kopie wurde extern geändert." };
+        return {
+          ok: false,
+          reason: "conflict",
+          diskJson,
+          message: localeT("alerts.wfMobileCopyChanged"),
+        };
       }
     }
     const sourceLastModified = Date.now();
@@ -1633,12 +1648,12 @@ export async function renameWorkingFile(
 ): Promise<{ ok: true; name: string } | { ok: false; reason: string }> {
   const handle = memoryHandle;
   if (!handle) {
-    return { ok: false, reason: "Keine Arbeitsdatei verknüpft." };
+    return { ok: false, reason: localeT("alerts.fileNotLinked") };
   }
   if (typeof handle.move !== "function") {
     return {
       ok: false,
-      reason: "Umbenennen wird in diesem Browser nicht unterstützt. Nutze Speichern unter…",
+      reason: localeT("alerts.wfRenameNotSupported"),
     };
   }
   const next = suggestedWorkingFileName(newNameRaw.trim() || handle.name);
@@ -1647,7 +1662,7 @@ export async function renameWorkingFile(
   }
   try {
     if (!(await ensureReadWritePermission(handle))) {
-      return { ok: false, reason: "Keine Schreibberechtigung für die Datei." };
+      return { ok: false, reason: localeT("alerts.wfFilePermissionDenied") };
     }
     const oldName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
     await handle.move(next);
@@ -1672,7 +1687,7 @@ export async function renameWorkingFile(
     console.error("Arbeitsdatei umbenennen:", e);
     return {
       ok: false,
-      reason: e instanceof Error ? e.message : "Umbenennen fehlgeschlagen.",
+      reason: e instanceof Error ? e.message : localeT("alerts.wfRenameFailed"),
     };
   }
 }

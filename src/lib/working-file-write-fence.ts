@@ -3,6 +3,7 @@
  * Prevents empty/default boards and stale CAS from wiping nonempty disk content.
  */
 
+import { localeT } from "@/lib/locale-t";
 import {
   boardImportPayloadFromExportText,
   documentHasContent,
@@ -65,8 +66,7 @@ export function assertSafeWorkingFileWrite(
     return {
       ok: false,
       reason: "empty_over_nonempty",
-      message:
-        "Leerer oder inhaltsloser Stand wird nicht über eine nicht-leere Arbeitsdatei geschrieben.",
+      message: localeT("alerts.wfFenceEmptyOverNonempty"),
     };
   }
 
@@ -79,7 +79,7 @@ export function assertSafeWorkingFileWrite(
       return {
         ok: false,
         reason: "unknown_disk_baseline",
-        message: "Dateistand unbekannt — Speichern abgebrochen (kein Überschreiben ohne Basis).",
+        message: localeT("alerts.wfUnknownDiskBaseline"),
       };
     }
     return { ok: true };
@@ -93,8 +93,7 @@ export function assertSafeWorkingFileWrite(
     return {
       ok: false,
       reason: "content_cas_mismatch",
-      message:
-        "Die Datei wurde außerhalb dieses Tabs geändert. Lokal nicht überschrieben — Speichern unter… oder Datei neu laden.",
+      message: localeT("alerts.wfContentCasMismatch"),
     };
   }
 
@@ -109,8 +108,7 @@ export function assertSafeWorkingFileWrite(
       return {
         ok: false,
         reason: "unknown_disk_baseline",
-        message:
-          "Kein bekannter Sync-Stand zur Datei — Speichern abgebrochen. Bitte Datei neu öffnen oder Speichern unter…",
+        message: localeT("alerts.wfUnknownSyncBaseline"),
       };
     }
   }

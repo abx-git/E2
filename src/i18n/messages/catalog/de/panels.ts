@@ -12,6 +12,13 @@ export const panelsDe = {
     paletteTypeHelp: "Name und Farbe gelten für alle Karten dieses Typs.",
     deleteTypeConfirm:
       "Typ „{name}“ löschen? Vorhandene Karten behalten den Verweis, verlieren aber die Typfarbe.",
+    customTypeSampleCard: "Beispielkarte",
+    customTypeDone: "Fertig",
+    customTypeName: "Name",
+    customTypeNamePlaceholder: "z. B. Interface",
+    customTypePreviewLabel: "Vorschau: {name}",
+    customTypeColor: "Farbe",
+    customTypeFallbackName: "Typ",
     addType: "Typ hinzufügen",
     helpForType: "Hilfe für {type}",
     mobileInsertHint: "{mode} · Tippen zum Einfügen in der Bildmitte",

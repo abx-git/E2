@@ -1,3 +1,5 @@
+import { collabT } from "@/lib/collab/i18n";
+
 /** Supabase connection: env (deploy) wins, else browser localStorage (solo static hosting). */
 
 export const LOCAL_SUPABASE_STORAGE_KEY = "e2-supabase-connection";
@@ -76,13 +78,13 @@ export function saveLocalSupabaseConnection(connection: SupabaseConnection): { o
   const url = trimOrNull(connection.url);
   const key = trimOrNull(connection.key);
   if (!url || !key) {
-    return { ok: false, error: "URL und Key sind erforderlich" };
+    return { ok: false, error: collabT("alerts.collabUrlKeyRequired") };
   }
   if (!/^https:\/\//i.test(url)) {
-    return { ok: false, error: "URL muss mit https:// beginnen" };
+    return { ok: false, error: collabT("alerts.collabUrlHttps") };
   }
   if (typeof window === "undefined") {
-    return { ok: false, error: "Nur im Browser speicherbar" };
+    return { ok: false, error: collabT("alerts.collabBrowserOnly") };
   }
   localStorage.setItem(LOCAL_SUPABASE_STORAGE_KEY, JSON.stringify({ url, key }));
   return { ok: true };

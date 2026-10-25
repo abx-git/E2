@@ -1,10 +1,10 @@
-# Statische App → GitHub Pages (Project Pages: https://<user>.github.io/<repo>/)
+# Static app → GitHub Pages (Project Pages: https://<user>.github.io/<repo>/)
 #
-# Einrichtung (einmalig):
+# One-time setup:
 #   Settings → Pages → Build and deployment → Source: GitHub Actions
 # Optional:
-#   Settings → Actions → Variables → NEXT_PUBLIC_BASE_PATH = /MeinRepo
-#   (Standard: automatisch /{repo-name})
+#   Settings → Actions → Variables → NEXT_PUBLIC_BASE_PATH = /MyRepo
+#   (default: automatically /{repo-name})
 name: Deploy GitHub Pages
 
 on:
@@ -44,9 +44,9 @@ jobs:
       - name: Verify build output
         run: |
           set -euo pipefail
-          test -f out/.nojekyll || (echo "Fehlt: out/.nojekyll" && exit 1)
-          test -f out/index.html || (echo "Fehlt: out/index.html" && exit 1)
-          test -f out/sw.js || (echo "Fehlt: out/sw.js (PWA)" && exit 1)
+          test -f out/.nojekyll || (echo "Missing: out/.nojekyll" && exit 1)
+          test -f out/index.html || (echo "Missing: out/index.html" && exit 1)
+          test -f out/sw.js || (echo "Missing: out/sw.js (PWA)" && exit 1)
           echo "Build OK — basePath=${BASE_PATH}"
 
       - uses: actions/upload-pages-artifact@v3
