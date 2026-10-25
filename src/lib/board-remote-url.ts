@@ -3,6 +3,7 @@
  * Validation uses the same import path as local export (v1/v2 snapshots).
  */
 
+import { localeT } from "@/lib/locale-t";
 import { boardImportPayloadFromExportText, type BoardImportPayload } from "@/lib/storm-json";
 import { normalizeExternalUrl } from "@/lib/board-link";
 
@@ -16,13 +17,13 @@ export type BoardSourceUrlCheck =
 export function checkBoardSourceUrl(raw: string): BoardSourceUrlCheck {
   const normalized = normalizeExternalUrl(raw.trim());
   if (!normalized) {
-    return { ok: false, reason: "Keine gültige http(s)-URL." };
+    return { ok: false, reason: localeT("alerts.remoteInvalidHttpUrl") };
   }
   let parsed: URL;
   try {
     parsed = new URL(normalized);
   } catch {
-    return { ok: false, reason: "Keine gültige http(s)-URL." };
+    return { ok: false, reason: localeT("alerts.remoteInvalidHttpUrl") };
   }
   if (parsed.protocol === "https:") {
     return { ok: true, url: normalized };
@@ -35,7 +36,7 @@ export function checkBoardSourceUrl(raw: string): BoardSourceUrlCheck {
   }
   return {
     ok: false,
-    reason: "Nur HTTPS-URLs (oder http://localhost) sind erlaubt.",
+    reason: localeT("alerts.remoteHttpsOnly"),
   };
 }
 
@@ -98,7 +99,7 @@ function summarizePayload(payload: BoardImportPayload): {
     0,
   );
   return {
-    title: payload.title?.trim() || "Unbenanntes Board",
+    title: payload.title?.trim() || localeT("alerts.remoteUnnamedBoard"),
     viewCount,
     elementCount,
   };
@@ -127,19 +128,18 @@ export async function fetchAndValidateRemoteBoard(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (opts?.signal?.aborted || /abort/i.test(msg)) {
-      return { ok: false, reason: "Prüfung abgebrochen." };
+      return { ok: false, reason: localeT("alerts.remoteCheckAborted") };
     }
     return {
       ok: false,
-      reason:
-        "Datei konnte nicht geladen werden (Netzwerk oder CORS). Die Quelle muss Cross-Origin-Zugriff von E2 erlauben.",
+      reason: localeT("alerts.remoteLoadFailedCors"),
     };
   }
 
   if (!response.ok) {
     return {
       ok: false,
-      reason: `HTTP ${response.status} — Datei nicht erreichbar.`,
+      reason: localeT("alerts.remoteHttpStatus", { status: String(response.status) }),
     };
   }
 
@@ -147,19 +147,18 @@ export async function fetchAndValidateRemoteBoard(
   try {
     rawText = await response.text();
   } catch {
-    return { ok: false, reason: "Antwort konnte nicht gelesen werden." };
+    return { ok: false, reason: localeT("alerts.remoteResponseUnreadable") };
   }
 
   if (!rawText.trim()) {
-    return { ok: false, reason: "Die Datei ist leer." };
+    return { ok: false, reason: localeT("alerts.remoteFileEmpty") };
   }
 
   const payload = boardImportPayloadFromExportText(rawText);
   if (!payload) {
     return {
       ok: false,
-      reason:
-        "Kein gültiges E2-Board (.storm.json). Format/Version passen nicht zum Schema.",
+      reason: localeT("alerts.remoteInvalidBoard"),
     };
   }
 

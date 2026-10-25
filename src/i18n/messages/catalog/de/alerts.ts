@@ -94,5 +94,42 @@ export const alertsDe = {
     collabBroadcastFailed: "Broadcast fehlgeschlagen: {detail}",
     collabBroadcastError: "Broadcast-Fehler",
     fileNoViews: "Die Datei enthält keine Sichten.",
+    fileNotLinked: "Keine Arbeitsdatei verknüpft.",
+    wfFileExternallyChanged: "Datei wurde extern geändert.",
+    wfWriteIoFailed: "Schreiben fehlgeschlagen — Datei ggf. prüfen.",
+    wfImportFailed: "Import fehlgeschlagen.",
+    wfFileSwitchBlocked:
+      "Dateiwechsel läuft — Speichern in die neue Datei ist blockiert, bis sie geladen ist.",
+    wfMobileCopyChanged: "Mobile-Kopie wurde extern geändert.",
+    wfRenameNotSupported:
+      "Umbenennen wird in diesem Browser nicht unterstützt. Nutze Speichern unter…",
+    wfFilePermissionDenied: "Keine Schreibberechtigung für die Datei.",
+    wfRenameFailed: "Umbenennen fehlgeschlagen.",
+    wfNotWriterTab: "Dieser Tab schreibt die Datei gerade nicht (anderer Tab ist aktiv).",
+    wfUrlContextMismatch: "URL und verknüpfte Datei stimmen nicht überein.",
+    wfFenceEmptyOverNonempty:
+      "Leerer oder inhaltsloser Stand wird nicht über eine nicht-leere Arbeitsdatei geschrieben.",
+    wfUnknownDiskBaseline:
+      "Dateistand unbekannt — Speichern abgebrochen (kein Überschreiben ohne Basis).",
+    wfUnknownSyncBaseline:
+      "Kein bekannter Sync-Stand zur Datei — Speichern abgebrochen. Bitte Datei neu öffnen oder Speichern unter…",
+    wfContentCasMismatch:
+      "Die Datei wurde außerhalb dieses Tabs geändert. Lokal nicht überschrieben — Speichern unter… oder Datei neu laden.",
+    linkNoViewSelected: "Keine Sicht gewählt.",
+    linkViewNotFound: "Sicht nicht gefunden (gelöscht?).",
+    linkInvalidUrl: "Keine gültige URL.",
+    remoteInvalidHttpUrl: "Keine gültige http(s)-URL.",
+    remoteHttpsOnly: "Nur HTTPS-URLs (oder http://localhost) sind erlaubt.",
+    remoteCheckAborted: "Prüfung abgebrochen.",
+    remoteLoadFailedCors:
+      "Datei konnte nicht geladen werden (Netzwerk oder CORS). Die Quelle muss Cross-Origin-Zugriff von E2 erlauben.",
+    remoteHttpStatus: "HTTP {status} — Datei nicht erreichbar.",
+    remoteResponseUnreadable: "Antwort konnte nicht gelesen werden.",
+    remoteFileEmpty: "Die Datei ist leer.",
+    remoteInvalidBoard:
+      "Kein gültiges E2-Board (.storm.json). Format/Version passen nicht zum Schema.",
+    remoteUnnamedBoard: "Unbenanntes Board",
+    wfPersistPaused:
+      "Speichern in die Arbeitsdatei ist pausiert (fremder Stand oder Kollaboration). Nutze Speichern unter…",
   },
 } as const;

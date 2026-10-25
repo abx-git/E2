@@ -89,5 +89,41 @@ export const alertsEn = {
     collabBroadcastFailed: "Broadcast failed: {detail}",
     collabBroadcastError: "Broadcast error",
     fileNoViews: "The file contains no views.",
+    fileNotLinked: "No working file linked.",
+    wfFileExternallyChanged: "The file was changed externally.",
+    wfWriteIoFailed: "Write failed — check the file if needed.",
+    wfImportFailed: "Import failed.",
+    wfFileSwitchBlocked:
+      "Switching files — saving to the new file is blocked until it is loaded.",
+    wfMobileCopyChanged: "The mobile copy was changed externally.",
+    wfRenameNotSupported: "Rename is not supported in this browser. Use Save as…",
+    wfFilePermissionDenied: "No write permission for the file.",
+    wfRenameFailed: "Rename failed.",
+    wfNotWriterTab: "This tab is not writing the file (another tab is active).",
+    wfUrlContextMismatch: "URL and linked file do not match.",
+    wfFenceEmptyOverNonempty:
+      "An empty or contentless state is not written over a non-empty working file.",
+    wfUnknownDiskBaseline:
+      "Unknown file state — save aborted (no overwrite without a baseline).",
+    wfUnknownSyncBaseline:
+      "No known sync baseline for the file — save aborted. Reopen the file or use Save as…",
+    wfContentCasMismatch:
+      "The file was changed outside this tab. Local state not overwritten — Save as… or reload the file.",
+    linkNoViewSelected: "No view selected.",
+    linkViewNotFound: "View not found (deleted?).",
+    linkInvalidUrl: "Not a valid URL.",
+    remoteInvalidHttpUrl: "Not a valid http(s) URL.",
+    remoteHttpsOnly: "Only HTTPS URLs (or http://localhost) are allowed.",
+    remoteCheckAborted: "Check cancelled.",
+    remoteLoadFailedCors:
+      "Could not load the file (network or CORS). The source must allow cross-origin access from E2.",
+    remoteHttpStatus: "HTTP {status} — file not reachable.",
+    remoteResponseUnreadable: "Could not read the response.",
+    remoteFileEmpty: "The file is empty.",
+    remoteInvalidBoard:
+      "Not a valid E2 board (.storm.json). Format/version do not match the schema.",
+    remoteUnnamedBoard: "Untitled board",
+    wfPersistPaused:
+      "Saving to the working file is paused (foreign state or collaboration). Use Save as…",
   },
 } as const;

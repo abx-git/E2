@@ -69,6 +69,6 @@ describe("board-remote-url", () => {
     const result = await fetchAndValidateRemoteBoard("https://cdn.example/x.json");
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.reason).toMatch(/Schema|gültiges/i);
+    expect(result.reason).toMatch(/schema|valid|gültig/i);
   });
 });
