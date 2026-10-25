@@ -1,3 +1,7 @@
+import type { Locale } from "@/i18n/config";
+import { catalogs } from "@/i18n/messages";
+import { getMessageByPath } from "@/i18n/path";
+import { resolveInitialLocale } from "@/i18n/resolve-locale";
 import type { ElementType, ModelingMode, WorkshopFormat } from "@/types/storm-element";
 import {
   ALL_ELEMENT_TYPES,
@@ -934,7 +938,52 @@ const ALL_FACILITATOR_FORMATS: FacilitatorFormatDefinition[] = [
   ...CLOUD_FACILITATOR_FORMATS,
 ];
 
-export function getFacilitatorFormatsForMode(mode: ModelingMode): FacilitatorFormatDefinition[] {
+type FacilitatorPhaseCopy = {
+  title?: string;
+  description?: string;
+  checklist?: string[];
+};
+
+type FacilitatorFormatCopy = {
+  label?: string;
+  description?: string;
+};
+
+function facilitatorCatalog(locale: Locale) {
+  return catalogs[locale] ?? catalogs.de;
+}
+
+function localizePhase(phase: FacilitatorPhase, locale: Locale): FacilitatorPhase {
+  const copy = getMessageByPath(
+    facilitatorCatalog(locale),
+    `facilitatorPhases.phases.${phase.id}`,
+  ) as FacilitatorPhaseCopy | undefined;
+  if (!copy) return phase;
+  return {
+    ...phase,
+    title: copy.title ?? phase.title,
+    description: copy.description ?? phase.description,
+    checklist: copy.checklist ? [...copy.checklist] : phase.checklist,
+  };
+}
+
+function localizeFormatDefinition(
+  def: FacilitatorFormatDefinition,
+  locale: Locale,
+): FacilitatorFormatDefinition {
+  const copy = getMessageByPath(
+    facilitatorCatalog(locale),
+    `facilitatorPhases.formats.${def.format}`,
+  ) as FacilitatorFormatCopy | undefined;
+  return {
+    ...def,
+    label: copy?.label ?? def.label,
+    description: copy?.description ?? def.description,
+    phases: def.phases.map((phase) => localizePhase(phase, locale)),
+  };
+}
+
+function formatsForMode(mode: ModelingMode): FacilitatorFormatDefinition[] {
   switch (mode) {
     case "domainDrivenDesign":
       return DDD_FACILITATOR_FORMATS;
@@ -961,9 +1010,20 @@ export function getFacilitatorFormatsForMode(mode: ModelingMode): FacilitatorFor
   }
 }
 
-export function getFacilitatorFormat(format: WorkshopFormat): FacilitatorFormatDefinition | null {
+export function getFacilitatorFormatsForMode(
+  mode: ModelingMode,
+  locale: Locale = resolveInitialLocale(),
+): FacilitatorFormatDefinition[] {
+  return formatsForMode(mode).map((def) => localizeFormatDefinition(def, locale));
+}
+
+export function getFacilitatorFormat(
+  format: WorkshopFormat,
+  locale: Locale = resolveInitialLocale(),
+): FacilitatorFormatDefinition | null {
   if (format === "free") return null;
-  return ALL_FACILITATOR_FORMATS.find((f) => f.format === format) ?? null;
+  const def = ALL_FACILITATOR_FORMATS.find((f) => f.format === format) ?? null;
+  return def ? localizeFormatDefinition(def, locale) : null;
 }
 
 export function getAllowedTypesForPhase(
@@ -971,10 +1031,11 @@ export function getAllowedTypesForPhase(
   format: WorkshopFormat,
   phaseIndex: number,
   facilitatorEnabled: boolean,
+  locale: Locale = resolveInitialLocale(),
 ): ElementType[] {
   const catalog = elementTypesForMode(mode);
   if (!facilitatorEnabled || format === "free") return catalog;
-  const def = getFacilitatorFormat(format);
+  const def = getFacilitatorFormat(format, locale);
   if (!def) return catalog;
   const phase = def.phases[phaseIndex];
   const raw = phase?.allowedTypes ?? catalog;
@@ -990,9 +1051,10 @@ export function getAllowedTypesForPhase(
 export function getCurrentPhase(
   format: WorkshopFormat,
   phaseIndex: number,
+  locale: Locale = resolveInitialLocale(),
 ): FacilitatorPhase | null {
   if (format === "free") return null;
-  const def = getFacilitatorFormat(format);
+  const def = getFacilitatorFormat(format, locale);
   if (!def) return null;
   return def.phases[phaseIndex] ?? null;
 }

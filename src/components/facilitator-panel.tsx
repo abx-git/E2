@@ -11,7 +11,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-import { useT } from "@/i18n";
+import { useLocale, useT } from "@/i18n";
 import { getFacilitatorFormat, getCurrentPhase, type FacilitatorPhase } from "@/lib/facilitator-phases";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { WorkshopFormat } from "@/types/storm-element";
@@ -32,6 +32,7 @@ function formatMmSs(totalSeconds: number): string {
 
 export function FacilitatorPanel({ embedded = false, onRequestHelpPhase }: FacilitatorPanelProps) {
   const t = useT();
+  const locale = useLocale();
   const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
   const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
   const facilitatorPhase = useStormBoardStore((s) => s.facilitatorPhase);
@@ -39,7 +40,7 @@ export function FacilitatorPanel({ embedded = false, onRequestHelpPhase }: Facil
   const nextFacilitatorPhase = useStormBoardStore((s) => s.nextFacilitatorPhase);
   const prevFacilitatorPhase = useStormBoardStore((s) => s.prevFacilitatorPhase);
 
-  const phase = getCurrentPhase(workshopFormat, facilitatorPhase);
+  const phase = getCurrentPhase(workshopFormat, facilitatorPhase, locale);
   const durationMinutes = phase?.durationMinutes ?? DEFAULT_DURATION_MINUTES;
   const initialSeconds = durationMinutes * 60;
 
@@ -73,7 +74,7 @@ export function FacilitatorPanel({ embedded = false, onRequestHelpPhase }: Facil
 
   if (!facilitatorEnabled || workshopFormat === "free") return null;
 
-  const formatDef = getFacilitatorFormat(workshopFormat);
+  const formatDef = getFacilitatorFormat(workshopFormat, locale);
   const totalPhases = formatDef?.phases.length ?? 0;
 
   if (!formatDef || !phase) return null;
