@@ -1,6 +1,6 @@
 import type { Locale } from "@/i18n/config";
 import { catalogs } from "@/i18n/messages";
-import { getMessageByPath } from "@/i18n/path";
+import { getCatalogNode } from "@/i18n/path";
 import { resolveInitialLocale } from "@/i18n/resolve-locale";
 import type { ElementType, ModelingMode, WorkshopFormat } from "@/types/storm-element";
 import {
@@ -954,7 +954,7 @@ function facilitatorCatalog(locale: Locale) {
 }
 
 function localizePhase(phase: FacilitatorPhase, locale: Locale): FacilitatorPhase {
-  const copy = getMessageByPath(
+  const copy = getCatalogNode(
     facilitatorCatalog(locale),
     `facilitatorPhases.phases.${phase.id}`,
   ) as FacilitatorPhaseCopy | undefined;
@@ -971,7 +971,7 @@ function localizeFormatDefinition(
   def: FacilitatorFormatDefinition,
   locale: Locale,
 ): FacilitatorFormatDefinition {
-  const copy = getMessageByPath(
+  const copy = getCatalogNode(
     facilitatorCatalog(locale),
     `facilitatorPhases.formats.${def.format}`,
   ) as FacilitatorFormatCopy | undefined;

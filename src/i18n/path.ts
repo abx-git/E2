@@ -1,12 +1,17 @@
 import type { MessageKey, MessageTree, MessageVars } from "@/i18n/types";
 
-export function getMessageByPath(tree: MessageTree, key: MessageKey): string | undefined {
-  const parts = key.split(".");
+export function getCatalogNode(tree: MessageTree, path: string): unknown {
+  const parts = path.split(".");
   let cur: unknown = tree;
   for (const part of parts) {
     if (cur === null || typeof cur !== "object" || !(part in cur)) return undefined;
     cur = (cur as Record<string, unknown>)[part];
   }
+  return cur;
+}
+
+export function getMessageByPath(tree: MessageTree, key: MessageKey): string | undefined {
+  const cur = getCatalogNode(tree, key);
   return typeof cur === "string" ? cur : undefined;
 }
 
