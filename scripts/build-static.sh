@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Statischer Export für GitHub Pages / beliebigen Static-Host (kein Node-Server).
+# Static export for GitHub Pages / any static host (no Node server).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -7,11 +7,11 @@ cd "$ROOT"
 export E2_BUILD_TARGET=static
 export NEXT_PUBLIC_BASE_PATH="${NEXT_PUBLIC_BASE_PATH:-/E2}"
 
-echo "→ Statischer Build (basePath=${NEXT_PUBLIC_BASE_PATH}) …"
+echo "→ Static build (basePath=${NEXT_PUBLIC_BASE_PATH}) …"
 npx next build
 
 if [[ ! -d "$ROOT/out" ]]; then
-  echo "Fehler: out/ wurde nicht erzeugt." >&2
+  echo "Error: out/ was not created." >&2
   exit 1
 fi
 
@@ -23,5 +23,5 @@ if [[ ! -f "$ROOT/out/.nojekyll" ]]; then
   fi
 fi
 
-echo "→ Fertig: $ROOT/out"
-echo "   Vorschau: npx serve out   dann Browser: http://localhost:3000${NEXT_PUBLIC_BASE_PATH}/"
+echo "→ Done: $ROOT/out"
+echo "   Preview: npx serve out   then open http://localhost:3000${NEXT_PUBLIC_BASE_PATH}/"

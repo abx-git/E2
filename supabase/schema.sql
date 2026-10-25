@@ -1,5 +1,5 @@
--- E2 Collaboration schema (Supabase Free Tier)
--- Run in Supabase SQL Editor. Requires Anonymous Auth enabled.
+-- E2 collaboration schema (Supabase Free Tier)
+-- Run in the Supabase SQL Editor. Requires Anonymous Auth enabled.
 
 create extension if not exists "pgcrypto";
 
