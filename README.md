@@ -1,440 +1,440 @@
 # E2 — Collaborative Domain Modeling
 
-Browserbasiertes Board für **Event Storming**, **Domain-Driven Design**, **BDD / Example Mapping**, **User Story Mapping**, **Event Modeling**, **Prozess**, **Daten** und **Freiform** (eigene Kartentypen / Stereotypen) mit lokaler JSON-Persistenz (`.storm.json`).  
-Kein Server für Domänendaten — die Arbeitsdatei liegt beim Nutzer.
+Browser-based board for **Event Storming**, **Domain-Driven Design**, **BDD / Example Mapping**, **User Story Mapping**, **Event Modeling**, **Process**, **Data**, and **Freeform** (custom card types / stereotypes) with local JSON persistence (`.storm.json`).  
+No server for domain data — the working file stays with the user.
 
 **Live:** [abx-git.github.io/E2](https://abx-git.github.io/E2/)  
 **Repository:** [github.com/abx-git/E2](https://github.com/abx-git/E2)
 
 ---
 
-## Zweck dieses Dokuments
+## Purpose of this document
 
-Diese README beschreibt die **implementierten Funktionen** und stellt sie klassischen Workshop-Methoden gegenüber (Brandolini, Evans/Vernon, Example Mapping, Story Mapping, Event Modeling, Prozess-/Datenmodellierung).
+This README describes **implemented features** and compares them to classic workshop methods (Brandolini, Evans/Vernon, Example Mapping, Story Mapping, Event Modeling, process/data modeling).
 
 ---
 
-## Kurzüberblick
+## Quick overview
 
-| Bereich | Inhalt |
+| Area | Content |
 |--------|--------|
-| Methoden-Modi | ES · DDD · BDD · USM · EM · PROC · DATA · C4 · arc42 · Cloud · Freiform (Palette/Facilitator getrennt); Board darf Typen mischen |
-| Sticky-Typen | Methodenspezifische Kataloge + Freiform-Stereotypen + geteilte Notizen/Instructions/Hotspots/Links |
-| Relationen | 8 Verbindungstypen inkl. Auto-Vorschlag |
-| Fläche | Timeline, Swimlanes, Bounded Contexts, Pan/Zoom |
-| Workshop | Pro Modus eigene Facilitator-Formate + Frei |
-| Sprache | Glossary (Ubiquitous Language) |
-| Unsicherheit | Hotspots inkl. Status/Priorität |
-| I/O | `.storm.json` + Schema, SVG/PNG, Markdown-Reports |
-| UX | Mehrfachauswahl, Ausrichten, Rechtsklick-Menüs, Farben |
-| UI-Sprache | Deutsch / English (clientseitig; Daten → Darstellung) |
+| Method modes | ES · DDD · BDD · USM · EM · PROC · DATA · C4 · arc42 · Cloud · Freeform (palette/facilitator separate); the board may mix types |
+| Sticky types | Method-specific catalogs + freeform stereotypes + shared notes/instructions/hotspots/links |
+| Relations | 8 connection types including auto-suggestion |
+| Surface | Timeline, swimlanes, bounded contexts, pan/zoom |
+| Workshop | Per-mode facilitator formats + Free |
+| Language | Glossary (Ubiquitous Language) |
+| Uncertainty | Hotspots including status/priority |
+| I/O | `.storm.json` + schema, SVG/PNG, Markdown reports |
+| UX | Multi-select, align, context menus, colors |
+| UI language | German / English (client-side; data → presentation) |
 
 ---
 
-## 1. Elementtypen (Stickies)
+## 1. Element types (stickies)
 
-Die **Palette** zeigt nur Typen des aktiven Methoden-Modus (im Facilitator zusätzlich phasenweise eingeschränkt).  
-Bereits platzierte Stickies bleiben beim Moduswechsel sichtbar — Elemente der anderen Methode sind leicht abgesetzt (gestrichelter Rahmen).
+The **palette** shows only types for the active method mode (in facilitator mode additionally restricted by phase).  
+Stickies already on the board remain visible when switching modes — elements from the other method are slightly de-emphasized (dashed border).
 
 ### Event Storming
 
-| Typ | Farbe / Form | Methodische Rolle |
+| Type | Color / shape | Method role |
 |-----|--------------|-------------------|
-| **Domain Event** | Orange | „Was ist passiert?“ (Vergangenheit) |
-| **Command** | Blau | „Was soll geschehen?“ / Auslöser |
-| **Actor** | Gelb (Pill) | Wer führt den Command aus? |
-| **Aggregate** | Gelbes Rechteck | Konsistenzgrenze, Commands → Events |
-| **Policy** | Lila | „When X, then Y“ |
-| **Read Model** | Grün | Benötigte Information für Entscheidungen |
-| **External System** | Pink | Integration außerhalb der Domäne |
-| **UI** | Grau/Weiß | Screen / View |
-| **Notiz** | Creme, gestrichelt (Farbe wählbar) | Freie Annotation (Workshop-Hinweis) |
-| **Instruction** | Teal, Badge + linker Akzent | Anweisung / Aspekte für die Umsetzung |
-| **Hotspot** | Rot, gedreht | Offene Frage, Konflikt, Unklarheit |
-| **Link** | Himmelblau (Pill) | Externe URL oder Sprung zu einer Board-Sicht |
-| **Pivotal Event** | Breiter gelber Block | Phasenwechsel / signifikanter Einschnitt |
+| **Domain Event** | Orange | “What happened?” (past tense) |
+| **Command** | Blue | “What should happen?” / trigger |
+| **Actor** | Yellow (pill) | Who executes the command? |
+| **Aggregate** | Yellow rectangle | Consistency boundary, commands → events |
+| **Policy** | Purple | “When X, then Y” |
+| **Read Model** | Green | Information needed for decisions |
+| **External System** | Pink | Integration outside the domain |
+| **UI** | Gray/white | Screen / view |
+| **Note** | Cream, dashed (color selectable) | Free annotation (workshop hint) |
+| **Instruction** | Teal, badge + left accent | Implementation guidance / aspects |
+| **Hotspot** | Red, rotated | Open question, conflict, ambiguity |
+| **Link** | Sky blue (pill) | External URL or jump to a board view |
+| **Pivotal Event** | Wide yellow block | Phase change / significant breakpoint |
 
 ### Domain-Driven Design
 
-| Typ | Farbe / Form | Methodische Rolle |
+| Type | Color / shape | Method role |
 |-----|--------------|-------------------|
-| **Subdomain** | Violett | Problemraum: Core / Supporting / Generic |
-| **Entity** | Türkis | Identität über die Zeit |
-| **Value Object** | Cyan | Wert ohne Identität |
-| **Aggregate** | Gelbes Rechteck | Konsistenzgrenze (geteilt mit ES) |
-| **Domain Service** | Indigo | Fachlogik ohne natürlichen Entity-Sitz |
-| **Repository** | Stein | Persistenzzugriff für Aggregate Roots |
-| **Factory** | Lime | Komplexe Erzeugung |
-| **Domain Event** | Orange | Bedeutsame Zustandsänderung (geteilt) |
-| **External System** | Pink | Integration (geteilt) |
-| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen (geteilt) |
+| **Subdomain** | Violet | Problem space: Core / Supporting / Generic |
+| **Entity** | Turquoise | Identity over time |
+| **Value Object** | Cyan | Value without identity |
+| **Aggregate** | Yellow rectangle | Consistency boundary (shared with ES) |
+| **Domain Service** | Indigo | Domain logic without a natural entity home |
+| **Repository** | Stone | Persistence access for aggregate roots |
+| **Factory** | Lime | Complex creation |
+| **Domain Event** | Orange | Meaningful state change (shared) |
+| **External System** | Pink | Integration (shared) |
+| **Note / Instruction / Hotspot** | Cream / Teal / Red | Annotations (shared) |
 
 ### BDD / Example Mapping
 
-| Typ | Farbe / Form | Methodische Rolle |
+| Type | Color / shape | Method role |
 |-----|--------------|-------------------|
-| **Rule** | Amber | Geschäftsregel zur Story |
-| **Example** | Grün | Konkretes Szenario (Given/When/Then) |
-| **Question** | Himmelblau | Offene Spec-Frage |
-| **Actor** | Gelb (Pill) | Wer ist betroffen? |
-| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen |
+| **Rule** | Amber | Business rule for the story |
+| **Example** | Green | Concrete scenario (Given/When/Then) |
+| **Question** | Sky blue | Open spec question |
+| **Actor** | Yellow (pill) | Who is affected? |
+| **Note / Instruction / Hotspot** | Cream / Teal / Red | Annotations |
 
 ### User Story Mapping
 
-| Typ | Farbe / Form | Methodische Rolle |
+| Type | Color / shape | Method role |
 |-----|--------------|-------------------|
-| **Activity** | Blau, breit | Backbone der User Journey |
-| **User Task** | Hellblau | Aufgabe unter einer Activity |
-| **User Story** | Gelb | Umsetzbare Story |
-| **Release** | Rosa, breit | Horizontaler Release-/MVP-Schnitt |
-| **Actor** | Gelb (Pill) | Persona / Rolle |
-| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen |
+| **Activity** | Blue, wide | Backbone of the user journey |
+| **User Task** | Light blue | Task under an activity |
+| **User Story** | Yellow | Deliverable story |
+| **Release** | Pink, wide | Horizontal release / MVP slice |
+| **Actor** | Yellow (pill) | Persona / role |
+| **Note / Instruction / Hotspot** | Cream / Teal / Red | Annotations |
 
 ### Event Modeling
 
-| Typ | Farbe / Form | Methodische Rolle |
+| Type | Color / shape | Method role |
 |-----|--------------|-------------------|
-| **Slice** | Orange, breit | Vertical Slice (UI→Command→Event→View) |
-| **Domain Event / Command / Read Model / UI / Policy / Actor / External System** | wie ES | Bausteine der Timeline |
-| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen |
+| **Slice** | Orange, wide | Vertical slice (UI→Command→Event→View) |
+| **Domain Event / Command / Read Model / UI / Policy / Actor / External System** | as in ES | Building blocks of the timeline |
+| **Note / Instruction / Hotspot** | Cream / Teal / Red | Annotations |
 
-### Prozess (BPMN-lite)
+### Process (BPMN-lite)
 
-| Typ | Farbe / Form | Methodische Rolle |
+| Type | Color / shape | Method role |
 |-----|--------------|-------------------|
-| **Start** | Grün, rund | Prozessbeginn / Auslöser |
-| **Aktivität** | Blau | Arbeitsschritt (Rolle, System, I/O, Dauer) |
-| **Gateway** | Raute | XOR / AND / OR-Verzweigung mit Bedingungen |
-| **Ende** | Rot, rund | Prozessende / Ergebnis |
-| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen |
+| **Start** | Green, round | Process start / trigger |
+| **Activity** | Blue | Work step (role, system, I/O, duration) |
+| **Gateway** | Diamond | XOR / AND / OR branch with conditions |
+| **End** | Red, round | Process end / outcome |
+| **Note / Instruction / Hotspot** | Cream / Teal / Red | Annotations |
 
-### Daten (ER-lite)
+### Data (ER-lite)
 
-| Typ | Farbe / Form | Methodische Rolle |
+| Type | Color / shape | Method role |
 |-----|--------------|-------------------|
-| **Entität** | Türkis | Tabelle / Konzept (PK, Attribute, Unique Keys) |
-| **Assoziation** | Grau | Beziehung mit Kardinalität (1:1, 1:n, …) |
-| **Notiz / Instruction / Hotspot** | Creme / Teal / Rot | Annotationen |
+| **Entity** | Turquoise | Table / concept (PK, attributes, unique keys) |
+| **Association** | Gray | Relationship with cardinality (1:1, 1:n, …) |
+| **Note / Instruction / Hotspot** | Cream / Teal / Red | Annotations |
 
-### Pro Element bearbeitbar
+### Editable per element
 
-- Label, Beschreibung  
-- **Auf der Karte anzeigen:** Beschreibung / Attribute / Methoden / Web-Links (Detailleiste oder Rechtsklick)  
-- **Web-Links:** beliebige http(s)-URLs mit optionalem Titel; optional auf der Karte als klickbare Liste  
-- Position und Größe (Ziehen, Anfasser, Zahlen in der rechten Leiste)  
-- Zuordnung zu Swimlane / Bounded Context (automatisch bei Umschließung; Rechtsklick weiter möglich)   
-- „Wiederkehrend“ (Rechtsklick)  
-- **Domain Event / Aggregate:** Event-Schema (Werte-Editor oder Raw-JSON)  
-- **Aggregate:** Attribute, Methoden, Invarianten  
-- **Entity:** Identitätsfelder, Attribute, Operationen  
-- **Value Object:** Attribute/Komponenten, Flag „unveränderlich“  
-- **Domain Service:** Operationen, Flag „zustandslos“  
-- **Repository:** Aggregate Root, Operationen  
-- **Factory:** Erzeugter Typ, Operationen  
-- **Hotspot:** Status (offen/gelöst), Priorität (niedrig/mittel/hoch)
-- **Notiz:** Hintergrundfarbe (Detailleiste oder Rechtsklick)
-- **Instruction:** feste Kennzeichnung für Umsetzungsanweisungen (kein Farbwähler)
-- **Link:** Zielart (URL oder Sicht), URL bzw. Sicht-Auswahl; Öffnen per Symbol / Detailleiste
-- **Subdomain:** Art (Core / Supporting / Generic)
-- **Rule:** Kriterien / Hinweise  
+- Label, description  
+- **Show on card:** description / attributes / methods / web links (detail pane or right-click)  
+- **Web links:** arbitrary http(s) URLs with optional title; optionally on the card as a clickable list  
+- Position and size (drag, handles, numbers in the right pane)  
+- Assignment to swimlane / bounded context (automatic when enclosed; still available via right-click)   
+- “Recurring” (right-click)  
+- **Domain Event / Aggregate:** event schema (value editor or raw JSON)  
+- **Aggregate:** attributes, methods, invariants  
+- **Entity:** identity fields, attributes, operations  
+- **Value Object:** attributes/components, “immutable” flag  
+- **Domain Service:** operations, “stateless” flag  
+- **Repository:** aggregate root, operations  
+- **Factory:** produced type, operations  
+- **Hotspot:** status (open/resolved), priority (low/medium/high)
+- **Note:** background color (detail pane or right-click)
+- **Instruction:** fixed styling for implementation instructions (no color picker)
+- **Link:** target type (URL or view), URL or view selection; open via icon / detail pane
+- **Subdomain:** kind (Core / Supporting / Generic)
+- **Rule:** criteria / notes  
 - **Example:** Given / When / Then  
-- **Question:** Status (offen/geklärt)  
-- **User Story:** Persona, MoSCoW-Priorität, Schätzung, Akzeptanzkriterien  
-- **Release / Slice:** Ziel; Slice zusätzlich Systeme/Lanes  
-- **Process Start / End:** Auslöser bzw. Ergebnis  
-- **Process Activity:** Rolle, System, Eingaben/Ausgaben, Dauer  
-- **Process Gateway:** Art (XOR/AND/OR), Bedingungen/Pfade  
-- **Data Entity:** Tabellenname, Identitätsfelder, Attribute, Unique Keys  
-- **Data Association:** Kardinalität, linke/rechte Entität, Beziehungsattribute  
+- **Question:** status (open/clarified)  
+- **User Story:** persona, MoSCoW priority, estimate, acceptance criteria  
+- **Release / Slice:** goal; slice additionally systems/lanes  
+- **Process Start / End:** trigger or outcome  
+- **Process Activity:** role, system, inputs/outputs, duration  
+- **Process Gateway:** kind (XOR/AND/OR), conditions/paths  
+- **Data Entity:** table name, identity fields, attributes, unique keys  
+- **Data Association:** cardinality, left/right entity, relationship attributes  
 
-> **Hinweis:** Listenfelder (Attribute, Methoden, …) werden in der Detailleiste zeilenweise gepflegt.
+> **Note:** List fields (attributes, methods, …) are maintained row by row in the detail pane.
 
 ---
 
-## 2. Relationen
+## 2. Relations
 
-Elemente lassen sich verbinden (Canvas **Verbinden**, Pfeil am Sticky oder Rechtsklick → Relation starten).
+Elements can be connected (canvas **Connect**, arrow on sticky, or right-click → start relation).
 
-**Undo/Redo:** App-Leiste oder ⌘Z / Ctrl+Z (Undo) und ⌘⇧Z / Ctrl+Y (Redo). **Duplizieren:** ⌘D / Ctrl+D (Auswahl). **Bearbeitungsstand** (Karten & Verbinder, Badge mit Symbol): ⌘/Ctrl+1 OK · +2 ! · +3 ? · +4 In Arbeit · +5 Neu (nochmals = entfernen). Drag einer Gruppe zählt als ein Schritt. History wird nicht in `.storm.json` gespeichert.
+**Undo/Redo:** app bar or ⌘Z / Ctrl+Z (undo) and ⌘⇧Z / Ctrl+Y (redo). **Duplicate:** ⌘D / Ctrl+D (selection). **Edit status** (cards & connectors, badge with icon): ⌘/Ctrl+1 OK · +2 ! · +3 ? · +4 In progress · +5 New (again = remove). Dragging a group counts as one step. History is not stored in `.storm.json`.
 
-| Typ | Bedeutung (UI) |
+| Type | Meaning (UI) |
 |-----|----------------|
-| `triggers` | löst aus |
-| `reactsWith` | reagiert mit |
-| `informs` | informiert (gestrichelt) |
-| `executedBy` | ausgeführt von |
-| `invokes` | ruft auf |
-| `causal` | verursacht |
-| `contains` | enthält |
-| `annotates` | annotiert (gestrichelt; Notiz/Instruction ↔ Sticky) |
+| `triggers` | triggers |
+| `reactsWith` | reacts with |
+| `informs` | informs (dashed) |
+| `executedBy` | executed by |
+| `invokes` | invokes |
+| `causal` | causes |
+| `contains` | contains |
+| `annotates` | annotates (dashed; note/instruction ↔ sticky) |
 
-Der Relationstyp wird beim Verbinden **heuristisch vorgeschlagen** und kann per Rechtsklick geändert werden. Optionales Label in der Detailleiste.
+The relation type is **heuristically suggested** when connecting and can be changed via right-click. Optional label in the detail pane.
 
 ---
 
-## 3. Canvas & Strukturierung
+## 3. Canvas & structure
 
-### Navigation & Auswahl
+### Navigation & selection
 
-- **Pan:** Trackpad-Scroll, Leertaste + Ziehen, oder mittlere Maustaste  
-- **Zoom:** Pinch / Ctrl+Scroll (⌘+Scroll), ± unten rechts am Canvas (ca. 25 %–250 %)
-- **Auswahl:** Klick, Shift+Klick, Rahmen ziehen (Marquee)  
-- **Verschieben:** ein Element oder die Mehrfachauswahl  
-- **Größe:** acht Anfasser am ausgewählten Element  
-- **Ausrichten:** Rechtsklick bei ≥2 Elementen (links/mitte/rechts, oben/mitte/unten, verteilen, gleiche Breite/Höhe)  
-- **Anlegen:** Doppelklick auf leere Fläche, Rechtsklick → Element hinzufügen, oder **1–9/0** (Typ) + **Enter/A** (Viewport-Mitte)  
-- **Titel:** Doppelklick auf ein Sticky → Inline-Bearbeitung (Enter speichern, Esc abbrechen; Notizen/Instructions: ⌘/Ctrl+Enter)  
-- **Aktionen:** Rechtsklick-Context-Menü (Löschen, Zuordnung, Hotspot-Status, Hilfe, …)
+- **Pan:** trackpad scroll, space + drag, or middle mouse button  
+- **Zoom:** pinch / Ctrl+scroll (⌘+scroll), ± bottom-right on canvas (approx. 25%–250%)
+- **Selection:** click, Shift+click, marquee drag  
+- **Move:** one element or the multi-selection  
+- **Resize:** eight handles on the selected element  
+- **Align:** right-click with ≥2 elements (left/center/right, top/middle/bottom, distribute, same width/height)  
+- **Create:** double-click empty canvas, right-click → add element, or **1–9/0** (type) + **Enter/A** (viewport center)  
+- **Title:** double-click a sticky → inline edit (Enter save, Esc cancel; notes/instructions: ⌘/Ctrl+Enter)  
+- **Actions:** right-click context menu (delete, assignment, hotspot status, help, …)
 
 ### Timeline
 
-- Sichtbar/unsichtbar (Canvas **Ansicht → Timeline**)  
-- Vertikal verschiebbar  
-- Start-/Ende-Labels (Rechtsklick)  
-- Optional **Snap T**: Elemente rasten an der Timeline-Höhe ein  
+- Show/hide (canvas **View → Timeline**)  
+- Vertically movable  
+- Start/end labels (right-click)  
+- Optional **Snap T**: elements snap to the timeline height  
 
-Methodisch: chronologische Achse links → rechts für Domain Events.
+Methodically: chronological axis left → right for domain events.
 
 ### Swimlanes
 
-- Anlegen über Canvas-Werkzeugleiste  
-- Verschieben und in der Größe ändern (wie Bounded Contexts)  
-- Elemente werden **automatisch zugeordnet**, wenn sie vollständig in der Lane liegen (und wieder entfernt, wenn nicht mehr vollständig drin)  
-- Beim **Verschieben** wandern vollständig enthaltene Elemente mit  
-- Manuelle Zuordnung weiterhin per Rechtsklick möglich  
+- Create via canvas toolbar  
+- Move and resize (like bounded contexts)  
+- Elements are **assigned automatically** when fully inside the lane (and removed when no longer fully inside)  
+- When **moving** a lane, fully contained elements move with it  
+- Manual assignment still available via right-click  
 
-Methodisch: parallele Akteure / Streams / Verantwortlichkeiten.
+Methodically: parallel actors / streams / responsibilities.
 
-### Bounded Contexts
+### Bounded contexts
 
-- Rechteck auf der Fläche zeichnen („Bounded Context“-Modus)  
-- Verschieben, skalieren, Label, Zweck, Farbe  
-- Elemente werden **automatisch zugeordnet** bei vollständiger Umschließung (bei überlappenden BCs: der kleinste)  
-- Beim **Verschieben** wandern vollständig enthaltene Elemente mit  
-- Manuelle Zuordnung weiterhin per Rechtsklick  
-- **Context Map:** Canvas-Button → zwei BCs anklicken; Muster (ACL, Shared Kernel, Customer/Supplier, …) per Rechtsklick auf die Linie  
+- Draw a rectangle on the surface (“Bounded Context” mode)  
+- Move, scale, label, purpose, color  
+- Elements are **assigned automatically** when fully enclosed (overlapping BCs: the smallest one wins)  
+- When **moving** a BC, fully contained elements move with it  
+- Manual assignment still available via right-click  
+- **Context map:** canvas button → click two BCs; patterns (ACL, Shared Kernel, Customer/Supplier, …) via right-click on the line  
 
-Methodisch: Cluster nach Sprache und Verantwortung; Context-Map-Muster modellieren die Schnittstellen zwischen Contexts.
+Methodically: clusters by language and responsibility; context-map patterns model interfaces between contexts.
 
 ---
 
-## 4. Methoden-Modi, Facilitator & Workshop-Formate
+## 4. Method modes, facilitator & workshop formats
 
-In der App-Leiste: Methoden-Dropdown (**Event Storming**, DDD, …, **Freiform**). Der Modus steuert Palette und Facilitator-Formate — nicht den Board-Inhalt. Workshop-Format und Facilitator liegen unter **Session**.
+In the app bar: method dropdown (**Event Storming**, DDD, …, **Freeform**). The mode controls the palette and facilitator formats — not board content. Workshop format and facilitator live under **Session**.
 
-### Freiform
+### Freeform
 
-Eigene Kartentypen in der linken Palette anlegen, umbenennen und einfärben. Typen gelten pro Sicht und erscheinen farbig auf den Karten. Starter: Concept, Interface, Class — alles editierbar. Annotationen bleiben verfügbar.
+Create, rename, and color custom card types in the left palette. Types apply per view and appear in color on cards. Starters: Concept, Interface, Class — all editable. Annotations remain available.
 
 ### Event Storming
 
-| Format | Fokus |
+| Format | Focus |
 |--------|--------|
-| **Frei** | Alle ES-Typen, keine Phasenführung |
-| **Big Picture** | Chaotic Exploration → Timeline → Konsistenz → Commands/Actors → Policies/Read Models → Bounded Contexts → Hotspots → Wrap-Up |
-| **Process Modeling** | Commands & Policies → Pivotal Events → Contexts verfeinern → Aggregates & Read Models |
+| **Free** | All ES types, no phase guidance |
+| **Big Picture** | Chaotic Exploration → Timeline → Consistency → Commands/Actors → Policies/Read Models → Bounded Contexts → Hotspots → Wrap-Up |
+| **Process Modeling** | Commands & Policies → Pivotal Events → refine contexts → Aggregates & Read Models |
 | **Software Design** | Aggregate Design → Event Schemas → Repository & Service |
 
 ### Domain-Driven Design
 
-| Format | Fokus |
+| Format | Focus |
 |--------|--------|
-| **Frei** | Alle DDD-Typen, keine Phasenführung |
+| **Free** | All DDD types, no phase guidance |
 | **Strategic Design** | Subdomains → Ubiquitous Language → Bounded Contexts → Context Map → Wrap-Up |
 | **Tactical Design** | Aggregates & Entities → Value Objects → Services & Factories → Repositories → Domain Events → Wrap-Up |
 
 ### BDD / Example Mapping
 
-| Format | Fokus |
+| Format | Focus |
 |--------|--------|
-| **Frei** | Rules, Examples, Questions, … |
+| **Free** | Rules, Examples, Questions, … |
 | **Example Mapping** | Story & Rules → Examples → Questions → Wrap-Up |
 
 ### User Story Mapping
 
-| Format | Fokus |
+| Format | Focus |
 |--------|--------|
-| **Frei** | Activities, Tasks, Stories, Releases |
+| **Free** | Activities, Tasks, Stories, Releases |
 | **Story Mapping** | Backbone → Tasks → Stories → Releases |
 
 ### Event Modeling
 
-| Format | Fokus |
+| Format | Focus |
 |--------|--------|
-| **Frei** | Slice + ES-Bausteine |
+| **Free** | Slice + ES building blocks |
 | **Event Modeling** | Events → Commands & UI → Views & Automation → Vertical Slices |
 
-### Prozess
+### Process
 
-| Format | Fokus |
+| Format | Focus |
 |--------|--------|
-| **Frei** | Start, Aktivitäten, Gateways, Ende |
-| **Prozessmodellierung** | Happy Path → Entscheidungen (Gateways) → Rollen & Systeme |
+| **Free** | Start, activities, gateways, end |
+| **Process modeling** | Happy path → decisions (gateways) → roles & systems |
 
-### Daten
+### Data
 
-| Format | Fokus |
+| Format | Focus |
 |--------|--------|
-| **Frei** | Entitäten & Assoziationen |
-| **Datenmodellierung** | Entitäten → Attribute & Schlüssel → Beziehungen |
+| **Free** | Entities & associations |
+| **Data modeling** | Entities → attributes & keys → relationships |
 
-Im Facilitator-Modus:
+In facilitator mode:
 
-- Palette auf **erlaubte Typen der Phase** (im aktuellen Modus) begrenzt  
-- Checkliste, empfohlene Dauer, Phasenwechsel  
-- Hilfe-Dialoge zu Elementen, Relationen und Phasen  
+- Palette limited to **allowed types for the phase** (in the current mode)  
+- Checklist, recommended duration, phase transitions  
+- Help dialogs for elements, relations, and phases  
 
 ---
 
-## 5. Sprache, Hotspots, Validierung
+## 5. Language, hotspots, validation
 
-| Funktion | Inhalt |
+| Feature | Content |
 |----------|--------|
-| **Glossary** | Begriffe + Definitionen (Ubiquitous Language), Markdown-Export |
-| **Hotspot-Liste** | Übersicht aller Hotspots, Klick selektiert; Status/Priorität sichtbar |
-| **Validierung** | Hinweise am ausgewählten Element (z. B. Past Tense bei Events, isolierte Elemente, Hotspot ohne Beschreibung) — soft, nicht blockierend |
-| **Hilfe** | Kontextbezogene Erklärungen (Palette, Sidebar, Rechtsklick, Facilitator) |
+| **Glossary** | Terms + definitions (Ubiquitous Language), Markdown export |
+| **Hotspot list** | Overview of all hotspots, click selects; status/priority visible |
+| **Validation** | Hints on the selected element (e.g. past tense for events, isolated elements, hotspot without description) — soft, non-blocking |
+| **Help** | Contextual explanations (palette, sidebar, right-click, facilitator) |
 
 ---
 
-## 6. Persistenz & Export
+## 6. Persistence & export
 
-### Arbeitsdatei
+### Working file
 
-- Primär: lokale `.storm.json` (File System Access API, wo verfügbar) — **ein Dokument, mehrere Sichten (Tabs)**  
-- Format **v2** (`views[]`); ältere v1-Dateien werden beim Öffnen migriert  
-- Alternativen: Datei öffnen / JSON einfügen — bei ungespeicherten Änderungen: Speichern / Nicht speichern / Abbrechen (wie in Desktop-Apps)  
-- Datei-Menü: **Neu**, **Öffnen…**, **Speichern**, **Speichern unter…**, **Schließen**, **Umbenennen…**  
-- **Import als neue Seite:** Daten → *Als neue Seite importieren* — Sichten aus einer `.storm.json` als neue Tabs; **Farben / Titel / Glossary / Workshop-Modus** bleiben aus der geöffneten Datei  
-- **JSON als neue Sicht:** Daten → Export *JSON einfügen*, Datei *JSON als neue Sicht*, oder Tab-Leiste *JSON* — liest E2-/KI-JSON aus der System-Zwischenablage und legt neue Sicht(en) an (bestehende Tabs bleiben)  
-- **Board-Link teilen:** Daten → *Board-Link teilen…* — Remote-URL zu einer öffentlichen `.storm.json` prüfen (Schema); bei Erfolg Share-Link mit `?board=…`. Öffnen des Links fragt nach Bestätigung und lädt danach lokal weiter (CORS muss erlaubt sein)  
-- **Schutz vor Überschreiben:** Autosave schreibt nie einen leeren/fremden Stand über eine nicht-leere Arbeitsdatei. Beim Öffnen einer anderen Datei ist Speichern blockiert, bis deren Inhalt geladen ist — der vorherige Editor-Stand wird nie in die neue Datei geschrieben. Backup / Remote und Kollaboration pausieren das Speichern — Weiter mit „Speichern unter…“. Ändert ein anderes Tool die Arbeitsdatei, übernimmt E2 den Dateistand automatisch (sichtbarer Tab, ~1 s Poll); waren Editor-Änderungen offen, wird zuvor eine Editor-Sicherheitskopie heruntergeladen.  
-- Auto-Speichern, Konfliktbehandlung bei externer Änderung  
-- **Backup:** Daten → mit Historie (zeitgestempelte Kopien) oder ohne Historie (immer dieselbe Backup-Datei überschreiben); manuell oder alle 5–30 Min. Backup öffnen überschreibt die Arbeitsdatei nicht.  
-- Während **Kollaboration** wird die Arbeitsdatei **nicht** gespiegelt (Autosave pausiert); beim Verlassen: Board behalten oder Stand vor dem Raum wiederherstellen (ohne stilles Disk-Overwrite)  
-- **Workshop**-Schalter: in Collab den aktiven Tab für alle synchronisieren (sonst lokal wie Viewport)  
-- PWA / offline-fähig (Serwist)
+- Primary: local `.storm.json` (File System Access API where available) — **one document, multiple views (tabs)**  
+- Format **v2** (`views[]`); older v1 files are migrated on open  
+- Alternatives: open file / paste JSON — with unsaved changes: Save / Don’t save / Cancel (like desktop apps)  
+- File menu: **New**, **Open…**, **Save**, **Save as…**, **Close**, **Rename…**  
+- **Import as new page:** Data → *Import as new page* — views from a `.storm.json` as new tabs; **colors / title / glossary / workshop mode** stay from the open file  
+- **JSON as new view:** Data → export *Paste JSON*, file *JSON as new view*, or tab bar *JSON* — reads E2/AI JSON from the system clipboard and creates new view(s) (existing tabs remain)  
+- **Share board link:** Data → *Share board link…* — validates remote URL to a public `.storm.json` (schema); on success share link with `?board=…`. Opening the link asks for confirmation then loads locally (CORS must allow it)  
+- **Overwrite protection:** autosave never writes an empty/foreign state over a non-empty working file. When opening another file, save is blocked until its content is loaded — the previous editor state is never written into the new file. Backup / remote and collaboration pause saving — continue with “Save as…”. If another tool changes the working file, E2 adopts the file state automatically (visible tab, ~1 s poll); if editor changes were open, an editor safety copy is downloaded first.  
+- Autosave, conflict handling on external change  
+- **Backup:** Data → with history (timestamped copies) or without history (always overwrite the same backup file); manual or every 5–30 min. Opening a backup does not overwrite the working file.  
+- During **collaboration** the working file is **not** mirrored (autosave paused); on leave: keep board or restore state from before the room (no silent disk overwrite)  
+- **Workshop** toggle: in collab sync the active tab for everyone (otherwise local like viewport)  
+- PWA / offline-capable (Serwist)
 
 ### Export
 
-| Format | Nutzen | Typisch für |
+| Format | Use | Typical for |
 |--------|--------|-------------|
-| **JSON** | Vollständiger Board-Stand inkl. Schema-Verweis | alle |
-| **JSON Schema** | Für andere Tools, die gültige Boards erzeugen | alle |
-| **KI kopieren** | Mode-Schema + Sicht-Daten (mit Layout) in die Zwischenablage — ein Prompt-Paket für KI; Rückweg: Daten-JSON → KI einfügen | alle |
-| **E2V-Schema** | Englischer LLM-Prompt + E2V-Format-Spec **ohne** Sicht-Daten — wiederverwendbar in Prompts | alle |
-| **Mermaid / PlantUML** | Diagramm-Text pro Sicht; Import mit Auto-Layout | alle |
-| **SVG / PNG** | Visueller Snapshot; SVG als `.drawio.svg` mit eingebettetem Diagramm — in [diagrams.net](https://app.diagrams.net) / Draw.io bearbeitbar | alle |
-| **Hotspot-Report (MD)** | Offene Punkte | alle |
-| **Glossary (MD)** | Ubiquitous Language | alle |
-| **Context Map (MD)** | Contexts + Context-Map-Muster + Cross-Boundary-Relationen | ES, DDD |
-| **Event Catalog (MD)** | Domain Events inkl. Schema | ES, Event Modeling |
-| **Domain Model (MD)** | Aggregates, Entities, VOs, Services, Repos, Factories, Subdomains | DDD |
-| **Example Mapping (MD)** | Rules, Examples (Given/When/Then), Questions | BDD |
-| **Story Map (MD)** | Activities, Tasks, Stories, Releases | User Story Mapping |
-| **Event Model / Slices (MD)** | Slices mit enthaltenen Events/Commands/Read Models | Event Modeling |
-| **Prozessmodell (MD)** | Start, Aktivitäten (Rolle/System/I/O), Gateways, Ende | Prozess |
-| **Datenmodell (MD)** | Entitäten (PK/Attribute/Keys), Assoziationen, Relationen | Daten |
+| **JSON** | Full board state including schema reference | all |
+| **JSON Schema** | For other tools that produce valid boards | all |
+| **Copy for AI** | Mode schema + view data (with layout) to clipboard — one prompt package for AI; return path: Data JSON → paste AI | all |
+| **E2V schema** | English LLM prompt + E2V format spec **without** view data — reusable in prompts | all |
+| **Mermaid / PlantUML** | Diagram text per view; import with auto-layout | all |
+| **SVG / PNG** | Visual snapshot; SVG as `.drawio.svg` with embedded diagram — editable in [diagrams.net](https://app.diagrams.net) / Draw.io | all |
+| **Hotspot report (MD)** | Open items | all |
+| **Glossary (MD)** | Ubiquitous Language | all |
+| **Context map (MD)** | Contexts + context-map patterns + cross-boundary relations | ES, DDD |
+| **Event catalog (MD)** | Domain events including schema | ES, Event Modeling |
+| **Domain model (MD)** | Aggregates, entities, VOs, services, repos, factories, subdomains | DDD |
+| **Example mapping (MD)** | Rules, examples (Given/When/Then), questions | BDD |
+| **Story map (MD)** | Activities, tasks, stories, releases | User Story Mapping |
+| **Event model / slices (MD)** | Slices with contained events/commands/read models | Event Modeling |
+| **Process model (MD)** | Start, activities (role/system/I/O), gateways, end | Process |
+| **Data model (MD)** | Entities (PK/attributes/keys), associations, relations | Data |
 
-Schema & Formatdoku: [`docs/BOARD-JSON-SCHEMA.md`](docs/BOARD-JSON-SCHEMA.md), [`public/schemas/board-snapshot-v2.schema.json`](public/schemas/board-snapshot-v2.schema.json), [`public/schemas/ai-board-context-v1.schema.json`](public/schemas/ai-board-context-v1.schema.json).
-
----
-
-## 7. Darstellung
-
-Unter **Daten → Darstellung**:
-
-- Farbe **Arbeitsbereich** (Canvas)  
-- Farbe **Seitenleisten** / Docks  
-- Presets (Waypoints, Mitternacht, Workshop hell, Papier)  
-
-Sticky-Farben bleiben methodisch fix (Event-Storming-Konvention). Einstellungen werden im Board-JSON mitgespeichert.
+Schema & format docs: [`docs/BOARD-JSON-SCHEMA.md`](docs/BOARD-JSON-SCHEMA.md), [`public/schemas/board-snapshot-v2.schema.json`](public/schemas/board-snapshot-v2.schema.json), [`public/schemas/ai-board-context-v1.schema.json`](public/schemas/ai-board-context-v1.schema.json).
 
 ---
 
-## Abgleich: Event-Storming-Aspekte vs. E2
+## 7. Presentation
 
-Legende: ✅ vorhanden · 🟡 teilweise · ❌ fehlt / bewusst nicht
+Under **Data → Presentation**:
+
+- **Workspace** (canvas) color  
+- **Sidebars** / dock color  
+- Presets (Waypoints, Midnight, Workshop light, Paper)  
+
+Sticky colors stay fixed by method (Event Storming convention). Settings are saved in the board JSON.
+
+---
+
+## Comparison: Event Storming aspects vs. E2
+
+Legend: ✅ present · 🟡 partial · ❌ missing / intentionally not
 
 ### Big Picture / Discovery
 
-| Aspekt | Status | In E2 |
+| Aspect | Status | In E2 |
 |--------|--------|--------|
-| Domain Events sammeln (Chaotic Exploration) | ✅ | Orange Stickies, Facilitator-Phase |
-| Past Tense / Event-Formulierung | 🟡 | Hilfe + Soft-Validierung |
-| Chronologische Timeline | ✅ | Timeline + Snap |
-| Parallele Ströme | ✅ | Swimlanes (Auto-Zuordnung bei Umschließung) |
-| Commands | ✅ | Blaue Stickies |
-| Actors / Personas | ✅ | Actor-Stickies |
-| Policies | ✅ | Lila Stickies |
-| Read Models / Views | ✅ | Grün + UI-Typ |
-| External Systems | ✅ | Pink Stickies |
-| Hotspots / offene Fragen | ✅ | Typ + Liste + Status/Priorität |
-| Pivotal Events | ✅ | Eigener Typ + Process-Modeling-Phasen |
-| Bounded Contexts erkennen/clustern | ✅ | Zeichnen, benennen, zuordnen |
-| Quantität vor Qualität (viele Stickies) | ✅ | Freies Anlegen, keine künstlichen Limits |
+| Collect domain events (Chaotic Exploration) | ✅ | Orange stickies, facilitator phase |
+| Past tense / event wording | 🟡 | Help + soft validation |
+| Chronological timeline | ✅ | Timeline + snap |
+| Parallel streams | ✅ | Swimlanes (auto-assign on enclosure) |
+| Commands | ✅ | Blue stickies |
+| Actors / personas | ✅ | Actor stickies |
+| Policies | ✅ | Purple stickies |
+| Read models / views | ✅ | Green + UI type |
+| External systems | ✅ | Pink stickies |
+| Hotspots / open questions | ✅ | Type + list + status/priority |
+| Pivotal events | ✅ | Dedicated type + process modeling phases |
+| Recognize/cluster bounded contexts | ✅ | Draw, name, assign |
+| Quantity before quality (many stickies) | ✅ | Free creation, no artificial limits |
 
 ### Process Modeling
 
-| Aspekt | Status | In E2 |
+| Aspect | Status | In E2 |
 |--------|--------|--------|
-| Feiner Prozess entlang der Timeline | ✅ | Canvas + Process-Modeling-Format |
-| Policies zwischen Events und Commands | ✅ | Typ + Relation `reactsWith` |
-| Pivotal Events als Phasengrenzen | ✅ | Typ + Facilitator-Checklisten |
-| Swimlanes für Akteure/Systeme | ✅ | Auto-Zuordnung bei vollständiger Umschließung |
+| Fine-grained process along the timeline | ✅ | Canvas + process modeling format |
+| Policies between events and commands | ✅ | Type + relation `reactsWith` |
+| Pivotal events as phase boundaries | ✅ | Type + facilitator checklists |
+| Swimlanes for actors/systems | ✅ | Auto-assign on full enclosure |
 
-### Software Design / DDD-Anschluss
+### Software Design / DDD bridge
 
-| Aspekt | Status | In E2 |
+| Aspect | Status | In E2 |
 |--------|--------|--------|
-| Aggregates | ✅ | Typ + Methoden + Schema-Felder |
-| Event Schemas | ✅ | JSON am Event/Aggregate + Event-Catalog-Export |
-| Aggregate-Invarianten | ✅ | Detailleiste (eine Zeile pro Invariante) + Soft-Hint |
-| Context Map (visuell) | ✅ | BC-Boxen + Context-Map-Linien + Markdown-Report |
-| Context-Map-Muster (ACL, Shared Kernel, Customer/Supplier, …) | ✅ | BC↔BC-Relationen, Muster-Menü, Styles |
-| Ubiquitous Language | 🟡 | Glossary; keine Bindung an Sticky-Labels |
-| Microservice-/Modul-Schnitt | 🟡 | Über BC-Cluster und Cross-Boundary-Report |
+| Aggregates | ✅ | Type + methods + schema fields |
+| Event schemas | ✅ | JSON on event/aggregate + event catalog export |
+| Aggregate invariants | ✅ | Detail pane (one line per invariant) + soft hint |
+| Context map (visual) | ✅ | BC boxes + context-map lines + Markdown report |
+| Context-map patterns (ACL, Shared Kernel, Customer/Supplier, …) | ✅ | BC↔BC relations, pattern menu, styles |
+| Ubiquitous Language | 🟡 | Glossary; no binding to sticky labels |
+| Microservice / module cut | 🟡 | Via BC clusters and cross-boundary report |
 
-### Workshop-Praxis
+### Workshop practice
 
-| Aspekt | Status | In E2 |
+| Aspect | Status | In E2 |
 |--------|--------|--------|
-| Phasenführung / Facilitator | ✅ | Drei Formate + Checklisten |
-| Typbeschränkung pro Phase | ✅ | Palette gefiltert |
-| Empfohlene Zeitfenster | ✅ | Phasen-Countdown Start/Pause/Reset im Facilitator |
-| Mehrbenutzer / Echtzeit-Kollaboration | ✅ | Raum mit Single-Writer, CAS-Writes, Sync-Konflikt-Dialog (kein stilles Überschreiben) |
-| Undo/Redo | ✅ | History-Stack, App-Leiste, ⌘Z / Ctrl+Z |
-| Papier-Workshop-Extras (Opportunity, Problem, Value Stream overlays) | ❌ | Nur die 10 Kern-Typen |
+| Phase guidance / facilitator | ✅ | Three formats + checklists |
+| Type restriction per phase | ✅ | Filtered palette |
+| Recommended time boxes | ✅ | Phase countdown start/pause/reset in facilitator |
+| Multi-user / real-time collaboration | ✅ | Room with single-writer, CAS writes, sync conflict dialog (no silent overwrite) |
+| Undo/redo | ✅ | History stack, app bar, ⌘Z / Ctrl+Z |
+| Paper workshop extras (Opportunity, Problem, Value Stream overlays) | ❌ | Only the 10 core types |
 
-### Tooling / Übergabe
+### Tooling / handoff
 
-| Aspekt | Status | In E2 |
+| Aspect | Status | In E2 |
 |--------|--------|--------|
-| Lokale Persistenz | ✅ | `.storm.json` |
-| Austauschbares Format | ✅ | Schema + `$schema` |
-| Bild-/Report-Export | ✅ | SVG, PNG, mehrere MD-Reports |
-| Miro-Direktimport | ❌ | Kein natives Miro-Format (CSV/Paste möglich außerhalb) |
+| Local persistence | ✅ | `.storm.json` |
+| Interchangeable format | ✅ | Schema + `$schema` |
+| Image / report export | ✅ | SVG, PNG, multiple MD reports |
+| Miro direct import | ❌ | No native Miro format (CSV/paste possible outside) |
 
 ---
 
-## Bedienung (Kurz)
+## Quick start
 
-1. Arbeitsdatei unter **Daten** anlegen oder öffnen.  
-2. Elementtyp in der linken Palette wählen → **Doppelklick** auf die Fläche — oder **1–9/0** für Typ und **Enter/A** für Anlegen in der Viewport-Mitte.  
-3. Relationen: Canvas **Verbinden** oder Pfeil am Sticky.  
-4. Struktur: Canvas **Ansicht** / Swimlane / Bounded Context.  
-5. Feinschliff: Rechtsklick-Menü; Text/Schema/Invarianten in der rechten Leiste.  
-6. Optional unter **Session** Facilitator-Format einschalten (inkl. Phasen-Timer).  
-7. Export über **Daten**.  
-8. UI-Sprache (**Deutsch** / **English**) unter **Daten → Darstellung** (oder `?lang=en` einmalig).
+1. Create or open a working file under **Data**.  
+2. Pick an element type in the left palette → **double-click** the canvas — or **1–9/0** for type and **Enter/A** to create at viewport center.  
+3. Relations: canvas **Connect** or arrow on sticky.  
+4. Structure: canvas **View** / swimlane / bounded context.  
+5. Finishing touches: right-click menu; text/schema/invariants in the right pane.  
+6. Optionally enable a facilitator format under **Session** (including phase timer).  
+7. Export via **Data**.  
+8. UI language (**German** / **English**) under **Data → Presentation** (or `?lang=en` once).
 
-Details zur i18n-Infrastruktur: [`docs/i18n.md`](docs/i18n.md).
+Details on the i18n infrastructure: [`docs/i18n.md`](docs/i18n.md).
 
 ---
 
 ## GitHub Pages
 
-Siehe [`docs/GITHUB-PAGES.md`](docs/GITHUB-PAGES.md).
+See [`docs/GITHUB-PAGES.md`](docs/GITHUB-PAGES.md).
 
 ```bash
 npm run build:static
@@ -442,7 +442,7 @@ npx serve out
 # → http://localhost:3000/E2/
 ```
 
-## Entwicklung
+## Development
 
 ```bash
 npm install
@@ -453,21 +453,23 @@ npm run test:run
 ## Tech Stack
 
 Next.js 15, React 19, TypeScript, Tailwind CSS, Zustand, Serwist (PWA).  
-Persistenz-Muster angelehnt an [T2](https://github.com/abx-git/T2).
+Persistence pattern inspired by [T2](https://github.com/abx-git/T2).
 
 ---
 
-## Fazit zur Methodik-Abdeckung
+## Method coverage summary
 
-E2 deckt den **Kern von Event Storming** ab: alle gängigen Sticky-Typen, Relationen, Timeline, Swimlanes, Bounded Contexts, Hotspots, Glossary sowie geführte Workshop-Phasen (Big Picture → Process → Design) inklusive Soft-Validierung und Exporten für Übergabe.
+E2 covers the **core of Event Storming**: all common sticky types, relations, timeline, swimlanes, bounded contexts, hotspots, glossary, and guided workshop phases (Big Picture → Process → Design) including soft validation and exports for handoff.
 
-**Bewusst oder noch schwach:** Echtzeit-Kollaboration (optional via Supabase — siehe [`docs/COLLABORATION.md`](docs/COLLABORATION.md)); räumliche Zuordnung zu Lanes/Contexts erfolgt jetzt automatisch bei vollständiger Umschließung.
+**Optional real-time collaboration** uses Supabase when configured: participants join with a **room code**, updates use **compare-and-swap (CAS)** writes with a **single writer** at a time, and sync conflicts surface in a **dialog** rather than silently overwriting local or disk state. The working file is not mirrored during a session (autosave pauses); leaving a room lets you keep the board or restore the pre-room state. See [`docs/COLLABORATION.md`](docs/COLLABORATION.md).
 
-Wenn du Lücken priorisieren willst, sind die methodisch größten Hebel typischerweise: **Glossary-Bindung** und Auto-Zuordnung.
+**Still partial or intentional gaps:** binding glossary terms to sticky labels; spatial assignment to lanes/contexts now happens automatically on full enclosure.
+
+If you want to prioritize gaps, the largest method levers are typically: **glossary binding** and auto-assignment.
 
 ---
 
-## Lizenz
+## License
 
-MIT © Andreas Bergmann — siehe [`LICENSE`](LICENSE).  
-**Beta:** Das `.storm.json`-Dateiformat kann sich noch ändern und inkompatibel werden.
+MIT © Andreas Bergmann — see [`LICENSE`](LICENSE).  
+**Beta:** The `.storm.json` file format may still change and become incompatible.
