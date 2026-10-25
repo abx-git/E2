@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "E2 Event Storming",
     short_name: "E2",
-    description: "Event Storming Tool mit lokaler JSON-Persistenz",
+    description: "Event Storming tool with local JSON persistence",
     start_url: "/",
     display: "standalone",
     background_color: "#f4f5f7",

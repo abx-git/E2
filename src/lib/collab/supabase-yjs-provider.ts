@@ -7,6 +7,7 @@ import {
   removeAwarenessStates,
 } from "y-protocols/awareness";
 
+import { collabT } from "@/lib/collab/i18n";
 import { REMOTE_ORIGIN } from "@/lib/collab/yjs-board";
 
 type Status = "connecting" | "connected" | "disconnected";
@@ -160,11 +161,11 @@ export class SupabaseYjsProvider {
       })
       .then((result) => {
         if (result !== "ok") {
-          this.onError?.(`Broadcast fehlgeschlagen: ${String(result)}`);
+          this.onError?.(collabT("alerts.collabBroadcastFailed", { detail: String(result) }));
         }
       })
       .catch((e: unknown) => {
-        this.onError?.(e instanceof Error ? e.message : "Broadcast-Fehler");
+        this.onError?.(e instanceof Error ? e.message : collabT("alerts.collabBroadcastError"));
       });
   }
 

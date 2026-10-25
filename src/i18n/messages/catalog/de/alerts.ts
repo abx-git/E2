@@ -69,5 +69,30 @@ export const alertsDe = {
       "Datei konnte nicht geöffnet werden. Bitte Berechtigung erteilen oder die Datei erneut über „Öffnen…“ wählen.",
     pasteFileName: "Einfügen",
     dropImportKind: "eine Datei",
+    collabSupabaseNotConfigured: "Supabase nicht konfiguriert",
+    collabSupabaseNotConfiguredDocs:
+      "Supabase nicht konfiguriert (siehe docs/COLLABORATION.md)",
+    collabRoomCreateFailed: "Raum konnte nicht erstellt werden",
+    collabRoomNotFound: "Raum nicht gefunden oder abgelaufen",
+    collabRoomExpired: "Raum ist abgelaufen",
+    collabInvalidRoomSnapshot: "Kein gültiger Board-Snapshot im Raum",
+    collabPassiveTabNoWrite: "Dieser Tab darf gerade nicht schreiben (passiv).",
+    collabNoSession: "Keine Session",
+    collabServerChangedAgain: "Server hat sich erneut geändert — bitte nochmal wählen.",
+    collabPushLocalConfirm:
+      "Meinen Stand auf den Server schreiben?\n\nDas überschreibt den aktuellen Server-Stand für alle Teilnehmer. Besser vorher JSON exportieren.",
+    collabRealtimeLimited: "Realtime-Broadcast eingeschränkt",
+    collabCreateNeedsSaveAs:
+      "Zuerst „Speichern unter…“ — der Raum braucht ein Sync-Ziel, das parallel mitgeschrieben wird.",
+    collabCreateNeedsSave: "Zuerst speichern — Raum erstellen nur mit gesichertem Stand.",
+    collabUrlKeyRequired: "URL und Key sind erforderlich",
+    collabUrlHttps: "URL muss mit https:// beginnen",
+    collabBrowserOnly: "Nur im Browser speicherbar",
+    collabAnonAuthFailed: "Anonymous Auth fehlgeschlagen",
+    collabAnonAuthDisabled:
+      "Anonymous Auth ist in Supabase deaktiviert. Dashboard: Authentication → Providers → Anonymous aktivieren.",
+    collabBroadcastFailed: "Broadcast fehlgeschlagen: {detail}",
+    collabBroadcastError: "Broadcast-Fehler",
+    fileNoViews: "Die Datei enthält keine Sichten.",
   },
 } as const;

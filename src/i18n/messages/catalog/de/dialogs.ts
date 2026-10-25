@@ -52,6 +52,11 @@ export const dialogsDe = {
     collabEnvLocked:
       "Verbindung kommt aus der Umgebung (.env) und kann hier nicht überschrieben werden.",
     collabValidUntil: "Gültig bis {when}",
+    collabNoConnection: "Noch keine Supabase-Verbindung.",
+    collabConnectHere: "Hier eintragen",
+    collabOrEnvDocs: "oder per .env setzen (siehe docs/COLLABORATION.md).",
+    collabDisplayName: "Anzeigename",
+    collabKeyPlaceholder: "sb_publishable_… oder eyJ…",
     collabFileNotOverwritten: "Arbeitsdatei wird parallel zum Raum fortlaufend mitgeschrieben",
     newWorkingFileTitle: "Neue Arbeitsdatei",
     unsavedTitle: "Änderungen speichern?",

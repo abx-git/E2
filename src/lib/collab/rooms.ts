@@ -10,6 +10,7 @@ import {
   hashHostToken,
   ROOM_TTL_DAYS,
 } from "@/lib/collab/config";
+import { collabT } from "@/lib/collab/i18n";
 import { ensureAnonSession, getSupabase } from "@/lib/collab/supabase";
 
 export interface CollabRoom {
@@ -53,7 +54,7 @@ export async function createCollabRoom(
   initial: BoardImportPayload,
 ): Promise<CreateRoomResult | { error: string }> {
   const sb = getSupabase();
-  if (!sb) return { error: "Supabase nicht konfiguriert" };
+  if (!sb) return { error: collabT("alerts.collabSupabaseNotConfigured") };
 
   const auth = await ensureAnonSession();
   if ("error" in auth) return auth;
@@ -76,7 +77,7 @@ export async function createCollabRoom(
     .single();
 
   if (roomErr || !roomRow) {
-    return { error: roomErr?.message ?? "Raum konnte nicht erstellt werden" };
+    return { error: roomErr?.message ?? collabT("alerts.collabRoomCreateFailed") };
   }
 
   const snapshot = buildBoardSnapshot({ ...initial, title: title || initial.title });
@@ -103,7 +104,7 @@ export async function joinCollabRoom(
   hostToken?: string | null,
 ): Promise<JoinRoomResult | { error: string }> {
   const sb = getSupabase();
-  if (!sb) return { error: "Supabase nicht konfiguriert" };
+  if (!sb) return { error: collabT("alerts.collabSupabaseNotConfigured") };
 
   const auth = await ensureAnonSession();
   if ("error" in auth) return auth;
@@ -116,10 +117,10 @@ export async function joinCollabRoom(
     .maybeSingle();
 
   if (roomErr) return { error: roomErr.message };
-  if (!roomRow) return { error: "Raum nicht gefunden oder abgelaufen" };
+  if (!roomRow) return { error: collabT("alerts.collabRoomNotFound") };
 
   if (new Date(roomRow.expires_at).getTime() <= Date.now()) {
-    return { error: "Raum ist abgelaufen" };
+    return { error: collabT("alerts.collabRoomExpired") };
   }
 
   const { data: snapRow, error: snapErr } = await sb
@@ -130,7 +131,7 @@ export async function joinCollabRoom(
 
   if (snapErr) return { error: snapErr.message };
   if (!snapRow?.snapshot || !isBoardSnapshot(snapRow.snapshot)) {
-    return { error: "Kein gültiger Board-Snapshot im Raum" };
+    return { error: collabT("alerts.collabInvalidRoomSnapshot") };
   }
 
   let isHost = false;
@@ -175,7 +176,7 @@ export async function saveCollabSnapshot(args: {
   | { error: string }
 > {
   const sb = getSupabase();
-  if (!sb) return { error: "Supabase nicht konfiguriert" };
+  if (!sb) return { error: collabT("alerts.collabSupabaseNotConfigured") };
 
   const nextRevision = args.revision + 1;
   const updatedAt = new Date().toISOString();
@@ -231,7 +232,7 @@ export async function fetchCollabSnapshot(roomId: string): Promise<
   | { error: string }
 > {
   const sb = getSupabase();
-  if (!sb) return { error: "Supabase nicht konfiguriert" };
+  if (!sb) return { error: collabT("alerts.collabSupabaseNotConfigured") };
 
   const { data: snapRow, error } = await sb
     .from("board_snapshots")
@@ -241,7 +242,7 @@ export async function fetchCollabSnapshot(roomId: string): Promise<
 
   if (error) return { error: error.message };
   if (!snapRow?.snapshot || !isBoardSnapshot(snapRow.snapshot)) {
-    return { error: "Kein gültiger Board-Snapshot im Raum" };
+    return { error: collabT("alerts.collabInvalidRoomSnapshot") };
   }
 
   let yjsState: Uint8Array | null = null;

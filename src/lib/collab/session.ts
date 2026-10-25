@@ -3,6 +3,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import * as Y from "yjs";
 import { Awareness } from "y-protocols/awareness";
 
+import { collabT } from "@/lib/collab/i18n";
 import {
   colorForUserId,
   DISPLAY_NAME_STORAGE_KEY,
@@ -696,7 +697,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
   createRoom: async (title) => {
     if (!isCollabConfigured()) {
-      return { ok: false, error: "Supabase nicht konfiguriert (siehe docs/COLLABORATION.md)" };
+      return { ok: false, error: collabT("alerts.collabSupabaseNotConfiguredDocs") };
     }
     set({ connecting: true, error: null, status: "connecting" });
     const payload = boardImportPayloadFromStore();
@@ -717,10 +718,10 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
   joinRoom: async (code, displayName, options) => {
     if (!isCollabConfigured()) {
-      return { ok: false, error: "Supabase nicht konfiguriert" };
+      return { ok: false, error: collabT("alerts.collabSupabaseNotConfigured") };
     }
     const sb = getSupabase();
-    if (!sb) return { ok: false, error: "Supabase nicht konfiguriert" };
+    if (!sb) return { ok: false, error: collabT("alerts.collabSupabaseNotConfigured") };
 
     // Block disk→editor for the whole join + session (prevents old file overwriting the room).
     setWorkingFileToStoreBlocked(true);
@@ -819,7 +820,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
       await provider.connect();
     } catch (e) {
       // Broadcast may fail on some projects; continue with snapshot sync.
-      const msg = e instanceof Error ? e.message : "Realtime-Broadcast eingeschränkt";
+      const msg = e instanceof Error ? e.message : collabT("alerts.collabRealtimeLimited");
       set({ error: msg, status: "connected" });
     }
 
@@ -939,12 +940,12 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
     // push_local — explicit overwrite of server, CAS from remote revision.
     if (!isTabWriterLeader()) {
-      return { ok: false, error: "Dieser Tab darf gerade nicht schreiben (passiv)." };
+      return { ok: false, error: collabT("alerts.collabPassiveTabNoWrite") };
     }
     if (
       typeof window !== "undefined" &&
       !window.confirm(
-        "Meinen Stand auf den Server schreiben?\n\nDas überschreibt den aktuellen Server-Stand für alle Teilnehmer. Besser vorher JSON exportieren.",
+        collabT("alerts.collabPushLocalConfirm"),
       )
     ) {
       return { ok: true };
@@ -952,7 +953,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
 
     savingSnapshot = true;
     try {
-      if (!doc) return { ok: false, error: "Keine Session" };
+      if (!doc) return { ok: false, error: collabT("alerts.collabNoSession") };
       const localPayload =
         boardImportPayloadFromExportText(stringifyExportedDocument(conflict.localSnapshot)) ??
         boardImportPayloadFromStore();
@@ -980,7 +981,7 @@ export const useCollabStore = create<CollabState>((set, get) => ({
         });
         return {
           ok: false,
-          error: "Server hat sich erneut geändert — bitte nochmal wählen.",
+          error: collabT("alerts.collabServerChangedAgain"),
         };
       }
       if ("error" in result) return { ok: false, error: result.error };

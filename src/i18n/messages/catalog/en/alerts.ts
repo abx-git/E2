@@ -64,5 +64,30 @@ export const alertsEn = {
       "Could not open file. Grant permission or choose the file again via Open…",
     pasteFileName: "Paste",
     dropImportKind: "a file",
+    collabSupabaseNotConfigured: "Supabase is not configured",
+    collabSupabaseNotConfiguredDocs:
+      "Supabase is not configured (see docs/COLLABORATION.md)",
+    collabRoomCreateFailed: "Room could not be created",
+    collabRoomNotFound: "Room not found or expired",
+    collabRoomExpired: "Room has expired",
+    collabInvalidRoomSnapshot: "No valid board snapshot in the room",
+    collabPassiveTabNoWrite: "This tab cannot write right now (passive).",
+    collabNoSession: "No session",
+    collabServerChangedAgain: "The server changed again — please choose again.",
+    collabPushLocalConfirm:
+      "Push my state to the server?\n\nThis overwrites the current server state for all participants. Export JSON first if you want a backup.",
+    collabRealtimeLimited: "Realtime broadcast limited",
+    collabCreateNeedsSaveAs:
+      "Use Save as… first — the room needs a sync target that is written in parallel.",
+    collabCreateNeedsSave: "Save first — create a room only with a secured state.",
+    collabUrlKeyRequired: "URL and key are required",
+    collabUrlHttps: "URL must start with https://",
+    collabBrowserOnly: "Can only be saved in the browser",
+    collabAnonAuthFailed: "Anonymous sign-in failed",
+    collabAnonAuthDisabled:
+      "Anonymous Auth is disabled in Supabase. Dashboard: Authentication → Providers → enable Anonymous.",
+    collabBroadcastFailed: "Broadcast failed: {detail}",
+    collabBroadcastError: "Broadcast error",
+    fileNoViews: "The file contains no views.",
   },
 } as const;

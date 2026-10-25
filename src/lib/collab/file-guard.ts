@@ -1,3 +1,4 @@
+import { collabT } from "@/lib/collab/i18n";
 import { isWorkingFileAttached, isWorkingFileDirty } from "@/lib/working-file";
 import { boardImportPayloadFromStore } from "@/store/storm-board-store";
 import { documentHasContent } from "@/lib/storm-json";
@@ -27,10 +28,10 @@ export function canCreateCollabRoom(): boolean {
 /** Short UI hint when create is blocked. */
 export function createRoomBlockedHint(): string {
   if (!isWorkingFileAttached()) {
-    return "Zuerst „Speichern unter…“ — der Raum braucht ein Sync-Ziel, das parallel mitgeschrieben wird.";
+    return collabT("alerts.collabCreateNeedsSaveAs");
   }
   if (isWorkingFileDirty()) {
-    return "Zuerst speichern — Raum erstellen nur mit gesichertem Stand.";
+    return collabT("alerts.collabCreateNeedsSave");
   }
   return "";
 }

@@ -100,7 +100,7 @@ function CustomCardTypeEditDialog({
     onClose();
   };
 
-  const previewName = nameDraft.trim() || "Typ";
+  const previewName = nameDraft.trim() || t("panels.customTypeFallbackName");
 
   return createPortal(
     <div
@@ -133,7 +133,7 @@ function CustomCardTypeEditDialog({
         </div>
 
         <label className="mb-3 flex flex-col gap-1 text-xs text-[var(--text)]">
-          <span className="text-[var(--muted)]">Name</span>
+          <span className="text-[var(--muted)]">{t("panels.customTypeName")}</span>
           <input
             ref={inputRef}
             className="dock-field"
@@ -151,14 +151,16 @@ function CustomCardTypeEditDialog({
                 finish();
               }
             }}
-            placeholder="z. B. Interface"
+            placeholder={t("panels.customTypeNamePlaceholder")}
           />
           <span className="text-[0.65rem] text-[var(--muted)]">
-            Vorschau: {stereotypeLabel(previewName)}
+            {t("panels.customTypePreviewLabel", { name: stereotypeLabel(previewName) })}
           </span>
         </label>
 
-        <p className="mb-1.5 text-[0.7rem] font-medium text-[var(--muted)]">Farbe</p>
+        <p className="mb-1.5 text-[0.7rem] font-medium text-[var(--muted)]">
+          {t("panels.customTypeColor")}
+        </p>
         <div className="mb-4 flex flex-wrap gap-1.5">
           {CUSTOM_CARD_COLOR_PRESETS.map((preset) => {
             const active = liveType.fill === preset.fill;
@@ -196,7 +198,7 @@ function CustomCardTypeEditDialog({
           <span className="block text-[0.58rem] font-bold uppercase tracking-wide opacity-80">
             {stereotypeLabel(previewName)}
           </span>
-          <span className="text-sm font-medium">Beispielkarte</span>
+          <span className="text-sm font-medium">{t("panels.customTypeSampleCard")}</span>
         </div>
 
         <div className="flex items-center justify-between gap-2">
@@ -204,25 +206,21 @@ function CustomCardTypeEditDialog({
             type="button"
             className="dock-control flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs text-red-700"
             onClick={() => {
-              if (
-                window.confirm(
-                  `Typ „${previewName}“ löschen? Vorhandene Karten behalten den Verweis, verlieren aber die Typfarbe.`,
-                )
-              ) {
+              if (window.confirm(t("panels.deleteTypeConfirm", { name: previewName }))) {
                 deleteCustomCardType(liveType.id);
                 onClose();
               }
             }}
           >
             <Trash2 className="h-3.5 w-3.5" />
-            Löschen
+            {t("common.delete")}
           </button>
           <button
             type="button"
             className="dock-control rounded-lg px-3 py-1.5 text-xs font-medium"
             onClick={finish}
           >
-            Fertig
+            {t("panels.customTypeDone")}
           </button>
         </div>
       </div>

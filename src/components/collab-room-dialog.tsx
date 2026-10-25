@@ -245,7 +245,7 @@ export function CollabRoomDialog({
                     value={envLocked ? "••••••••••••••••" : supabaseKey}
                     disabled={envLocked}
                     onChange={(e) => setSupabaseKey(e.target.value)}
-                    placeholder="sb_publishable_… oder eyJ…"
+                    placeholder={t("dialogs.collabKeyPlaceholder")}
                     autoComplete="off"
                   />
                 </label>
@@ -256,7 +256,7 @@ export function CollabRoomDialog({
                       className="dock-control-active flex-1 rounded-lg px-3 py-1.5 text-xs"
                       onClick={saveConnection}
                     >
-                      Speichern
+                      {t("common.save")}
                     </button>
                     {connectionSource === "local" && (
                       <button
@@ -264,7 +264,7 @@ export function CollabRoomDialog({
                         className="dock-control rounded-lg px-3 py-1.5 text-xs text-red-300"
                         onClick={clearConnection}
                       >
-                        Löschen
+                        {t("common.delete")}
                       </button>
                     )}
                   </div>
@@ -274,15 +274,15 @@ export function CollabRoomDialog({
 
             {!configured && !showConnection ? (
               <p className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--control)] p-3 text-[0.78rem] text-[var(--muted)]">
-                Noch keine Supabase-Verbindung.{" "}
+                {t("dialogs.collabNoConnection")}{" "}
                 <button
                   type="button"
                   className="text-[var(--accent)] underline"
                   onClick={() => setShowConnection(true)}
                 >
-                  Hier eintragen
+                  {t("dialogs.collabConnectHere")}
                 </button>{" "}
-                oder per <code>.env</code> setzen (siehe docs/COLLABORATION.md).
+                {t("dialogs.collabOrEnvDocs")}
               </p>
             ) : active && room ? (
               <div className="mt-4 space-y-3">
@@ -293,7 +293,9 @@ export function CollabRoomDialog({
                     <p className="mt-1 text-[0.68rem] text-[var(--accent)]">{t("collab.youAreHost")}</p>
                   )}
                   <p className="mt-2 text-[0.68rem] text-[var(--muted)]">
-                    Gültig bis {new Date(room.expiresAt).toLocaleString()}
+                    {t("dialogs.collabValidUntil", {
+                      when: new Date(room.expiresAt).toLocaleString(),
+                    })}
                   </p>
                   {isWorkingFileAttached() && (
                     <p className="mt-2 text-[0.68rem] text-[var(--accent-2)]">
@@ -322,7 +324,7 @@ export function CollabRoomDialog({
                       onClose();
                     }}
                   >
-                    Verlassen
+                    {t("collab.leave")}
                   </button>
                 </div>
               </div>
@@ -372,7 +374,7 @@ export function CollabRoomDialog({
                 )}
 
                 <label className="mt-3 block text-[0.72rem] text-[var(--muted)]">
-                  Anzeigename
+                  {t("dialogs.collabDisplayName")}
                   <input
                     className="dock-field mt-1"
                     value={name}
