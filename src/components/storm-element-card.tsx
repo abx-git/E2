@@ -206,6 +206,10 @@ export function StormElementCard({
     shapePresentation.borderRadiusPx !== undefined
       ? { borderRadius: shapePresentation.borderRadiusPx }
       : undefined;
+  /** Leave room for the relation control at top-right (same row, no overlap). */
+  const linkedViewControlClass = isCoarsePointer
+    ? "right-10 top-1.5 z-30"
+    : "right-8 top-1.5 z-30";
 
   const setDraftValue = (value: string) => {
     draftRef.current = value;
@@ -906,7 +910,10 @@ export function StormElementCard({
             type="button"
             title={t("panels.openLinkedViewNamed", { name: linkedBoardView.name })}
             aria-label={t("panels.openLinkedViewNamed", { name: linkedBoardView.name })}
-            className="absolute right-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-current/25 bg-white/80 text-current opacity-80 hover:opacity-100"
+            className={[
+              "absolute flex h-5 w-5 items-center justify-center rounded-full border border-current/25 bg-white/80 text-current opacity-80 hover:opacity-100",
+              linkedViewControlClass,
+            ].join(" ")}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
