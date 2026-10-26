@@ -74,6 +74,13 @@ export const detailSidebarDe = {
       linkTargetKind: "Zielart",
       url: "URL",
       view: "Sicht",
+      linkedView: "Verknüpfte Sicht",
+    },
+
+    linkedView: {
+      hint: "Doppelklick auf das Sicht-Symbol auf der Karte oder Alt+← springt zurück.",
+      open: "Verknüpfte Sicht öffnen",
+      clear: "Verknüpfung entfernen",
     },
 
     aria: {

@@ -329,6 +329,12 @@ export function StormBoard() {
       const tag = target?.tagName?.toLowerCase();
       if (tag === "input" || tag === "textarea" || target?.isContentEditable) return;
 
+      if (e.altKey && e.key === "ArrowLeft") {
+        e.preventDefault();
+        useStormBoardStore.getState().navigateViewBack();
+        return;
+      }
+
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) return;
 

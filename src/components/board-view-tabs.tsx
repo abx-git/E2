@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
+  ArrowLeft,
   ChevronDown,
   ClipboardList,
   Copy,
@@ -31,6 +32,8 @@ export function BoardViewTabs({
   const renameView = useStormBoardStore((s) => s.renameView);
   const duplicateView = useStormBoardStore((s) => s.duplicateView);
   const deleteView = useStormBoardStore((s) => s.deleteView);
+  const viewReturnStack = useStormBoardStore((s) => s.viewReturnStack);
+  const navigateViewBack = useStormBoardStore((s) => s.navigateViewBack);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -75,6 +78,8 @@ export function BoardViewTabs({
   };
 
   const canDelete = views.length > 1;
+  const returnViewId = viewReturnStack[viewReturnStack.length - 1];
+  const returnView = returnViewId ? views.find((v) => v.id === returnViewId) : undefined;
 
   const openNewViewMenu = () => {
     const btn = newViewBtnRef.current;
@@ -95,6 +100,17 @@ export function BoardViewTabs({
 
   return (
     <div className="relative flex min-h-0 items-center gap-1 overflow-x-auto px-1 py-1">
+      {returnView ? (
+        <button
+          type="button"
+          onClick={() => navigateViewBack()}
+          className="dock-control flex h-7 max-w-[10rem] shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium text-[var(--accent)]"
+          title={t("appBar.viewBackTitle")}
+        >
+          <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span className="truncate">{t("appBar.viewBack", { name: returnView.name })}</span>
+        </button>
+      ) : null}
       {views.map((view) => {
         const active = view.id === activeViewId;
         const measures = isActionsView(view);

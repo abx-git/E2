@@ -74,6 +74,13 @@ export const detailSidebarEn = {
       linkTargetKind: "Target kind",
       url: "URL",
       view: "View",
+      linkedView: "Linked view",
+    },
+
+    linkedView: {
+      hint: "Double-click the view icon on the card, or press Alt+← to go back.",
+      open: "Open linked view",
+      clear: "Remove link",
     },
 
     aria: {

@@ -8,6 +8,7 @@ import { DescriptionMarkdownContent } from "@/components/description-markdown-co
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkDestinationPreview, linkHasTarget } from "@/lib/board-link";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
+import { resolveElementLinkedView } from "@/lib/view-navigation";
 import { ELEMENT_STYLES, resolveElementStyle } from "@/lib/element-styles";
 import {
   cardAttributeLines,
@@ -146,6 +147,7 @@ export function StormElementCard({
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const openBuildingBlockView = useStormBoardStore((s) => s.openBuildingBlockView);
   const navigateBuildingBlockViewLink = useStormBoardStore((s) => s.navigateBuildingBlockViewLink);
+  const followElementLinkedView = useStormBoardStore((s) => s.followElementLinkedView);
   const setActiveView = useStormBoardStore((s) => s.setActiveView);
   const selectMeasure = useStormBoardStore((s) => s.selectMeasure);
   const linkHighlight = useStormBoardStore((s) => s.measureHotspotLinkHighlight);
@@ -164,6 +166,10 @@ export function StormElementCard({
   const archNav = supportsArchDrilldown(element.type)
     ? resolveBuildingBlockViewNavigation(element, activeViewId, views)
     : null;
+  const linkedBoardView =
+    !isLink && !supportsArchDrilldown(element.type)
+      ? resolveElementLinkedView(element, views)
+      : null;
   const searchActive = Boolean(normalizeSearchQuery(searchQuery));
   const searchHit = searchActive
     ? matchElementSearch(element, searchQuery, { viewNameById })
@@ -681,7 +687,7 @@ export function StormElementCard({
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
-              setActiveView(hotspotLinkedMeasure.actionsViewId);
+              setActiveView(hotspotLinkedMeasure.actionsViewId, { viaNavigationLink: true });
               selectMeasure(hotspotLinkedMeasure.item.id);
             }}
           >
@@ -891,6 +897,27 @@ export function StormElementCard({
         {element.type === "hotspot" && element.metadata?.hotspotStatus === "resolved" && !editing && (
           <RotateCcw className="absolute bottom-1 right-1 h-3 w-3 opacity-70" aria-hidden />
         )}
+        {linkedBoardView && !editing ? (
+          <button
+            type="button"
+            title={t("panels.openLinkedViewNamed", { name: linkedBoardView.name })}
+            aria-label={t("panels.openLinkedViewNamed", { name: linkedBoardView.name })}
+            className="absolute right-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-current/25 bg-white/80 text-current opacity-80 hover:opacity-100"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              followElementLinkedView(element.id);
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              followElementLinkedView(element.id);
+            }}
+          >
+            <LayoutDashboard className="h-3 w-3" aria-hidden />
+          </button>
+        ) : null}
         {supportsArchDrilldown(element.type) && !editing && (
           <button
             type="button"

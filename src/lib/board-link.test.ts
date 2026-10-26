@@ -91,6 +91,8 @@ describe("board-link", () => {
       viewId: "v2",
       viewName: "Prozess",
     });
-    expect(useStormBoardStore.getState().setActiveView).toHaveBeenCalledWith("v2");
+    expect(useStormBoardStore.getState().setActiveView).toHaveBeenCalledWith("v2", {
+      viaNavigationLink: true,
+    });
   });
 });

@@ -1,6 +1,7 @@
 export const contextMenuDe = {
   contextMenu: {
     openDetailView: "Detail-Sicht öffnen",
+    openLinkedView: "Verknüpfte Sicht öffnen",
     openOverview: "Übersicht öffnen",
     startRelation: "Relation starten",
     swimlane: "Swimlane",
