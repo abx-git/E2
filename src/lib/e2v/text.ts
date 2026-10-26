@@ -125,3 +125,66 @@ export function optionalIdCell(raw: string | undefined): string | undefined {
   if (!t || t === "-") return undefined;
   return t;
 }
+
+function optionalNumCell(raw: string | undefined): number | undefined {
+  const t = raw?.trim();
+  if (!t) return undefined;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** Fixed column index for label in a canonical 15-column `e` row. */
+const ELEMENT_LABEL_INDEX = 14;
+
+export interface ParsedElementE2vCells {
+  width?: number;
+  height?: number;
+  rotation?: number;
+  zIndex?: number;
+  swimlaneId?: string;
+  boundedContextId?: string;
+  aggregateId?: string;
+  subdomainId?: string;
+  detailViewId?: string;
+  label: string;
+}
+
+/**
+ * Parse optional geometry / containment cells and label from an `e` row.
+ * Canonical export always uses 15 columns (label at index 14). Shorter rows
+ * treat the last column as the label so round-trip survives trimmed trailing tabs.
+ */
+export function parseElementE2vCells(cols: string[]): ParsedElementE2vCells {
+  if (cols.length > ELEMENT_LABEL_INDEX) {
+    return {
+      width: optionalNumCell(cols[5]),
+      height: optionalNumCell(cols[6]),
+      rotation: optionalNumCell(cols[7]),
+      zIndex: optionalNumCell(cols[8]),
+      swimlaneId: optionalIdCell(cols[9]),
+      boundedContextId: optionalIdCell(cols[10]),
+      aggregateId: optionalIdCell(cols[11]),
+      subdomainId: optionalIdCell(cols[12]),
+      detailViewId: optionalIdCell(cols[13]),
+      label: parseCell(cols[ELEMENT_LABEL_INDEX] ?? ""),
+    };
+  }
+
+  const label =
+    cols.length > 5 ? parseCell(cols[cols.length - 1] ?? "") : "";
+  const optional = cols.slice(5, Math.max(5, cols.length - 1));
+  const cellAt = (index: number) => optional[index] ?? "";
+
+  return {
+    width: optionalNumCell(cellAt(0)),
+    height: optionalNumCell(cellAt(1)),
+    rotation: optionalNumCell(cellAt(2)),
+    zIndex: optionalNumCell(cellAt(3)),
+    swimlaneId: optionalIdCell(cellAt(4)),
+    boundedContextId: optionalIdCell(cellAt(5)),
+    aggregateId: optionalIdCell(cellAt(6)),
+    subdomainId: optionalIdCell(cellAt(7)),
+    detailViewId: optionalIdCell(cellAt(8)),
+    label,
+  };
+}
