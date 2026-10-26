@@ -9,7 +9,11 @@ import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkDestinationPreview, linkHasTarget } from "@/lib/board-link";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
 import { resolveElementLinkedView } from "@/lib/view-navigation";
-import { ELEMENT_STYLES, resolveElementStyle } from "@/lib/element-styles";
+import {
+  ELEMENT_STYLES,
+  elementCardShapePresentation,
+  resolveElementStyle,
+} from "@/lib/element-styles";
 import {
   cardAttributeLines,
   cardMethodLines,
@@ -195,14 +199,13 @@ export function StormElementCard({
     ? ACTION_TYPE_COLORS[hotspotLinkedMeasure.item.actionType]
     : null;
 
-  const shapeClass =
-    style.shape === "pill"
-      ? "rounded-full"
-      : style.shape === "wide"
-        ? "rounded-md"
-        : style.shape === "rectangle"
-          ? "rounded-sm"
-          : "rounded-lg";
+  const cardW = element.width ?? style.defaultWidth;
+  const cardH = element.height ?? style.defaultHeight;
+  const shapePresentation = elementCardShapePresentation(style.shape, cardW, cardH);
+  const shapeStyle =
+    shapePresentation.borderRadiusPx !== undefined
+      ? { borderRadius: shapePresentation.borderRadiusPx }
+      : undefined;
 
   const setDraftValue = (value: string) => {
     draftRef.current = value;
@@ -609,7 +612,7 @@ export function StormElementCard({
             : showDetails || noteLike || isBoundary || (isLink && editing)
               ? "flex-col items-stretch justify-start gap-0.5 overflow-x-hidden overflow-y-auto"
               : "flex-col items-center justify-center",
-          shapeClass,
+          shapePresentation.className,
           selected || editing ? "ring-2 ring-[var(--accent)]" : "",
           hotspotLinkFlash ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
           connecting ? "ring-2 ring-[var(--accent-2)] shadow-md" : "",
@@ -626,6 +629,7 @@ export function StormElementCard({
           isLink && linkReady ? "hover:shadow-md" : "",
         ].join(" ")}
         style={{
+          ...shapeStyle,
           backgroundColor: isBoundary
             ? hexToRgba(colors.bg, BOUNDARY_FILL_OPACITY)
             : colors.bg,

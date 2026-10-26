@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { effectiveElementRotation } from "@/lib/element-rotation";
 import {
+  elementPillCornerRadiusPx,
   HOTSPOT_DEFAULT_ROTATION_DEG,
+  isCircularPillShape,
   isKnownElementType,
   resolveElementStyle,
   styleForElementType,
@@ -36,5 +38,13 @@ describe("element-styles lookup", () => {
     expect(effectiveElementRotation(undefined, styleForElementType("hotspot").rotation)).toBe(
       HOTSPOT_DEFAULT_ROTATION_DEG,
     );
+  });
+
+  it("softens wide pill corners for actors", () => {
+    const actor = styleForElementType("actor");
+    expect(elementPillCornerRadiusPx(actor.defaultWidth, actor.defaultHeight)).toBe(14);
+    expect(isCircularPillShape(actor.defaultWidth, actor.defaultHeight)).toBe(false);
+    expect(elementPillCornerRadiusPx(88, 88)).toBe(44);
+    expect(isCircularPillShape(88, 88)).toBe(true);
   });
 });

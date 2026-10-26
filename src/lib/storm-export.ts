@@ -43,7 +43,12 @@ import {
   sortByZOrder,
   sortElementsByZOrder,
 } from "@/lib/element-z-order";
-import { resolveElementStyle, styleForElementType } from "@/lib/element-styles";
+import {
+  elementPillCornerRadiusPx,
+  isCircularPillShape,
+  resolveElementStyle,
+  styleForElementType,
+} from "@/lib/element-styles";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { exportBoardAsPrompt } from "@/lib/prompt-export";
 import { downloadCanvasAsPdf } from "@/lib/canvas-pdf-export";
@@ -1023,9 +1028,9 @@ function cssFont(weight: number, sizePx: number): string {
   return cssExportFont(weight, sizePx);
 }
 
-function cornerRadius(el: StormElement, h: number): number {
+function cornerRadius(el: StormElement, w: number, h: number): number {
   const shape = styleForElementType(el.type).shape;
-  if (shape === "pill") return h / 2;
+  if (shape === "pill") return elementPillCornerRadiusPx(w, h);
   if (shape === "rectangle") return 2;
   if (shape === "wide") return 6;
   return 8;
@@ -1341,8 +1346,8 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
     const r = elementRect(el);
     const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
     const shape = styleForElementType(el.type).shape;
-    const radius = cornerRadius(el, r.h);
-    const circularPill = shape === "pill" && Math.abs(r.w - r.h) < 8;
+    const radius = cornerRadius(el, r.w, r.h);
+    const circularPill = shape === "pill" && isCircularPillShape(r.w, r.h);
     const align = elementLabelAlign(el);
     const vAlign = elementVerticalAlign(el);
     const style = mxStyle({
@@ -1466,7 +1471,7 @@ export function exportBoardSvg(): void {
     const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
     const x = r.x + ox;
     const y = r.y + oy;
-    const rx = cornerRadius(el, r.h);
+    const rx = cornerRadius(el, r.w, r.h);
     const rotDeg = elementExportRotation(el);
     const rot = rotDeg
       ? ` transform="rotate(${rotDeg} ${x + r.w / 2} ${y + r.h / 2})"`
@@ -1639,7 +1644,7 @@ function renderActiveViewRaster(): {
     const x = r.x + ox;
     const y = r.y + oy;
     const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
-    const rx = cornerRadius(el, r.h);
+    const rx = cornerRadius(el, r.w, r.h);
 
     ctx.save();
     const rotDeg = elementExportRotation(el);
