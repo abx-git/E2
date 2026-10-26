@@ -65,7 +65,7 @@ interface E2vViewDraft {
 
 import { E2V_FORMAT, E2V_MAGIC } from "@/lib/e2v/constants";
 import { isE2vRelationType, normalizeE2vElementType } from "@/lib/e2v/llm-shorthand";
-import { optionalIdCell, parseCell, splitRow } from "@/lib/e2v/text";
+import { optionalIdCell, parseCell, parseElementE2vCells, splitRow } from "@/lib/e2v/text";
 
 function parseEndpoint(raw: string, idMap: Map<string, string>): ConnectorEndpoint {
   const t = raw.trim();
@@ -507,6 +507,7 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
         },
       ];
     } else if (kind === "e") {
+      const parsed = parseElementE2vCells(cols);
       parseState.viewDraft.elements = [
         ...(parseState.viewDraft.elements ?? []),
         {
@@ -514,31 +515,47 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
           type: normalizeE2vElementType(cols[2] ?? ""),
           x: num(cols[3] ?? "") ?? 0,
           y: num(cols[4] ?? "") ?? 0,
-          width: num(cols[5] ?? ""),
-          height: num(cols[6] ?? ""),
-          rotation: num(cols[7] ?? ""),
-          zIndex: num(cols[8] ?? ""),
-          swimlaneId: optionalIdCell(cols[9]),
-          boundedContextId: optionalIdCell(cols[10]),
-          aggregateId: optionalIdCell(cols[11]),
-          subdomainId: optionalIdCell(cols[12]),
-          detailViewId: optionalIdCell(cols[13]),
-          label: parseCell(cols[14] ?? ""),
+          width: parsed.width,
+          height: parsed.height,
+          rotation: parsed.rotation,
+          zIndex: parsed.zIndex,
+          swimlaneId: parsed.swimlaneId,
+          boundedContextId: parsed.boundedContextId,
+          aggregateId: parsed.aggregateId,
+          subdomainId: parsed.subdomainId,
+          detailViewId: parsed.detailViewId,
+          label: parsed.label,
         },
       ];
     } else if (kind === "r") {
       const relation =
         cols.length >= 5 && isE2vRelationType(cols[2] ?? "")
-          ? {
-              id: cols[1] ?? generateStormId(),
-              type: cols[2] as StormRelation["type"],
-              sourceId: cols[3] ?? "",
-              targetId: cols[4] ?? "",
-              label: parseCell(cols[5] ?? "") || undefined,
-              labelMode: (cols[6] as StormRelation["labelMode"]) || undefined,
-              strokeStyle: (cols[7] as StormRelation["strokeStyle"]) || undefined,
-              progressMark: (cols[8] as StormRelation["progressMark"]) || undefined,
-            }
+          ? (() => {
+              const labelModes = new Set<StormRelation["labelMode"]>(["type", "custom"]);
+              let labelModeIdx = 6;
+              if (!labelModes.has(cols[6] as StormRelation["labelMode"])) {
+                for (let i = cols.length - 1; i >= 6; i--) {
+                  if (labelModes.has(cols[i] as StormRelation["labelMode"])) {
+                    labelModeIdx = i;
+                    break;
+                  }
+                }
+              }
+              const labelText =
+                labelModeIdx > 5
+                  ? parseCell(cols.slice(5, labelModeIdx).join(" "))
+                  : parseCell(cols[5] ?? "");
+              return {
+                id: cols[1] ?? generateStormId(),
+                type: cols[2] as StormRelation["type"],
+                sourceId: cols[3] ?? "",
+                targetId: cols[4] ?? "",
+                label: labelText || undefined,
+                labelMode: (cols[labelModeIdx] as StormRelation["labelMode"]) || undefined,
+                strokeStyle: (cols[labelModeIdx + 1] as StormRelation["strokeStyle"]) || undefined,
+                progressMark: (cols[labelModeIdx + 2] as StormRelation["progressMark"]) || undefined,
+              };
+            })()
           : {
               id: generateStormId(),
               type: "triggers" as StormRelation["type"],

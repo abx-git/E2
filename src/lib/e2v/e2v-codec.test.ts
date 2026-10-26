@@ -54,6 +54,20 @@ describe("e2v codec", () => {
     appearance: { ...DEFAULT_APPEARANCE },
   });
 
+  it("keeps element label when optional trailing tab columns were trimmed", () => {
+    const text = encodeE2vSingleView(doc, "view-a");
+    const trimmedLine = text!
+      .split("\n")
+      .find((line) => line.startsWith("e\t") && line.includes("Order Placed"))
+      ?.replace(/\t\t\t\tOrder Placed$/, "\t\t\tOrder Placed");
+    expect(trimmedLine).toBeDefined();
+    const miniDoc = `${text!.split("\n").slice(0, -3).join("\n")}\n${trimmedLine}\n@endview\n`;
+    const back = decodeE2vText(miniDoc);
+    expect(back?.views[0]?.elements.find((e) => e.type === "domainEvent")?.label).toBe(
+      "Order Placed",
+    );
+  });
+
   it("round-trips a single view with layout", () => {
     const text = encodeE2vSingleView(doc, "view-a");
     expect(text).toContain("# e2v/1");
