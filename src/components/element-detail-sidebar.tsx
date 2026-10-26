@@ -223,6 +223,7 @@ export function ElementDetailSidebar({
   const updateSwimlane = useStormBoardStore((s) => s.updateSwimlane);
   const openBuildingBlockView = useStormBoardStore((s) => s.openBuildingBlockView);
   const navigateBuildingBlockViewLink = useStormBoardStore((s) => s.navigateBuildingBlockViewLink);
+  const followElementLinkedView = useStormBoardStore((s) => s.followElementLinkedView);
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const views = useStormBoardStore((s) => s.views);
@@ -1579,6 +1580,44 @@ export function ElementDetailSidebar({
             />
           </Field>
         </>
+      )}
+
+      {selectedElement.type !== "link" && (
+        <div className="space-y-1.5">
+          <Field label={t("detailSidebar.fields.linkedView")}>
+            <select
+              className="dock-field"
+              value={selectedElement.detailViewId ?? ""}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  detailViewId: e.target.value || undefined,
+                })
+              }
+            >
+              <option value="">{t("detailSidebar.chooseView")}</option>
+              {views.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                  {v.id === activeViewId ? t("detailSidebar.currentViewSuffix") : ""}
+                </option>
+              ))}
+            </select>
+          </Field>
+          {selectedElement.detailViewId &&
+          views.some((v) => v.id === selectedElement.detailViewId) ? (
+            <button
+              type="button"
+              className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--control)] px-2 py-1.5 text-xs font-medium text-[var(--text)] hover:border-[var(--accent)]"
+              onClick={() => followElementLinkedView(selectedElement.id)}
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              {t("detailSidebar.linkedView.open")}
+            </button>
+          ) : null}
+          {supportsArchDrilldown(selectedElement.type) ? null : (
+            <p className="text-[0.72rem] text-[var(--muted)]">{t("detailSidebar.linkedView.hint")}</p>
+          )}
+        </div>
       )}
 
       {supportsArchDrilldown(selectedElement.type) && (

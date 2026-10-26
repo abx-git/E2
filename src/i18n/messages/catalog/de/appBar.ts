@@ -21,5 +21,7 @@ export const appBarDe = {
     facilitatorPhases: "Facilitator-Phasen",
     syncActiveTabShort: "Tab für alle syncen",
     sessionFormat: "Format",
+    viewBack: "Zurück zu „{name}“",
+    viewBackTitle: "Zur vorherigen Sicht (Alt+←)",
   },
 } as const;

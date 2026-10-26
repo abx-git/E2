@@ -72,7 +72,7 @@ export function activateBoardLink(el: StormElement): ActivateLinkResult {
     const view = store.views.find((v) => v.id === viewId);
     if (!view) return { ok: false, reason: localeT("alerts.linkViewNotFound") };
     if (store.activeViewId !== viewId) {
-      store.setActiveView(viewId);
+      store.setActiveView(viewId, { viaNavigationLink: true });
     }
     return { ok: true, kind: "view", viewId, viewName: view.name };
   }

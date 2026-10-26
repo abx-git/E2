@@ -43,6 +43,7 @@ export const panelsDe = {
     setUrl: "URL setzen…",
     openOverviewNamed: "Übersicht öffnen ({name})",
     openDetailNamed: "Detail-Sicht öffnen ({name})",
+    openLinkedViewNamed: "Sicht öffnen ({name})",
     resizeHandle: "Größe ändern ({handle})",
     pickTarget: "Als Ziel wählen (Abbrechen: erneut klicken)",
     pickTargetShort: "Als Ziel wählen",

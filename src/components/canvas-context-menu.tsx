@@ -36,6 +36,7 @@ import {
 import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
 import { resolveBoundedContextDetailView } from "@/lib/bounded-context-view";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
+import { elementHasLinkedView } from "@/lib/view-navigation";
 import { clipboardItemCount, isClipboardEmpty } from "@/lib/board-clipboard";
 import {
   runElementAttributeCopy,
@@ -143,6 +144,7 @@ export function CanvasContextMenu({
   const updateElement = useStormBoardStore((s) => s.updateElement);
   const openBuildingBlockView = useStormBoardStore((s) => s.openBuildingBlockView);
   const navigateBuildingBlockViewLink = useStormBoardStore((s) => s.navigateBuildingBlockViewLink);
+  const followElementLinkedView = useStormBoardStore((s) => s.followElementLinkedView);
   const deleteElement = useStormBoardStore((s) => s.deleteElement);
   const patchElements = useStormBoardStore((s) => s.patchElements);
   const bringElementsToFront = useStormBoardStore((s) => s.bringElementsToFront);
@@ -267,6 +269,18 @@ export function CanvasContextMenu({
             <Separator />
           </>
         )}
+        {el.type !== "link" &&
+          !supportsArchDrilldown(el.type) &&
+          elementHasLinkedView(el, views) && (
+            <>
+              <Item
+                icon={LayoutDashboard}
+                label={t("contextMenu.openLinkedView")}
+                onClick={() => run(() => followElementLinkedView(el.id))}
+              />
+              <Separator />
+            </>
+          )}
         <Item
           icon={Link2}
           label={t("contextMenu.startRelation")}

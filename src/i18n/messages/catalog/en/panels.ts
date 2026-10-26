@@ -43,6 +43,7 @@ export const panelsEn = {
     setUrl: "Set URL…",
     openOverviewNamed: "Open overview ({name})",
     openDetailNamed: "Open detail view ({name})",
+    openLinkedViewNamed: "Open view ({name})",
     resizeHandle: "Resize ({handle})",
     pickTarget: "Pick as target (cancel: click again)",
     pickTargetShort: "Pick as target",

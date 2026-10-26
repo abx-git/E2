@@ -98,6 +98,7 @@ import {
   flushActiveViewIntoViews,
   resolveActiveView,
 } from "@/lib/board-views";
+import { pushViewReturnStack } from "@/lib/view-navigation";
 import {
   DEFAULT_APPEARANCE,
   type BoardAppearance,
@@ -235,10 +236,19 @@ export interface StormBoardState {
   future: BoardDomainSnapshot[];
   gestureActive: boolean;
   gestureSnapshotTaken: boolean;
+  /** Ephemeral stack for Zurück after following element/view links (not persisted). */
+  viewReturnStack: string[];
 
   setTitle: (title: string) => void;
   setWorkshopMode: (enabled: boolean) => void;
-  setActiveView: (id: string) => void;
+  setActiveView: (
+    id: string,
+    options?: { viaNavigationLink?: boolean; selectElementIds?: string[] },
+  ) => void;
+  /** Pop return stack and switch to the previous view (e.g. after link navigation). */
+  navigateViewBack: () => boolean;
+  /** Open the view linked on the element via `detailViewId` and record a return hop. */
+  followElementLinkedView: (elementId: string) => string | null;
   addView: (name?: string, modelingMode?: ModelingMode) => string;
   addActionsView: (name?: string) => string;
   renameView: (id: string, name: string) => void;
@@ -707,20 +717,27 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   future: [],
   gestureActive: false,
   gestureSnapshotTaken: false,
+  viewReturnStack: [],
 
   setTitle: (title) => commit(set, get, () => ({ title })),
   setWorkshopMode: (workshopMode) => commit(set, get, () => ({ workshopMode })),
 
-  setActiveView: (id) => {
+  setActiveView: (id, options) => {
     const s = get();
     if (id === s.activeViewId || !s.views.some((v) => v.id === id)) return;
     const views = flushActiveViewIntoViews(s);
     const next = resolveActiveView(views, id);
+    const viaLink = options?.viaNavigationLink === true;
+    const selectElementIds = options?.selectElementIds;
     set({
       views,
       activeViewId: next.id,
+      viewReturnStack: viaLink
+        ? pushViewReturnStack(s.viewReturnStack, s.activeViewId, next.id)
+        : [],
       ...applyViewToFlatPatch(next),
       ...CLEAR_SELECTION_PATCH,
+      ...(selectElementIds?.length ? { selectedElementIds: selectElementIds } : {}),
       selectedMeasureId: null,
       measureHotspotLinkPick: null,
       past: [],
@@ -728,6 +745,45 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       gestureActive: false,
       gestureSnapshotTaken: false,
     });
+  },
+
+  navigateViewBack: () => {
+    const s = get();
+    const stack = [...s.viewReturnStack];
+    while (stack.length > 0) {
+      const prevId = stack.pop()!;
+      if (!s.views.some((v) => v.id === prevId)) continue;
+      const views = flushActiveViewIntoViews(s);
+      const next = resolveActiveView(views, prevId);
+      set({
+        views,
+        activeViewId: next.id,
+        viewReturnStack: stack,
+        ...applyViewToFlatPatch(next),
+        ...CLEAR_SELECTION_PATCH,
+        selectedMeasureId: null,
+        measureHotspotLinkPick: null,
+        past: [],
+        future: [],
+        gestureActive: false,
+        gestureSnapshotTaken: false,
+      });
+      return true;
+    }
+    if (s.viewReturnStack.length > 0) {
+      set({ viewReturnStack: [] });
+    }
+    return false;
+  },
+
+  followElementLinkedView: (elementId) => {
+    const s = get();
+    const el = s.elements.find((e) => e.id === elementId);
+    const viewId = el?.detailViewId?.trim();
+    if (!viewId || !s.views.some((v) => v.id === viewId)) return null;
+    if (s.activeViewId === viewId) return viewId;
+    get().setActiveView(viewId, { viaNavigationLink: true, selectElementIds: [elementId] });
+    return viewId;
   },
 
   addView: (name, modelingModeOverride) => {
@@ -747,6 +803,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         views: [...views, view],
         activeViewId: createdId,
+        viewReturnStack: [],
         ...applyViewToFlatPatch(view),
         ...CLEAR_SELECTION_PATCH,
         selectedMeasureId: null,
@@ -767,6 +824,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         views: [...views, view],
         activeViewId: createdId,
+        viewReturnStack: [],
         ...applyViewToFlatPatch(view),
         ...CLEAR_SELECTION_PATCH,
         selectedMeasureId: null,
@@ -799,6 +857,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         views: [...views, copy],
         activeViewId: createdId,
+        viewReturnStack: [],
         ...applyViewToFlatPatch(copy),
         ...CLEAR_SELECTION_PATCH,
       };
@@ -819,6 +878,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         views,
         activeViewId: nextActive.id,
+        viewReturnStack: [],
         bookmarks: state.bookmarks.filter((bookmark) => bookmark.viewId !== id),
         ...applyViewToFlatPatch(nextActive),
         ...CLEAR_SELECTION_PATCH,
@@ -2010,6 +2070,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       set({
         views,
         activeViewId: next.id,
+        viewReturnStack: [],
         ...applyViewToFlatPatch(next),
         viewport: { ...bookmark.viewport },
         ...CLEAR_SELECTION_PATCH,
@@ -2221,6 +2282,11 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           return {
             views,
             activeViewId: linked.id,
+            viewReturnStack: pushViewReturnStack(
+              s.viewReturnStack,
+              s.activeViewId,
+              linked.id,
+            ),
             ...applyViewToFlatPatch(linked),
             ...CLEAR_SELECTION_PATCH,
             past: [],
@@ -2264,6 +2330,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         views: [...updatedViews, newView],
         activeViewId: newViewId,
+        viewReturnStack: pushViewReturnStack(s.viewReturnStack, s.activeViewId, newViewId),
         ...applyViewToFlatPatch(newView),
         ...CLEAR_SELECTION_PATCH,
         past: [],
@@ -2290,6 +2357,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         views,
         activeViewId: next.id,
+        viewReturnStack: pushViewReturnStack(s.viewReturnStack, s.activeViewId, next.id),
         ...applyViewToFlatPatch(next),
         selectedBoundedContextIds: [nav.parentBoundedContextId],
         selectedElementIds: [],
@@ -2338,6 +2406,11 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           return {
             views,
             activeViewId: linked.id,
+            viewReturnStack: pushViewReturnStack(
+              s.viewReturnStack,
+              s.activeViewId,
+              linked.id,
+            ),
             ...applyViewToFlatPatch(linked),
             ...CLEAR_SELECTION_PATCH,
             past: [],
@@ -2378,6 +2451,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         views: [...updatedViews, newView],
         activeViewId: newViewId,
+        viewReturnStack: pushViewReturnStack(s.viewReturnStack, s.activeViewId, newViewId),
         ...applyViewToFlatPatch(newView),
         ...CLEAR_SELECTION_PATCH,
         past: [],
@@ -2404,6 +2478,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         views,
         activeViewId: next.id,
+        viewReturnStack: pushViewReturnStack(s.viewReturnStack, s.activeViewId, next.id),
         ...applyViewToFlatPatch(next),
         selectedElementIds: [nav.parentElementId],
         selectedRelationId: null,
@@ -2810,6 +2885,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     set({
       views,
       activeViewId: next.id,
+      viewReturnStack: pushViewReturnStack(s.viewReturnStack, s.activeViewId, next.id),
       ...applyViewToFlatPatch(next),
       ...CLEAR_SELECTION_PATCH,
       selectedMeasureId: null,
@@ -2838,6 +2914,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       workshopMode: doc.workshopMode,
       activeViewId: active.id,
       views: doc.views,
+      viewReturnStack: [],
       ...applyViewToFlatPatch(active),
       ...CLEAR_SELECTION_PATCH,
       past,
@@ -2864,6 +2941,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         views,
         activeViewId: active.id,
+        viewReturnStack: [],
         ...applyViewToFlatPatch(active),
         ...CLEAR_SELECTION_PATCH,
       };

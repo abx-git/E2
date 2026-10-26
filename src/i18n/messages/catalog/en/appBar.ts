@@ -21,5 +21,7 @@ export const appBarEn = {
     facilitatorPhases: "Facilitator phases",
     syncActiveTabShort: "Sync tab for all",
     sessionFormat: "Format",
+    viewBack: "Back to “{name}”",
+    viewBackTitle: "Return to previous view (Alt+←)",
   },
 } as const;
