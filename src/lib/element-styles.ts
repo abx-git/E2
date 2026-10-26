@@ -24,6 +24,44 @@ export interface ElementStyle {
 /** Default slant for new hotspots (element style + createElement). */
 export const HOTSPOT_DEFAULT_ROTATION_DEG = 15;
 
+/** Wide pill (actor/person): use softer corners instead of full stadium caps. */
+const WIDE_PILL_ASPECT = 1.35;
+/** Max corner radius (px) for wide pills so labels are not clipped at the ends. */
+export const WIDE_PILL_MAX_CORNER_RADIUS_PX = 14;
+
+/** Corner radius for pill-shaped elements (canvas + export). */
+export function elementPillCornerRadiusPx(width: number, height: number): number {
+  const h = Math.max(1, height);
+  const w = Math.max(1, width);
+  const semicircle = h / 2;
+  if (w / h > WIDE_PILL_ASPECT) {
+    return Math.min(semicircle, WIDE_PILL_MAX_CORNER_RADIUS_PX);
+  }
+  return semicircle;
+}
+
+export function isCircularPillShape(width: number, height: number): boolean {
+  const h = Math.max(1, height);
+  const w = Math.max(1, width);
+  return w / h <= WIDE_PILL_ASPECT && Math.abs(w - h) < 8;
+}
+
+export function elementCardShapePresentation(
+  shape: ElementStyle["shape"],
+  width: number,
+  height: number,
+): { className: string; borderRadiusPx?: number } {
+  if (shape === "pill") {
+    if (isCircularPillShape(width, height)) {
+      return { className: "rounded-full" };
+    }
+    return { className: "", borderRadiusPx: elementPillCornerRadiusPx(width, height) };
+  }
+  if (shape === "wide") return { className: "rounded-md" };
+  if (shape === "rectangle") return { className: "rounded-sm" };
+  return { className: "rounded-lg" };
+}
+
 /** Soft post-it pastels — shared by palette buttons and canvas stickies. */
 export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
   domainEvent: {
