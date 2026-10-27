@@ -7,6 +7,7 @@ import {
 import { generateStormId } from "@/lib/storm-id";
 import type { CanvasBoardView } from "@/lib/storm-json";
 import { createEmptyBoardView } from "@/lib/storm-json";
+import { sliceCanvasViewForSelection } from "@/lib/e2v/selection-slice";
 import {
   boundedContextBounds,
   elementBounds,
@@ -22,7 +23,6 @@ function expandRect(acc: WorldRect | null, next: WorldRect): WorldRect {
   const maxY = Math.max(acc.y + acc.h, next.y + next.h);
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
-import { sliceCanvasViewForSelection } from "@/lib/e2v/selection-slice";
 import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
 import type { ModelingMode, StormElement, WorkshopFormat } from "@/types/storm-element";
 
@@ -37,19 +37,47 @@ function remapEndpoint(ep: ConnectorEndpoint, idMap: Map<string, string>): Conne
   return { attach: ep.attach, id: nextId };
 }
 
-function connectorTouchesRemoved(
-  c: BoardConnector,
-  elementIds: Set<string>,
-  swimlaneIds: Set<string>,
-  bcIds: Set<string>,
-): boolean {
-  const hit = (ep: ConnectorEndpoint) => {
-    if (ep.attach === "element") return elementIds.has(ep.id);
-    if (ep.attach === "swimlane") return swimlaneIds.has(ep.id);
-    if (ep.attach === "boundedContext") return bcIds.has(ep.id);
-    return false;
+export interface ExtractedSelectionIds {
+  elementIds: Set<string>;
+  swimlaneIds: Set<string>;
+  bcIds: Set<string>;
+}
+
+function selectionIdSets(slice: CanvasBoardView): ExtractedSelectionIds {
+  return {
+    elementIds: new Set(slice.elements.map((e) => e.id)),
+    swimlaneIds: new Set(slice.swimlanes.map((s) => s.id)),
+    bcIds: new Set(slice.boundedContexts.map((b) => b.id)),
   };
-  return hit(c.source) || hit(c.target);
+}
+
+function endpointInExtracted(
+  ep: ConnectorEndpoint,
+  ids: ExtractedSelectionIds,
+): boolean {
+  if (ep.attach === "element") return ids.elementIds.has(ep.id);
+  if (ep.attach === "swimlane") return ids.swimlaneIds.has(ep.id);
+  if (ep.attach === "boundedContext") return ids.bcIds.has(ep.id);
+  return false;
+}
+
+function linkElementEndpoint(linkElementId: string): ConnectorEndpoint {
+  return { attach: "element", id: linkElementId };
+}
+
+/** Reattach ends that pointed into the extracted set to the link placeholder. */
+function rehomeConnectorEndpoints(
+  c: BoardConnector,
+  ids: ExtractedSelectionIds,
+  linkElementId: string,
+): BoardConnector | null {
+  const srcIn = endpointInExtracted(c.source, ids);
+  const tgtIn = endpointInExtracted(c.target, ids);
+  if (srcIn && tgtIn) return null;
+  if (!srcIn && !tgtIn) return c;
+  const link = linkElementEndpoint(linkElementId);
+  if (srcIn) return { ...structuredClone(c), source: link };
+  return { ...structuredClone(c), target: link };
 }
 
 /** Union bounds of all items in a selection slice (for link placeholder size/position). */
@@ -162,17 +190,40 @@ export function buildLinkedDetailViewFromSlice(
   });
 }
 
-/** Remove slice entities from a canvas view (does not add the link placeholder). */
+function rehomeRelationEndpoints(
+  r: { id: string; sourceId: string; targetId: string },
+  ids: ExtractedSelectionIds,
+  linkElementId: string,
+) {
+  const srcIn = ids.elementIds.has(r.sourceId);
+  const tgtIn = ids.elementIds.has(r.targetId);
+  if (srcIn && tgtIn) return null;
+  if (!srcIn && !tgtIn) return r;
+  if (srcIn) return { ...r, sourceId: linkElementId };
+  return { ...r, targetId: linkElementId };
+}
+
+/** Remove slice entities; rehome external connectors/relations onto the link sticky. */
 export function stripSelectionFromCanvasView(
   view: CanvasBoardView,
   slice: CanvasBoardView,
+  linkElementId: string,
 ): CanvasBoardView {
-  const elementIds = new Set(slice.elements.map((e) => e.id));
-  const swimlaneIds = new Set(slice.swimlanes.map((s) => s.id));
-  const bcIds = new Set(slice.boundedContexts.map((b) => b.id));
+  const ids = selectionIdSets(slice);
+  const { elementIds, swimlaneIds, bcIds } = ids;
   const relationIds = new Set(slice.relations.map((r) => r.id));
   const connectorIds = new Set(slice.connectors.map((c) => c.id));
   const contextRelationIds = new Set(slice.contextRelations.map((r) => r.id));
+
+  const connectors = view.connectors
+    .filter((c) => !connectorIds.has(c.id))
+    .map((c) => rehomeConnectorEndpoints(c, ids, linkElementId))
+    .filter((c): c is BoardConnector => c !== null);
+
+  const relations = view.relations
+    .filter((r) => !relationIds.has(r.id))
+    .map((r) => rehomeRelationEndpoints(r, ids, linkElementId))
+    .filter((r): r is typeof view.relations[number] => r !== null);
 
   return {
     ...view,
@@ -196,12 +247,22 @@ export function stripSelectionFromCanvasView(
       }),
     swimlanes: view.swimlanes.filter((s) => !swimlaneIds.has(s.id)),
     boundedContexts: view.boundedContexts.filter((b) => !bcIds.has(b.id)),
-    relations: view.relations.filter((r) => !relationIds.has(r.id)),
+    relations,
     contextRelations: view.contextRelations.filter((r) => !contextRelationIds.has(r.id)),
-    connectors: view.connectors.filter((c) => {
-      if (connectorIds.has(c.id)) return false;
-      return !connectorTouchesRemoved(c, elementIds, swimlaneIds, bcIds);
-    }),
+    connectors,
+  };
+}
+
+/** Origin view after extract: stripped content + link placeholder element. */
+export function buildOriginViewAfterSelectionExtract(
+  view: CanvasBoardView,
+  slice: CanvasBoardView,
+  linkEl: StormElement,
+): CanvasBoardView {
+  const stripped = stripSelectionFromCanvasView(view, slice, linkEl.id);
+  return {
+    ...stripped,
+    elements: [...stripped.elements, linkEl],
   };
 }
 

@@ -20,10 +20,10 @@ import {
 import {
   boundsForSelectionSlice,
   buildLinkedDetailViewFromSlice,
+  buildOriginViewAfterSelectionExtract,
   createSelectionLinkElement,
   defaultLinkedViewName,
   sliceCanvasSelection,
-  stripSelectionFromCanvasView,
 } from "@/lib/selection-linked-view";
 import { supportsArchDrilldown } from "@/types/storm-element";
 import {
@@ -2451,11 +2451,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
 
       const bounds = boundsForSelectionSlice(slice);
       const linkEl = createSelectionLinkElement(bounds, name, newViewId);
-      const stripped = stripSelectionFromCanvasView(active, slice);
-      const originView: typeof active = {
-        ...stripped,
-        elements: [...stripped.elements, linkEl],
-      };
+      const originView = buildOriginViewAfterSelectionExtract(active, slice, linkEl);
 
       const updatedViews = views.map((v) =>
         v.id === active.id && isCanvasBoardView(v) ? originView : v,
