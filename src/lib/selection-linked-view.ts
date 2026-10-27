@@ -137,6 +137,7 @@ export function buildLinkedDetailViewFromSlice(
     slice.swimlanes,
     slice.boundedContexts,
     slice.contextRelations,
+    slice.connectors,
   );
   if (!payload) {
     return createEmptyBoardView({

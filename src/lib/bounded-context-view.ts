@@ -3,6 +3,7 @@ import {
   remapClipboardForPaste,
   selectionCentroid,
 } from "@/lib/board-clipboard";
+import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
 import { createEmptyBoardView, type BoardView } from "@/lib/storm-json";
 import { elementIdsInBoundedContext } from "@/lib/region-containment";
 import type { BoundedContext, ModelingMode, StormElement, Swimlane, WorkshopFormat } from "@/types/storm-element";
@@ -73,6 +74,7 @@ export function extractBoundedContextViewPayload(
   boundedContexts: BoundedContext[],
   contextRelations: ContextRelation[],
   _swimlanes: Swimlane[] = [],
+  connectors: BoardConnector[] = [],
 ): BoardClipboardPayload | null {
   const bc = boundedContexts.find((b) => b.id === bcId);
   if (!bc) return null;
@@ -119,6 +121,16 @@ export function extractBoundedContextViewPayload(
     (r) => allBcIds.has(r.sourceContextId) && allBcIds.has(r.targetContextId),
   );
 
+  const endpointInPayload = (ep: ConnectorEndpoint): boolean => {
+    if (ep.attach === "element") return allElementIds.has(ep.id);
+    if (ep.attach === "boundedContext") return allBcIds.has(ep.id);
+    return false;
+  };
+  const selectedConnectors = connectors.filter((c) => {
+    if (c.source.attach === "point" || c.target.attach === "point") return false;
+    return endpointInPayload(c.source) && endpointInPayload(c.target);
+  });
+
   const cleanedElements = selectedElements.map((el) => {
     const next = structuredClone(el);
     next.swimlaneId = undefined;
@@ -138,6 +150,7 @@ export function extractBoundedContextViewPayload(
   return {
     elements: cleanedElements,
     relations: structuredClone(selectedRelations),
+    connectors: structuredClone(selectedConnectors),
     swimlanes: [],
     boundedContexts: cleanedBcs,
     contextRelations: structuredClone(selectedContextRelations),
@@ -163,6 +176,7 @@ export function buildBoardViewFromBoundedContextPayload(
     workshopFormat: options.workshopFormat,
     elements: remapped.elements,
     relations: remapped.relations,
+    connectors: remapped.connectors,
     boundedContexts: remapped.boundedContexts,
     contextRelations: remapped.contextRelations,
     viewport: { x: 0, y: 0, zoom: 1 },

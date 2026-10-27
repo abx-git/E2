@@ -7,6 +7,7 @@ import {
   takeIdsFromClipboard,
 } from "@/lib/board-clipboard";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
+import type { BoardConnector } from "@/types/board-connector";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 
 const elements: StormElement[] = [
@@ -44,11 +45,27 @@ const contextRelations: ContextRelation[] = [
 
 describe("board-clipboard", () => {
   it("extracts selection and only internal relations", () => {
-    const payload = extractClipboardPayload(elements, relations, ["a", "b"]);
+    const connectors: BoardConnector[] = [
+      {
+        id: "cn-internal",
+        type: "triggers",
+        source: { attach: "element", id: "b" },
+        target: { attach: "element", id: "a" },
+      },
+      {
+        id: "cn-external",
+        type: "triggers",
+        source: { attach: "element", id: "b" },
+        target: { attach: "element", id: "c" },
+      },
+    ];
+    const payload = extractClipboardPayload(elements, relations, ["a", "b"], [], [], [], connectors);
     expect(payload).not.toBeNull();
     expect(payload!.elements.map((e) => e.id).sort()).toEqual(["a", "b"]);
     expect(payload!.relations).toHaveLength(1);
     expect(payload!.relations[0]!.id).toBe("r1");
+    expect(payload!.connectors).toHaveLength(1);
+    expect(payload!.connectors[0]!.id).toBe("cn-internal");
     expect(payload!.elements.every((e) => e.swimlaneId === undefined)).toBe(true);
     expect(payload!.elements.find((e) => e.id === "a")!.boundedContextId).toBeUndefined();
     expect(payload!.swimlanes).toEqual([]);
@@ -87,7 +104,15 @@ describe("board-clipboard", () => {
   });
 
   it("remaps ids and offsets to paste target", () => {
-    const payload = extractClipboardPayload(elements, relations, ["a", "b"])!;
+    const connectors: BoardConnector[] = [
+      {
+        id: "cn1",
+        type: "triggers",
+        source: { attach: "element", id: "b" },
+        target: { attach: "element", id: "a" },
+      },
+    ];
+    const payload = extractClipboardPayload(elements, relations, ["a", "b"], [], [], [], connectors)!;
     const remapped = remapClipboardForPaste(payload, 1000, 500);
     expect(remapped.elements).toHaveLength(2);
     expect(remapped.newIds).toHaveLength(2);
@@ -95,6 +120,12 @@ describe("board-clipboard", () => {
     expect(remapped.relations).toHaveLength(1);
     expect(remapped.relations[0]!.sourceId).toBe(remapped.elements.find((e) => e.label === "B")!.id);
     expect(remapped.relations[0]!.targetId).toBe(remapped.elements.find((e) => e.label === "A")!.id);
+    expect(remapped.connectors).toHaveLength(1);
+    expect(remapped.connectors[0]!.id).not.toBe("cn1");
+    const bEl = remapped.elements.find((e) => e.label === "B")!;
+    const aEl = remapped.elements.find((e) => e.label === "A")!;
+    expect(remapped.connectors[0]!.source).toEqual({ attach: "element", id: bEl.id });
+    expect(remapped.connectors[0]!.target).toEqual({ attach: "element", id: aEl.id });
 
     const c = selectionCentroid(remapped.elements);
     expect(c.x).toBeCloseTo(1000, 5);
@@ -185,5 +216,28 @@ describe("board-clipboard", () => {
     const newAgg = remapped.elements.find((e) => e.type === "aggregate")!;
     expect(newSub.id).not.toBe("sub");
     expect(newAgg.subdomainId).toBe(newSub.id);
+  });
+
+  it("splits internal connectors when taking ids from clipboard", () => {
+    const connectors: BoardConnector[] = [
+      {
+        id: "cn-ab",
+        type: "triggers",
+        source: { attach: "element", id: "a" },
+        target: { attach: "element", id: "b" },
+      },
+      {
+        id: "cn-bc",
+        type: "executedBy",
+        source: { attach: "element", id: "b" },
+        target: { attach: "element", id: "c" },
+      },
+    ];
+    const payload = extractClipboardPayload(elements, relations, ["a", "b", "c"], [], [], [], connectors)!;
+    const { taken, remaining } = takeIdsFromClipboard(payload, ["a", "b"]);
+    expect(taken!.connectors).toHaveLength(1);
+    expect(taken!.connectors[0]!.id).toBe("cn-ab");
+    // Connector to a remaining element is dropped when the other end was taken.
+    expect(remaining!.connectors).toHaveLength(0);
   });
 });

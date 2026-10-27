@@ -5,6 +5,7 @@ import {
   swimlaneBounds,
   type WorldRect,
 } from "@/lib/selection-geometry";
+import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 import type { ContextRelation, StormRelation } from "@/types/storm-relation";
 
@@ -19,6 +20,7 @@ export interface ClipboardSelection {
 export interface BoardClipboardPayload {
   elements: StormElement[];
   relations: StormRelation[];
+  connectors: BoardConnector[];
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
   contextRelations: ContextRelation[];
@@ -31,12 +33,51 @@ function emptyPayload(originX = 0, originY = 0): BoardClipboardPayload {
   return {
     elements: [],
     relations: [],
+    connectors: [],
     swimlanes: [],
     boundedContexts: [],
     contextRelations: [],
     originX,
     originY,
   };
+}
+
+function endpointInSelection(
+  ep: ConnectorEndpoint,
+  elementIdSet: Set<string>,
+  swimlaneIdSet: Set<string>,
+  bcIdSet: Set<string>,
+): boolean {
+  if (ep.attach === "element") return elementIdSet.has(ep.id);
+  if (ep.attach === "swimlane") return swimlaneIdSet.has(ep.id);
+  if (ep.attach === "boundedContext") return bcIdSet.has(ep.id);
+  return false;
+}
+
+/** Board connectors with both ends inside the selection (moved/copied together). */
+export function internalConnectorsForSelection(
+  connectors: BoardConnector[],
+  elementIdSet: Set<string>,
+  swimlaneIdSet: Set<string>,
+  bcIdSet: Set<string>,
+): BoardConnector[] {
+  return connectors.filter((c) => {
+    if (c.source.attach === "point" || c.target.attach === "point") return false;
+    const srcIn = endpointInSelection(c.source, elementIdSet, swimlaneIdSet, bcIdSet);
+    const tgtIn = endpointInSelection(c.target, elementIdSet, swimlaneIdSet, bcIdSet);
+    return srcIn && tgtIn;
+  });
+}
+
+export function connectorTouchesSelection(
+  c: BoardConnector,
+  elementIdSet: Set<string>,
+  swimlaneIdSet: Set<string>,
+  bcIdSet: Set<string>,
+): boolean {
+  if (endpointInSelection(c.source, elementIdSet, swimlaneIdSet, bcIdSet)) return true;
+  if (endpointInSelection(c.target, elementIdSet, swimlaneIdSet, bcIdSet)) return true;
+  return false;
 }
 
 function normalizeSelection(selection: ClipboardSelection | string[]): ClipboardSelection {
@@ -89,6 +130,7 @@ export function normalizeClipboardPayload(
   return {
     elements: payload.elements ?? [],
     relations: payload.relations ?? [],
+    connectors: payload.connectors ?? [],
     swimlanes: payload.swimlanes ?? [],
     boundedContexts: payload.boundedContexts ?? [],
     contextRelations: payload.contextRelations ?? [],
@@ -109,6 +151,7 @@ export function extractClipboardPayload(
   swimlanes: Swimlane[] = [],
   boundedContexts: BoundedContext[] = [],
   contextRelations: ContextRelation[] = [],
+  connectors: BoardConnector[] = [],
 ): BoardClipboardPayload | null {
   const selection = normalizeSelection(idsOrSelection);
   const elementIdSet = new Set(selection.elementIds ?? []);
@@ -133,6 +176,12 @@ export function extractClipboardPayload(
   const internalContextRelations = contextRelations.filter(
     (r) => bcIdSet.has(r.sourceContextId) && bcIdSet.has(r.targetContextId),
   );
+  const internalConnectors = internalConnectorsForSelection(
+    connectors,
+    elementIdSet,
+    swimlaneIdSet,
+    bcIdSet,
+  );
 
   const cleanedElements = selectedElements.map((el) => {
     const next = structuredClone(el);
@@ -156,6 +205,7 @@ export function extractClipboardPayload(
   return {
     elements: cleanedElements,
     relations: structuredClone(internalRelations),
+    connectors: structuredClone(internalConnectors),
     swimlanes: structuredClone(selectedSwimlanes),
     boundedContexts: structuredClone(selectedBcs),
     contextRelations: structuredClone(internalContextRelations),
@@ -173,6 +223,7 @@ export function mergeClipboardPayloads(
   const b = normalizeClipboardPayload(incoming)!;
   const elements = [...a.elements, ...b.elements];
   const relations = [...a.relations, ...b.relations];
+  const connectors = [...a.connectors, ...b.connectors];
   const swimlanes = [...a.swimlanes, ...b.swimlanes];
   const boundedContexts = [...a.boundedContexts, ...b.boundedContexts];
   const contextRelations = [...a.contextRelations, ...b.contextRelations];
@@ -180,6 +231,7 @@ export function mergeClipboardPayloads(
   return {
     elements,
     relations,
+    connectors,
     swimlanes,
     boundedContexts,
     contextRelations,
@@ -191,6 +243,7 @@ export function mergeClipboardPayloads(
 export interface RemappedPaste {
   elements: StormElement[];
   relations: StormRelation[];
+  connectors: BoardConnector[];
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
   contextRelations: ContextRelation[];
@@ -269,9 +322,33 @@ export function remapClipboardForPaste(
     ];
   });
 
+  const remapConnectorEndpoint = (ep: ConnectorEndpoint): ConnectorEndpoint | null => {
+    if (ep.attach === "point") {
+      return { attach: "point", x: ep.x + dx, y: ep.y + dy };
+    }
+    const nextId = idMap.get(ep.id);
+    if (!nextId) return null;
+    return { attach: ep.attach, id: nextId };
+  };
+
+  const remappedConnectors = normalized.connectors.flatMap((c) => {
+    const source = remapConnectorEndpoint(c.source);
+    const target = remapConnectorEndpoint(c.target);
+    if (!source || !target) return [];
+    return [
+      {
+        ...structuredClone(c),
+        id: generateStormId(),
+        source,
+        target,
+      },
+    ];
+  });
+
   return {
     elements,
     relations,
+    connectors: remappedConnectors,
     swimlanes,
     boundedContexts,
     contextRelations,
@@ -315,6 +392,15 @@ export function takeIdsFromClipboard(
   const remainingRels = normalized.relations.filter(
     (r) => !idSet.has(r.sourceId) && !idSet.has(r.targetId),
   );
+  const takenConnectors = normalized.connectors.filter((c) => {
+    if (c.source.attach !== "element" || c.target.attach !== "element") return false;
+    return idSet.has(c.source.id) && idSet.has(c.target.id);
+  });
+  const remainingConnectors = normalized.connectors.filter((c) => {
+    if (c.source.attach === "element" && idSet.has(c.source.id)) return false;
+    if (c.target.attach === "element" && idSet.has(c.target.id)) return false;
+    return true;
+  });
 
   const takenCentroid = selectionCentroid(takenEls);
   const remainingCentroid = selectionCentroid(
@@ -331,6 +417,7 @@ export function takeIdsFromClipboard(
       : {
           elements: structuredClone(remainingEls),
           relations: structuredClone(remainingRels),
+          connectors: structuredClone(remainingConnectors),
           swimlanes: structuredClone(normalized.swimlanes),
           boundedContexts: structuredClone(normalized.boundedContexts),
           contextRelations: structuredClone(normalized.contextRelations),
@@ -342,6 +429,7 @@ export function takeIdsFromClipboard(
     taken: {
       elements: structuredClone(takenEls),
       relations: structuredClone(takenRels),
+      connectors: structuredClone(takenConnectors),
       swimlanes: [],
       boundedContexts: [],
       contextRelations: [],

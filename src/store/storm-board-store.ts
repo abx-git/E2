@@ -27,6 +27,7 @@ import {
 } from "@/lib/selection-linked-view";
 import { supportsArchDrilldown } from "@/types/storm-element";
 import {
+  connectorTouchesSelection,
   extractClipboardPayload,
   isClipboardEmpty,
   mergeClipboardPayloads,
@@ -992,6 +993,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         s.swimlanes,
         s.boundedContexts,
         s.contextRelations,
+        s.connectors,
       );
       if (!extracted) return {};
       ok = true;
@@ -1011,8 +1013,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
             aggregateId: e.aggregateId && elSet.has(e.aggregateId) ? undefined : e.aggregateId,
             subdomainId: e.subdomainId && elSet.has(e.subdomainId) ? undefined : e.subdomainId,
           })),
-        relations: s.relations.filter(
-          (r) => !elSet.has(r.sourceId) && !elSet.has(r.targetId),
+        ...withConnectors(
+          s.connectors.filter(
+            (c) => !connectorTouchesSelection(c, elSet, laneSet, bcSet),
+          ),
         ),
         swimlanes: s.swimlanes.filter((l) => !laneSet.has(l.id)),
         boundedContexts: s.boundedContexts.filter((b) => !bcSet.has(b.id)),
@@ -1039,6 +1043,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       s.swimlanes,
       s.boundedContexts,
       s.contextRelations,
+      s.connectors,
     );
     if (!extracted) return false;
     set({ clipboard: mergeClipboardPayloads(s.clipboard, extracted) });
@@ -1085,7 +1090,15 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     if (unique.length === 0) return [];
     let newIds: string[] = [];
     commit(set, get, (s) => {
-      const extracted = extractClipboardPayload(s.elements, s.relations, unique);
+      const extracted = extractClipboardPayload(
+        s.elements,
+        s.relations,
+        unique,
+        s.swimlanes,
+        s.boundedContexts,
+        s.contextRelations,
+        s.connectors,
+      );
       if (!extracted) return {};
       const remapped = remapClipboardForPaste(
         extracted,
@@ -1105,7 +1118,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       );
       return {
         elements,
-        relations: [...s.relations, ...remapped.relations],
+        ...withConnectors([...s.connectors, ...remapped.connectors]),
         selectedElementIds: remapped.newIds,
         selectedRelationId: null,
         selectedContextRelationId: null,
@@ -1144,9 +1157,9 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       );
       return {
         elements,
-        relations: [...s.relations, ...remapped.relations],
         swimlanes,
         boundedContexts,
+        ...withConnectors([...s.connectors, ...remapped.connectors]),
         contextRelations: [...s.contextRelations, ...remapped.contextRelations],
         selectedElementIds: remapped.newIds,
         selectedRelationId: null,
@@ -1180,7 +1193,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return {
         clipboard: remaining,
         elements,
-        relations: [...s.relations, ...remapped.relations],
+        ...withConnectors([...s.connectors, ...remapped.connectors]),
         selectedElementIds: remapped.newIds,
         selectedRelationId: null,
         selectedContextRelationId: null,
@@ -2338,6 +2351,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         activeView.boundedContexts,
         activeView.contextRelations,
         activeView.swimlanes,
+        activeView.connectors,
       );
       if (!payload) return {};
 
@@ -2505,6 +2519,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         elementId,
         activeView.elements,
         activeView.relations,
+        activeView.connectors,
       );
       if (!payload) return {};
 

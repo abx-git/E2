@@ -12,6 +12,7 @@ import {
   type StormElement,
   type WorkshopFormat,
 } from "@/types/storm-element";
+import type { BoardConnector } from "@/types/board-connector";
 import type { StormRelation } from "@/types/storm-relation";
 
 const DETAIL_VIEW_PADDING = 80;
@@ -84,6 +85,7 @@ export function extractBuildingBlockViewPayload(
   elementId: string,
   elements: StormElement[],
   relations: StormRelation[],
+  connectors: BoardConnector[] = [],
 ): BoardClipboardPayload | null {
   const root = elements.find((e) => e.id === elementId);
   if (!root || !supportsArchDrilldown(root.type)) return null;
@@ -123,6 +125,12 @@ export function extractBuildingBlockViewPayload(
       r.targetId !== elementId,
   );
 
+  const selectedConnectors = connectors.filter((c) => {
+    if (c.source.attach !== "element" || c.target.attach !== "element") return false;
+    if (c.source.id === elementId || c.target.id === elementId) return false;
+    return allIds.has(c.source.id) && allIds.has(c.target.id);
+  });
+
   const { x, y } =
     selectedElements.length > 0
       ? selectionCentroid(selectedElements, [], [])
@@ -131,6 +139,7 @@ export function extractBuildingBlockViewPayload(
   return {
     elements: selectedElements,
     relations: structuredClone(selectedRelations),
+    connectors: structuredClone(selectedConnectors),
     swimlanes: [],
     boundedContexts: [],
     contextRelations: [],
@@ -160,6 +169,7 @@ export function buildBoardViewFromBuildingBlock(
       : {
           elements: [] as StormElement[],
           relations: [] as StormRelation[],
+          connectors: [] as BoardConnector[],
           swimlanes: [],
           boundedContexts: [],
           contextRelations: [],
@@ -200,6 +210,7 @@ export function buildBoardViewFromBuildingBlock(
     workshopFormat: options.workshopFormat,
     elements: [whitebox, ...paddedChildren],
     relations: remapped.relations,
+    connectors: remapped.connectors,
     boundedContexts: [],
     contextRelations: [],
     viewport: { x: 0, y: 0, zoom: 1 },
