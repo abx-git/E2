@@ -97,5 +97,9 @@ export const contextMenuDe = {
     canvas: "Canvas",
     quickActions: "Schnellaktionen",
     clearSelection: "Auswahl aufheben",
+    extractForAi: "Für KI extrahieren",
+    extractForAiHint: "E2V + Schema",
+    applyE2vFromClipboard: "E2V anwenden",
+    applyE2vFromClipboardHint: "Aus Zwischenablage",
   },
 } as const;

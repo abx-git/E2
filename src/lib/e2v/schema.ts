@@ -80,3 +80,15 @@ export const E2V_ENGLISH_LLM_PROMPT = `You are editing an Event Storming / domai
 Return only the **data** fence content when asked for data alone; otherwise follow the package layout with \`## schema\`, \`## prompt\`, and \`## data\` sections.
 Paste target in E2: **Daten → E2V einfügen** or **E2V kopieren** roundtrip package.
 `;
+
+/** Extra instructions when editing a canvas selection subset (not the full view). */
+export const E2V_SELECTION_LLM_PROMPT = `You are editing a **subset** of one E2 diagram view (not the full board).
+
+## Subset rules
+- Change only what the user asks for; keep every other row, id, and layout coordinate unchanged.
+- **Preserve stable ids** (\`e…\`, \`cn…\`, \`r…\`, etc.) unless the user explicitly asks to add/remove entities.
+- To **remove** an entity, omit its row; the app will delete it on paste when it was part of the extracted selection.
+- To **add** entities, use new unique ids and place them near related stickies without moving existing ones.
+- Return exactly one \`@scope view\` block with \`@view\` id matching the input.
+- Do not auto-layout; keep explicit \`x\`, \`y\`, sizes, and connector endpoints.
+`;

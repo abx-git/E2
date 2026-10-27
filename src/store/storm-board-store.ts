@@ -77,6 +77,14 @@ import {
   normalizeMeasureActionItem,
   patchActionsViewInList,
 } from "@/lib/architecture-measures";
+import { boardImportPayloadFromE2vPackageText } from "@/lib/board-import-text";
+import {
+  buildE2vSelectionClipboardPackage,
+  collectE2vEntityIds,
+  mergeImportedViewIntoCanvas,
+  sliceCanvasViewForSelection,
+} from "@/lib/e2v";
+import { readClipboardText, writeClipboardText } from "@/lib/system-clipboard";
 import type { BoardImportPayload, BoardView } from "@/lib/storm-json";
 import {
   createEmptyBoardView,
@@ -230,6 +238,8 @@ export interface StormBoardState {
   measureHotspotLinkPick: { actionsViewId: string; measureId: string } | null;
   /** Brief highlight after linking a hotspot to a measure (ephemeral). */
   measureHotspotLinkHighlight: { hotspotKey: string; measureId: string } | null;
+  /** Ids exported via „Für KI extrahieren“ for scoped delete on E2V apply (session only). */
+  e2vAiExtractScope: { viewId: string; entityIds: string[] } | null;
 
   /** Undo stacks (not persisted). */
   past: BoardDomainSnapshot[];
@@ -490,6 +500,15 @@ export interface StormBoardState {
   /** Switch tab and focus a canvas sticky from a measure link. */
   navigateToMeasureTarget: (viewId: string, elementId: string) => void;
 
+  copyE2vSelectionForAi: () => Promise<boolean>;
+  applyE2vSelectionFromClipboard: () => Promise<
+    | { ok: true }
+    | {
+        ok: false;
+        reason: "empty" | "invalid" | "wrong_view" | "not_canvas" | "clipboard_denied";
+      }
+  >;
+
   replaceBoardFromImport: (payload: BoardImportPayload) => void;
   /**
    * Append views from an imported E2 document as new tabs.
@@ -712,6 +731,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   elementAttributeClipboardSourceId: null,
   measureHotspotLinkPick: null,
   measureHotspotLinkHighlight: null,
+  e2vAiExtractScope: null,
   selectedMeasureId: null,
   past: [],
   future: [],
@@ -2898,6 +2918,75 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       past: [],
       future: [],
     });
+  },
+
+  copyE2vSelectionForAi: async () => {
+    const s = get();
+    const views = flushActiveViewIntoViews(s);
+    const active = resolveActiveView(views, s.activeViewId);
+    if (!isCanvasBoardView(active)) return false;
+
+    const slice = sliceCanvasViewForSelection(active, {
+      selection: {
+        elementIds: s.selectedElementIds,
+        swimlaneIds: s.selectedSwimlaneIds,
+        boundedContextIds: s.selectedBoundedContextIds,
+      },
+      selectedConnectorId: s.selectedConnectorId,
+    });
+    if (!slice) return false;
+
+    const pack = buildE2vSelectionClipboardPackage(boardImportPayloadFromStore(), slice);
+    const ok = await writeClipboardText(pack);
+    if (!ok) return false;
+
+    set({
+      e2vAiExtractScope: {
+        viewId: active.id,
+        entityIds: collectE2vEntityIds(slice),
+      },
+    });
+    return true;
+  },
+
+  applyE2vSelectionFromClipboard: async () => {
+    const text = await readClipboardText();
+    if (!text?.trim()) return { ok: false, reason: "empty" };
+
+    const s = get();
+    const views = flushActiveViewIntoViews(s);
+    const active = resolveActiveView(views, s.activeViewId);
+    if (!isCanvasBoardView(active)) return { ok: false, reason: "not_canvas" };
+
+    const scope = s.e2vAiExtractScope;
+    if (scope && scope.viewId !== s.activeViewId) {
+      return { ok: false, reason: "wrong_view" };
+    }
+
+    const payload = boardImportPayloadFromE2vPackageText(text.trim());
+    const importedView = payload?.views.find((v) => isCanvasBoardView(v));
+    if (!payload || !importedView || !isCanvasBoardView(importedView)) {
+      return { ok: false, reason: "invalid" };
+    }
+
+    const importedIds = new Set(collectE2vEntityIds(importedView));
+    const removeIds = scope
+      ? new Set(scope.entityIds.filter((id) => !importedIds.has(id)))
+      : undefined;
+
+    commit(set, get, (state) => {
+      const flushed = flushActiveViewIntoViews(state);
+      const current = resolveActiveView(flushed, state.activeViewId);
+      if (!isCanvasBoardView(current)) return {};
+      const merged = mergeImportedViewIntoCanvas(current, importedView, removeIds);
+      const nextViews = flushed.map((v) => (v.id === merged.id ? merged : v));
+      return {
+        views: nextViews,
+        ...applyViewToFlatPatch(merged),
+      };
+    });
+
+    return { ok: true };
   },
 
   replaceBoardFromImport: (payload) => {

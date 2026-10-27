@@ -97,5 +97,9 @@ export const contextMenuEn = {
     canvas: "Canvas",
     quickActions: "Quick actions",
     clearSelection: "Clear selection",
+    extractForAi: "Extract for AI",
+    extractForAiHint: "E2V + schema",
+    applyE2vFromClipboard: "Apply E2V",
+    applyE2vFromClipboardHint: "From clipboard",
   },
 } as const;

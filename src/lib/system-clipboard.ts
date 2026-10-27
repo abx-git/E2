@@ -1,3 +1,15 @@
+/** Reads UTF-8 text from the OS clipboard. Returns null when unavailable or denied. */
+export async function readClipboardText(): Promise<string | null> {
+  try {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.readText) {
+      return await navigator.clipboard.readText();
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 /** Writes UTF-8 text to the OS clipboard. Returns false if the write is not possible. */
 export async function writeClipboardText(text: string): Promise<boolean> {
   try {

@@ -131,5 +131,14 @@ export const alertsDe = {
     remoteUnnamedBoard: "Unbenanntes Board",
     wfPersistPaused:
       "Speichern in die Arbeitsdatei ist pausiert (fremder Stand oder Kollaboration). Nutze Speichern unter…",
+    e2vSelectionExtractFailed:
+      "Auswahl konnte nicht als E2V kopiert werden. Canvas-Sicht wählen und Objekte markieren.",
+    e2vSelectionExtractClipboardFailed:
+      "E2V-Paket konnte nicht in die Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen.",
+    e2vApplyInvalid: "Kein gültiges E2V in der Zwischenablage.",
+    e2vApplyWrongView:
+      "E2V bezieht sich auf eine andere Sicht. Zur ursprünglichen Sicht wechseln oder erneut extrahieren.",
+    e2vApplyNotCanvas: "E2V kann nur in einer Canvas-Sicht angewendet werden.",
+    e2vApplyClipboardEmpty: "Zwischenablage ist leer oder nicht lesbar.",
   },
 } as const;

@@ -31,6 +31,7 @@ import {
   Trash2,
   Unlock,
   ExternalLink,
+  Wand2,
 } from "lucide-react";
 
 import { computeAlignPatches, type AlignMode } from "@/lib/element-align";
@@ -84,7 +85,7 @@ import {
   isHotspotExcludedFromMeasures,
 } from "@/lib/board-hotspots";
 import { resolveDefaultActionsViewId } from "@/lib/measure-hotspot-ui";
-import { isActionsView } from "@/lib/storm-json";
+import { isActionsView, isCanvasBoardView } from "@/lib/storm-json";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { supportsArchDrilldown, type NoteColorId } from "@/types/storm-element";
 import { RELATION_TYPES, CONTEXT_MAP_PATTERNS, type RelationType, type ContextMapPattern } from "@/types/storm-relation";
@@ -198,7 +199,23 @@ export function CanvasContextMenu({
   const cancelMeasureHotspotPick = useStormBoardStore((s) => s.cancelMeasureHotspotLinkPick);
   const measureHotspotLinkPick = useStormBoardStore((s) => s.measureHotspotLinkPick);
   const navigateMeasureTarget = useStormBoardStore((s) => s.navigateToMeasureTarget);
+  const copyE2vSelectionForAi = useStormBoardStore((s) => s.copyE2vSelectionForAi);
+  const applyE2vSelectionFromClipboard = useStormBoardStore(
+    (s) => s.applyE2vSelectionFromClipboard,
+  );
+  const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
+  const selectedSwimlaneIds = useStormBoardStore((s) => s.selectedSwimlaneIds);
+  const selectedBoundedContextIds = useStormBoardStore((s) => s.selectedBoundedContextIds);
   const isMobile = useIsMobileLayout();
+
+  const canvasViewActive = Boolean(
+    views.some((v) => v.id === activeViewId && isCanvasBoardView(v)),
+  );
+  const canExtractE2v =
+    canvasViewActive &&
+    (selectedElementIds.length > 0 ||
+      selectedSwimlaneIds.length > 0 ||
+      selectedBoundedContextIds.length > 0);
 
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ left: 0, top: 0 });
@@ -235,6 +252,20 @@ export function CanvasContextMenu({
     fn();
     closeContextMenu();
   };
+
+  const renderE2vAiMenu = () =>
+    canvasViewActive ? (
+      <>
+        <Separator />
+        <E2vSelectionAiMenuItems
+          t={t}
+          run={run}
+          canExtract={canExtractE2v}
+          onCopy={copyE2vSelectionForAi}
+          onApply={applyE2vSelectionFromClipboard}
+        />
+      </>
+    ) : null;
 
   const target = menu.target;
   let body: ReactNode = null;
@@ -647,6 +678,7 @@ export function CanvasContextMenu({
             }
           />
         ) : null}
+        {renderE2vAiMenu()}
         <Item
           icon={ClipboardCopy}
           label={t("contextMenu.copyToClipboard")}
@@ -868,6 +900,7 @@ export function CanvasContextMenu({
             ) : null}
           </>
         ) : null}
+        {renderE2vAiMenu()}
         <Item
           icon={ClipboardCopy}
           label={t("contextMenu.copyToClipboard")}
@@ -1241,6 +1274,7 @@ export function CanvasContextMenu({
           onClick={() => run(() => sendRegionsToBack([lane.id]))}
         />
         <Separator />
+        {renderE2vAiMenu()}
         <Item
           icon={ClipboardCopy}
           label={t("contextMenu.copyToClipboard")}
@@ -1317,6 +1351,7 @@ export function CanvasContextMenu({
           onClick={() => run(() => sendRegionsToBack([bc.id]))}
         />
         <Separator />
+        {renderE2vAiMenu()}
         <Item
           icon={ClipboardCopy}
           label={t("contextMenu.copyToClipboard")}
@@ -1480,6 +1515,7 @@ export function CanvasContextMenu({
             onClick={() => run(() => pasteClipboardAt(target.worldX, target.worldY))}
           />
         )}
+        {renderE2vAiMenu()}
         {timeline.visible === false && (
           <Item
             label={t("contextMenu.showTimeline")}
@@ -1520,6 +1556,72 @@ export function CanvasContextMenu({
   );
 
   return typeof document !== "undefined" ? createPortal(layer, document.body) : layer;
+}
+
+type E2vApplyFailureReason = "empty" | "invalid" | "wrong_view" | "not_canvas" | "clipboard_denied";
+
+function e2vApplyFailureAlert(t: ReturnType<typeof useT>, reason: E2vApplyFailureReason) {
+  switch (reason) {
+    case "empty":
+    case "clipboard_denied":
+      window.alert(t("alerts.e2vApplyClipboardEmpty"));
+      break;
+    case "invalid":
+      window.alert(t("alerts.e2vApplyInvalid"));
+      break;
+    case "wrong_view":
+      window.alert(t("alerts.e2vApplyWrongView"));
+      break;
+    case "not_canvas":
+      window.alert(t("alerts.e2vApplyNotCanvas"));
+      break;
+    default:
+      window.alert(t("alerts.e2vApplyInvalid"));
+  }
+}
+
+function E2vSelectionAiMenuItems({
+  t,
+  run,
+  canExtract,
+  onCopy,
+  onApply,
+}: {
+  t: ReturnType<typeof useT>;
+  run: (fn: () => void) => void;
+  canExtract: boolean;
+  onCopy: () => Promise<boolean>;
+  onApply: () => Promise<{ ok: true } | { ok: false; reason: E2vApplyFailureReason }>;
+}) {
+  return (
+    <>
+      <Item
+        icon={Wand2}
+        label={t("contextMenu.extractForAi")}
+        hint={t("contextMenu.extractForAiHint")}
+        disabled={!canExtract}
+        onClick={() =>
+          run(() => {
+            void onCopy().then((ok) => {
+              if (!ok) window.alert(t("alerts.e2vSelectionExtractFailed"));
+            });
+          })
+        }
+      />
+      <Item
+        icon={ClipboardPaste}
+        label={t("contextMenu.applyE2vFromClipboard")}
+        hint={t("contextMenu.applyE2vFromClipboardHint")}
+        onClick={() =>
+          run(() => {
+            void onApply().then((result) => {
+              if (!result.ok) e2vApplyFailureAlert(t, result.reason);
+            });
+          })
+        }
+      />
+    </>
+  );
 }
 
 function Header({ title, subtitle }: { title: string; subtitle: string }) {

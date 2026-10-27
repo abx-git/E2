@@ -125,5 +125,14 @@ export const alertsEn = {
     remoteUnnamedBoard: "Untitled board",
     wfPersistPaused:
       "Saving to the working file is paused (foreign state or collaboration). Use Save as…",
+    e2vSelectionExtractFailed:
+      "Could not copy the selection as E2V. Select objects on a canvas view.",
+    e2vSelectionExtractClipboardFailed:
+      "Could not copy the E2V package to the clipboard. Check browser permissions.",
+    e2vApplyInvalid: "No valid E2V in the clipboard.",
+    e2vApplyWrongView:
+      "E2V belongs to another view. Switch back or extract the selection again.",
+    e2vApplyNotCanvas: "E2V can only be applied on a canvas view.",
+    e2vApplyClipboardEmpty: "Clipboard is empty or not readable.",
   },
 } as const;

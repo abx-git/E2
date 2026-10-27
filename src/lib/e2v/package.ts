@@ -1,7 +1,11 @@
-import type { BoardImportPayload } from "@/lib/storm-json";
+import type { BoardImportPayload, CanvasBoardView } from "@/lib/storm-json";
 
-import { encodeE2vSingleView } from "@/lib/e2v/encode";
-import { E2V_ENGLISH_LLM_PROMPT, stringifyE2vSchema } from "@/lib/e2v/schema";
+import { encodeE2vDocument, encodeE2vSingleView } from "@/lib/e2v/encode";
+import {
+  E2V_ENGLISH_LLM_PROMPT,
+  E2V_SELECTION_LLM_PROMPT,
+  stringifyE2vSchema,
+} from "@/lib/e2v/schema";
 import { isE2vText } from "@/lib/e2v/decode";
 import { E2V_FORMAT, E2V_VERSION } from "@/lib/e2v/constants";
 
@@ -70,6 +74,51 @@ export function buildE2vClipboardPackage(
     "",
     "## prompt",
     E2V_ENGLISH_LLM_PROMPT.trim(),
+    "",
+    "## schema",
+    "```json",
+    stringifyE2vSchema(),
+    "```",
+    "",
+    "## data",
+    "```e2v",
+    data.trimEnd(),
+    "```",
+    "",
+  ].join("\n");
+}
+
+function encodeE2vFromSliceView(doc: BoardImportPayload, sliceView: CanvasBoardView): string {
+  const slice: BoardImportPayload = {
+    title: doc.title,
+    glossary: doc.glossary,
+    actionItems: doc.actionItems,
+    appearance: doc.appearance,
+    workshopMode: doc.workshopMode,
+    activeViewId: sliceView.id,
+    views: [sliceView],
+  };
+  return encodeE2vDocument(slice, { scope: "view" });
+}
+
+/** Selection subset: prompt + schema + E2V data for LLM roundtrip into the same view. */
+export function buildE2vSelectionClipboardPackage(
+  doc: BoardImportPayload,
+  sliceView: CanvasBoardView,
+): string {
+  const data = encodeE2vFromSliceView(doc, sliceView);
+  const mode = sliceView.modelingMode;
+
+  return [
+    "E2 compact selection package (E2V)",
+    `Mode: ${mode}`,
+    `Wire format: ${E2V_FORMAT} v${E2V_VERSION}. Layout is explicit — do not auto-layout.`,
+    "Subset of the active view — paste the result back via context menu → E2V anwenden.",
+    "",
+    "## prompt",
+    E2V_ENGLISH_LLM_PROMPT.trim(),
+    "",
+    E2V_SELECTION_LLM_PROMPT.trim(),
     "",
     "## schema",
     "```json",
