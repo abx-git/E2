@@ -77,10 +77,11 @@ import {
   normalizeMeasureActionItem,
   patchActionsViewInList,
 } from "@/lib/architecture-measures";
-import { boardImportPayloadFromE2vPackageText } from "@/lib/board-import-text";
 import {
+  boardImportPayloadFromE2vText,
   buildE2vSelectionClipboardPackage,
-  collectE2vEntityIds,
+  collectE2vScopeDeleteIds,
+  extractE2vFromClipboardText,
   mergeImportedViewIntoCanvas,
   sliceCanvasViewForSelection,
 } from "@/lib/e2v";
@@ -2943,7 +2944,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     set({
       e2vAiExtractScope: {
         viewId: active.id,
-        entityIds: collectE2vEntityIds(slice),
+        entityIds: collectE2vScopeDeleteIds(slice),
       },
     });
     return true;
@@ -2963,13 +2964,22 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return { ok: false, reason: "wrong_view" };
     }
 
-    const payload = boardImportPayloadFromE2vPackageText(text.trim());
+    const e2vData = extractE2vFromClipboardText(text.trim());
+    const payload = boardImportPayloadFromE2vText(e2vData, { preserveStableIds: true });
     const importedView = payload?.views.find((v) => isCanvasBoardView(v));
     if (!payload || !importedView || !isCanvasBoardView(importedView)) {
       return { ok: false, reason: "invalid" };
     }
 
-    const importedIds = new Set(collectE2vEntityIds(importedView));
+    const importedIds = new Set([
+      ...importedView.elements.map((e) => e.id),
+      ...importedView.relations.map((r) => r.id),
+      ...importedView.contextRelations.map((r) => r.id),
+      ...importedView.connectors.map((c) => c.id),
+      ...importedView.swimlanes.map((s) => s.id),
+      ...importedView.boundedContexts.map((b) => b.id),
+      ...importedView.canvasLines.map((ln) => ln.id),
+    ]);
     const removeIds = scope
       ? new Set(scope.entityIds.filter((id) => !importedIds.has(id)))
       : undefined;

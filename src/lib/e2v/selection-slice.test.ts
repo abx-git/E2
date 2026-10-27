@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { collectE2vEntityIds, sliceCanvasViewForSelection } from "@/lib/e2v/selection-slice";
+import {
+  collectE2vEntityIds,
+  collectE2vScopeDeleteIds,
+  sliceCanvasViewForSelection,
+} from "@/lib/e2v/selection-slice";
 import { createEmptyBoardView } from "@/lib/storm-json";
 import type { BoardConnector } from "@/types/board-connector";
 
@@ -71,5 +75,12 @@ describe("sliceCanvasViewForSelection", () => {
     })!;
     const ids = collectE2vEntityIds(slice);
     expect(ids.sort()).toEqual(["cn1", "e1", "e2", "r1"].sort());
+  });
+
+  it("collectE2vScopeDeleteIds excludes connectors", () => {
+    const slice = sliceCanvasViewForSelection(view, {
+      selection: { elementIds: ["e1", "e2"] },
+    })!;
+    expect(collectE2vScopeDeleteIds(slice).sort()).toEqual(["e1", "e2", "r1"].sort());
   });
 });

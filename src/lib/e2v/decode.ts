@@ -110,13 +110,26 @@ function mapId(alias: string, idMap: Map<string, string>, remap: Map<string, str
   return assigned;
 }
 
+/** Keep @id / row ids when merging E2V back into an existing view (no fresh storm ids). */
+function resolveStableId(alias: string, idMap: Map<string, string>): string {
+  const key = alias.trim();
+  if (!key) return generateStormId();
+  return idMap.get(key) ?? key;
+}
+
+export interface DecodeE2vOptions {
+  /** When true, resolve aliases to stable board ids instead of generating new ones. */
+  preserveStableIds?: boolean;
+}
+
 export function isE2vText(text: string): boolean {
   const first = text.trimStart().split(/\r?\n/, 1)[0]?.trim() ?? "";
   return first === E2V_MAGIC || first.startsWith("# e2v/");
 }
 
-export function decodeE2vText(text: string): BoardImportPayload | null {
+export function decodeE2vText(text: string, options?: DecodeE2vOptions): BoardImportPayload | null {
   if (!isE2vText(text)) return null;
+  const preserveStableIds = options?.preserveStableIds ?? false;
   const lines = text.split(/\r?\n/);
 
   let title = "Board";
@@ -144,7 +157,9 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
       return;
     }
     const idRemap = new Map<string, string>();
-    const resolve = (alias: string) => mapId(alias, viewIdMap, idRemap);
+    const resolve = preserveStableIds
+      ? (alias: string) => resolveStableId(alias, viewIdMap)
+      : (alias: string) => mapId(alias, viewIdMap, idRemap);
 
     const elements = (parseState.viewDraft.elements ?? []).map((el) => {
       const raw = el as StormElement;
@@ -633,6 +648,9 @@ export function decodeE2vText(text: string): BoardImportPayload | null {
   return doc;
 }
 
-export function boardImportPayloadFromE2vText(text: string): BoardImportPayload | null {
-  return decodeE2vText(text);
+export function boardImportPayloadFromE2vText(
+  text: string,
+  options?: DecodeE2vOptions,
+): BoardImportPayload | null {
+  return decodeE2vText(text, options);
 }

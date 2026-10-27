@@ -144,3 +144,12 @@ export function collectE2vEntityIds(slice: CanvasBoardView): string[] {
   for (const ln of slice.canvasLines) ids.push(ln.id);
   return ids;
 }
+
+/**
+ * Ids that may be removed when missing from a selection E2V reply.
+ * Connectors are excluded — LLMs often omit `cn` rows; endpoints are reconciled on merge.
+ */
+export function collectE2vScopeDeleteIds(slice: CanvasBoardView): string[] {
+  const connectorIds = new Set(slice.connectors.map((c) => c.id));
+  return collectE2vEntityIds(slice).filter((id) => !connectorIds.has(id));
+}

@@ -12,6 +12,7 @@ export {
   decodeE2vText,
   isE2vText,
   boardImportPayloadFromE2vText,
+  type DecodeE2vOptions,
 } from "@/lib/e2v/decode";
 export {
   E2V_SCHEMA_DOCUMENT,
@@ -33,6 +34,10 @@ export {
 export {
   sliceCanvasViewForSelection,
   collectE2vEntityIds,
+  collectE2vScopeDeleteIds,
   type E2vSelectionInput,
 } from "@/lib/e2v/selection-slice";
-export { mergeImportedViewIntoCanvas } from "@/lib/e2v/merge-into-view";
+export {
+  mergeImportedViewIntoCanvas,
+  reconcilePatchConnectorsWithBase,
+} from "@/lib/e2v/merge-into-view";
