@@ -15,8 +15,11 @@ export {
 } from "@/lib/e2v/decode";
 export {
   E2V_SCHEMA_DOCUMENT,
+  E2V_SELECTION_SCHEMA_DOCUMENT,
   E2V_ENGLISH_LLM_PROMPT,
+  E2V_SELECTION_LLM_PROMPT,
   stringifyE2vSchema,
+  stringifyE2vSelectionSchema,
 } from "@/lib/e2v/schema";
 export {
   buildE2vClipboardPackage,

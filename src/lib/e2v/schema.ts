@@ -81,14 +81,58 @@ Return only the **data** fence content when asked for data alone; otherwise foll
 Paste target in E2: **Daten → E2V einfügen** or **E2V kopieren** roundtrip package.
 `;
 
-/** Extra instructions when editing a canvas selection subset (not the full view). */
-export const E2V_SELECTION_LLM_PROMPT = `You are editing a **subset** of one E2 diagram view (not the full board).
+/**
+ * Machine-readable rules for **selection subset** roundtrips only (not full-board export).
+ * Embedded in selection clipboard packages instead of the full E2V schema.
+ */
+export const E2V_SELECTION_SCHEMA_DOCUMENT = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: `${E2V_SCHEMA_ID}#selection-subset`,
+  title: "E2V selection subset (partial view fragment)",
+  description:
+    "Strict fragment: one @scope view block containing ONLY rows for the extracted selection. No document scope, glossary, or other views.",
+  format: E2V_FORMAT,
+  version: E2V_VERSION,
+  allowedScope: "view",
+  requiredHeader: ["# e2v/1", "@format", "@version", "@scope view", "@exported", "@title"],
+  requiredViewWrapper: ["@view …", "@endview"],
+  allowedRecordRows: ["e", "s", "b", "r", "cr", "cn", "@desc", "@meta", "@id", "@ct", "@v", "@t", "@snap"],
+  forbidden: [
+    "@scope document",
+    "multiple @view blocks",
+    "glossary g rows",
+    "action item ai rows",
+    "@appearance",
+    "entities not present in input ## data unless user asked to add",
+  ],
+  outputContract:
+    "Return ONLY the E2V subset text (same shape as input ## data). No markdown, no JSON schema, no commentary.",
+} as const;
 
-## Subset rules
-- Change only what the user asks for; keep every other row, id, and layout coordinate unchanged.
-- **Preserve stable ids** (\`e…\`, \`cn…\`, \`r…\`, etc.) unless the user explicitly asks to add/remove entities.
-- To **remove** an entity, omit its row; the app will delete it on paste when it was part of the extracted selection.
-- To **add** entities, use new unique ids and place them near related stickies without moving existing ones.
-- Return exactly one \`@scope view\` block with \`@view\` id matching the input.
-- Do not auto-layout; keep explicit \`x\`, \`y\`, sizes, and connector endpoints.
+export function stringifyE2vSelectionSchema(): string {
+  return JSON.stringify(E2V_SELECTION_SCHEMA_DOCUMENT, null, 2);
+}
+
+/** Instructions for LLMs editing an extracted canvas selection (subset only). */
+export const E2V_SELECTION_LLM_PROMPT = `You edit a **selection fragment** of one E2 canvas view. The user message includes \`## data\` with the **only** objects you may describe.
+
+## Hard output rule (mandatory)
+- Your **entire** reply must be **only** the E2V subset text: from \`# e2v/1\` through \`@endview\`.
+- **No** markdown fences, **no** \`## schema\` / \`## prompt\`, **no** prose before or after, **no** JSON.
+- **No** full board, **no** \`@scope document\`, **no** glossary (\`g\`), **no** second \`@view\` block, **no** stickies/connectors/regions **outside** the input \`## data\` unless the user explicitly asks to add one.
+
+## Subset content rules
+- Keep \`@view\` **id** and **name** exactly as in the input \`## data\`.
+- \`@scope\` must stay \`view\` (single fragment).
+- Change only what the user asks; leave every other row, **id**, and **x/y/w/h/rot** unchanged.
+- **Preserve stable ids** (\`e…\`, \`cn…\`, \`r…\`, …) unless adding/removing as requested.
+- To **remove** an entity from the selection, omit its row (app deletes on paste).
+- To **add**, use new unique ids near related items; do not move unrelated coordinates.
+- Do **not** auto-layout; layout is explicit in E2V.
+
+## Row reference (subset)
+- Header: \`# e2v/1\`, \`@format event-storming-tool-e2v\`, \`@version 1\`, \`@scope view\`, \`@exported\`, \`@title\`
+- One \`@view …\` … \`@endview\` block with only the \`e\` / \`s\` / \`b\` / \`r\` / \`cr\` / \`cn\` / \`@desc\` / \`@meta\` / \`@id\` rows from the input (after your edits).
+
+Paste target: E2 context menu → **E2V anwenden** (same view as extract).
 `;

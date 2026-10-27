@@ -5,6 +5,7 @@ import {
   E2V_ENGLISH_LLM_PROMPT,
   E2V_SELECTION_LLM_PROMPT,
   stringifyE2vSchema,
+  stringifyE2vSelectionSchema,
 } from "@/lib/e2v/schema";
 import { isE2vText } from "@/lib/e2v/decode";
 import { E2V_FORMAT, E2V_VERSION } from "@/lib/e2v/constants";
@@ -114,15 +115,14 @@ export function buildE2vSelectionClipboardPackage(
     `Mode: ${mode}`,
     `Wire format: ${E2V_FORMAT} v${E2V_VERSION}. Layout is explicit — do not auto-layout.`,
     "Subset of the active view — paste the result back via context menu → E2V anwenden.",
+    "LLM reply: ONLY the ## data E2V subset (no full board, no extra views, no markdown wrapper).",
     "",
     "## prompt",
-    E2V_ENGLISH_LLM_PROMPT.trim(),
-    "",
     E2V_SELECTION_LLM_PROMPT.trim(),
     "",
     "## schema",
     "```json",
-    stringifyE2vSchema(),
+    stringifyE2vSelectionSchema(),
     "```",
     "",
     "## data",

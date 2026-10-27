@@ -4,6 +4,7 @@ import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
 import {
   boardImportPayloadFromE2vText,
   buildE2vClipboardPackage,
+  buildE2vSelectionClipboardPackage,
   buildE2vSchemaPromptPackageForView,
   decodeE2vText,
   encodeE2vDocument,
@@ -107,5 +108,24 @@ describe("e2v codec", () => {
     expect(pack).toContain("Layout is explicit");
     const data = extractE2vFromClipboardText(pack!);
     expect(decodeE2vText(data)).not.toBeNull();
+  });
+
+  it("selection package uses subset schema and strict subset-only prompt", () => {
+    const view = doc.views.find((v) => v.id === "view-a")!;
+    if (view.type === "actions") throw new Error("expected canvas view");
+    const slice = {
+      ...view,
+      elements: view.elements.slice(0, 1),
+      relations: [],
+      connectors: [],
+    };
+    const pack = buildE2vSelectionClipboardPackage(doc, slice);
+    expect(pack).toContain("selection-subset");
+    expect(pack).toContain("Hard output rule");
+    expect(pack).not.toContain("Full file:");
+    expect(pack.split("## data")[0]).not.toMatch(/\n@scope document\n/);
+    const schemaBlock = pack.match(/## schema\n```json\n([\s\S]*?)\n```/)?.[1];
+    expect(schemaBlock).toContain("selection subset");
+    expect(schemaBlock).not.toContain("e2vGrammar");
   });
 });
