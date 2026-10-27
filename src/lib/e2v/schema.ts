@@ -126,7 +126,8 @@ export const E2V_SELECTION_LLM_PROMPT = `You edit a **selection fragment** of on
 - \`@scope\` must stay \`view\` (single fragment).
 - Change only what the user asks; leave every other row, **id**, and **x/y/w/h/rot** unchanged.
 - **Preserve stable ids** (\`e…\`, \`cn…\`, \`r…\`, …) unless adding/removing as requested.
-- To **remove** an entity from the selection, omit its row (app deletes on paste).
+- **Always keep every \`cn\` connector row** from the input (same \`cn\` id and \`element:\`/\`bc:\`/\`swimlane:\` endpoints) unless the user asks to delete that link.
+- To **remove** a sticky card from the selection, omit its \`e\` row (app deletes on paste).
 - To **add**, use new unique ids near related items; do not move unrelated coordinates.
 - Do **not** auto-layout; layout is explicit in E2V.
 

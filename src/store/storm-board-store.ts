@@ -17,6 +17,14 @@ import {
   extractBuildingBlockViewPayload,
   resolveBuildingBlockViewNavigation,
 } from "@/lib/building-block-view";
+import {
+  boundsForSelectionSlice,
+  buildLinkedDetailViewFromSlice,
+  createSelectionLinkElement,
+  defaultLinkedViewName,
+  sliceCanvasSelection,
+  stripSelectionFromCanvasView,
+} from "@/lib/selection-linked-view";
 import { supportsArchDrilldown } from "@/types/storm-element";
 import {
   extractClipboardPayload,
@@ -437,6 +445,11 @@ export interface StormBoardState {
 
   /** Open or create architecture detail view (C4 zoom / Blackbox→Whitebox). */
   openBuildingBlockView: (elementId: string) => string | null;
+  /**
+   * Move the current canvas selection into a new view and leave a note with
+   * `detailViewId` on the origin view (same linking model as the inspector).
+   */
+  relocateSelectionToLinkedView: (viewName?: string) => string | null;
   openBuildingBlockParentView: (elementId: string) => string | null;
   navigateBuildingBlockViewLink: (elementId: string) => string | null;
 
@@ -2408,6 +2421,56 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     }
 
     return get().openBoundedContextParentView(bcId);
+  },
+
+  relocateSelectionToLinkedView: (viewName) => {
+    let resultId: string | null = null;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const active = resolveActiveView(views, s.activeViewId);
+      if (!isCanvasBoardView(active)) return {};
+
+      const selection = {
+        elementIds: s.selectedElementIds,
+        swimlaneIds: s.selectedSwimlaneIds,
+        boundedContextIds: s.selectedBoundedContextIds,
+      };
+      const slice = sliceCanvasSelection(active, selection);
+      if (!slice || slice.elements.length === 0) return {};
+
+      const name =
+        viewName?.trim() ||
+        defaultLinkedViewName(slice, views.length);
+      const newViewId = generateStormId();
+      const newView = buildLinkedDetailViewFromSlice(slice, {
+        id: newViewId,
+        name,
+        modelingMode: active.modelingMode,
+        workshopFormat: active.workshopFormat,
+      });
+
+      const bounds = boundsForSelectionSlice(slice);
+      const linkEl = createSelectionLinkElement(bounds, name, newViewId);
+      const stripped = stripSelectionFromCanvasView(active, slice);
+      const originView: typeof active = {
+        ...stripped,
+        elements: [...stripped.elements, linkEl],
+      };
+
+      const updatedViews = views.map((v) =>
+        v.id === active.id && isCanvasBoardView(v) ? originView : v,
+      );
+
+      resultId = newViewId;
+      return {
+        views: [...updatedViews, newView],
+        activeViewId: newViewId,
+        viewReturnStack: pushViewReturnStack(s.viewReturnStack, s.activeViewId, newViewId),
+        ...applyViewToFlatPatch(newView),
+        ...CLEAR_SELECTION_PATCH,
+      };
+    });
+    return resultId;
   },
 
   openBuildingBlockView: (elementId) => {

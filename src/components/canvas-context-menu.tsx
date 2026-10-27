@@ -203,6 +203,9 @@ export function CanvasContextMenu({
   const applyE2vSelectionFromClipboard = useStormBoardStore(
     (s) => s.applyE2vSelectionFromClipboard,
   );
+  const relocateSelectionToLinkedView = useStormBoardStore(
+    (s) => s.relocateSelectionToLinkedView,
+  );
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const selectedSwimlaneIds = useStormBoardStore((s) => s.selectedSwimlaneIds);
   const selectedBoundedContextIds = useStormBoardStore((s) => s.selectedBoundedContextIds);
@@ -252,6 +255,31 @@ export function CanvasContextMenu({
     fn();
     closeContextMenu();
   };
+
+  const defaultLinkedViewNameFromSelection = (labels: string[]) => {
+    const label = labels.map((l) => l.trim()).find(Boolean);
+    if (label) return label;
+    return `Sicht ${views.length + 1}`;
+  };
+
+  const runRelocateSelectionToLinkedView = (defaultName: string) => {
+    const name = window.prompt(t("contextMenu.linkedViewNamePrompt"), defaultName);
+    if (name === null) return;
+    relocateSelectionToLinkedView(name);
+  };
+
+  const renderRelocateSelectionMenu = (defaultName: string) =>
+    canvasViewActive && selectedElementIds.length > 0 ? (
+      <>
+        <Separator />
+        <Item
+          icon={LayoutDashboard}
+          label={t("contextMenu.moveSelectionToLinkedView")}
+          hint={t("contextMenu.moveSelectionToLinkedViewHint")}
+          onClick={() => run(() => runRelocateSelectionToLinkedView(defaultName))}
+        />
+      </>
+    ) : null;
 
   const renderE2vAiMenu = () =>
     canvasViewActive ? (
@@ -311,6 +339,11 @@ export function CanvasContextMenu({
               />
               <Separator />
             </>
+          )}
+        {el.type !== "link" &&
+          !supportsArchDrilldown(el.type) &&
+          renderRelocateSelectionMenu(
+            defaultLinkedViewNameFromSelection([el.label]),
           )}
         <Item
           icon={Link2}
@@ -707,6 +740,9 @@ export function CanvasContextMenu({
     body = (
       <>
         <Header title={t("contextMenu.multiElementsHeader", { n: selected.length })} subtitle={t("contextMenu.alignMultiSubtitle")} />
+        {renderRelocateSelectionMenu(
+          defaultLinkedViewNameFromSelection(selected.map((e) => e.label)),
+        )}
         <Section label={t("contextMenu.align")} />
         <div className="grid grid-cols-3 gap-1 px-2 pb-1">
           {alignRow.map(({ mode, label, icon: Icon }) => (
@@ -1514,6 +1550,13 @@ export function CanvasContextMenu({
             label={t("contextMenu.pasteClipboard", { count: clipboardItemCount(clipboard) })}
             onClick={() => run(() => pasteClipboardAt(target.worldX, target.worldY))}
           />
+        )}
+        {renderRelocateSelectionMenu(
+          defaultLinkedViewNameFromSelection(
+            selectedElementIds
+              .map((id) => elements.find((e) => e.id === id)?.label ?? "")
+              .filter(Boolean),
+          ),
         )}
         {renderE2vAiMenu()}
         {timeline.visible === false && (
