@@ -813,8 +813,13 @@ export async function openRecentWorkingFile(
       const granted = await ensureReadWritePermission(handle);
       if (!granted) return null;
     }
+    // Read target disk content before attaching the handle — avoids autosave targeting
+    // the new file while the editor still holds the previous board.
+    const snap = await readWorkingFileSnapshot(handle);
+    if (!snap) return null;
     await rememberHandle(handle);
-    return { handle, hydrate: await hydrateStoreFromWorkingFile(handle) };
+    const hydrate = await hydrateStoreFromWorkingFileSnapshot(handle, snap, "open");
+    return { handle, hydrate };
   } catch (e) {
     console.error("Recent file open:", e);
     return null;
@@ -1118,7 +1123,6 @@ async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
     /* ignore */
   }
   syncHandleIntoFileLibrary(handle);
-  notifyWorkingFileAttached();
 }
 
 export async function attachWorkingFileOpen(): Promise<FileSystemFileHandle | null> {
@@ -1172,6 +1176,31 @@ export async function attachWorkingFileCreate(
   }
 }
 
+async function hydrateStoreFromWorkingFileSnapshot(
+  handle: FileSystemFileHandle,
+  snap: { text: string; lastModified: number },
+  intent: "open" | "reconcile",
+): Promise<HydrateWorkingFileResult> {
+  const result =
+    intent === "open"
+      ? hydrateOpenedFile(snap.text, snap.lastModified)
+      : hydrateFromFileText(snap.text, snap.lastModified);
+
+  if (result.status === "conflict") {
+    // Keep switch gate up — caller must not autosave previous board into this file.
+    return result;
+  }
+
+  markWorkingFileSessionHydrated();
+  const syncedJson = getLastSyncedBoardJson() ?? snap.text;
+  const fileName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
+  await rememberMobileCopy(syncedJson, fileName, snap.lastModified);
+  syncHandleIntoFileLibrary(handle, syncedJson);
+  endWorkingFileSwitch();
+  notifyWorkingFileAttached();
+  return result;
+}
+
 export async function hydrateStoreFromWorkingFile(
   handle: FileSystemFileHandle,
   options?: { intent?: "open" | "reconcile" },
@@ -1184,24 +1213,7 @@ export async function hydrateStoreFromWorkingFile(
       return { status: "empty" };
     }
 
-    const result =
-      intent === "open"
-        ? hydrateOpenedFile(snap.text, snap.lastModified)
-        : hydrateFromFileText(snap.text, snap.lastModified);
-
-    if (result.status === "conflict") {
-      // Keep switch gate up — caller must not autosave previous board into this file.
-      // User resolves via dialog; load_file ends switch, keep_local should Speichern unter.
-      return result;
-    }
-
-    markWorkingFileSessionHydrated();
-    const syncedJson = getLastSyncedBoardJson() ?? snap.text;
-    const fileName = handle.name?.trim() || STANDARD_WORKING_FILENAME;
-    await rememberMobileCopy(syncedJson, fileName, snap.lastModified);
-    syncHandleIntoFileLibrary(handle, syncedJson);
-    endWorkingFileSwitch();
-    return result;
+    return await hydrateStoreFromWorkingFileSnapshot(handle, snap, intent);
   } catch (e) {
     console.error("Arbeitsdatei hydrate:", e);
     endWorkingFileSwitch({ keepPaused: true, pauseReason: "hydrate_error" });
@@ -1327,7 +1339,7 @@ export async function persistWorkingFileJson(
   json: string,
   options?: { skipCas?: boolean },
 ): Promise<WriteWorkingFileResult> {
-  if (workingFileSwitchInProgress && !options?.skipCas) {
+  if (workingFileSwitchInProgress) {
     return {
       ok: false,
       reason: "persist_paused",

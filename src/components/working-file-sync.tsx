@@ -14,12 +14,14 @@ import {
   boardStatesEquivalent,
   boardStatesEquivalentExceptActiveView,
 } from "@/lib/file-board-reconcile";
+import { boardContentHash } from "@/lib/working-file-write-fence";
 import {
   downloadWorkingFileSafetyCopy,
   EXTERNAL_WORKING_FILE_POLL_MS,
   getWorkingFileHandle,
   getWorkingFileLabel,
   getActiveWorkingFileId,
+  getWorkingFilePersistPauseReason,
   getLastSyncedBoardJson,
   isKnownFileRevision,
   isMobileWorkingFileMode,
@@ -271,15 +273,25 @@ export function WorkingFileSync({
             return false;
           }
 
-          // Retry once with CAS skipped — during rapid edits the conflict is often self-caused.
-          const retryResult = await persistWorkingFileJson(boardJsonFromStoreState(), {
-            skipCas: true,
-          });
-          if (retryResult.ok) {
-            lastPersistKeyRef.current = boardPersistKeyFromStoreState();
-            syncDirty();
-            wroteOk = true;
-            return true;
+          // Retry once with CAS skipped only when editor content matches disk (mtime noise).
+          const editorHash = boardContentHash(editorJson);
+          const diskHash = diskJson != null ? boardContentHash(diskJson) : null;
+          const safeSkipCasRetry =
+            editorHash != null &&
+            diskHash != null &&
+            editorHash === diskHash &&
+            editorJson.trim().length > 0;
+
+          if (safeSkipCasRetry) {
+            const retryResult = await persistWorkingFileJson(editorJson, {
+              skipCas: true,
+            });
+            if (retryResult.ok) {
+              lastPersistKeyRef.current = boardPersistKeyFromStoreState();
+              syncDirty();
+              wroteOk = true;
+              return true;
+            }
           }
 
           const handle = getWorkingFileHandle();
@@ -574,6 +586,7 @@ export function WorkingFileSync({
       externalListeners.push({ target: window, type: "pagehide", listener: onPageHide });
 
       const onWorkingFileAttached = () => {
+        if (isWorkingFileSwitchInProgress()) return;
         ensureWriterForAttachedFile();
         lastPersistKeyRef.current = boardPersistKeyFromStoreState();
         syncFileLabel();
@@ -591,6 +604,10 @@ export function WorkingFileSync({
         syncPaused();
         syncDirty();
         syncFileLabel();
+        if (getWorkingFilePersistPauseReason() === "file_switch") {
+          clearPersistDebounce();
+          persistAgainRef.current = false;
+        }
       });
     })();
 
