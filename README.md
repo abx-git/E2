@@ -1,6 +1,6 @@
 # E2 — Collaborative Domain Modeling
 
-Browser-based board for **Event Storming**, **Domain-Driven Design**, **BDD / Example Mapping**, **User Story Mapping**, **Event Modeling**, **Process**, **Data**, and **Freeform** (custom card types / stereotypes) with local JSON persistence (`.storm.json`).  
+Browser-based board for **Event Storming**, **Domain-Driven Design**, **BDD / Example Mapping**, **User Story Mapping**, **Event Modeling**, **Process**, **Data**, and **Freeform** (custom card types / stereotypes) with local JSON persistence (`.e2.json`).  
 No server for domain data — the working file stays with the user.
 
 **Live:** [abx-git.github.io/E2](https://abx-git.github.io/E2/)  
@@ -25,7 +25,7 @@ This README describes **implemented features** and compares them to classic work
 | Workshop | Per-mode facilitator formats + Free |
 | Language | Glossary (Ubiquitous Language) |
 | Uncertainty | Hotspots including status/priority |
-| I/O | `.storm.json` + schema, SVG/PNG, Markdown reports |
+| I/O | `.e2.json` + schema, SVG/PNG, Markdown reports |
 | UX | Multi-select, align, context menus, colors |
 | UI language | German / English (client-side; data → presentation) |
 
@@ -155,7 +155,7 @@ Stickies already on the board remain visible when switching modes — elements f
 
 Elements can be connected (canvas **Connect**, arrow on sticky, or right-click → start relation).
 
-**Undo/Redo:** app bar or ⌘Z / Ctrl+Z (undo) and ⌘⇧Z / Ctrl+Y (redo). **Duplicate:** ⌘D / Ctrl+D (selection). **Edit status** (cards & connectors, badge with icon): ⌘/Ctrl+1 OK · +2 ! · +3 ? · +4 In progress · +5 New (again = remove). Dragging a group counts as one step. History is not stored in `.storm.json`.
+**Undo/Redo:** app bar or ⌘Z / Ctrl+Z (undo) and ⌘⇧Z / Ctrl+Y (redo). **Duplicate:** ⌘D / Ctrl+D (selection). **Edit status** (cards & connectors, badge with icon): ⌘/Ctrl+1 OK · +2 ! · +3 ? · +4 In progress · +5 New (again = remove). Dragging a group counts as one step. History is not stored in `.e2.json`.
 
 | Type | Meaning (UI) |
 |-----|----------------|
@@ -301,13 +301,13 @@ In facilitator mode:
 
 ### Working file
 
-- Primary: local `.storm.json` (File System Access API where available) — **one document, multiple views (tabs)**  
+- Primary: local `.e2.json` (File System Access API where available) — **one document, multiple views (tabs)**  
 - Format **v2** (`views[]`); older v1 files are migrated on open  
 - Alternatives: open file / paste JSON — with unsaved changes: Save / Don’t save / Cancel (like desktop apps)  
 - File menu: **New**, **Open…**, **Save**, **Save as…**, **Close**, **Rename…**  
-- **Import as new page:** Data → *Import as new page* — views from a `.storm.json` as new tabs; **colors / title / glossary / workshop mode** stay from the open file  
+- **Import as new page:** Data → *Import as new page* — views from a `.e2.json` as new tabs; **colors / title / glossary / workshop mode** stay from the open file  
 - **JSON as new view:** Data → export *Paste JSON*, file *JSON as new view*, or tab bar *JSON* — reads E2/AI JSON from the system clipboard and creates new view(s) (existing tabs remain)  
-- **Share board link:** Data → *Share board link…* — validates remote URL to a public `.storm.json` (schema); on success share link with `?board=…`. Opening the link asks for confirmation then loads locally (CORS must allow it)  
+- **Share board link:** Data → *Share board link…* — validates remote URL to a public `.e2.json` (schema); on success share link with `?board=…`. Opening the link asks for confirmation then loads locally (CORS must allow it)  
 - **Overwrite protection:** autosave never writes an empty/foreign state over a non-empty working file. When opening another file, save is blocked until its content is loaded — the previous editor state is never written into the new file. Backup / remote and collaboration pause saving — continue with “Save as…”. If another tool changes the working file, E2 adopts the file state automatically (visible tab, ~1 s poll); if editor changes were open, an editor safety copy is downloaded first.  
 - Autosave, conflict handling on external change  
 - **Backup:** Data → with history (timestamped copies) or without history (always overwrite the same backup file); manual or every 5–30 min. Opening a backup does not overwrite the working file.  
@@ -410,7 +410,7 @@ Legend: ✅ present · 🟡 partial · ❌ missing / intentionally not
 
 | Aspect | Status | In E2 |
 |--------|--------|--------|
-| Local persistence | ✅ | `.storm.json` |
+| Local persistence | ✅ | `.e2.json` |
 | Interchangeable format | ✅ | Schema + `$schema` |
 | Image / report export | ✅ | SVG, PNG, multiple MD reports |
 | Miro direct import | ❌ | No native Miro format (CSV/paste possible outside) |
@@ -472,4 +472,4 @@ If you want to prioritize gaps, the largest method levers are typically: **gloss
 ## License
 
 MIT © Andreas Bergmann — see [`LICENSE`](LICENSE).  
-**Beta:** The `.storm.json` file format may still change and become incompatible.
+**Beta:** The `.e2.json` file format may still change and become incompatible.

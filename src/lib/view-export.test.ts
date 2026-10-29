@@ -235,7 +235,7 @@ describe("view-export", () => {
     expect(text).toContain("Ordering Detail");
     expect(text).toContain("Order");
     expect(singleViewExportFilename("My Board", "Big Picture")).toBe(
-      "my-board-big-picture.storm.json",
+      "my-board-big-picture.e2.json",
     );
     expect(aiContextExportFilename("My Board", "Big Picture")).toBe(
       "my-board-big-picture.ai-context.json",

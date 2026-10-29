@@ -28,7 +28,7 @@ Constraints below are **binding limits visible in the repo or product stance** â
 | TC7 | **Optional Supabase** for collab only | Solo path must work with zero backend; collab requires operator- or user-supplied project + `schema.sql` |
 | TC8 | **Client-side publishable/anon key** | No service-role key in the app; security model is workshop-grade (RLS + room code), not private multi-tenant SaaS |
 | TC9 | **Yjs over Supabase Realtime** | Live sync depends on Realtime availability; durable path uses CAS snapshots + poll fallback |
-| TC10 | **Board format Beta** | `.storm.json` may change incompatibly; consumers must tolerate migration / version field |
+| TC10 | **Board format Beta** | `.e2.json` may change incompatibly; consumers must tolerate migration / version field |
 
 ## 2.2 Organizational constraints
 
@@ -44,7 +44,7 @@ Constraints below are **binding limits visible in the repo or product stance** â
 
 | ID | Convention | Evidence |
 |----|------------|----------|
-| CC1 | Working file name pattern `*.storm.json` (default `board.storm.json`) | `working-file.ts`, README |
+| CC1 | Working file name pattern `*.e2.json` (legacy `*.storm.json`) (default `board.e2.json`) | `working-file.ts`, README |
 | CC2 | Snapshot `format: "event-storming-tool"` + numeric `version` | Schemas / `storm-json` |
 | CC3 | Schemas published under `public/schemas/` (served with the static site) | Repo layout |
 | CC4 | Collab room codes: fixed length, unambiguous alphabet | `ROOM_CODE_LENGTH`, `generateRoomCode` |

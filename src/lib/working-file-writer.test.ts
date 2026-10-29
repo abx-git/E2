@@ -16,8 +16,8 @@ describe("working-file-writer", () => {
   });
 
   it("builds a stable lock name from filename", () => {
-    expect(lockNameForWorkingFile("Alpha.storm.json")).toBe(
-      "e2-working-file-writer:alpha.storm.json",
+    expect(lockNameForWorkingFile("Alpha.e2.json")).toBe(
+      "e2-working-file-writer:alpha.e2.json",
     );
     expect(lockNameForWorkingFile("WF-UUID-1")).toBe("e2-working-file-writer:wf-uuid-1");
   });
@@ -32,7 +32,7 @@ describe("working-file-writer", () => {
   });
 
   it("createFileTabWriter starts and stops cleanly", () => {
-    const w = createFileTabWriter("demo.storm.json");
+    const w = createFileTabWriter("demo.e2.json");
     w.start();
     expect(["leader", "follower"]).toContain(w.getRole());
     w.stop();
@@ -45,10 +45,10 @@ describe("working-file-writer", () => {
   });
 
   it("ensureWorkingFileWriter tracks the active filename", () => {
-    ensureWorkingFileWriter("a.storm.json");
-    expect(getActiveWorkingFileWriterName()).toBe("a.storm.json");
-    ensureWorkingFileWriter("b.storm.json");
-    expect(getActiveWorkingFileWriterName()).toBe("b.storm.json");
+    ensureWorkingFileWriter("a.e2.json");
+    expect(getActiveWorkingFileWriterName()).toBe("a.e2.json");
+    ensureWorkingFileWriter("b.e2.json");
+    expect(getActiveWorkingFileWriterName()).toBe("b.e2.json");
     stopWorkingFileWriter();
     expect(getActiveWorkingFileWriterName()).toBe(null);
     expect(isWorkingFileWriterLeader()).toBe(true);

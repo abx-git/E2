@@ -57,7 +57,7 @@ export const exportPanelEn = {
     groupBoardHint: "All views",
     groupActiveView: "Active view",
     groupActiveViewHint: "Canvas · image & text",
-    jsonDownloadDetail: "Download .storm.json",
+    jsonDownloadDetail: "Download .e2.json",
     jsonCopy: "Copy JSON",
     systemClipboard: "System clipboard",
     prompt: "Prompt",

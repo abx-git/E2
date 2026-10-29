@@ -134,7 +134,7 @@ export function BoardShareLinkDialog({ open, onClose }: BoardShareLinkDialogProp
             spellCheck={false}
             disabled={busy}
             value={rawUrl}
-            placeholder="https://…/board.storm.json"
+            placeholder="https://…/board.e2.json"
             onChange={(e) => {
               setRawUrl(e.target.value);
               setError(null);

@@ -127,7 +127,7 @@ export const alertsDe = {
     remoteResponseUnreadable: "Antwort konnte nicht gelesen werden.",
     remoteFileEmpty: "Die Datei ist leer.",
     remoteInvalidBoard:
-      "Kein gültiges E2-Board (.storm.json). Format/Version passen nicht zum Schema.",
+      "Kein gültiges E2-Board (.e2.json). Format/Version passen nicht zum Schema.",
     remoteUnnamedBoard: "Unbenanntes Board",
     wfPersistPaused:
       "Speichern in die Arbeitsdatei ist pausiert (fremder Stand oder Kollaboration). Nutze Speichern unter…",

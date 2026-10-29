@@ -16,14 +16,14 @@ describe("board-remote-url", () => {
   });
 
   it("accepts https and localhost http", () => {
-    expect(checkBoardSourceUrl("https://cdn.example/board.storm.json").ok).toBe(true);
+    expect(checkBoardSourceUrl("https://cdn.example/board.e2.json").ok).toBe(true);
     expect(checkBoardSourceUrl("http://localhost:3000/a.json").ok).toBe(true);
     expect(checkBoardSourceUrl("http://example.com/a.json").ok).toBe(false);
     expect(checkBoardSourceUrl("ftp://x").ok).toBe(false);
   });
 
   it("reads and builds the board share param", () => {
-    const source = "https://cdn.example/w.storm.json";
+    const source = "https://cdn.example/w.e2.json";
     expect(readBoardUrlFromSearch(`?room=ABCD&${BOARD_URL_PARAM}=${encodeURIComponent(source)}`)).toBe(
       source,
     );
@@ -47,7 +47,7 @@ describe("board-remote-url", () => {
       ),
     );
 
-    const result = await fetchAndValidateRemoteBoard("https://cdn.example/board.storm.json", {
+    const result = await fetchAndValidateRemoteBoard("https://cdn.example/board.e2.json", {
       appHref: "https://pages.example/E2/",
     });
     expect(result.ok).toBe(true);
@@ -57,7 +57,7 @@ describe("board-remote-url", () => {
     expect(result.elementCount).toBe(1);
     expect(result.shareUrl).toContain(`${BOARD_URL_PARAM}=`);
     expect(new URL(result.shareUrl).searchParams.get(BOARD_URL_PARAM)).toBe(
-      "https://cdn.example/board.storm.json",
+      "https://cdn.example/board.e2.json",
     );
   });
 

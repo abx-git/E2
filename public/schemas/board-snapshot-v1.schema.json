@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://abx-git.github.io/E2/schemas/board-snapshot-v1.schema.json",
   "title": "Event Storming Board Snapshot",
-  "description": "Export-/Import-Format der E2 Event-Storming-App (format: event-storming-tool, version: 1). Andere Tools können dieses Schema nutzen, um gültige .storm.json-Dateien zu erzeugen.",
+  "description": "Export-/Import-Format der E2 Event-Storming-App (format: event-storming-tool, version: 1). Andere Tools können dieses Schema nutzen, um gültige .e2.json-Dateien zu erzeugen.",
   "type": "object",
   "additionalProperties": false,
   "required": [

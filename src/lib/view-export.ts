@@ -17,6 +17,7 @@ import {
   type CanvasBoardView,
   isCanvasBoardView,
 } from "@/lib/storm-json";
+import { E2_BOARD_FILE_SUFFIX } from "@/lib/e2-board-filename";
 
 export const AI_CONTEXT_FORMAT = "event-storming-tool-ai-context" as const;
 export const AI_CONTEXT_VERSION = 1 as const;
@@ -330,7 +331,7 @@ export function slugForExportFilename(text: string): string {
 }
 
 export function singleViewExportFilename(title: string, viewName: string): string {
-  return `${slugForExportFilename(title)}-${slugForExportFilename(viewName)}.storm.json`;
+  return `${slugForExportFilename(title)}-${slugForExportFilename(viewName)}${E2_BOARD_FILE_SUFFIX}`;
 }
 
 export function aiContextExportFilename(title: string, viewName: string): string {

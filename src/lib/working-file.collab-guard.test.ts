@@ -47,12 +47,12 @@ describe("working-file collab guards", () => {
 
   it("builds room-based guest file names", () => {
     expect(suggestedWorkingFileName("Architektur-Review-XY12")).toBe(
-      "architektur-review-xy12.storm.json",
+      "architektur-review-xy12.e2.json",
     );
   });
 
   it("persistWorkingFileJson refuses when this tab is not the file writer", async () => {
-    const ctrl = ensureWorkingFileWriter("shared.storm.json");
+    const ctrl = ensureWorkingFileWriter("shared.e2.json");
     ctrl.stop();
     const result = await persistWorkingFileJson("{}");
     expect(result.ok).toBe(false);

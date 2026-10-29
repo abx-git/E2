@@ -94,7 +94,7 @@ export const dialogsDe = {
     exportJsonButton: "JSON exportieren",
     remoteBoardLoadQuestion: "Remote-Board laden?",
     remoteBoardStormFromUrl:
-      "Es wird eine .storm.json von dieser URL geladen und in den Editor übernommen:",
+      "Es wird eine .e2.json von dieser URL geladen und in den Editor übernommen:",
     remoteBoardReplaceContent:
       "Der aktuelle Editor-Inhalt wird ersetzt. Danach kannst du lokal weiterarbeiten („Speichern unter…“).",
     importOpenTitle: "Datei öffnen",
@@ -104,15 +104,15 @@ export const dialogsDe = {
     importTryLoad: "Datei trotzdem versuchen",
     jsonPasteBoardTitle: "JSON einfügen",
     jsonPasteBoardBody:
-      "Vollständiges Board (.storm.json), kompaktes E2V (# e2v/1), E2V-Paket oder KI-Kontext einfügen. Ersetzt den aktuellen Board-Stand.",
+      "Vollständiges Board (.e2.json), kompaktes E2V (# e2v/1), E2V-Paket oder KI-Kontext einfügen. Ersetzt den aktuellen Board-Stand.",
     jsonPasteBoardConfirm: "Board laden",
     jsonPasteViewTitle: "JSON als neue Sicht",
     jsonPasteViewBody:
-      "E2-JSON (.storm.json), E2V (# e2v/1 / E2V-Paket) oder KI-Kontext als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten; E2V behält Layout bei.",
+      "E2-JSON (.e2.json), E2V (# e2v/1 / E2V-Paket) oder KI-Kontext als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten; E2V behält Layout bei.",
     jsonPasteViewConfirm: "Als Sicht importieren",
     jsonPasteAiTitle: "KI-Kontext einfügen",
     jsonPasteAiBody:
-      "Reduziertes KI-JSON (oder .storm.json) als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten; Elemente werden automatisch arrangiert.",
+      "Reduziertes KI-JSON (oder .e2.json) als neue Sicht hinzufügen. Bestehende Sichten bleiben erhalten; Elemente werden automatisch arrangiert.",
     jsonPasteE2vTitle: "E2V einfügen",
     jsonPasteE2vBody:
       "Kompaktes E2V (# e2v/1) oder E2V-Paket aus der Zwischenablage als neue Sicht. Layout (x/y, Größen, Connectors) bleibt erhalten.",
