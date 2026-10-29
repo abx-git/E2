@@ -79,13 +79,14 @@ export interface DataStoragePanelProps {
   onOpenFileLibraryEntry?: (entry: FileLibraryEntry) => void;
   onOpenLocalBackup: (backupId: string) => void;
   onRestoreBackupFile: () => void;
-  onRestoreBackupPaste: () => void;
   /** Prüfen einer Remote-.storm.json und Teilen-Link erzeugen. */
   onOpenBoardShareLink?: () => void;
-  /** Import E2 file as new view tab(s); keeps open document appearance/globals. */
-  onImportAsNewViews: () => void;
-  /** Paste E2/AI JSON from the system clipboard as new view tab(s). */
-  onPasteJsonAsNewView: () => void;
+  /** Import file(s) as new view tab(s); keeps open document appearance/globals. */
+  onImportFromFile: () => void;
+  /** Read system clipboard and import as new view(s); format detected automatically. */
+  onImportFromClipboard: () => void;
+  /** Replace the open board from clipboard JSON (full snapshot). */
+  onReplaceBoardFromClipboard: () => void;
   onExportJson: () => void;
   /** Full board JSON into the OS clipboard (not the in-app sticky clipboard). */
   onCopyJsonToClipboard: () => boolean | Promise<boolean>;
@@ -97,21 +98,18 @@ export interface DataStoragePanelProps {
   /** E2V: prompt + schema without view data. */
   onCopyE2vSchemaPromptPackageToClipboard: (viewId: string) => boolean | Promise<boolean>;
   onExportE2vSchemaPromptPackage: (viewId: string) => void;
-  /** Paste AI-context JSON as a new view (layout when present, else auto-layout). */
-  onPasteAiContextAsNewView: () => void;
-  /** Mermaid / PlantUML for the selected view. */
+  onExportJsonSchema: () => void;
+  onCopyJsonSchemaToClipboard: () => boolean | Promise<boolean>;
+  onCopyE2vSchemaToClipboard: () => boolean | Promise<boolean>;
   onExportViewMermaid: (viewId: string) => void;
   onCopyViewMermaidToClipboard: (viewId: string) => boolean | Promise<boolean>;
   onExportViewPlantUml: (viewId: string) => void;
   onCopyViewPlantUmlToClipboard: (viewId: string) => boolean | Promise<boolean>;
-  onPasteDiagramAsNewView: () => void;
-  onExportJsonSchema: () => void;
   /** Full board as compact E2V text file. */
   onExportE2vDocument?: () => void;
   onExportViewE2v?: (viewId: string) => void;
   onCopyE2vPackageToClipboard?: (viewId: string) => boolean | Promise<boolean>;
   onExportE2vSchema?: () => void;
-  onPasteE2vAsNewView?: () => void;
   onExportSvg: () => void;
   onExportPng: () => void;
   onExportPdf: () => void;
@@ -310,6 +308,49 @@ function modeMatches(mode: ModelingMode, ...modes: ModelingMode[]): boolean {
   return modes.includes(mode);
 }
 
+type ExchangeScope = "allViews" | "currentView";
+type ExchangeFormat =
+  | "json"
+  | "e2v"
+  | "jsonSchema"
+  | "e2vSchemaWithPrompt"
+  | "e2vSchemaNoPrompt";
+type ExchangeTarget = "file" | "clipboard";
+type ImportSource = "file" | "clipboard";
+
+function exchangeClipboardAllowed(format: ExchangeFormat, scope: ExchangeScope): boolean {
+  if (scope === "allViews" && format === "e2v") return false;
+  return true;
+}
+
+function ExchangeSelect({
+  label,
+  value,
+  onChange,
+  disabled,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <label className="flex min-w-0 flex-col gap-1 text-xs text-[var(--text)]">
+      <span className="text-[var(--muted)]">{label}</span>
+      <select
+        className="dock-field"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {children}
+      </select>
+    </label>
+  );
+}
+
 interface MethodExportDef {
   id: string;
   label: string;
@@ -347,10 +388,10 @@ export function DataStoragePanel({
   onOpenFileLibraryEntry,
   onOpenLocalBackup,
   onRestoreBackupFile,
-  onRestoreBackupPaste,
   onOpenBoardShareLink,
-  onImportAsNewViews,
-  onPasteJsonAsNewView,
+  onImportFromFile,
+  onImportFromClipboard,
+  onReplaceBoardFromClipboard,
   onExportJson,
   onCopyJsonToClipboard,
   onExportViewJson,
@@ -358,18 +399,17 @@ export function DataStoragePanel({
   onCopyAiPackageToClipboard,
   onCopyE2vSchemaPromptPackageToClipboard,
   onExportE2vSchemaPromptPackage,
-  onPasteAiContextAsNewView,
   onExportViewMermaid,
   onCopyViewMermaidToClipboard,
   onExportViewPlantUml,
   onCopyViewPlantUmlToClipboard,
-  onPasteDiagramAsNewView,
   onExportJsonSchema,
+  onCopyJsonSchemaToClipboard,
+  onCopyE2vSchemaToClipboard,
   onExportE2vDocument,
   onExportViewE2v,
   onCopyE2vPackageToClipboard,
   onExportE2vSchema,
-  onPasteE2vAsNewView,
   onExportSvg,
   onExportPng,
   onExportPdf,
@@ -406,29 +446,26 @@ export function DataStoragePanel({
   const [libraryPermission, setLibraryPermission] = useState<ReturnType<
     typeof getFileLibraryPermissionState
   >>("none");
-  const [jsonCopied, setJsonCopied] = useState(false);
   const [promptCopied, setPromptCopied] = useState(false);
   const [drawioCopied, setDrawioCopied] = useState(false);
-  const [viewJsonCopied, setViewJsonCopied] = useState(false);
-  const [aiPackageCopied, setAiPackageCopied] = useState(false);
-  const [e2vPackageCopied, setE2vPackageCopied] = useState(false);
-  const [e2vSchemaPromptCopied, setE2vSchemaPromptCopied] = useState(false);
   const [mermaidCopied, setMermaidCopied] = useState(false);
   const [plantUmlCopied, setPlantUmlCopied] = useState(false);
-  const [exportViewId, setExportViewId] = useState<string | null>(null);
+  const [exchangeScope, setExchangeScope] = useState<ExchangeScope>("currentView");
+  const [exchangeFormat, setExchangeFormat] = useState<ExchangeFormat>("json");
+  const [exchangeTarget, setExchangeTarget] = useState<ExchangeTarget>("file");
+  const [exchangeDone, setExchangeDone] = useState(false);
+  const [importSource, setImportSource] = useState<ImportSource>("file");
   const [preferredTab, setPreferredTab] = useState<StorageTabId>(() => readStoredTab() ?? "file");
 
-  const selectedExportViewId =
-    exportViewId && views.some((v) => v.id === exportViewId)
-      ? exportViewId
-      : activeViewId && views.some((v) => v.id === activeViewId)
-        ? activeViewId
-        : views[0]?.id ?? "";
+  const exportViewId =
+    activeViewId && views.some((v) => v.id === activeViewId)
+      ? activeViewId
+      : views[0]?.id ?? "";
 
   useEffect(() => {
-    if (!open) return;
-    setExportViewId(activeViewId);
-  }, [open, activeViewId]);
+    if (exchangeClipboardAllowed(exchangeFormat, exchangeScope)) return;
+    setExchangeTarget("file");
+  }, [exchangeFormat, exchangeScope]);
 
   useEffect(() => {
     if (!open) {
@@ -564,6 +601,75 @@ export function DataStoragePanel({
   const libraryBoards = libraryEntries.filter((e) => e.kind === "board");
   const libraryBackups = libraryEntries.filter((e) => e.kind === "backup");
   const librarySupported = isFileLibrarySupported();
+
+  const clipboardExportOk = () => {
+    setExchangeDone(true);
+    window.setTimeout(() => setExchangeDone(false), 2000);
+  };
+
+  const runExchangeExport = () => {
+    if (busy || !exportViewId) return;
+    const viewId = exportViewId;
+
+    const runClipboard = (p: boolean | Promise<boolean>) => {
+      void Promise.resolve(p).then((ok) => {
+        if (ok) clipboardExportOk();
+      });
+    };
+
+    if (exchangeTarget === "file") {
+      switch (exchangeFormat) {
+        case "json":
+          if (exchangeScope === "allViews") onExportJson();
+          else onExportViewJson(viewId);
+          break;
+        case "e2v":
+          if (exchangeScope === "allViews") onExportE2vDocument?.();
+          else onExportViewE2v?.(viewId);
+          break;
+        case "jsonSchema":
+          onExportJsonSchema();
+          break;
+        case "e2vSchemaNoPrompt":
+          onExportE2vSchema?.();
+          break;
+        case "e2vSchemaWithPrompt":
+          onExportE2vSchemaPromptPackage(viewId);
+          break;
+        default:
+          break;
+      }
+      return;
+    }
+
+    switch (exchangeFormat) {
+      case "json":
+        runClipboard(
+          exchangeScope === "allViews"
+            ? onCopyJsonToClipboard()
+            : onCopyViewJsonToClipboard(viewId),
+        );
+        break;
+      case "e2v":
+        if (onCopyE2vPackageToClipboard) {
+          runClipboard(onCopyE2vPackageToClipboard(viewId));
+        }
+        break;
+      case "jsonSchema":
+        runClipboard(onCopyJsonSchemaToClipboard());
+        break;
+      case "e2vSchemaNoPrompt":
+        runClipboard(onCopyE2vSchemaToClipboard());
+        break;
+      case "e2vSchemaWithPrompt":
+        runClipboard(onCopyE2vSchemaPromptPackageToClipboard(viewId));
+        break;
+      default:
+        break;
+    }
+  };
+
+  const clipboardTargetDisabled = !exchangeClipboardAllowed(exchangeFormat, exchangeScope);
 
   if (!open) return null;
 
@@ -965,28 +1071,100 @@ export function DataStoragePanel({
           {activeTab === "export" && (
             <div className="space-y-5">
               <PanelSection title={t("storage.sectionImport")}>
-                <div className="grid grid-cols-1 gap-1.5">
-                  <ActionButton onClick={onImportAsNewViews} disabled={busy}>
-                    <Upload className="h-4 w-4" /> {t("storage.importAsNewPage")}
-                  </ActionButton>
-                  <ActionButton onClick={onRestoreBackupPaste} disabled={busy}>
-                    <ClipboardPaste className="h-4 w-4" /> {t("storage.importBoardFromClipboard")}
-                  </ActionButton>
-                  <ActionButton onClick={onPasteJsonAsNewView} disabled={busy}>
-                    <ClipboardPaste className="h-4 w-4" /> {t("storage.jsonAsNewViewShort")}
-                  </ActionButton>
-                  <ActionButton onClick={onPasteAiContextAsNewView} disabled={busy}>
-                    <ClipboardPaste className="h-4 w-4" /> {t("exportPanel.pasteAi")}
-                  </ActionButton>
-                  {onPasteE2vAsNewView ? (
-                    <ActionButton onClick={onPasteE2vAsNewView} disabled={busy}>
-                      <ClipboardPaste className="h-4 w-4" /> {t("exportPanel.pasteE2v")}
-                    </ActionButton>
-                  ) : null}
-                  <ActionButton onClick={onPasteDiagramAsNewView} disabled={busy}>
-                    <ClipboardPaste className="h-4 w-4" /> {t("exportPanel.pasteDiagram")}
-                  </ActionButton>
+                <div className="grid grid-cols-2 gap-2">
+                  <ExchangeSelect
+                    label={t("exportPanel.exchangeImportSource")}
+                    value={importSource}
+                    disabled={busy}
+                    onChange={(v) => setImportSource(v as ImportSource)}
+                  >
+                    <option value="file">{t("exportPanel.exchangeTargetFile")}</option>
+                    <option value="clipboard">{t("exportPanel.exchangeTargetClipboard")}</option>
+                  </ExchangeSelect>
                 </div>
+                {importSource === "file" ? (
+                  <ActionButton onClick={onImportFromFile} disabled={busy}>
+                    <Upload className="h-4 w-4" /> {t("exportPanel.exchangeImportFromFile")}
+                  </ActionButton>
+                ) : (
+                  <>
+                    <ActionButton onClick={onImportFromClipboard} disabled={busy}>
+                      <ClipboardPaste className="h-4 w-4" />{" "}
+                      {t("exportPanel.exchangeImportFromClipboard")}
+                    </ActionButton>
+                    <p className="text-[0.7rem] leading-snug text-[var(--muted)]">
+                      {t("exportPanel.exchangeImportClipboardHint")}
+                    </p>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={onReplaceBoardFromClipboard}
+                      className="text-left text-[0.7rem] font-medium text-[var(--accent)] underline-offset-2 hover:underline disabled:opacity-50"
+                    >
+                      {t("exportPanel.exchangeReplaceBoard")}
+                    </button>
+                  </>
+                )}
+              </PanelSection>
+
+              <PanelSection title={t("exportPanel.sectionExport")}>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <ExchangeSelect
+                    label={t("exportPanel.exchangeScope")}
+                    value={exchangeScope}
+                    disabled={busy}
+                    onChange={(v) => setExchangeScope(v as ExchangeScope)}
+                  >
+                    <option value="allViews">{t("exportPanel.exchangeScopeAllViews")}</option>
+                    <option value="currentView">{t("exportPanel.exchangeScopeCurrentView")}</option>
+                  </ExchangeSelect>
+                  <ExchangeSelect
+                    label={t("exportPanel.exchangeFormat")}
+                    value={exchangeFormat}
+                    disabled={busy}
+                    onChange={(v) => setExchangeFormat(v as ExchangeFormat)}
+                  >
+                    <option value="json">{t("exportPanel.exchangeFormatJson")}</option>
+                    <option value="e2v">{t("exportPanel.exchangeFormatE2v")}</option>
+                    <option value="jsonSchema">{t("exportPanel.exchangeFormatJsonSchema")}</option>
+                    <option value="e2vSchemaWithPrompt">
+                      {t("exportPanel.exchangeFormatE2vSchemaWithPrompt")}
+                    </option>
+                    <option value="e2vSchemaNoPrompt">
+                      {t("exportPanel.exchangeFormatE2vSchemaNoPrompt")}
+                    </option>
+                  </ExchangeSelect>
+                  <ExchangeSelect
+                    label={t("exportPanel.exchangeTarget")}
+                    value={exchangeTarget}
+                    disabled={busy || clipboardTargetDisabled}
+                    onChange={(v) => setExchangeTarget(v as ExchangeTarget)}
+                  >
+                    <option value="file">{t("exportPanel.exchangeTargetFile")}</option>
+                    <option value="clipboard" disabled={clipboardTargetDisabled}>
+                      {t("exportPanel.exchangeTargetClipboard")}
+                    </option>
+                  </ExchangeSelect>
+                </div>
+                <ActionButton
+                  onClick={runExchangeExport}
+                  disabled={busy || !exportViewId || (clipboardTargetDisabled && exchangeTarget === "clipboard")}
+                  emphasize={exchangeDone}
+                >
+                  {exchangeTarget === "clipboard" && exchangeDone ? (
+                    <>
+                      <ClipboardCopy className="h-4 w-4" /> {t("common.copied")}
+                    </>
+                  ) : exchangeTarget === "file" ? (
+                    <>
+                      <Download className="h-4 w-4" /> {t("exportPanel.exchangeRun")}
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardCopy className="h-4 w-4" /> {t("exportPanel.exchangeRun")}
+                    </>
+                  )}
+                </ActionButton>
               </PanelSection>
 
               {(onOpenCollab || onOpenBoardShareLink) && (
@@ -1005,51 +1183,6 @@ export function DataStoragePanel({
                   </div>
                 </PanelSection>
               )}
-
-              <ExportGroup title={t("exportPanel.groupBoard")} hint={t("exportPanel.groupBoardHint")}>
-                <ExportTile
-                  onClick={onExportJson}
-                  disabled={busy}
-                  label="JSON"
-                  detail={t("exportPanel.jsonDownloadDetail")}
-                />
-                <ExportTile
-                  onClick={() => {
-                    void Promise.resolve(onCopyJsonToClipboard()).then((ok) => {
-                      if (!ok) return;
-                      setJsonCopied(true);
-                      window.setTimeout(() => setJsonCopied(false), 2000);
-                    });
-                  }}
-                  disabled={busy}
-                  label={jsonCopied ? t("common.copied") : t("exportPanel.jsonCopy")}
-                  detail={t("exportPanel.systemClipboard")}
-                  icon={ClipboardCopy}
-                  emphasize={jsonCopied}
-                />
-                <ExportTile
-                  onClick={onExportJsonSchema}
-                  disabled={busy}
-                  label="Schema"
-                  detail="JSON Schema"
-                />
-                {onExportE2vDocument ? (
-                  <ExportTile
-                    onClick={onExportE2vDocument}
-                    disabled={busy}
-                    label="E2V"
-                    detail={t("exportPanel.e2vBoardDownloadDetail")}
-                  />
-                ) : null}
-                {onExportE2vSchema ? (
-                  <ExportTile
-                    onClick={onExportE2vSchema}
-                    disabled={busy}
-                    label={t("exportPanel.e2vSchema")}
-                    detail={t("exportPanel.e2vSchemaDetail")}
-                  />
-                ) : null}
-              </ExportGroup>
 
               <ExportGroup title={t("exportPanel.groupActiveView")} hint={t("exportPanel.groupActiveViewHint")}>
                 <ExportTile
@@ -1103,138 +1236,21 @@ export function DataStoragePanel({
               <div className="rounded-xl border border-[var(--border)] bg-[var(--control)]/35 p-2.5">
                 <div className="mb-2 flex items-baseline justify-between gap-2 px-0.5">
                   <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    {t("exportPanel.viewSection")}
-                  </p>
-                  <p className="text-[0.65rem] text-[var(--muted)]">{t("exportPanel.viewSectionHint")}</p>
-                </div>
-                <label className="mb-2 block px-0.5">
-                  <span className="sr-only">{t("storage.chooseView")}</span>
-                  <select
-                    className="dock-control w-full rounded-lg px-2.5 py-1.5 text-sm"
-                    value={selectedExportViewId}
-                    disabled={busy || views.length === 0}
-                    onChange={(e) => setExportViewId(e.target.value)}
-                  >
-                    {views.map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name}
-                        {v.id === activeViewId ? t("exportPanel.activeViewSuffix") : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <ExportTile
-                    onClick={() => onExportViewJson(selectedExportViewId)}
-                    disabled={busy || !selectedExportViewId}
-                    label="JSON"
-                    detail={t("exportPanel.viewJsonDetail")}
-                  />
-                  <ExportTile
-                    onClick={() => {
-                      void Promise.resolve(onCopyViewJsonToClipboard(selectedExportViewId)).then(
-                        (ok) => {
-                          if (!ok) return;
-                          setViewJsonCopied(true);
-                          window.setTimeout(() => setViewJsonCopied(false), 2000);
-                        },
-                      );
-                    }}
-                    disabled={busy || !selectedExportViewId}
-                    label={viewJsonCopied ? t("common.copied") : t("exportPanel.jsonCopy")}
-                    detail={t("exportPanel.viewJsonDetail")}
-                    icon={ClipboardCopy}
-                    emphasize={viewJsonCopied}
-                  />
-                  <ExportTile
-                    onClick={() => {
-                      void Promise.resolve(
-                        onCopyAiPackageToClipboard(selectedExportViewId),
-                      ).then((ok) => {
-                        if (!ok) return;
-                        setAiPackageCopied(true);
-                        window.setTimeout(() => setAiPackageCopied(false), 2000);
-                      });
-                    }}
-                    disabled={busy || !selectedExportViewId}
-                    label={aiPackageCopied ? t("common.copied") : t("exportPanel.aiContext")}
-                    detail={t("exportPanel.aiContextDetail")}
-                    icon={ClipboardCopy}
-                    emphasize={aiPackageCopied}
-                  />
-                  {onExportViewE2v ? (
-                    <ExportTile
-                      onClick={() => onExportViewE2v(selectedExportViewId)}
-                      disabled={busy || !selectedExportViewId}
-                      label="E2V"
-                      detail={t("exportPanel.e2vViewDownloadDetail")}
-                    />
-                  ) : null}
-                  {onCopyE2vPackageToClipboard ? (
-                    <ExportTile
-                      onClick={() => {
-                        void Promise.resolve(
-                          onCopyE2vPackageToClipboard(selectedExportViewId),
-                        ).then((ok) => {
-                          if (!ok) return;
-                          setE2vPackageCopied(true);
-                          window.setTimeout(() => setE2vPackageCopied(false), 2000);
-                        });
-                      }}
-                      disabled={busy || !selectedExportViewId}
-                      label={e2vPackageCopied ? t("common.copied") : t("exportPanel.e2vView")}
-                      detail={t("exportPanel.e2vViewDetail")}
-                      icon={ClipboardCopy}
-                      emphasize={e2vPackageCopied}
-                    />
-                  ) : null}
-                  <ExportTile
-                    onClick={() => {
-                      void Promise.resolve(
-                        onCopyE2vSchemaPromptPackageToClipboard(selectedExportViewId),
-                      ).then((ok) => {
-                        if (!ok) return;
-                        setE2vSchemaPromptCopied(true);
-                        window.setTimeout(() => setE2vSchemaPromptCopied(false), 2000);
-                      });
-                    }}
-                    disabled={busy || !selectedExportViewId}
-                    label={
-                      e2vSchemaPromptCopied
-                        ? t("common.copied")
-                        : t("exportPanel.e2vSchemaPrompt")
-                    }
-                    detail={t("exportPanel.e2vSchemaPromptDetail")}
-                    icon={ClipboardCopy}
-                    emphasize={e2vSchemaPromptCopied}
-                  />
-                  <ExportTile
-                    onClick={() => onExportE2vSchemaPromptPackage(selectedExportViewId)}
-                    disabled={busy || !selectedExportViewId}
-                    label={t("exportPanel.e2vSchemaPrompt")}
-                    detail={t("exportPanel.e2vSchemaPromptDownload")}
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--control)]/35 p-2.5">
-                <div className="mb-2 flex items-baseline justify-between gap-2 px-0.5">
-                  <p className="text-[0.7rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
                     {t("exportPanel.diagramSection")}
                   </p>
                   <p className="text-[0.65rem] text-[var(--muted)]">{t("exportPanel.diagramSectionHint")}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
                   <ExportTile
-                    onClick={() => onExportViewMermaid(selectedExportViewId)}
-                    disabled={busy || !selectedExportViewId}
+                    onClick={() => onExportViewMermaid(exportViewId)}
+                    disabled={busy || !exportViewId}
                     label="Mermaid"
                     detail={t("exportPanel.mmdDownload")}
                     emphasize
                   />
                   <ExportTile
                     onClick={() => {
-                      void Promise.resolve(onCopyViewMermaidToClipboard(selectedExportViewId)).then(
+                      void Promise.resolve(onCopyViewMermaidToClipboard(exportViewId)).then(
                         (ok) => {
                           if (!ok) return;
                           setMermaidCopied(true);
@@ -1242,15 +1258,15 @@ export function DataStoragePanel({
                         },
                       );
                     }}
-                    disabled={busy || !selectedExportViewId}
+                    disabled={busy || !exportViewId}
                     label={mermaidCopied ? t("common.copied") : t("exportPanel.copyMermaid")}
                     detail={t("exportPanel.clipboard")}
                     icon={ClipboardCopy}
                     emphasize={mermaidCopied}
                   />
                   <ExportTile
-                    onClick={() => onExportViewPlantUml(selectedExportViewId)}
-                    disabled={busy || !selectedExportViewId}
+                    onClick={() => onExportViewPlantUml(exportViewId)}
+                    disabled={busy || !exportViewId}
                     label="PlantUML"
                     detail={t("exportPanel.pumlDownload")}
                     emphasize
@@ -1258,14 +1274,14 @@ export function DataStoragePanel({
                   <ExportTile
                     onClick={() => {
                       void Promise.resolve(
-                        onCopyViewPlantUmlToClipboard(selectedExportViewId),
+                        onCopyViewPlantUmlToClipboard(exportViewId),
                       ).then((ok) => {
                         if (!ok) return;
                         setPlantUmlCopied(true);
                         window.setTimeout(() => setPlantUmlCopied(false), 2000);
                       });
                     }}
-                    disabled={busy || !selectedExportViewId}
+                    disabled={busy || !exportViewId}
                     label={plantUmlCopied ? t("common.copied") : t("exportPanel.copyPlantUml")}
                     detail={t("exportPanel.clipboard")}
                     icon={ClipboardCopy}

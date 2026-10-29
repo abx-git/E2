@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Copy,
   ClipboardPaste,
+  GripVertical,
   LayoutGrid,
   Plus,
   Trash2,
@@ -21,6 +22,7 @@ import { MODELING_MODES, type ModelingMode } from "@/types/storm-element";
 export function BoardViewTabs({
   onPasteJsonAsNewView,
 }: {
+  /** Import from clipboard as new view(s); content is detected automatically. */
   onPasteJsonAsNewView?: () => void;
 }) {
   const t = useT();
@@ -32,6 +34,7 @@ export function BoardViewTabs({
   const renameView = useStormBoardStore((s) => s.renameView);
   const duplicateView = useStormBoardStore((s) => s.duplicateView);
   const deleteView = useStormBoardStore((s) => s.deleteView);
+  const reorderViews = useStormBoardStore((s) => s.reorderViews);
   const viewReturnStack = useStormBoardStore((s) => s.viewReturnStack);
   const navigateViewBack = useStormBoardStore((s) => s.navigateViewBack);
 
@@ -42,6 +45,8 @@ export function BoardViewTabs({
     null,
   );
   const [newViewMenu, setNewViewMenu] = useState<{ x: number; y: number } | null>(null);
+  const [dragViewId, setDragViewId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const newViewBtnRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -114,8 +119,30 @@ export function BoardViewTabs({
       {views.map((view) => {
         const active = view.id === activeViewId;
         const measures = isActionsView(view);
+        const isDropTarget = dropTargetId === view.id && dragViewId !== view.id;
         return (
-          <div key={view.id} className="group relative shrink-0">
+          <div
+            key={view.id}
+            className={[
+              "group relative shrink-0",
+              isDropTarget ? "rounded-md ring-1 ring-[var(--accent)]/60" : "",
+            ].join(" ")}
+            onDragOver={(e) => {
+              if (!dragViewId || dragViewId === view.id) return;
+              e.preventDefault();
+              setDropTargetId(view.id);
+            }}
+            onDragLeave={() => {
+              if (dropTargetId === view.id) setDropTargetId(null);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const fromId = e.dataTransfer.getData("text/view-id") || dragViewId;
+              if (fromId && fromId !== view.id) reorderViews(fromId, view.id);
+              setDragViewId(null);
+              setDropTargetId(null);
+            }}
+          >
             {editingId === view.id ? (
               <input
                 ref={inputRef}
@@ -142,6 +169,23 @@ export function BoardViewTabs({
                   active ? "dock-control-active" : "dock-control text-[var(--muted)]",
                 ].join(" ")}
               >
+                <span
+                  draggable
+                  onDragStart={(e) => {
+                    setDragViewId(view.id);
+                    e.dataTransfer.setData("text/view-id", view.id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragEnd={() => {
+                    setDragViewId(null);
+                    setDropTargetId(null);
+                  }}
+                  className="flex shrink-0 cursor-grab touch-none pl-0.5 text-[var(--muted)] active:cursor-grabbing"
+                  title={t("dialogs.reorderViewTab")}
+                  aria-label={t("dialogs.reorderViewTab")}
+                >
+                  <GripVertical className="h-3.5 w-3.5 opacity-50 group-hover:opacity-80" aria-hidden />
+                </span>
                 <button
                   type="button"
                   onClick={() => switchView(view.id)}

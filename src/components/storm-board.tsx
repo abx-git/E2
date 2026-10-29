@@ -563,6 +563,26 @@ export function StormBoard() {
     URL.revokeObjectURL(url);
   }, []);
 
+  const copyJsonSchemaToClipboard = useCallback(async (): Promise<boolean> => {
+    try {
+      await navigator.clipboard.writeText(stringifyBoardSnapshotSchema());
+      return true;
+    } catch {
+      window.alert(t("alerts.jsonClipboardFailed"));
+      return false;
+    }
+  }, [t]);
+
+  const copyE2vSchemaToClipboard = useCallback(async (): Promise<boolean> => {
+    try {
+      await navigator.clipboard.writeText(stringifyE2vSchema());
+      return true;
+    } catch {
+      window.alert(t("alerts.jsonClipboardFailed"));
+      return false;
+    }
+  }, [t]);
+
   const downloadViewMermaid = useCallback((viewId: string) => {
     const text = mermaidFromViewId(viewId);
     const payload = boardImportPayloadFromStore();
@@ -1236,8 +1256,8 @@ export function StormBoard() {
     return true;
   };
 
-  const handlePasteJsonAsNewView = () => {
-    if (collabBlocksPasteAsNewView("JSON")) return;
+  const handleImportFromClipboard = () => {
+    if (collabBlocksPasteAsNewView(t("alerts.dropImportKind"))) return;
     void (async () => {
       let clip = "";
       try {
@@ -1245,14 +1265,13 @@ export function StormBoard() {
       } catch {
         clip = "";
       }
-      if (clip && boardImportPayloadFromJsonText(clip)) {
-        applyImportedJsonAsNewViews(clip);
-        return;
-      }
+      if (clip && importFileTextAsNewViews(clip)) return;
       setJsonPasteInitial(clip && looksLikePasteImportText(clip) ? clip : "");
       setJsonPasteMode("json-view");
     })();
   };
+
+  const handlePasteJsonAsNewView = handleImportFromClipboard;
 
   const handlePasteAiContextAsNewView = () => {
     if (collabBlocksPasteAsNewView("KI-Kontext")) return;
@@ -1512,13 +1531,13 @@ export function StormBoard() {
         onOpenFileLibraryEntry={(entry) => void handleOpenFileLibraryEntry(entry)}
         onOpenLocalBackup={(id) => void handleOpenLocalBackup(id)}
         onRestoreBackupFile={handleRestoreBackupFilePick}
-        onRestoreBackupPaste={() => void handlePasteJson()}
         onOpenBoardShareLink={() => {
           setStorageOpen(false);
           setShareLinkOpen(true);
         }}
-        onImportAsNewViews={handleImportAsNewViews}
-        onPasteJsonAsNewView={handlePasteJsonAsNewView}
+        onImportFromFile={handleImportAsNewViews}
+        onImportFromClipboard={handleImportFromClipboard}
+        onReplaceBoardFromClipboard={() => void handlePasteJson()}
         onExportJson={downloadJson}
         onCopyJsonToClipboard={copyJsonToClipboard}
         onExportViewJson={downloadViewJson}
@@ -1526,18 +1545,17 @@ export function StormBoard() {
         onCopyAiPackageToClipboard={copyAiPackageToClipboard}
         onCopyE2vSchemaPromptPackageToClipboard={copyE2vSchemaPromptPackageToClipboard}
         onExportE2vSchemaPromptPackage={downloadE2vSchemaPromptPackage}
-        onPasteAiContextAsNewView={handlePasteAiContextAsNewView}
         onExportE2vDocument={downloadE2vDocument}
         onExportViewE2v={downloadViewE2v}
         onCopyE2vPackageToClipboard={copyE2vPackageToClipboard}
         onExportE2vSchema={downloadE2vSchema}
-        onPasteE2vAsNewView={handlePasteE2vAsNewView}
         onExportViewMermaid={downloadViewMermaid}
         onCopyViewMermaidToClipboard={copyViewMermaidToClipboard}
         onExportViewPlantUml={downloadViewPlantUml}
         onCopyViewPlantUmlToClipboard={copyViewPlantUmlToClipboard}
-        onPasteDiagramAsNewView={handlePasteDiagramAsNewView}
         onExportJsonSchema={downloadJsonSchema}
+        onCopyJsonSchemaToClipboard={copyJsonSchemaToClipboard}
+        onCopyE2vSchemaToClipboard={copyE2vSchemaToClipboard}
         onExportSvg={exportBoardSvg}
         onExportPng={() => void exportBoardPng()}
         onExportPdf={exportBoardPdf}
