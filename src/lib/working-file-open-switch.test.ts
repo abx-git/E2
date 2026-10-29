@@ -37,12 +37,19 @@ describe("working-file open switch gate", () => {
     if (!result.ok) expect(result.reason).toBe("persist_paused");
   });
 
+  it("blocks skipCas autosave while a file switch is in progress", async () => {
+    beginWorkingFileSwitch();
+    const result = await persistWorkingFileJson(nonemptyJson("OldBoard"), { skipCas: true });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toBe("persist_paused");
+  });
+
   it("allows skipCas writes during switch (Save As / Create)", async () => {
     beginWorkingFileSwitch();
-    // No handle attached → still no_handle, but must not be blocked as persist_paused before gate
+    // Save As uses writeWorkingFileJson directly — persistWorkingFileJson stays blocked.
     const result = await persistWorkingFileJson(nonemptyJson("New"), { skipCas: true });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).not.toBe("persist_paused");
+    if (!result.ok) expect(result.reason).toBe("persist_paused");
   });
 
   it("clears the switch gate on end", () => {
