@@ -273,6 +273,8 @@ export interface StormBoardState {
   renameView: (id: string, name: string) => void;
   duplicateView: (id: string) => string | null;
   deleteView: (id: string) => boolean;
+  /** Move a view tab before another (by id). */
+  reorderViews: (activeId: string, overId: string) => void;
   setModelingMode: (mode: ModelingMode) => void;
   setWorkshopFormat: (format: WorkshopFormat) => void;
   setFacilitatorEnabled: (enabled: boolean) => void;
@@ -919,6 +921,20 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       };
     });
     return true;
+  },
+
+  reorderViews: (activeId, overId) => {
+    if (activeId === overId) return;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s);
+      const from = views.findIndex((v) => v.id === activeId);
+      const to = views.findIndex((v) => v.id === overId);
+      if (from < 0 || to < 0) return {};
+      const next = views.slice();
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return { views: next };
+    });
   },
 
   setModelingMode: (modelingMode) =>
