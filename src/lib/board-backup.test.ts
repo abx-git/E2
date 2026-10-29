@@ -53,14 +53,14 @@ describe("board-backup", () => {
     const d = new Date(2026, 6, 23, 7, 5, 9); // month is 0-based
     expect(formatBackupTimestamp(d)).toBe("2026-07-23-070509");
     expect(buildBackupFilename("Mein Board", d, "history")).toBe(
-      "mein-board-backup-2026-07-23-070509.storm.json",
+      "mein-board-backup-2026-07-23-070509.e2.json",
     );
   });
 
   it("builds a stable filename for rolling mode", () => {
     const d = new Date(2026, 6, 23, 7, 5, 9);
     expect(buildBackupFilename("Mein Board", d, "rolling")).toBe(
-      "mein-board-backup.storm.json",
+      "mein-board-backup.e2.json",
     );
   });
 

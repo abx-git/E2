@@ -1,5 +1,5 @@
 /**
- * Hard gates before truncating a working-file `.storm.json`.
+ * Hard gates before truncating a working-file `.e2.json`.
  * Prevents empty/default boards and stale CAS from wiping nonempty disk content.
  */
 

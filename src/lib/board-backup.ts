@@ -4,6 +4,7 @@
  */
 
 import { boardJsonFromStoreState, boardPersistKeyFromStoreState } from "@/lib/file-board-reconcile";
+import { boardBackupFilenameSuffix } from "@/lib/e2-board-filename";
 import { documentHasContent } from "@/lib/storm-json";
 import { isWorkingFileAttached, isWorkingFileDirty } from "@/lib/working-file";
 import { boardImportPayloadFromStore } from "@/store/storm-board-store";
@@ -79,9 +80,9 @@ export function buildBackupFilename(
 ): string {
   const slug = slugForBackupFilename(title);
   if (mode === "rolling") {
-    return `${slug}-backup.storm.json`;
+    return boardBackupFilenameSuffix("rolling", slug, "");
   }
-  return `${slug}-backup-${formatBackupTimestamp(date)}.storm.json`;
+  return boardBackupFilenameSuffix("history", slug, formatBackupTimestamp(date));
 }
 
 function isFileSystemAccessAvailable(): boolean {

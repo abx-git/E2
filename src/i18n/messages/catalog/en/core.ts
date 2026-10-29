@@ -27,7 +27,7 @@ export const coreEn = {
     pleaseWait: "Please wait…",
     guest: "Guest",
     defaultWorkingFile: "Working file",
-    defaultBoardFile: "board.storm.json",
+    defaultBoardFile: "board.e2.json",
     unnamedBoard: "Untitled board",
     ok: "OK",
   },

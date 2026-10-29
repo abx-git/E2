@@ -27,7 +27,7 @@ export const coreDe = {
     pleaseWait: "Bitte warten…",
     guest: "Gast",
     defaultWorkingFile: "Arbeitsdatei",
-    defaultBoardFile: "board.storm.json",
+    defaultBoardFile: "board.e2.json",
     unnamedBoard: "Unbenanntes Board",
     ok: "OK",
   },

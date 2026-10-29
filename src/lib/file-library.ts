@@ -64,7 +64,7 @@ export function normalizeLibraryRelativePath(path: string): string {
 }
 
 export function libraryBackupRelativePath(filename: string): string {
-  const base = filename.trim().split(/[/\\]/).pop()?.trim() || "backup.storm.json";
+  const base = filename.trim().split(/[/\\]/).pop()?.trim() || "backup.e2.json";
   return `${FILE_LIBRARY_BACKUP_DIR}/${base}`;
 }
 
@@ -387,7 +387,7 @@ async function relativePathForHandle(handle: FileSystemFileHandle): Promise<stri
       /* not inside folder */
     }
   }
-  const path = handle.name?.trim() || "board.storm.json";
+  const path = handle.name?.trim() || "board.e2.json";
   cachedRelativePath = { handle, path };
   return path;
 }

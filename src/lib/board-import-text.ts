@@ -24,7 +24,7 @@ export function looksLikePasteImportText(text: string): boolean {
 }
 
 /**
- * Accepts a full `.storm.json` snapshot (v1/v2), reduced AI-context JSON,
+ * Accepts a full `.e2.json` snapshot (v1/v2), reduced AI-context JSON,
  * E2V compact text / E2V LLM package, or an E2 AI clipboard package (schema + data markdown).
  * Diagram text is intentionally excluded — use `boardImportPayloadFromAnyExportText`.
  */
@@ -46,7 +46,7 @@ export function boardImportPayloadFromJsonText(text: string): BoardImportPayload
 }
 
 /**
- * Accepts a full `.storm.json` snapshot (v1/v2), reduced AI-context JSON,
+ * Accepts a full `.e2.json` snapshot (v1/v2), reduced AI-context JSON,
  * AI clipboard package, Mermaid, or PlantUML. Diagram text uses auto-layout.
  */
 export function boardImportPayloadFromAnyExportText(text: string): BoardImportPayload | null {

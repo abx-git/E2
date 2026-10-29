@@ -58,7 +58,7 @@ describe("working-file-safety", () => {
       attached: true,
       isWriterLeader: true,
       activeWf: "wf-1",
-      label: "a.storm.json",
+      label: "a.e2.json",
     });
     expect(gate.ok).toBe(true);
     expect(gate.shouldRebindUrl).toBe(true);
@@ -70,19 +70,19 @@ describe("working-file-safety", () => {
       attached: true,
       isWriterLeader: true,
       activeWf: "wf-1",
-      label: "a.storm.json",
+      label: "a.e2.json",
     });
     expect(gate.ok).toBe(true);
     expect(gate.shouldRebindUrl).toBeFalsy();
   });
 
   it("ignores legacy filename mismatch — identity is wf only", () => {
-    href = "http://localhost/?wf=wf-1&filename=other.storm.json";
+    href = "http://localhost/?wf=wf-1&filename=other.e2.json";
     const gate = evaluateWorkingFileWriteGate({
       attached: true,
       isWriterLeader: true,
       activeWf: "wf-1",
-      label: "a.storm.json",
+      label: "a.e2.json",
     });
     expect(gate.ok).toBe(true);
   });
@@ -93,7 +93,7 @@ describe("working-file-safety", () => {
       attached: true,
       isWriterLeader: true,
       activeWf: "wf-1",
-      label: "a.storm.json",
+      label: "a.e2.json",
     });
     expect(gate.ok).toBe(false);
     expect(gate.reason).toBe("url_context_mismatch");
@@ -106,7 +106,7 @@ describe("working-file-safety", () => {
         attached: true,
         isWriterLeader: false,
         activeWf: "wf-1",
-        label: "a.storm.json",
+        label: "a.e2.json",
       }).reason,
     ).toBe("not_writer");
   });
@@ -118,7 +118,7 @@ describe("working-file-safety", () => {
   });
 
   it("mayAutoRestore still accepts legacy filename bookmarks", () => {
-    href = "http://localhost/?filename=a.storm.json";
+    href = "http://localhost/?filename=a.e2.json";
     expect(mayAutoRestoreWorkingFileFromStorage()).toBe(true);
   });
 });

@@ -10,8 +10,8 @@ import {
 
 describe("working-file IDB keying", () => {
   it("keys handles and mobile mirrors by normalized filename (legacy)", () => {
-    expect(workingFileHandleIdbKey("Projekt-A.storm.json")).toBe("handle:projekt-a.storm.json");
-    expect(workingFileMobileIdbKey("Projekt-A.storm.json")).toBe("mobile:projekt-a.storm.json");
+    expect(workingFileHandleIdbKey("Projekt-A.e2.json")).toBe("handle:projekt-a.e2.json");
+    expect(workingFileMobileIdbKey("Projekt-A.e2.json")).toBe("mobile:projekt-a.e2.json");
     expect(workingFileHandleIdbKey("path/to/Board.JSON")).toBe("handle:board.json");
   });
 
@@ -33,16 +33,16 @@ describe("working-file IDB keying", () => {
   it("keeps legacy singleton key names for migration", () => {
     expect(LEGACY_IDB_HANDLE_KEY).toBe("board-json");
     expect(LEGACY_IDB_MOBILE_KEY).toBe("mobile-working-copy");
-    expect(workingFileHandleIdbKey("board.storm.json")).not.toBe(LEGACY_IDB_HANDLE_KEY);
-    expect(workingFileMobileIdbKey("board.storm.json")).not.toBe(LEGACY_IDB_MOBILE_KEY);
+    expect(workingFileHandleIdbKey("board.e2.json")).not.toBe(LEGACY_IDB_HANDLE_KEY);
+    expect(workingFileMobileIdbKey("board.e2.json")).not.toBe(LEGACY_IDB_MOBILE_KEY);
   });
 
   it("isolates different filenames into different keys", () => {
-    expect(workingFileHandleIdbKey("a.storm.json")).not.toBe(
-      workingFileHandleIdbKey("b.storm.json"),
+    expect(workingFileHandleIdbKey("a.e2.json")).not.toBe(
+      workingFileHandleIdbKey("b.e2.json"),
     );
-    expect(workingFileMobileIdbKey("a.storm.json")).not.toBe(
-      workingFileMobileIdbKey("b.storm.json"),
+    expect(workingFileMobileIdbKey("a.e2.json")).not.toBe(
+      workingFileMobileIdbKey("b.e2.json"),
     );
   });
 });

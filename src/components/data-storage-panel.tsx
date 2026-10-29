@@ -79,7 +79,7 @@ export interface DataStoragePanelProps {
   onOpenFileLibraryEntry?: (entry: FileLibraryEntry) => void;
   onOpenLocalBackup: (backupId: string) => void;
   onRestoreBackupFile: () => void;
-  /** Prüfen einer Remote-.storm.json und Teilen-Link erzeugen. */
+  /** Prüfen einer Remote-.e2.json und Teilen-Link erzeugen. */
   onOpenBoardShareLink?: () => void;
   /** Import file(s) as new view tab(s); keeps open document appearance/globals. */
   onImportFromFile: () => void;
@@ -90,7 +90,7 @@ export interface DataStoragePanelProps {
   onExportJson: () => void;
   /** Full board JSON into the OS clipboard (not the in-app sticky clipboard). */
   onCopyJsonToClipboard: () => boolean | Promise<boolean>;
-  /** Complete single-view diagram extract (.storm.json). */
+  /** Complete single-view diagram extract (.e2.json). */
   onExportViewJson: (viewId: string) => void;
   onCopyViewJsonToClipboard: (viewId: string) => boolean | Promise<boolean>;
   /** Mode schema + AI context data (with layout) for the system clipboard. */

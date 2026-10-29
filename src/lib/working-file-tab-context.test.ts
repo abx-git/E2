@@ -85,7 +85,7 @@ describe("working-file-tab-context", () => {
   });
 
   it("normalizes filenames for keys / locks", () => {
-    expect(normalizeWorkingFilename("  Projekt-A.storm.json ")).toBe("projekt-a.storm.json");
+    expect(normalizeWorkingFilename("  Projekt-A.e2.json ")).toBe("projekt-a.e2.json");
     expect(normalizeWorkingFilename("path/to/Board.JSON")).toBe("board.json");
     expect(normalizeWorkingFilename("")).toBe("");
   });
@@ -98,13 +98,13 @@ describe("working-file-tab-context", () => {
   });
 
   it("reads legacy filename and wf from URL", () => {
-    expect(readFilenameFromUrl("?filename=alpha.storm.json&room=ABCD")).toBe("alpha.storm.json");
+    expect(readFilenameFromUrl("?filename=alpha.e2.json&room=ABCD")).toBe("alpha.e2.json");
     expect(readWorkingFileIdFromUrl("?filename=a&wf=slot-1")).toBe("slot-1");
     expect(readFilenameFromUrl("?room=ABCD")).toBe(null);
   });
 
   it("syncs only wf into the URL and strips legacy filename", () => {
-    href = "http://localhost/?room=ZZZZ&filename=stale.storm.json";
+    href = "http://localhost/?room=ZZZZ&filename=stale.e2.json";
     syncWorkingFileIdInUrl("wf-beta");
     const params = new URLSearchParams(new URL(href).search);
     expect(params.get(WORKING_FILE_ID_URL_PARAM)).toBe("wf-beta");
@@ -123,8 +123,8 @@ describe("working-file-tab-context", () => {
   });
 
   it("stores tab context in sessionStorage", () => {
-    setTabWorkingFileContext("wf-gamma", "gamma.storm.json");
-    expect(getTabWorkingFileContext().label).toBe("gamma.storm.json");
+    setTabWorkingFileContext("wf-gamma", "gamma.e2.json");
+    expect(getTabWorkingFileContext().label).toBe("gamma.e2.json");
     expect(getTabWorkingFileContext().wf).toBe("wf-gamma");
     expect(getTabWorkingFileContext().attachedAt).toBeTypeOf("number");
     setTabWorkingFileContext(null, null);
@@ -133,63 +133,63 @@ describe("working-file-tab-context", () => {
   });
 
   it("resolves preferred id from URL then session; label is separate", () => {
-    localStorage.setItem("e2-last-working-file-name", "from-ls.storm.json");
-    href = "http://localhost/?wf=from-url-wf&filename=from-url.storm.json";
+    localStorage.setItem("e2-last-working-file-name", "from-ls.e2.json");
+    href = "http://localhost/?wf=from-url-wf&filename=from-url.e2.json";
     expect(resolvePreferredWorkingFileId()).toBe("from-url-wf");
-    expect(resolvePreferredWorkingFileName()).toBe("from-url.storm.json");
+    expect(resolvePreferredWorkingFileName()).toBe("from-url.e2.json");
 
-    setTabWorkingFileContext("wf-session", "from-session.storm.json");
+    setTabWorkingFileContext("wf-session", "from-session.e2.json");
     // Bookmark / deep-link URL wins over a later session board.
     expect(resolvePreferredWorkingFileId()).toBe("from-url-wf");
-    expect(resolvePreferredWorkingFileName()).toBe("from-url.storm.json");
+    expect(resolvePreferredWorkingFileName()).toBe("from-url.e2.json");
   });
 
   it("uses session id when URL has no wf", () => {
     href = "http://localhost/";
-    setTabWorkingFileContext("wf-session", "from-session.storm.json");
+    setTabWorkingFileContext("wf-session", "from-session.e2.json");
     expect(resolvePreferredWorkingFileId()).toBe("wf-session");
-    expect(resolvePreferredWorkingFileName()).toBe("from-session.storm.json");
+    expect(resolvePreferredWorkingFileName()).toBe("from-session.e2.json");
   });
 
   it("uses session label when URL wf matches session", () => {
     href = "http://localhost/?wf=wf-same";
-    setTabWorkingFileContext("wf-same", "session-label.storm.json");
+    setTabWorkingFileContext("wf-same", "session-label.e2.json");
     expect(resolvePreferredWorkingFileId()).toBe("wf-same");
-    expect(resolvePreferredWorkingFileName()).toBe("session-label.storm.json");
+    expect(resolvePreferredWorkingFileName()).toBe("session-label.e2.json");
   });
 
   it("does not fall back to localStorage when URL and session are empty", () => {
-    localStorage.setItem("e2-last-working-file-name", "legacy.storm.json");
+    localStorage.setItem("e2-last-working-file-name", "legacy.e2.json");
     expect(resolvePreferredWorkingFileId()).toBe(null);
     expect(resolvePreferredWorkingFileName()).toBe(null);
   });
 
   it("bindTabWorkingFile updates session, wf URL, and title", () => {
-    bindTabWorkingFile("wf-bound", "bound.storm.json");
-    expect(getTabWorkingFileContext().label).toBe("bound.storm.json");
+    bindTabWorkingFile("wf-bound", "bound.e2.json");
+    expect(getTabWorkingFileContext().label).toBe("bound.e2.json");
     expect(getTabWorkingFileContext().wf).toBe("wf-bound");
     expect(readWorkingFileIdFromUrl()).toBe("wf-bound");
     expect(readFilenameFromUrl()).toBe(null);
-    expect(documentTitle).toBe("bound.storm.json · E2");
+    expect(documentTitle).toBe("bound.e2.json · E2");
   });
 
   it("same label with different wf yields different bookmark URLs", () => {
-    bindTabWorkingFile("wf-alpha", "board.storm.json");
+    bindTabWorkingFile("wf-alpha", "board.e2.json");
     expect(href).toContain("wf=wf-alpha");
     expect(href).not.toContain("filename=");
 
-    bindTabWorkingFile("wf-beta", "board.storm.json");
+    bindTabWorkingFile("wf-beta", "board.e2.json");
     expect(href).toContain("wf=wf-beta");
     expect(href).not.toContain("wf=wf-alpha");
-    expect(documentTitle).toBe("board.storm.json · E2");
+    expect(documentTitle).toBe("board.e2.json · E2");
   });
 
   it("reads legacy session filename field as label", () => {
     sessionStorage.setItem(
       "e2.working-file.tab-context",
-      JSON.stringify({ filename: "old.storm.json", wf: "wf-old", attachedAt: 1 }),
+      JSON.stringify({ filename: "old.e2.json", wf: "wf-old", attachedAt: 1 }),
     );
-    expect(getTabWorkingFileContext().label).toBe("old.storm.json");
+    expect(getTabWorkingFileContext().label).toBe("old.e2.json");
     expect(getTabWorkingFileContext().wf).toBe("wf-old");
   });
 });

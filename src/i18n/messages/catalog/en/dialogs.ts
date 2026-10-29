@@ -90,7 +90,7 @@ export const dialogsEn = {
     exportJsonButton: "Export JSON",
     remoteBoardLoadQuestion: "Load remote board?",
     remoteBoardStormFromUrl:
-      "A .storm.json will be loaded from this URL into the editor:",
+      "A .e2.json will be loaded from this URL into the editor:",
     remoteBoardReplaceContent:
       "The current editor content will be replaced. Then you can keep working locally (“Save as…”).",
     importOpenTitle: "Open file",
@@ -100,15 +100,15 @@ export const dialogsEn = {
     importTryLoad: "Try loading file anyway",
     jsonPasteBoardTitle: "Paste JSON",
     jsonPasteBoardBody:
-      "Paste a full board (.storm.json), compact E2V (# e2v/1), E2V package, or AI context. Replaces the current board state.",
+      "Paste a full board (.e2.json), compact E2V (# e2v/1), E2V package, or AI context. Replaces the current board state.",
     jsonPasteBoardConfirm: "Load board",
     jsonPasteViewTitle: "JSON as new view",
     jsonPasteViewBody:
-      "Add E2 JSON (.storm.json), E2V (# e2v/1 / package), or AI context as a new view. Existing views are kept; E2V preserves layout.",
+      "Add E2 JSON (.e2.json), E2V (# e2v/1 / package), or AI context as a new view. Existing views are kept; E2V preserves layout.",
     jsonPasteViewConfirm: "Import as view",
     jsonPasteAiTitle: "Paste AI context",
     jsonPasteAiBody:
-      "Add reduced AI JSON (or .storm.json) as a new view. Existing views are kept; elements are auto-arranged.",
+      "Add reduced AI JSON (or .e2.json) as a new view. Existing views are kept; elements are auto-arranged.",
     jsonPasteE2vTitle: "Paste E2V",
     jsonPasteE2vBody:
       "Add compact E2V (# e2v/1) or an E2V package from the clipboard as a new view. Layout (x/y, sizes, connectors) is preserved.",

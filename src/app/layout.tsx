@@ -14,7 +14,7 @@ const plex = IBM_Plex_Sans({
 
 const APP_NAME = "E2";
 const APP_DESCRIPTION =
-  "Event Storming — domain modeling with local JSON persistence (.storm.json)";
+  "Event Storming — domain modeling with local JSON persistence (.e2.json)";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,

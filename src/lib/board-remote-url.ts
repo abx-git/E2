@@ -1,5 +1,5 @@
 /**
- * Share / open a remote `.storm.json` via `?board=<https-url>`.
+ * Share / open a remote `.e2.json` via `?board=<https-url>`.
  * Validation uses the same import path as local export (v1/v2 snapshots).
  */
 

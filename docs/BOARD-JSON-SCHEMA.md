@@ -1,6 +1,6 @@
-# Board JSON format (`.storm.json`)
+# Board JSON format (`.e2.json`)
 
-E2 persists boards as JSON files, usually named `*.storm.json`. The working file is the **system of record** for solo use; optional collab mirrors snapshots to Supabase while a room is active.
+E2 persists boards as JSON files, usually named `*.e2.json`. The working file is the **system of record** for solo use; optional collab mirrors snapshots to Supabase while a room is active.
 
 ## Versions
 

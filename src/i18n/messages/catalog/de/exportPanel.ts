@@ -57,7 +57,7 @@ export const exportPanelDe = {
     groupBoardHint: "Alle Sichten",
     groupActiveView: "Aktive Sicht",
     groupActiveViewHint: "Canvas · Bild & Text",
-    jsonDownloadDetail: ".storm.json herunterladen",
+    jsonDownloadDetail: ".e2.json herunterladen",
     jsonCopy: "JSON kopieren",
     systemClipboard: "System-Zwischenablage",
     prompt: "Prompt",

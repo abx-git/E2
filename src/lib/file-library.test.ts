@@ -17,21 +17,21 @@ import {
 
 describe("file-library document", () => {
   it("normalizes relative paths", () => {
-    expect(normalizeLibraryRelativePath("\\foo\\bar.storm.json")).toBe("foo/bar.storm.json");
+    expect(normalizeLibraryRelativePath("\\foo\\bar.e2.json")).toBe("foo/bar.e2.json");
     expect(normalizeLibraryRelativePath("./boards/a.json")).toBe("boards/a.json");
     expect(normalizeLibraryRelativePath("/x/y.json/")).toBe("x/y.json");
   });
 
   it("builds backup paths under backups/", () => {
-    expect(libraryBackupRelativePath("mein-board-backup.storm.json")).toBe(
-      "backups/mein-board-backup.storm.json",
+    expect(libraryBackupRelativePath("mein-board-backup.e2.json")).toBe(
+      "backups/mein-board-backup.e2.json",
     );
     expect(libraryBackupRelativePath("nested/x.json")).toBe("backups/x.json");
   });
 
   it("replaces the basename after rename", () => {
-    expect(replaceLibraryPathBasename("workshops/old.storm.json", "neu.storm.json")).toBe(
-      "workshops/neu.storm.json",
+    expect(replaceLibraryPathBasename("workshops/old.e2.json", "neu.e2.json")).toBe(
+      "workshops/neu.e2.json",
     );
   });
 
@@ -44,7 +44,7 @@ describe("file-library document", () => {
     const doc = createEmptyFileLibrary();
     const { doc: next } = upsertFileLibraryEntry(doc, {
       title: "Workshop",
-      path: "workshop.storm.json",
+      path: "workshop.e2.json",
       kind: "board",
       updatedAt: 1_700_000_000_000,
     });
@@ -53,21 +53,21 @@ describe("file-library document", () => {
     expect(parsed?.version).toBe(FILE_LIBRARY_VERSION);
     expect(parsed?.files).toHaveLength(1);
     expect(parsed?.files[0]?.title).toBe("Workshop");
-    expect(parsed?.files[0]?.path).toBe("workshop.storm.json");
+    expect(parsed?.files[0]?.path).toBe("workshop.e2.json");
   });
 
   it("upserts by path+kind and keeps id", () => {
     const empty = createEmptyFileLibrary();
     const first = upsertFileLibraryEntry(empty, {
       title: "A",
-      path: "a.storm.json",
+      path: "a.e2.json",
       kind: "board",
       updatedAt: 10,
     });
     const second = upsertFileLibraryEntry(first.doc, {
       id: first.entry.id,
       title: "A renamed",
-      path: "a.storm.json",
+      path: "a.e2.json",
       kind: "board",
       updatedAt: 20,
     });
@@ -81,13 +81,13 @@ describe("file-library document", () => {
     let doc = createEmptyFileLibrary();
     doc = upsertFileLibraryEntry(doc, {
       title: "A",
-      path: "a.storm.json",
+      path: "a.e2.json",
       kind: "board",
       updatedAt: 1,
     }).doc;
     doc = upsertFileLibraryEntry(doc, {
       title: "A",
-      path: "backups/a-backup.storm.json",
+      path: "backups/a-backup.e2.json",
       kind: "backup",
       updatedAt: 2,
     }).doc;
@@ -96,9 +96,9 @@ describe("file-library document", () => {
 
   it("sorts boards before backups, newest first", () => {
     const sorted = sortFileLibraryEntries([
-      { id: "1", title: "Old", path: "old.storm.json", kind: "board", updatedAt: 1 },
+      { id: "1", title: "Old", path: "old.e2.json", kind: "board", updatedAt: 1 },
       { id: "2", title: "Bak", path: "backups/b.json", kind: "backup", updatedAt: 9 },
-      { id: "3", title: "New", path: "new.storm.json", kind: "board", updatedAt: 5 },
+      { id: "3", title: "New", path: "new.e2.json", kind: "board", updatedAt: 5 },
     ]);
     expect(sorted.map((e) => e.id)).toEqual(["3", "1", "2"]);
   });
@@ -106,12 +106,12 @@ describe("file-library document", () => {
   it("renames a stored path", () => {
     const { doc } = upsertFileLibraryEntry(createEmptyFileLibrary(), {
       title: "A",
-      path: "folder/old.storm.json",
+      path: "folder/old.e2.json",
       kind: "board",
       updatedAt: 1,
     });
-    const renamed = renameFileLibraryPath(doc, "folder/old.storm.json", "folder/neu.storm.json");
-    expect(renamed.files[0]?.path).toBe("folder/neu.storm.json");
+    const renamed = renameFileLibraryPath(doc, "folder/old.e2.json", "folder/neu.e2.json");
+    expect(renamed.files[0]?.path).toBe("folder/neu.e2.json");
   });
 
   it("rejects unrelated JSON as a library", () => {

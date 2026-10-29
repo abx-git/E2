@@ -156,6 +156,7 @@ import {
   requestWorkingFilePermission,
   resolveWorkingFileImportConflict,
   saveWorkingFileAs,
+  STANDARD_WORKING_FILENAME,
   suggestedWorkingFileName,
   renameWorkingFile,
 } from "@/lib/working-file";
@@ -404,7 +405,7 @@ export function StormBoard() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${title.replace(/\s+/g, "-").toLowerCase()}.storm.json`;
+    a.download = suggestedWorkingFileName(title);
     a.click();
     URL.revokeObjectURL(url);
   }, [title]);
@@ -899,7 +900,7 @@ export function StormBoard() {
       window.alert(t("alerts.noWorkingFileLinked"));
       return;
     }
-    const current = getWorkingFileLabel() || "board.storm.json";
+    const current = getWorkingFileLabel() || STANDARD_WORKING_FILENAME;
     const next = window.prompt(t("alerts.renamePrompt"), current);
     if (next == null) return;
     const trimmed = next.trim();
@@ -1750,7 +1751,7 @@ export function StormBoard() {
       <input
         ref={fileInputRef}
         type="file"
-        accept=".json,.storm.json,application/json"
+        accept=".json,.e2.json,.storm.json,application/json"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -1788,7 +1789,7 @@ export function StormBoard() {
       <input
         ref={importViewsInputRef}
         type="file"
-        accept=".json,.storm.json,.txt,.md,.mmd,.mermaid,.puml,.plantuml,application/json,text/plain"
+        accept=".json,.e2.json,.storm.json,.txt,.md,.mmd,.mermaid,.puml,.plantuml,application/json,text/plain"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

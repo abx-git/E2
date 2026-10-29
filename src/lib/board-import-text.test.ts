@@ -82,7 +82,7 @@ describe("boardImportPayloadFromJsonText", () => {
     expect(payload?.views[0]?.elements[0]).toMatchObject({ label: "Note", x: 5, y: 6 });
   });
 
-  it("imports a .storm.json snapshot", () => {
+  it("imports a .e2.json snapshot", () => {
     const payload = boardImportPayloadFromJsonText(stormJson);
     expect(payload).not.toBeNull();
     expect(payload!.title).toBe("Workshop");

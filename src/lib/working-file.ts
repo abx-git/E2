@@ -1,9 +1,15 @@
 /**
  * Arbeitsdatei (File System Access API): einziges Speichermedium.
  * Handles / mirrors are keyed by unique `wf` slot ids (URL `?wf=`) so tabs can
- * open different files even when basenames match (e.g. board.storm.json).
+ * open different files even when basenames match (e.g. board.e2.json).
  */
 
+import {
+  E2_BOARD_FILE_SUFFIX,
+  STANDARD_E2_BOARD_FILENAME,
+  stripBoardFileSuffix,
+  suggestedE2BoardFilename,
+} from "@/lib/e2-board-filename";
 import {
   applyBoardJsonToStore,
   boardJsonFromStoreState,
@@ -40,7 +46,7 @@ import {
   rememberRenamedFileInLibrary,
 } from "@/lib/file-library";
 
-export const STANDARD_WORKING_FILENAME = "board.storm.json";
+export const STANDARD_WORKING_FILENAME = STANDARD_E2_BOARD_FILENAME;
 
 const IDB_NAME = "e2-working-file";
 const IDB_VERSION = 1;
@@ -362,13 +368,13 @@ export function downloadWorkingFileSafetyCopy(
   kind: "disk" | "editor" = "disk",
 ): void {
   const base =
-    getWorkingFileLabel()?.replace(/\.storm\.json$/i, "") ||
-    getRememberedWorkingFileName()?.replace(/\.storm\.json$/i, "") ||
+    stripBoardFileSuffix(getWorkingFileLabel() ?? "") ||
+    stripBoardFileSuffix(getRememberedWorkingFileName() ?? "") ||
     "board";
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
   const suffix = kind === "disk" ? "disk-copy" : "editor-copy";
   downloadTextFile(
-    `${base}-${suffix}-${stamp}.storm.json`,
+    `${base}-${suffix}-${stamp}${E2_BOARD_FILE_SUFFIX}`,
     json,
     "application/json",
   );
@@ -724,7 +730,7 @@ async function idbPutRecent(entries: RecentWorkingFileRecord[]): Promise<void> {
 
 /**
  * True only when the File System Access API confirms the same disk entry.
- * Never fall back to basename equality — two `board.storm.json` in different
+ * Never fall back to basename equality — two `board.e2.json` in different
  * folders would otherwise share one `wf` slot and produce identical bookmark URLs.
  */
 async function handlesAreSame(
@@ -848,8 +854,8 @@ async function ensureReadWritePermission(handle: FileSystemFileHandle): Promise<
 }
 
 /**
- * Picker types for macOS/Chrome: do NOT list compound ".storm.json" — the OS
- * treats the extension as ".json", and ".storm.json" in accept greys out valid boards.
+ * Picker types for macOS/Chrome: do NOT list compound ".e2.json" — the OS
+ * treats the extension as ".json", and ".e2.json" in accept greys out valid boards.
  * Always keep "All files" available (excludeAcceptAllOption: false).
  */
 const JSON_PICKER_TYPES: FilePickerAcceptType[] = [
@@ -1140,22 +1146,12 @@ export async function attachWorkingFileOpen(): Promise<FileSystemFileHandle | nu
   }
 }
 
-/** Ensure a picker-friendly `.storm.json` file name. */
+/** Ensure a picker-friendly `*.e2.json` file name. */
 export function suggestedWorkingFileName(
   titleOrLabel: string | null | undefined,
   fallback: string = STANDARD_WORKING_FILENAME,
 ): string {
-  const raw = titleOrLabel?.trim();
-  if (!raw) return fallback;
-  if (/\.storm\.json$/i.test(raw)) return raw;
-  if (/\.json$/i.test(raw)) return raw.replace(/\.json$/i, ".storm.json");
-  const slug = raw
-    .replace(/[\\/:*?"<>|]+/g, "-")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .toLowerCase();
-  return `${slug || "board"}.storm.json`;
+  return suggestedE2BoardFilename(titleOrLabel, fallback);
 }
 
 export async function attachWorkingFileCreate(
