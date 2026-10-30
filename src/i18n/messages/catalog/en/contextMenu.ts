@@ -38,6 +38,8 @@ export const contextMenuEn = {
     editStartLabel: "Edit start label…",
     editEndLabel: "Edit end label…",
     connectorLabelPrompt: "Connector text",
+    connectorAddBendHint: "Double-click the line to add a bend",
+    connectorRemoveBendHint: "Drag to move · double-click to remove bend",
     labelPrompt: "Label",
     startLabelPrompt: "Start label",
     endLabelPrompt: "End label",

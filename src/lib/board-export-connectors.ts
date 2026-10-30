@@ -1,6 +1,11 @@
 import { mergeLegacyIntoConnectors } from "@/lib/board-connector-migrate";
 import { resolveConnectorAnchors } from "@/lib/board-connector-resolve";
 import {
+  polylineCaptionAnchor,
+  polylinePointsAttr,
+  resolveConnectorPolylinePoints,
+} from "@/lib/connector-polyline";
+import {
   boardConnectorCaption,
   boardConnectorDoubleLine,
   boardConnectorStrokeColor,
@@ -53,6 +58,20 @@ export function connectorsForExport(state: BoardExportSlice): BoardConnector[] {
   );
 }
 
+export function connectorExportPolyline(
+  conn: BoardConnector,
+  elements: StormElement[],
+  swimlanes: Swimlane[],
+  boundedContexts: BoundedContext[],
+  ox: number,
+  oy: number,
+): { x: number; y: number }[] | null {
+  const points = resolveConnectorPolylinePoints(conn, elements, swimlanes, boundedContexts);
+  if (points.length < 2) return null;
+  return points.map((p) => ({ x: p.x + ox, y: p.y + oy }));
+}
+
+/** @deprecated Prefer connectorExportPolyline */
 export function connectorExportGeometry(
   conn: BoardConnector,
   elements: StormElement[],
@@ -61,11 +80,9 @@ export function connectorExportGeometry(
   ox: number,
   oy: number,
 ): { start: { x: number; y: number }; end: { x: number; y: number } } | null {
-  const { start, end } = resolveConnectorAnchors(conn, elements, swimlanes, boundedContexts);
-  return {
-    start: { x: start.x + ox, y: start.y + oy },
-    end: { x: end.x + ox, y: end.y + oy },
-  };
+  const points = connectorExportPolyline(conn, elements, swimlanes, boundedContexts, ox, oy);
+  if (!points || points.length < 2) return null;
+  return { start: points[0]!, end: points[points.length - 1]! };
 }
 
 export function connectorExportCaptionStyle(sidebarHex: string): {
@@ -126,7 +143,7 @@ export function drawExportConnectorsOnCanvas(
 ): void {
   const captionBg = state.appearance.sidebar;
   for (const conn of connectorsForExport(state)) {
-    const geom = connectorExportGeometry(
+    const points = connectorExportPolyline(
       conn,
       state.elements,
       state.swimlanes,
@@ -134,7 +151,7 @@ export function drawExportConnectorsOnCanvas(
       ox,
       oy,
     );
-    if (!geom) continue;
+    if (!points || points.length < 2) continue;
 
     const dimmed = connectorDimmedForExportHighlight(conn, state);
     if (dimmed) {
@@ -142,22 +159,29 @@ export function drawExportConnectorsOnCanvas(
       ctx.globalAlpha = EXPORT_HIGHLIGHT_DIMMED_CONNECTOR_OPACITY;
     }
 
-    const { start, end } = geom;
+    const start = points[0]!;
+    const end = points[points.length - 1]!;
     const stroke = boardConnectorStrokeColor(conn, false);
     const strokeW = boardConnectorStrokeWidth(conn, false);
     const dash = boardConnectorStrokeDash(conn);
     const arrow = connectorArrowHead(conn);
     const caption = boardConnectorCaption(conn);
 
+    const strokePath = () => {
+      ctx.beginPath();
+      ctx.moveTo(start.x, start.y);
+      for (let i = 1; i < points.length; i += 1) {
+        ctx.lineTo(points[i]!.x, points[i]!.y);
+      }
+      ctx.stroke();
+    };
+
     if (boardConnectorDoubleLine(conn)) {
       ctx.save();
       ctx.strokeStyle = stroke;
       ctx.globalAlpha = 0.25;
       ctx.lineWidth = strokeW + 4;
-      ctx.beginPath();
-      ctx.moveTo(start.x, start.y);
-      ctx.lineTo(end.x, end.y);
-      ctx.stroke();
+      strokePath();
       ctx.restore();
     }
 
@@ -165,22 +189,23 @@ export function drawExportConnectorsOnCanvas(
     ctx.lineWidth = strokeW;
     const dashNums = dash ? parseDashArray(dash) : connectorCanvasLineDash(resolveBoardConnectorStrokeStyle(conn));
     ctx.setLineDash(dashNums);
-    ctx.beginPath();
-    ctx.moveTo(start.x, start.y);
-    ctx.lineTo(end.x, end.y);
-    ctx.stroke();
+    strokePath();
     ctx.setLineDash([]);
 
     if (arrow === "end" || arrow === "both") {
-      drawExportArrowHead(ctx, start.x, start.y, end.x, end.y, stroke);
+      const prev = points[points.length - 2]!;
+      drawExportArrowHead(ctx, prev.x, prev.y, end.x, end.y, stroke);
     }
     if (arrow === "start" || arrow === "both") {
-      drawExportArrowHead(ctx, end.x, end.y, start.x, start.y, stroke);
+      drawExportArrowHead(ctx, points[1]!.x, points[1]!.y, start.x, start.y, stroke);
     }
 
     if (caption) {
-      const midX = (start.x + end.x) / 2;
-      const midY = (start.y + end.y) / 2;
+      const { mid, badgeX, badgeY } = polylineCaptionAnchor(
+        points.map((p) => ({ x: p.x - ox, y: p.y - oy })),
+      );
+      const midX = mid.x + ox;
+      const midY = mid.y + oy;
       const padX = caption.length * 2.6 + 4;
       ctx.fillStyle = captionBg;
       ctx.globalAlpha = dimmed
@@ -192,6 +217,8 @@ export function drawExportConnectorsOnCanvas(
       ctx.font = cssFont(500, META_FONT_PX);
       ctx.textAlign = "center";
       ctx.fillText(caption, midX, midY - 8);
+      void badgeX;
+      void badgeY;
     }
     if (dimmed) ctx.restore();
   }
@@ -206,7 +233,7 @@ export function svgExportConnectors(
   const parts: string[] = [];
   const captionBg = escapeXml(state.appearance.sidebar);
   for (const conn of connectorsForExport(state)) {
-    const geom = connectorExportGeometry(
+    const points = connectorExportPolyline(
       conn,
       state.elements,
       state.swimlanes,
@@ -214,14 +241,15 @@ export function svgExportConnectors(
       ox,
       oy,
     );
-    if (!geom) continue;
+    if (!points || points.length < 2) continue;
 
     const dimmed = connectorDimmedForExportHighlight(conn, state);
     if (dimmed) {
       parts.push(`<g opacity="${EXPORT_HIGHLIGHT_DIMMED_CONNECTOR_OPACITY}">`);
     }
 
-    const { start, end } = geom;
+    const start = points[0]!;
+    const end = points[points.length - 1]!;
     const stroke = boardConnectorStrokeColor(conn, false);
     const strokeW = boardConnectorStrokeWidth(conn, false);
     const dash = boardConnectorStrokeDash(conn);
@@ -229,24 +257,29 @@ export function svgExportConnectors(
     const arrow = connectorArrowHead(conn);
     const caption = boardConnectorCaption(conn);
     const strokeEsc = escapeXml(stroke);
+    const pointsAttr = polylinePointsAttr(points);
 
     if (boardConnectorDoubleLine(conn)) {
       parts.push(
-        `<line x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}" stroke="${strokeEsc}" stroke-width="${strokeW + 4}" stroke-opacity="0.25"/>`,
+        `<polyline points="${pointsAttr}" fill="none" stroke="${strokeEsc}" stroke-width="${strokeW + 4}" stroke-opacity="0.25"/>`,
       );
     }
     parts.push(
-      `<line x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}" stroke="${strokeEsc}" stroke-width="${strokeW}"${dashAttr}/>`,
+      `<polyline points="${pointsAttr}" fill="none" stroke="${strokeEsc}" stroke-width="${strokeW}"${dashAttr}/>`,
     );
     if (arrow === "end" || arrow === "both") {
-      parts.push(svgExportArrowHead(start.x, start.y, end.x, end.y, stroke));
+      const prev = points[points.length - 2]!;
+      parts.push(svgExportArrowHead(prev.x, prev.y, end.x, end.y, stroke));
     }
     if (arrow === "start" || arrow === "both") {
-      parts.push(svgExportArrowHead(end.x, end.y, start.x, start.y, stroke));
+      parts.push(svgExportArrowHead(points[1]!.x, points[1]!.y, start.x, start.y, stroke));
     }
     if (caption) {
-      const midX = (start.x + end.x) / 2;
-      const midY = (start.y + end.y) / 2;
+      const { mid } = polylineCaptionAnchor(
+        points.map((p) => ({ x: p.x - ox, y: p.y - oy })),
+      );
+      const midX = mid.x + ox;
+      const midY = mid.y + oy;
       const padX = caption.length * 2.6 + 4;
       parts.push(
         `<rect x="${midX - padX}" y="${midY - 18}" width="${padX * 2}" height="14" rx="3" fill="${captionBg}" fill-opacity="0.85"/>`,

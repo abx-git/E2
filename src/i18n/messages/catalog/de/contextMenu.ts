@@ -38,6 +38,8 @@ export const contextMenuDe = {
     editStartLabel: "Start-Label ändern…",
     editEndLabel: "Ende-Label ändern…",
     connectorLabelPrompt: "Text am Verbinder",
+    connectorAddBendHint: "Doppelklick auf die Linie: Knoten einfügen",
+    connectorRemoveBendHint: "Ziehen zum Verschieben · Doppelklick: Knoten entfernen",
     labelPrompt: "Label",
     startLabelPrompt: "Start-Label",
     endLabelPrompt: "Ende-Label",
