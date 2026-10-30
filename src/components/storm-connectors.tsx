@@ -21,6 +21,7 @@ import {
   resolveRelationStrokeStyle,
 } from "@/lib/connector-style";
 import { relationEndpointsDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
+import { relationEndpointsDimmedByTypeVisibilityFilter } from "@/lib/canvas-type-visibility-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { ProgressMarkConnectorBadge } from "@/components/progress-mark-badge";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -53,6 +54,8 @@ export function StormConnectors({
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
   const selectionFilterEnabled = useStormBoardStore((s) => s.selectionFilterEnabled);
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
+  const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
+  const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const views = useStormBoardStore((s) => s.views);
   const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
@@ -180,7 +183,13 @@ export function StormConnectors({
           selectionFilterEnabled,
           selectedElementIds,
         );
-        const dimmed = dimForFocus || dimForSearch || dimForSelection;
+        const dimForTypeVisibility = relationEndpointsDimmedByTypeVisibilityFilter(
+          src,
+          tgt,
+          hiddenElementTypes,
+          hiddenCustomTypeIds,
+        );
+        const dimmed = dimForFocus || dimForSearch || dimForSelection || dimForTypeVisibility;
         const mark = rel.progressMark;
         const caption = relationCanvasCaption(rel);
         const handleR = connectorEndpointHandleRadius(selected);

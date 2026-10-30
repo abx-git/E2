@@ -133,6 +133,10 @@ export interface CanvasBoardView {
   snapToGrid: boolean;
   /** Freeform mode: user-defined card types (stereotypes) for this view. */
   customCardTypes: CustomCardType[];
+  /** Hidden built-in element types on the canvas (per view). */
+  hiddenElementTypes?: ElementType[];
+  /** Hidden freeform stereotype ids on the canvas (per view). */
+  hiddenCustomTypeIds?: string[];
 }
 
 /** Canvas tab or architecture-measures (`actions`) tab. */
@@ -300,6 +304,24 @@ export function normalizeTimeline(timeline: Timeline, modelingMode: ModelingMode
   };
 }
 
+function normalizeHiddenElementTypes(raw: unknown): ElementType[] {
+  if (!Array.isArray(raw)) return [];
+  const out: ElementType[] = [];
+  for (const entry of raw) {
+    if (isKnownElementType(entry) && !out.includes(entry)) out.push(entry);
+  }
+  return out;
+}
+
+function normalizeHiddenCustomTypeIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const entry of raw) {
+    if (typeof entry === "string" && entry.trim() && !out.includes(entry)) out.push(entry);
+  }
+  return out;
+}
+
 export function normalizeBoardView(
   raw: Partial<CanvasBoardView> & { id?: string; name?: string },
 ): CanvasBoardView {
@@ -332,6 +354,8 @@ export function normalizeBoardView(
       raw.snapToTimeline ?? modelingModeUsesTimelineByDefault(modelingMode),
     snapToGrid: raw.snapToGrid ?? false,
     customCardTypes: normalizeCustomCardTypes(raw.customCardTypes),
+    hiddenElementTypes: normalizeHiddenElementTypes(raw.hiddenElementTypes),
+    hiddenCustomTypeIds: normalizeHiddenCustomTypeIds(raw.hiddenCustomTypeIds),
   });
   const connectors = mergeLegacyIntoConnectors(
     normalizeBoardConnectors(raw.connectors),
