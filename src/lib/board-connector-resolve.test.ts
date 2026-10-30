@@ -104,4 +104,27 @@ describe("resolveConnectorAnchors", () => {
     expect(bent.start.y).toBeLessThan(straight.start.y);
     expect(bent.start.x).toBeCloseTo(50, 0);
   });
+
+  it("docks target on the edge facing the last waypoint along the incoming segment", () => {
+    const source = el({ id: "s", x: 0, y: 0, width: 100, height: 40 });
+    const target = el({ id: "t", x: 200, y: 80, width: 100, height: 40 });
+    const lastWp = { x: 40, y: -20 };
+
+    const { end } = resolveConnectorAnchors(
+      {
+        source: { attach: "element", id: "s" },
+        target: { attach: "element", id: "t" },
+        waypoints: [lastWp],
+      },
+      [source, target],
+      [],
+      [],
+    );
+
+    // Incoming from lastWp toward target center hits the top edge (not the left edge from center→wp).
+    expect(end.y).toBeCloseTo(80, 0);
+    expect(end.x).toBeCloseTo(215, 0);
+    expect(end.x).toBeGreaterThan(200);
+    expect(end.x).toBeLessThan(250);
+  });
 });
