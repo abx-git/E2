@@ -74,4 +74,34 @@ describe("resolveConnectorAnchors", () => {
     expect(start.y).toBeCloseTo(40, 0);
     expect(end.y).toBeCloseTo(120, 0);
   });
+
+  it("aims source anchor at the first waypoint and target at the last", () => {
+    const source = el({ id: "s", x: 0, y: 0, width: 100, height: 40 });
+    const target = el({ id: "t", x: 200, y: 0, width: 100, height: 40 });
+
+    const straight = resolveConnectorAnchors(
+      {
+        source: { attach: "element", id: "s" },
+        target: { attach: "element", id: "t" },
+      },
+      [source, target],
+      [],
+      [],
+    );
+
+    const bent = resolveConnectorAnchors(
+      {
+        source: { attach: "element", id: "s" },
+        target: { attach: "element", id: "t" },
+        waypoints: [{ x: 50, y: -60 }],
+      },
+      [source, target],
+      [],
+      [],
+    );
+
+    expect(straight.start.y).toBeCloseTo(20, 0);
+    expect(bent.start.y).toBeLessThan(straight.start.y);
+    expect(bent.start.x).toBeCloseTo(50, 0);
+  });
 });

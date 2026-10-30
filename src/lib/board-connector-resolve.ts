@@ -81,11 +81,16 @@ export function resolveConnectorEndpointPoint(
 }
 
 export function resolveConnectorAnchors(
-  connector: { source: ConnectorEndpoint; target: ConnectorEndpoint },
+  connector: {
+    source: ConnectorEndpoint;
+    target: ConnectorEndpoint;
+    waypoints?: readonly { x: number; y: number }[];
+  },
   elements: StormElement[],
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
 ): { start: Point; end: Point } {
+  const waypoints = connector.waypoints ?? [];
   const targetCenter =
     connectorEndpointCenter(connector.target, elements, swimlanes, boundedContexts) ??
     (connector.target.attach === "point"
@@ -97,19 +102,53 @@ export function resolveConnectorAnchors(
       ? { x: connector.source.x, y: connector.source.y }
       : { x: 0, y: 0 });
 
+  const towardSourceEnd = waypoints.length > 0 ? waypoints[waypoints.length - 1]! : sourceCenter;
+  const towardTargetStart = waypoints.length > 0 ? waypoints[0]! : targetCenter;
+
   const end = resolveConnectorEndpointPoint(
     connector.target,
-    sourceCenter,
+    towardSourceEnd,
     elements,
     swimlanes,
     boundedContexts,
   );
   const start = resolveConnectorEndpointPoint(
     connector.source,
-    targetCenter,
+    towardTargetStart,
     elements,
     swimlanes,
     boundedContexts,
   );
   return { start, end };
+}
+
+/** Point shape attachments should “look toward” when dragging or re-anchoring endpoints. */
+export function connectorEndpointTowardPoint(
+  connector: {
+    source: ConnectorEndpoint;
+    target: ConnectorEndpoint;
+    waypoints?: readonly { x: number; y: number }[];
+  },
+  side: "source" | "target",
+  elements: StormElement[],
+  swimlanes: Swimlane[],
+  boundedContexts: BoundedContext[],
+): Point {
+  const waypoints = connector.waypoints ?? [];
+  if (side === "source") {
+    if (waypoints.length > 0) return { ...waypoints[0]! };
+    return (
+      connectorEndpointCenter(connector.target, elements, swimlanes, boundedContexts) ??
+      (connector.target.attach === "point"
+        ? { x: connector.target.x, y: connector.target.y }
+        : { x: 0, y: 0 })
+    );
+  }
+  if (waypoints.length > 0) return { ...waypoints[waypoints.length - 1]! };
+  return (
+    connectorEndpointCenter(connector.source, elements, swimlanes, boundedContexts) ??
+    (connector.source.attach === "point"
+      ? { x: connector.source.x, y: connector.source.y }
+      : { x: 0, y: 0 })
+  );
 }
