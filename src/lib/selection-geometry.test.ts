@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   elementBounds,
   elementsInMarquee,
+  rectContainedIn,
   rectsIntersect,
   swimlanesInMarquee,
   topRegionInMarquee,
@@ -45,15 +46,24 @@ describe("selection-geometry", () => {
     expect(rectsIntersect({ x: 0, y: 0, w: 10, h: 10 }, { x: 20, y: 20, w: 10, h: 10 })).toBe(false);
   });
 
-  it("selects elements overlapping a marquee", () => {
+  it("detects full containment", () => {
+    expect(rectContainedIn({ x: 2, y: 2, w: 4, h: 4 }, { x: 0, y: 0, w: 10, h: 10 })).toBe(true);
+    expect(rectContainedIn({ x: 0, y: 0, w: 10, h: 10 }, { x: 0, y: 0, w: 10, h: 10 })).toBe(true);
+    expect(rectContainedIn({ x: 9, y: 0, w: 2, h: 2 }, { x: 0, y: 0, w: 10, h: 10 })).toBe(false);
+    expect(rectContainedIn({ x: 5, y: 5, w: 10, h: 10 }, { x: 0, y: 0, w: 10, h: 10 })).toBe(false);
+  });
+
+  it("selects only elements fully enclosed by the marquee", () => {
     const elements = [
       el({ id: "a", x: 0, y: 0 }),
       el({ id: "b", x: 200, y: 0 }),
       el({ id: "c", x: 50, y: 100 }),
     ];
     expect(elementsInMarquee(elements, { x: 0, y: 0, w: 120, h: 60 })).toEqual(["a"]);
-    expect(elementsInMarquee(elements, { x: 0, y: 0, w: 250, h: 60 }).sort()).toEqual(["a", "b"]);
-    expect(elementsInMarquee(elements, { x: 40, y: 80, w: 80, h: 80 })).toEqual(["c"]);
+    expect(elementsInMarquee(elements, { x: 0, y: 0, w: 250, h: 60 })).toEqual(["a"]);
+    expect(elementsInMarquee(elements, { x: 0, y: 0, w: 310, h: 60 }).sort()).toEqual(["a", "b"]);
+    expect(elementsInMarquee(elements, { x: 40, y: 80, w: 80, h: 80 })).toEqual([]);
+    expect(elementsInMarquee(elements, { x: 40, y: 90, w: 120, h: 70 })).toEqual(["c"]);
   });
 
   it("uses default dimensions when width/height missing", () => {
@@ -79,24 +89,24 @@ describe("selection-geometry", () => {
     expect(bounds.h).toBeGreaterThan(0);
   });
 
-  it("selects swimlanes overlapping a marquee", () => {
+  it("selects swimlanes fully enclosed by the marquee", () => {
     const lanes = [
-      lane({ id: "l1", y: 0, height: 100 }),
-      lane({ id: "l2", y: 200, height: 100 }),
+      lane({ id: "l1", y: 0, height: 100, x: 0, width: 200 }),
+      lane({ id: "l2", y: 200, height: 100, x: 0, width: 200 }),
     ];
-    expect(swimlanesInMarquee(lanes, { x: 10, y: 20, w: 50, h: 40 })).toEqual(["l1"]);
-    expect(swimlanesInMarquee(lanes, { x: 10, y: 220, w: 50, h: 40 })).toEqual(["l2"]);
-    expect(swimlanesInMarquee(lanes, { x: 10, y: 120, w: 50, h: 40 })).toEqual([]);
+    expect(swimlanesInMarquee(lanes, { x: 10, y: 20, w: 50, h: 40 })).toEqual([]);
+    expect(swimlanesInMarquee(lanes, { x: 0, y: 0, w: 200, h: 100 })).toEqual(["l1"]);
+    expect(swimlanesInMarquee(lanes, { x: 0, y: 200, w: 200, h: 100 })).toEqual(["l2"]);
   });
 
-  it("picks the topmost region in a marquee by z-order", () => {
-    const lanes = [lane({ id: "l1", y: 0, height: 200, zIndex: 0 })];
+  it("picks the topmost fully enclosed region in a marquee by z-order", () => {
+    const lanes = [lane({ id: "l1", y: 0, height: 200, x: 0, width: 200, zIndex: 0 })];
     const contexts = [bc({ id: "bc1", x: 20, y: 20, width: 100, height: 80, zIndex: 2 })];
-    expect(topRegionInMarquee(lanes, contexts, { x: 30, y: 30, w: 40, h: 40 })).toEqual({
+    expect(topRegionInMarquee(lanes, contexts, { x: 0, y: 0, w: 200, h: 200 })).toEqual({
       kind: "boundedContext",
       id: "bc1",
     });
-    expect(topRegionInMarquee(lanes, [], { x: 30, y: 30, w: 40, h: 40 })).toEqual({
+    expect(topRegionInMarquee(lanes, [], { x: 0, y: 0, w: 200, h: 200 })).toEqual({
       kind: "swimlane",
       id: "l1",
     });
