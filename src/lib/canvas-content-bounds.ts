@@ -67,6 +67,9 @@ export function computeCanvasContentBounds(input: {
     );
     bounds = expandPoint(bounds, start.x, start.y, 2);
     bounds = expandPoint(bounds, end.x, end.y, 2);
+    for (const wp of conn.waypoints ?? []) {
+      bounds = expandPoint(bounds, wp.x, wp.y, 2);
+    }
   }
 
   return bounds ?? DEFAULT_BOUNDS;

@@ -3,6 +3,7 @@ import {
   stripConnectorApproach,
 } from "@/lib/board-connector-resolve";
 import { normalizeCanvasLine } from "@/lib/canvas-annotations";
+import { normalizeConnectorWaypoints } from "@/lib/connector-polyline";
 import { pickConnectorTargetSnapAt } from "@/lib/connector-target-pick";
 import { defaultRelationType } from "@/lib/relation-validation";
 import { generateStormId } from "@/lib/storm-id";
@@ -157,6 +158,7 @@ export function normalizeBoardConnectors(raw: unknown): BoardConnector[] {
       strokeStyle: c.strokeStyle,
       color: c.color,
       progressMark: c.progressMark,
+      waypoints: normalizeConnectorWaypoints(c.waypoints),
     });
   }
   return out;

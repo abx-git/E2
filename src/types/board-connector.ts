@@ -17,10 +17,14 @@ export type ConnectorEndpoint =
   | ({ attach: "swimlane"; id: string } & EndpointWithApproach)
   | { attach: "point"; x: number; y: number };
 
+export type ConnectorWaypoint = { x: number; y: number };
+
 export interface BoardConnector {
   id: string;
   source: ConnectorEndpoint;
   target: ConnectorEndpoint;
+  /** Interior bend points (world coords); endpoints come from attachments. */
+  waypoints?: ConnectorWaypoint[];
   arrowHead?: LineArrowHead;
   label?: string;
   /** Sticky relations: type caption vs custom label. */
