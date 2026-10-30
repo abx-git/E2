@@ -15,6 +15,8 @@ import {
   SWIMLANE_LABEL_FILL,
   TIMELINE_STROKE,
   cssExportFont,
+  EXPORT_HIGHLIGHT_DIMMED_ELEMENT_FILTER,
+  EXPORT_HIGHLIGHT_DIMMED_ELEMENT_OPACITY,
   elementFillWithOpacity,
   isBoundaryElement,
   elementIsDashed,
@@ -28,7 +30,9 @@ import {
   drawExportConnectorsOnCanvas,
   drawioExportConnectorCells,
   svgExportConnectors,
+  type BoardExportSlice,
 } from "@/lib/board-export-connectors";
+import { elementDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
 import { elementRect as geomElementRect } from "@/lib/connector-geometry";
 import {
   cardAttributeLines,
@@ -69,6 +73,7 @@ import { translate } from "@/i18n/translate";
 import { resolveInitialLocale } from "@/i18n/resolve-locale";
 import {
   boardActiveSliceFromStore,
+  boardExportSliceFromStore,
   boardImportPayloadFromStore,
   useStormBoardStore,
 } from "@/store/storm-board-store";
@@ -1059,6 +1064,16 @@ interface BoardBounds {
   oy: number;
 }
 
+function elementDimmedForExportHighlight(elementId: string, state: BoardExportSlice): boolean {
+  const highlight = state.selectionHighlight;
+  if (!highlight) return false;
+  return elementDimmedBySelectionFilter(
+    elementId,
+    highlight.enabled,
+    highlight.selectedElementIds,
+  );
+}
+
 function computeBoardBounds(state: ReturnType<typeof boardActiveSliceFromStore>): BoardBounds {
   let minX = Infinity;
   let minY = Infinity;
@@ -1404,7 +1419,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds):
 }
 
 export function exportBoardSvg(): void {
-  const state = boardActiveSliceFromStore();
+  const state = boardExportSliceFromStore();
   const bounds = computeBoardBounds(state);
   const { width, height, ox, oy } = bounds;
   const canvasBg = exportCanvasBackground(state.appearance);
@@ -1467,6 +1482,10 @@ export function exportBoardSvg(): void {
   parts.push(...svgExportConnectors(state, ox, oy, escapeXml));
 
   for (const el of sortElementsByZOrder(state.elements)) {
+    const selectionDimmed = elementDimmedForExportHighlight(el.id, state);
+    if (selectionDimmed) {
+      parts.push(`<g opacity="${EXPORT_HIGHLIGHT_DIMMED_ELEMENT_OPACITY}">`);
+    }
     const r = elementRect(el);
     const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
     const x = r.x + ox;
@@ -1554,6 +1573,9 @@ export function exportBoardSvg(): void {
       cursorY += 2;
       pushTextBlock(preview.links, "meta", ink, metaH, true);
     }
+    if (selectionDimmed) {
+      parts.push(`</g>`);
+    }
   }
 
   parts.push("</svg>");
@@ -1575,7 +1597,7 @@ function renderActiveViewRaster(): {
   height: number;
   title: string;
 } | null {
-  const state = boardActiveSliceFromStore();
+  const state = boardExportSliceFromStore();
   const { width, height, ox, oy } = computeBoardBounds(state);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -1647,6 +1669,11 @@ function renderActiveViewRaster(): {
     const rx = cornerRadius(el, r.w, r.h);
 
     ctx.save();
+    const selectionDimmed = elementDimmedForExportHighlight(el.id, state);
+    if (selectionDimmed) {
+      ctx.globalAlpha = EXPORT_HIGHLIGHT_DIMMED_ELEMENT_OPACITY;
+      ctx.filter = EXPORT_HIGHLIGHT_DIMMED_ELEMENT_FILTER;
+    }
     const rotDeg = elementExportRotation(el);
     if (rotDeg) {
       ctx.translate(x + r.w / 2, y + r.h / 2);

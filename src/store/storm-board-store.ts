@@ -72,6 +72,7 @@ import { normalizeProgressMark } from "@/lib/progress-mark";
 
 const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
+import type { BoardExportSlice } from "@/lib/board-export-connectors";
 import { normalizeActionItem } from "@/lib/action-items";
 import {
   findMeasureForHotspot,
@@ -3198,5 +3199,17 @@ export function boardActiveSliceFromStore() {
     snapToTimeline: s.snapToTimeline,
     snapToGrid: s.snapToGrid,
     customCardTypes: s.customCardTypes,
+  };
+}
+
+/** Canvas raster/SVG export slice including ephemeral highlight UI. */
+export function boardExportSliceFromStore(): BoardExportSlice {
+  const s = useStormBoardStore.getState();
+  return {
+    ...boardActiveSliceFromStore(),
+    selectionHighlight: {
+      enabled: s.selectionFilterEnabled,
+      selectedElementIds: s.selectedElementIds,
+    },
   };
 }

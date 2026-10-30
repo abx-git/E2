@@ -9,13 +9,40 @@ import {
   connectorArrowHead,
   resolveBoardConnectorStrokeStyle,
 } from "@/lib/board-connector-style";
-import { CONNECTOR_STROKE, META_FONT_PX } from "@/lib/board-export-visual";
+import { CONNECTOR_STROKE, META_FONT_PX, EXPORT_HIGHLIGHT_DIMMED_CONNECTOR_OPACITY } from "@/lib/board-export-visual";
 import { connectorCanvasLineDash, connectorMxDash } from "@/lib/connector-style";
+import { connectorDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
 import type { BoardActiveSlice } from "@/lib/storm-json";
 import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 
-export type BoardExportSlice = BoardActiveSlice & { connectors?: BoardConnector[] };
+export type BoardExportHighlight = {
+  enabled: boolean;
+  selectedElementIds: readonly string[];
+};
+
+export type BoardExportSlice = BoardActiveSlice & {
+  connectors?: BoardConnector[];
+  /** Ephemeral UI: „Auswahl hervorheben“ for PNG/SVG/PDF export. */
+  selectionHighlight?: BoardExportHighlight;
+};
+
+export function connectorExportInvolvesElement(conn: BoardConnector, elementId: string): boolean {
+  return (
+    (conn.source.attach === "element" && conn.source.id === elementId) ||
+    (conn.target.attach === "element" && conn.target.id === elementId)
+  );
+}
+
+function connectorDimmedForExportHighlight(conn: BoardConnector, state: BoardExportSlice): boolean {
+  const highlight = state.selectionHighlight;
+  if (!highlight) return false;
+  return connectorDimmedBySelectionFilter(
+    (elementId) => connectorExportInvolvesElement(conn, elementId),
+    highlight.enabled,
+    highlight.selectedElementIds,
+  );
+}
 
 export function connectorsForExport(state: BoardExportSlice): BoardConnector[] {
   return mergeLegacyIntoConnectors(
@@ -109,6 +136,12 @@ export function drawExportConnectorsOnCanvas(
     );
     if (!geom) continue;
 
+    const dimmed = connectorDimmedForExportHighlight(conn, state);
+    if (dimmed) {
+      ctx.save();
+      ctx.globalAlpha = EXPORT_HIGHLIGHT_DIMMED_CONNECTOR_OPACITY;
+    }
+
     const { start, end } = geom;
     const stroke = boardConnectorStrokeColor(conn, false);
     const strokeW = boardConnectorStrokeWidth(conn, false);
@@ -150,14 +183,17 @@ export function drawExportConnectorsOnCanvas(
       const midY = (start.y + end.y) / 2;
       const padX = caption.length * 2.6 + 4;
       ctx.fillStyle = captionBg;
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = dimmed
+        ? EXPORT_HIGHLIGHT_DIMMED_CONNECTOR_OPACITY * 0.85
+        : 0.85;
       ctx.fillRect(midX - padX, midY - 18, padX * 2, 14);
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = dimmed ? EXPORT_HIGHLIGHT_DIMMED_CONNECTOR_OPACITY : 1;
       ctx.fillStyle = CONNECTOR_STROKE;
       ctx.font = cssFont(500, META_FONT_PX);
       ctx.textAlign = "center";
       ctx.fillText(caption, midX, midY - 8);
     }
+    if (dimmed) ctx.restore();
   }
 }
 
@@ -179,6 +215,11 @@ export function svgExportConnectors(
       oy,
     );
     if (!geom) continue;
+
+    const dimmed = connectorDimmedForExportHighlight(conn, state);
+    if (dimmed) {
+      parts.push(`<g opacity="${EXPORT_HIGHLIGHT_DIMMED_CONNECTOR_OPACITY}">`);
+    }
 
     const { start, end } = geom;
     const stroke = boardConnectorStrokeColor(conn, false);
@@ -212,6 +253,7 @@ export function svgExportConnectors(
         `<text class="meta" x="${midX}" y="${midY - 8}" text-anchor="middle" fill="${escapeXml(CONNECTOR_STROKE)}">${escapeXml(caption)}</text>`,
       );
     }
+    if (dimmed) parts.push(`</g>`);
   }
   return parts;
 }
