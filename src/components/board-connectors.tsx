@@ -26,9 +26,14 @@ import {
   type ConnectorAttachTarget,
 } from "@/lib/connector-target-pick";
 import { connectorHitStrokeWidth } from "@/lib/connector-style";
+import {
+  connectorFreeTextLabelPatch,
+  connectorFreeTextPromptDefault,
+} from "@/lib/connector-label-edit";
 import { connectorDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { ProgressMarkConnectorBadge } from "@/components/progress-mark-badge";
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { BoardConnector } from "@/types/board-connector";
 import type { StormElement } from "@/types/storm-element";
@@ -64,9 +69,11 @@ export interface BoardConnectorsProps {
 }
 
 export function BoardConnectors({ elements, connectorDraftSource }: BoardConnectorsProps) {
+  const t = useT();
   const connectors = useStormBoardStore((s) => s.connectors);
   const selectedConnectorId = useStormBoardStore((s) => s.selectedConnectorId);
   const selectConnector = useStormBoardStore((s) => s.selectConnector);
+  const updateConnector = useStormBoardStore((s) => s.updateConnector);
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
@@ -319,6 +326,19 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
             }
             selectConnector(conn.id);
           };
+          const editLabel = (e: ReactMouseEvent) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (relationMode) return;
+            selectConnector(conn.id);
+            const next = window.prompt(
+              t("contextMenu.connectorLabelPrompt"),
+              connectorFreeTextPromptDefault(conn),
+            );
+            if (next !== null) {
+              updateConnector(conn.id, connectorFreeTextLabelPatch(next));
+            }
+          };
 
           return (
             <g key={conn.id} opacity={dimmed ? 0.22 : 1}>
@@ -334,6 +354,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
                 className="pointer-events-auto cursor-pointer"
                 onPointerDown={selectThis}
                 onClick={selectThis}
+                onDoubleClick={editLabel}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -378,7 +399,12 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
                 className="pointer-events-none"
               />
               {caption ? (
-                <g className="pointer-events-auto cursor-pointer" onPointerDown={selectThis} onClick={selectThis}>
+                <g
+                  className="pointer-events-auto cursor-pointer"
+                  onPointerDown={selectThis}
+                  onClick={selectThis}
+                  onDoubleClick={editLabel}
+                >
                   <rect
                     x={midX - caption.length * 2.6 - 4}
                     y={midY - 18}
