@@ -1024,6 +1024,21 @@
           "items": {
             "$ref": "#/$defs/customCardType"
           }
+        },
+        "hiddenElementTypes": {
+          "type": "array",
+          "description": "Ausgeblendete Elementtypen auf dem Canvas (pro Sicht).",
+          "items": {
+            "$ref": "#/$defs/elementType"
+          }
+        },
+        "hiddenCustomTypeIds": {
+          "type": "array",
+          "description": "Ausgeblendete Freiform-Stereotyp-IDs auf dem Canvas (pro Sicht).",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

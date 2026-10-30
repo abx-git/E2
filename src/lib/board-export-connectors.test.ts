@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { connectorsForExport, connectorExportGeometry } from "@/lib/board-export-connectors";
+import { connectorsForExport, connectorExportGeometry, svgExportConnectors } from "@/lib/board-export-connectors";
 import { exportCanvasBackground } from "@/lib/board-export-visual";
 import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
 import type { BoardActiveSlice } from "@/lib/storm-json";
@@ -50,5 +50,22 @@ describe("board export connectors", () => {
     expect(geom).not.toBeNull();
     expect(geom!.start.x).toBeGreaterThanOrEqual(0);
     expect(geom!.end.y).toBeGreaterThanOrEqual(0);
+  });
+
+  it("wraps connectors in reduced opacity when selection highlight export is active", () => {
+    const slice = {
+      ...baseSlice(),
+      connectors: [
+        {
+          id: "c1",
+          source: { attach: "element", id: "a" },
+          target: { attach: "element", id: "b" },
+          arrowHead: "end" as const,
+        },
+      ],
+      selectionHighlight: { enabled: true, selectedElementIds: ["x"] },
+    };
+    const parts = svgExportConnectors(slice, 0, 0, (s) => s);
+    expect(parts.join("\n")).toContain('opacity="0.22"');
   });
 });

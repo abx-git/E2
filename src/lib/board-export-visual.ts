@@ -28,6 +28,12 @@ export const CARD_PAD_X = 8;
 export const CARD_PAD_Y = 4;
 export const BOUNDARY_FILL_OPACITY = 0.38;
 
+/** Matches `StormElementCard` when selection highlight filter dims a card. */
+export const EXPORT_HIGHLIGHT_DIMMED_ELEMENT_OPACITY = 0.28;
+/** Matches `BoardConnectors` when selection highlight filter dims a connector. */
+export const EXPORT_HIGHLIGHT_DIMMED_CONNECTOR_OPACITY = 0.22;
+export const EXPORT_HIGHLIGHT_DIMMED_ELEMENT_FILTER = "saturate(0.55) brightness(0.72)";
+
 /** @deprecated Use exportCanvasBackground(slice) — canvas color comes from board appearance. */
 export const BOARD_BACKGROUND = "#f4f5f7";
 export const CONNECTOR_STROKE = "#8b9aab";

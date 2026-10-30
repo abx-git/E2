@@ -9,6 +9,7 @@ import { generateStormId } from "@/lib/storm-id";
 import type { CustomCardType } from "@/lib/custom-card-types";
 import { defaultPaletteTypeForMode } from "@/types/storm-element";
 import type {
+  ElementType,
   ModelingMode,
   StormElement,
   Swimlane,
@@ -42,6 +43,10 @@ export interface ActiveViewFlatState {
   snapToTimeline: boolean;
   snapToGrid: boolean;
   customCardTypes: CustomCardType[];
+  /** Canvas filter: built-in palette types hidden in this view. */
+  hiddenElementTypes: ElementType[];
+  /** Freeform: hidden custom stereotype ids in this view. */
+  hiddenCustomTypeIds: string[];
 }
 
 export interface ViewDocumentState extends ActiveViewFlatState {
@@ -73,6 +78,8 @@ export function flatFieldsFromView(view: CanvasBoardView): ActiveViewFlatState {
     snapToTimeline: view.snapToTimeline,
     snapToGrid: view.snapToGrid,
     customCardTypes: view.customCardTypes ?? [],
+    hiddenElementTypes: view.hiddenElementTypes ?? [],
+    hiddenCustomTypeIds: view.hiddenCustomTypeIds ?? [],
   };
 }
 

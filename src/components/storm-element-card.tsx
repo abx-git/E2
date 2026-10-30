@@ -26,7 +26,14 @@ import {
   cardWebLinkLabel,
   elementWebLinks,
 } from "@/lib/card-web-links";
-import { elementDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
+import {
+  elementDimmedBySelectionFilter,
+  isSelectionFilterActive,
+} from "@/lib/canvas-selection-filter";
+import {
+  elementDimmedByTypeVisibilityFilter,
+  isTypeVisibilityFilterActive,
+} from "@/lib/canvas-type-visibility-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import {
   effectiveElementRotation,
@@ -149,6 +156,8 @@ export function StormElementCard({
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
   const selectionFilterEnabled = useStormBoardStore((s) => s.selectionFilterEnabled);
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
+  const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
+  const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
   const editingElementId = useStormBoardStore((s) => s.editingElementId);
   const views = useStormBoardStore((s) => s.views);
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
@@ -188,7 +197,25 @@ export function StormElementCard({
     selectionFilterEnabled,
     selectedElementIds,
   );
-  const dimmed = dimForFocus || dimForSearch || dimForSelection;
+  const selectionHighlightActive = isSelectionFilterActive(
+    selectionFilterEnabled,
+    selectedElementIds,
+  );
+  const dimForTypeVisibility = elementDimmedByTypeVisibilityFilter(
+    element,
+    hiddenElementTypes,
+    hiddenCustomTypeIds,
+  );
+  const dimmed = dimForFocus || dimForSearch || dimForSelection || dimForTypeVisibility;
+  const typeVisibilityFilterActive = isTypeVisibilityFilterActive(
+    hiddenElementTypes,
+    hiddenCustomTypeIds,
+  );
+  const hiddenTypeLabel =
+    element.type === "customCard"
+      ? customCardTypes.find((ct) => ct.id === element.metadata?.customTypeId)?.name ??
+        elementTypeLabel(t, element.type)
+      : elementTypeLabel(t, element.type);
   const searchEmphasize = Boolean(searchHit?.emphasizeCard);
   const showDetails = cardShowsDetails(element);
   const attrLines = element.metadata?.showAttributesOnCard
@@ -420,7 +447,8 @@ export function StormElementCard({
             highlighted:
               (focusMode && !dimForFocus) ||
               (searchActive && Boolean(searchHit?.match)) ||
-              (selectionFilterEnabled && selectedElementIds.length > 0 && selected),
+              (selectionFilterEnabled && selectedElementIds.length > 0 && selected) ||
+              (typeVisibilityFilterActive && !dimForTypeVisibility),
           }),
         opacity: dimmed ? 0.28 : undefined,
         filter: dimmed ? "saturate(0.55) brightness(0.72)" : undefined,
@@ -650,6 +678,8 @@ export function StormElementCard({
             ? t("chrome.filterSelectionDimmed")
             : dimForSearch
             ? t("panels.noSearchHit")
+            : dimForTypeVisibility
+              ? t("panels.cardTypeHiddenDimmed", { type: hiddenTypeLabel })
             : dimForFocus
               ? t("panels.cardFocusDimmed", { type: ELEMENT_STYLES[paletteType].label })
               : !inActiveMode
@@ -980,6 +1010,7 @@ export function StormElementCard({
 
       {selected &&
         !editing &&
+        !selectionHighlightActive &&
         (Object.keys(HANDLE_POSITIONS) as ResizeHandle[]).map((handle) => (
           <button
             key={handle}

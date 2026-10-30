@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { HelpCircle, Pencil, Plus, Trash2, X } from "lucide-react";
+import { HelpCircle, Eye, EyeOff, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import type { CustomCardType } from "@/lib/custom-card-types";
 import {
@@ -18,6 +18,11 @@ import {
   styleForCustomCardType,
 } from "@/lib/element-styles";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
+import {
+  isCustomCardTypeHidden,
+  isElementTypeHidden,
+  isTypeVisibilityFilterActive,
+} from "@/lib/canvas-type-visibility-filter";
 import { BoardDockHideButton } from "@/components/board-dock-toggle";
 import { isPointerOverStormCanvas } from "@/lib/board-clipboard";
 import { screenToWorld, snapToGrid, snapToTimeline } from "@/lib/canvas-viewport";
@@ -241,7 +246,16 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
   const facilitatorPhase = useStormBoardStore((s) => s.facilitatorPhase);
   const customCardTypes = useStormBoardStore((s) => s.customCardTypes);
   const addCustomCardType = useStormBoardStore((s) => s.addCustomCardType);
+  const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
+  const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
+  const toggleHiddenElementType = useStormBoardStore((s) => s.toggleHiddenElementType);
+  const toggleHiddenCustomTypeId = useStormBoardStore((s) => s.toggleHiddenCustomTypeId);
+  const clearHiddenElementTypes = useStormBoardStore((s) => s.clearHiddenElementTypes);
 
+  const typeFilterActive = isTypeVisibilityFilterActive(
+    hiddenElementTypes,
+    hiddenCustomTypeIds,
+  );
   const [ghost, setGhost] = useState<GhostState | null>(null);
   const [editingTypeId, setEditingTypeId] = useState<string | null>(null);
   const dragRef = useRef<{
@@ -414,10 +428,35 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
     window.addEventListener("pointerup", onUp);
   };
 
+  const renderTypeVisibilityToggle = (
+    hidden: boolean,
+    label: string,
+    onToggle: () => void,
+  ) => (
+    <button
+      type="button"
+      className={[
+        "dock-control shrink-0 rounded-md p-1.5",
+        hidden ? "text-[var(--accent-2)]" : "text-[var(--muted)] hover:text-[var(--text)]",
+      ].join(" ")}
+      title={hidden ? t("panels.paletteShowType", { type: label }) : t("panels.paletteHideType", { type: label })}
+      aria-label={hidden ? t("panels.paletteShowType", { type: label }) : t("panels.paletteHideType", { type: label })}
+      aria-pressed={hidden}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+    >
+      {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+    </button>
+  );
+
   const renderTypeRow = (type: ElementType, compact = false) => {
     const style = ELEMENT_STYLES[type];
     const typeLabel = elementTypeLabel(t, type);
     const active = paletteType === type;
+    const hidden = isElementTypeHidden(type, hiddenElementTypes);
     return (
       <div key={type} className="flex items-center gap-1.5">
         <button
@@ -429,6 +468,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
             active
               ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
               : "opacity-80 hover:opacity-100",
+            hidden ? "opacity-45 saturate-50" : "",
           ].join(" ")}
           style={{
             backgroundColor: style.fill,
@@ -439,6 +479,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
         >
           {typeLabel}
         </button>
+        {renderTypeVisibilityToggle(hidden, typeLabel, () => toggleHiddenElementType(type))}
         <button
           type="button"
           className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
@@ -458,6 +499,8 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
   const renderCustomTypeRow = (customType: CustomCardType) => {
     const style = styleForCustomCardType(customType);
     const active = paletteType === "customCard" && paletteCustomTypeId === customType.id;
+    const displayName = customType.name.trim() || t("panels.customTypeFallbackName");
+    const hidden = isCustomCardTypeHidden(customType.id, hiddenCustomTypeIds);
     return (
       <div key={customType.id} className="flex items-center gap-1">
         <button
@@ -469,6 +512,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
             active
               ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
               : "opacity-80 hover:opacity-100",
+            hidden ? "opacity-45 saturate-50" : "",
           ].join(" ")}
           style={{
             backgroundColor: style.fill,
@@ -484,6 +528,9 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
             {customType.name.trim() || "Typ"}
           </span>
         </button>
+        {renderTypeVisibilityToggle(hidden, displayName, () =>
+          toggleHiddenCustomTypeId(customType.id),
+        )}
         <button
           type="button"
           className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
@@ -522,6 +569,19 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
             <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
               {t("panels.paletteDragHint", { mode: modeLabel })}
             </p>
+            {typeFilterActive ? (
+              <button
+                type="button"
+                className="mt-1.5 text-left text-[0.65rem] font-medium text-[var(--accent-2)] hover:underline"
+                onClick={() => clearHiddenElementTypes()}
+              >
+                {t("panels.paletteShowAllTypes")}
+              </button>
+            ) : (
+              <p className="mt-1 text-[0.6rem] leading-snug text-[var(--muted)]">
+                {t("panels.paletteVisibilityHint")}
+              </p>
+            )}
           </div>
           {onHide ? <BoardDockHideButton side="left" onHide={onHide} /> : null}
         </div>

@@ -72,6 +72,7 @@ import { normalizeProgressMark } from "@/lib/progress-mark";
 
 const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
+import type { BoardExportSlice } from "@/lib/board-export-connectors";
 import { normalizeActionItem } from "@/lib/action-items";
 import {
   findMeasureForHotspot,
@@ -208,6 +209,10 @@ export interface StormBoardState {
   snapToGrid: boolean;
   /** Freeform: stereotype definitions for the active view. */
   customCardTypes: CustomCardType[];
+  /** Per view: built-in types faded on the canvas. */
+  hiddenElementTypes: ElementType[];
+  /** Per view: freeform stereotypes faded on the canvas. */
+  hiddenCustomTypeIds: string[];
   selectedElementIds: string[];
   selectedConnectorId: string | null;
   selectedRelationId: string | null;
@@ -292,6 +297,9 @@ export interface StormBoardState {
   setPropertiesPanelOpen: (open: boolean) => void;
   setSearchQuery: (query: string) => void;
   setSelectionFilterEnabled: (enabled: boolean) => void;
+  toggleHiddenElementType: (type: ElementType) => void;
+  toggleHiddenCustomTypeId: (customTypeId: string) => void;
+  clearHiddenElementTypes: () => void;
   setClipboardDropHighlight: (active: boolean) => void;
   /** Cut selection into the board clipboard (removes from canvas). */
   moveToClipboard: (selection: ClipboardSelection | string[]) => boolean;
@@ -718,6 +726,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   snapToTimeline: initialViewDoc.snapToTimeline,
   snapToGrid: initialViewDoc.snapToGrid,
   customCardTypes: initialViewDoc.customCardTypes ?? [],
+  hiddenElementTypes: initialViewDoc.hiddenElementTypes ?? [],
+  hiddenCustomTypeIds: initialViewDoc.hiddenCustomTypeIds ?? [],
   selectedElementIds: [],
   selectedConnectorId: null,
   selectedRelationId: null,
@@ -989,6 +999,29 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   },
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSelectionFilterEnabled: (selectionFilterEnabled) => set({ selectionFilterEnabled }),
+  toggleHiddenElementType: (type) =>
+    commit(set, get, (s) => {
+      const hidden = s.hiddenElementTypes;
+      return {
+        hiddenElementTypes: hidden.includes(type)
+          ? hidden.filter((t) => t !== type)
+          : [...hidden, type],
+      };
+    }),
+  toggleHiddenCustomTypeId: (customTypeId) =>
+    commit(set, get, (s) => {
+      const hidden = s.hiddenCustomTypeIds;
+      return {
+        hiddenCustomTypeIds: hidden.includes(customTypeId)
+          ? hidden.filter((id) => id !== customTypeId)
+          : [...hidden, customTypeId],
+      };
+    }),
+  clearHiddenElementTypes: () =>
+    commit(set, get, () => ({
+      hiddenElementTypes: [],
+      hiddenCustomTypeIds: [],
+    })),
   setClipboardDropHighlight: (clipboardDropHighlight) => set({ clipboardDropHighlight }),
 
   moveToClipboard: (selection) => {
@@ -3166,5 +3199,17 @@ export function boardActiveSliceFromStore() {
     snapToTimeline: s.snapToTimeline,
     snapToGrid: s.snapToGrid,
     customCardTypes: s.customCardTypes,
+  };
+}
+
+/** Canvas raster/SVG export slice including ephemeral highlight UI. */
+export function boardExportSliceFromStore(): BoardExportSlice {
+  const s = useStormBoardStore.getState();
+  return {
+    ...boardActiveSliceFromStore(),
+    selectionHighlight: {
+      enabled: s.selectionFilterEnabled,
+      selectedElementIds: s.selectedElementIds,
+    },
   };
 }
