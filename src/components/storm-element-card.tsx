@@ -158,7 +158,6 @@ export function StormElementCard({
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
-  const customCardTypes = useStormBoardStore((s) => s.customCardTypes);
   const editingElementId = useStormBoardStore((s) => s.editingElementId);
   const views = useStormBoardStore((s) => s.views);
   const activeViewId = useStormBoardStore((s) => s.activeViewId);

@@ -1074,7 +1074,7 @@ function elementDimmedForExportHighlight(elementId: string, state: BoardExportSl
   );
 }
 
-function computeBoardBounds(state: ReturnType<typeof boardActiveSliceFromStore>): BoardBounds {
+function computeBoardBounds(state: BoardActiveSlice | BoardExportSlice): BoardBounds {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -1247,7 +1247,7 @@ function mxPushVertex(
  * Builds an uncompressed draw.io mxfile for the board.
  * Embedded in SVG `content` so diagrams.net / draw.io can reopen the file for editing.
  */
-export function buildDrawioMxFile(state: BoardActiveSlice, bounds: BoardBounds): string {
+export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bounds: BoardBounds): string {
   const { width, height, ox, oy } = bounds;
   const canvasBg = exportCanvasBackground(state.appearance);
   const pageW = Math.max(1, Math.ceil(width));
