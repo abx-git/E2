@@ -41,14 +41,28 @@ export function rectsIntersect(a: WorldRect, b: WorldRect): boolean {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+/** True when `inner` lies entirely inside `outer` (inclusive edges). */
+export function rectContainedIn(inner: WorldRect, outer: WorldRect): boolean {
+  return (
+    inner.x >= outer.x &&
+    inner.y >= outer.y &&
+    inner.x + inner.w <= outer.x + outer.w &&
+    inner.y + inner.h <= outer.y + outer.h
+  );
+}
+
 export function elementsInMarquee(elements: StormElement[], marquee: WorldRect): string[] {
   if (marquee.w <= 0 || marquee.h <= 0) return [];
-  return elements.filter((el) => rectsIntersect(elementBounds(el), marquee)).map((el) => el.id);
+  return elements
+    .filter((el) => rectContainedIn(elementBounds(el), marquee))
+    .map((el) => el.id);
 }
 
 export function swimlanesInMarquee(lanes: Swimlane[], marquee: WorldRect): string[] {
   if (marquee.w <= 0 || marquee.h <= 0) return [];
-  return lanes.filter((lane) => rectsIntersect(swimlaneBounds(lane), marquee)).map((lane) => lane.id);
+  return lanes
+    .filter((lane) => rectContainedIn(swimlaneBounds(lane), marquee))
+    .map((lane) => lane.id);
 }
 
 export function boundedContextsInMarquee(
@@ -57,7 +71,7 @@ export function boundedContextsInMarquee(
 ): string[] {
   if (marquee.w <= 0 || marquee.h <= 0) return [];
   return contexts
-    .filter((bc) => rectsIntersect(boundedContextBounds(bc), marquee))
+    .filter((bc) => rectContainedIn(boundedContextBounds(bc), marquee))
     .map((bc) => bc.id);
 }
 
@@ -66,7 +80,7 @@ export type MarqueeRegionHit =
   | { kind: "boundedContext"; id: string };
 
 /**
- * Topmost swimlane / bounded context intersecting the marquee (by z-order).
+ * Topmost swimlane / bounded context fully enclosed by the marquee (by z-order).
  * Prefer this only when no sticky elements were hit.
  */
 export function topRegionInMarquee(
