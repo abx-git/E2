@@ -36,10 +36,6 @@ import {
   updateConnectorWaypoint,
 } from "@/lib/connector-polyline";
 import { connectorHitStrokeWidth } from "@/lib/connector-style";
-import {
-  connectorFreeTextLabelPatch,
-  connectorFreeTextPromptDefault,
-} from "@/lib/connector-label-edit";
 import { connectorDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
 import { connectorDimmedByTypeVisibilityFilter } from "@/lib/canvas-type-visibility-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
@@ -421,19 +417,6 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
             }
             selectConnector(conn.id);
           };
-          const editLabel = (e: ReactMouseEvent) => {
-            e.stopPropagation();
-            e.preventDefault();
-            if (relationMode) return;
-            selectConnector(conn.id);
-            const next = window.prompt(
-              t("contextMenu.connectorLabelPrompt"),
-              connectorFreeTextPromptDefault(conn),
-            );
-            if (next !== null) {
-              updateConnector(conn.id, connectorFreeTextLabelPatch(next));
-            }
-          };
 
           const addBend = (segmentIndex: number, e: ReactMouseEvent) => {
             e.stopPropagation();
@@ -504,12 +487,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
                 className="pointer-events-none"
               />
               {caption ? (
-                <g
-                  className="pointer-events-auto cursor-pointer"
-                  onPointerDown={selectThis}
-                  onClick={selectThis}
-                  onDoubleClick={editLabel}
-                >
+                <g className="pointer-events-none">
                   <rect
                     x={midX - caption.length * 2.6 - 4}
                     y={midY - 18}
