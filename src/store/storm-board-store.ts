@@ -170,6 +170,12 @@ import {
   connectorToContextRelation,
   connectorToStormRelation,
 } from "@/lib/board-connector-migrate";
+import {
+  connectorWaypointKey,
+  mergeWaypointSelection,
+  translateConnectorForCanvasMove,
+  type ConnectorWaypointRef,
+} from "@/lib/connector-waypoint-selection";
 
 function withConnectors(connectors: BoardConnector[]) {
   const legacy = connectorsToLegacy(connectors);
@@ -215,6 +221,7 @@ export interface StormBoardState {
   hiddenCustomTypeIds: string[];
   selectedElementIds: string[];
   selectedConnectorId: string | null;
+  selectedConnectorWaypoints: ConnectorWaypointRef[];
   selectedRelationId: string | null;
   selectedContextRelationId: string | null;
   connectorDraftSource: ConnectorEndpoint | null;
@@ -322,9 +329,31 @@ export interface StormBoardState {
       elementIds?: string[];
       swimlaneIds?: string[];
       boundedContextIds?: string[];
+      connectorWaypoints?: ConnectorWaypointRef[];
     },
     additive?: boolean,
   ) => void;
+  /** Ephemeral UI while dragging bend nodes (not undo / not persisted). */
+  connectorWaypointDrag: {
+    anchorConnectorId: string;
+    anchorStart: { x: number; y: number };
+    point: { x: number; y: number };
+    selectedKeys: readonly string[];
+  } | null;
+  setConnectorWaypointDrag: (
+    drag: StormBoardState["connectorWaypointDrag"],
+  ) => void;
+  connectorEndpointDrag: {
+    connectorId: string;
+    endpoint: "source" | "target";
+    lineEnd: { x: number; y: number };
+    valid: boolean;
+  } | null;
+  setConnectorEndpointDrag: (
+    drag: StormBoardState["connectorEndpointDrag"],
+  ) => void;
+  selectConnectorWaypoint: (ref: ConnectorWaypointRef, additive?: boolean) => void;
+  setSelectedConnectorWaypoints: (refs: ConnectorWaypointRef[], additive?: boolean) => void;
   selectRelation: (id: string | null) => void;
   selectContextRelation: (id: string | null) => void;
   selectBoundedContext: (id: string | null, additive?: boolean) => void;
@@ -393,6 +422,11 @@ export interface StormBoardState {
   connectElements: (sourceId: string, targetId: string) => string | null;
   connectEndpoints: (source: ConnectorEndpoint, target: ConnectorEndpoint) => string | null;
   updateConnector: (id: string, patch: Partial<BoardConnector>) => void;
+  translateConnectorWaypointsByKeys: (
+    dx: number,
+    dy: number,
+    keys: readonly string[],
+  ) => void;
   deleteConnector: (id: string) => void;
   selectConnector: (id: string | null) => void;
   reconnectConnector: (
@@ -730,6 +764,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   hiddenCustomTypeIds: initialViewDoc.hiddenCustomTypeIds ?? [],
   selectedElementIds: [],
   selectedConnectorId: null,
+  selectedConnectorWaypoints: [],
   selectedRelationId: null,
   selectedContextRelationId: null,
   connectorDraftSource: null,
@@ -752,6 +787,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   selectedCanvasLineId: null,
   contextMenu: null,
   clipboard: null,
+  connectorWaypointDrag: null,
+  connectorEndpointDrag: null,
   clipboardDropHighlight: false,
   elementAttributeClipboard: null,
   elementAttributeClipboardSourceId: null,
@@ -1298,6 +1335,12 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       const elementIds = selection.elementIds ?? [];
       const swimlaneIds = selection.swimlaneIds ?? [];
       const boundedContextIds = selection.boundedContextIds ?? [];
+      const connectorWaypoints = selection.connectorWaypoints ?? [];
+      const hasCanvasItems =
+        elementIds.length > 0 ||
+        swimlaneIds.length > 0 ||
+        boundedContextIds.length > 0 ||
+        connectorWaypoints.length > 0;
       if (additive) {
         return {
           selectedElementIds: Array.from(new Set([...s.selectedElementIds, ...elementIds])),
@@ -1305,7 +1348,18 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           selectedBoundedContextIds: Array.from(
             new Set([...s.selectedBoundedContextIds, ...boundedContextIds]),
           ),
-          ...CLEAR_CONNECTOR_FOCUS_PATCH,
+          selectedConnectorWaypoints: mergeWaypointSelection(
+            s.selectedConnectorWaypoints,
+            connectorWaypoints,
+            true,
+          ),
+          selectedConnectorId:
+            connectorWaypoints.length > 0
+              ? connectorWaypoints[connectorWaypoints.length - 1]!.connectorId
+              : s.selectedConnectorId,
+          selectedRelationId: null,
+          selectedContextRelationId: null,
+          selectedCanvasLineId: null,
           editingElementId: null,
         };
       }
@@ -1313,10 +1367,47 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         selectedElementIds: elementIds,
         selectedSwimlaneIds: swimlaneIds,
         selectedBoundedContextIds: boundedContextIds,
-        ...CLEAR_CONNECTOR_FOCUS_PATCH,
+        selectedConnectorWaypoints: connectorWaypoints,
+        selectedConnectorId: hasCanvasItems
+          ? connectorWaypoints.length > 0
+            ? connectorWaypoints[connectorWaypoints.length - 1]!.connectorId
+            : null
+          : null,
+        selectedRelationId: null,
+        selectedContextRelationId: null,
+        selectedCanvasLineId: null,
         editingElementId: null,
       };
     }),
+
+  selectConnectorWaypoint: (ref, additive = false) =>
+    set((s) => {
+      const next = additive
+        ? mergeWaypointSelection(s.selectedConnectorWaypoints, [ref], true)
+        : [ref];
+      return {
+        selectedConnectorId: ref.connectorId,
+        selectedConnectorWaypoints: next,
+        selectedElementIds: [],
+        selectedBoundedContextIds: [],
+        selectedSwimlaneIds: [],
+        selectedRelationId: null,
+        selectedContextRelationId: null,
+        selectedCanvasLineId: null,
+        editingElementId: null,
+      };
+    }),
+
+  setSelectedConnectorWaypoints: (refs: ConnectorWaypointRef[], additive = false) =>
+    set((s) => ({
+      selectedConnectorWaypoints: mergeWaypointSelection(s.selectedConnectorWaypoints, refs, additive),
+      selectedConnectorId:
+        refs.length > 0 ? refs[refs.length - 1]!.connectorId : s.selectedConnectorId,
+    })),
+
+  setConnectorWaypointDrag: (drag) => set({ connectorWaypointDrag: drag }),
+
+  setConnectorEndpointDrag: (drag) => set({ connectorEndpointDrag: drag }),
 
   selectRelation: (id) =>
     set({
@@ -1614,6 +1705,46 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       const laneById = new Map(swimlaneUpdates.map((u) => [u.id, u]));
       const bcById = new Map(bcUpdates.map((u) => [u.id, u]));
 
+      let dx = 0;
+      let dy = 0;
+      const firstEl = elementUpdates[0];
+      if (firstEl) {
+        const prev = s.elements.find((e) => e.id === firstEl.id);
+        if (prev) {
+          dx = firstEl.x - prev.x;
+          dy = firstEl.y - prev.y;
+        }
+      } else if (swimlaneUpdates[0]) {
+        const prev = s.swimlanes.find((lane) => lane.id === swimlaneUpdates[0]!.id);
+        if (prev) {
+          dx = swimlaneUpdates[0]!.x - (prev.x ?? 0);
+          dy = swimlaneUpdates[0]!.y - prev.y;
+        }
+      } else if (bcUpdates[0]) {
+        const prev = s.boundedContexts.find((bc) => bc.id === bcUpdates[0]!.id);
+        if (prev) {
+          dx = bcUpdates[0]!.x - prev.x;
+          dy = bcUpdates[0]!.y - prev.y;
+        }
+      }
+
+      const movedElementIds = new Set(elementUpdates.map((u) => u.id));
+      const selectedWaypointKeys = new Set(
+        s.selectedConnectorWaypoints.map((r) => connectorWaypointKey(r)),
+      );
+      const connectors =
+        Math.abs(dx) > 1e-9 || Math.abs(dy) > 1e-9
+          ? s.connectors.map((conn) =>
+              translateConnectorForCanvasMove(
+                conn,
+                dx,
+                dy,
+                movedElementIds,
+                selectedWaypointKeys,
+              ),
+            )
+          : s.connectors;
+
       const elements =
         elementUpdates.length === 0
           ? s.elements
@@ -1659,7 +1790,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
             });
 
       // Containment is re-applied in endGesture so passers-by are not picked up mid-drag.
-      return { elements, swimlanes, boundedContexts };
+      return { elements, swimlanes, boundedContexts, connectors };
     }),
 
   patchElements: (updates) =>
@@ -1944,6 +2075,17 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       return withConnectors(connectors);
     }),
 
+  translateConnectorWaypointsByKeys: (dx, dy, keys) =>
+    commit(set, get, (s) => {
+      if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) return {};
+      const keySet = new Set(keys);
+      const connectors = s.connectors.map((conn) =>
+        translateConnectorForCanvasMove(conn, dx, dy, new Set(), keySet),
+      );
+      if (connectors.every((c, i) => c === s.connectors[i])) return {};
+      return withConnectors(connectors);
+    }),
+
   deleteConnector: (id) =>
     commit(set, get, (s) => ({
       ...withConnectors(s.connectors.filter((c) => c.id !== id)),
@@ -1958,6 +2100,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     const conn = get().connectors.find((c) => c.id === id);
     set({
       selectedConnectorId: id,
+      selectedConnectorWaypoints: [],
       selectedRelationId: conn && connectorToStormRelation(conn) ? id : null,
       selectedContextRelationId: conn && connectorToContextRelation(conn) ? id : null,
       selectedCanvasLineId: conn && connectorToCanvasLine(conn) ? id : null,

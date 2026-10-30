@@ -154,6 +154,7 @@ export const CLEAR_CONNECTOR_FOCUS_PATCH = {
   selectedRelationId: null as string | null,
   selectedContextRelationId: null as string | null,
   selectedCanvasLineId: null as string | null,
+  selectedConnectorWaypoints: [] as { connectorId: string; index: number }[],
 };
 
 export const CLEAR_SELECTION_PATCH = {

@@ -1,6 +1,9 @@
 /** True when the event target is part of the connector SVG (hit area or endpoint handle). */
 export function isBoardConnectorTarget(target: EventTarget | null): boolean {
-  return Boolean((target as Element | null)?.closest?.("[data-board-connector]"));
+  const el = target as Element | null;
+  return Boolean(
+    el?.closest?.("[data-board-connector]") || el?.closest?.("[data-board-connector-handles]"),
+  );
 }
 
 export function isStormElementTarget(target: EventTarget | null): boolean {
