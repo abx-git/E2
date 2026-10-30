@@ -95,6 +95,10 @@ import {
   resolveRelationStrokeStyle,
 } from "@/lib/connector-style";
 import { defaultRelationType } from "@/lib/relation-validation";
+import {
+  connectorFreeTextLabelPatch,
+  connectorFreeTextPromptDefault,
+} from "@/lib/connector-label-edit";
 import { CONNECTOR_ARROW_HEADS } from "@/types/canvas-annotation";
 import { connectorArrowHeadGlyph } from "@/lib/connector-arrow-head";
 import type { BoardConnector } from "@/types/board-connector";
@@ -995,6 +999,19 @@ export function CanvasContextMenu({
           ))}
           <Separator />
           <Item
+            label={t("contextMenu.editConnectorLabel")}
+            onClick={() =>
+              run(() => {
+                const next = window.prompt(
+                  t("contextMenu.connectorLabelPrompt"),
+                  connectorFreeTextPromptDefault(c),
+                );
+                if (next !== null) patch(connectorFreeTextLabelPatch(next));
+              })
+            }
+          />
+          <Separator />
+          <Item
             icon={Trash2}
             label={t("contextMenu.delete")}
             danger
@@ -1045,6 +1062,19 @@ export function CanvasContextMenu({
               onClick={() => run(() => patch({ arrowHead: head }))}
             />
           ))}
+          <Separator />
+          <Item
+            label={t("contextMenu.editConnectorLabel")}
+            onClick={() =>
+              run(() => {
+                const next = window.prompt(
+                  t("contextMenu.connectorLabelPrompt"),
+                  connectorFreeTextPromptDefault(c),
+                );
+                if (next !== null) patch(connectorFreeTextLabelPatch(next));
+              })
+            }
+          />
           <Separator />
           <Section label={t("contextMenu.progressMark")} />
           {PROGRESS_MARKS.map((mark) => (
@@ -1114,8 +1144,11 @@ export function CanvasContextMenu({
             label={t("contextMenu.editConnectorLabel")}
             onClick={() =>
               run(() => {
-                const next = window.prompt(t("contextMenu.connectorLabelPrompt"), c.label ?? "");
-                if (next !== null) patch({ label: next, labelMode: "custom" });
+                const next = window.prompt(
+                  t("contextMenu.connectorLabelPrompt"),
+                  connectorFreeTextPromptDefault(c),
+                );
+                if (next !== null) patch(connectorFreeTextLabelPatch(next));
               })
             }
           />
