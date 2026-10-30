@@ -8,6 +8,7 @@ import {
   attachTargetToEndpoint,
   connectorEndpointCenter,
   resolveConnectorAnchors,
+  connectorEndpointTowardPoint,
 } from "@/lib/board-connector-resolve";
 import {
   boardConnectorCaption,
@@ -580,12 +581,13 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
               startEndpointDrag(
                 selectedConn,
                 "source",
-                connectorEndpointCenter(
-                  selectedConn.target,
+                connectorEndpointTowardPoint(
+                  selectedConn,
+                  "source",
                   elements,
                   swimlanes,
                   boundedContexts,
-                ) ?? selectedAnchors.end,
+                ),
                 e,
               )
             }
@@ -603,12 +605,13 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
               startEndpointDrag(
                 selectedConn,
                 "target",
-                connectorEndpointCenter(
-                  selectedConn.source,
+                connectorEndpointTowardPoint(
+                  selectedConn,
+                  "target",
                   elements,
                   swimlanes,
                   boundedContexts,
-                ) ?? selectedAnchors.start,
+                ),
                 e,
               )
             }
