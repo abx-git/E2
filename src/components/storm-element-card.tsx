@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Clock, ExternalLink, LayoutDashboard, Link2, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
 
 import { ProgressMarkBadge } from "@/components/progress-mark-badge";
+import { DescriptionEditorDialog } from "@/components/description-editor-dialog";
 import { DescriptionMarkdownContent } from "@/components/description-markdown-content";
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkDestinationPreview, linkHasTarget } from "@/lib/board-link";
@@ -117,7 +118,9 @@ export function StormElementCard({
   const draftRef = useRef(element.label);
   const editingRef = useRef(false);
   const [editing, setEditing] = useState(false);
+  const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
   const [draft, setDraft] = useState(element.label);
+  const updateElement = useStormBoardStore((s) => s.updateElement);
   const isNote = element.type === "note";
   const isInstruction = element.type === "instruction";
   const isLink = element.type === "link";
@@ -820,10 +823,22 @@ export function StormElementCard({
           </span>
         )}
         {!editing && showDescription && (
-          <DescriptionMarkdownContent
-            markdown={element.description}
-            className="w-full text-left text-[0.65rem] leading-snug opacity-80"
-          />
+          <div
+            className="w-full cursor-text rounded-sm hover:bg-black/[0.04]"
+            title={t("detailSidebar.description.openWysiwyg")}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              if (relationMode) return;
+              onSelect(element.id, false);
+              setDescriptionEditorOpen(true);
+            }}
+          >
+            <DescriptionMarkdownContent
+              markdown={element.description}
+              className="w-full text-left text-[0.65rem] leading-snug opacity-80"
+            />
+          </div>
         )}
         {!editing && attrLines.length > 0 && (
           <ul className="w-full min-w-0 list-none space-y-0.5 text-left text-[0.62rem] leading-snug opacity-85">
@@ -1038,6 +1053,15 @@ export function StormElementCard({
           <MoreVertical className="h-3 w-3" aria-hidden />
         </button>
       )}
+
+      <DescriptionEditorDialog
+        open={descriptionEditorOpen}
+        elementId={element.id}
+        elementLabel={element.label}
+        markdown={element.description ?? ""}
+        onClose={() => setDescriptionEditorOpen(false)}
+        onSave={(md) => updateElement(element.id, { description: md })}
+      />
     </div>
   );
 }

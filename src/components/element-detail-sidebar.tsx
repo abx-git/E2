@@ -279,7 +279,6 @@ export function ElementDetailSidebar({
               onChange={(e) =>
                 updateConnector(c.id, {
                   relationType: e.target.value as RelationType,
-                  labelMode: "type",
                 })
               }
             >
@@ -355,8 +354,7 @@ export function ElementDetailSidebar({
     const typeCaption = relationTypeLabel(t, selectedRelation.type);
     const labelMode = selectedRelation.labelMode;
     const typeLabelSelected = labelMode === "type";
-    const customLabelSelected =
-      labelMode === "custom" || (!labelMode && Boolean(selectedRelation.label?.trim()));
+    const customLabelSelected = labelMode !== "type";
     return (
       <DockPanel
         title={t("detailSidebar.titles.relation")}

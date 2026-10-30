@@ -183,7 +183,7 @@ export function inferConnectorSemantics(
     return {
       relationType,
       arrowHead: "end" as LineArrowHead,
-      labelMode: relationType ? "type" : undefined,
+      labelMode: "custom",
     };
   }
   if (source.attach === "boundedContext" && target.attach === "boundedContext") {
