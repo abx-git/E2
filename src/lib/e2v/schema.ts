@@ -68,7 +68,7 @@ export const E2V_ENGLISH_LLM_PROMPT = `You are editing an Event Storming / domai
 - \`r\` element relation (triggers, causal, …), \`cr\` BC context-map pattern
 - \`cn\` board connector: endpoints \`element:e1\`, \`bc:b0\`, \`swimlane:s0\`, or \`point:120,80\`
 - \`ln\` free line: x1 y1 x2 y2
-- \`@desc <elementId> <text>\`, \`@meta <elementId> <JSON metadata>\`
+- \`@desc <elementId> <text>\`, \`@meta <elementId> <JSON metadata>\` — use \` ↵ \` (space-arrows-space) between lines in @desc/glossary text instead of JSON \`\\n\`
 - \`@id <alias> <stable-id>\` optional; use short ids (\`e0\`, \`e1\`) consistently in the block
 
 ## Layout rules

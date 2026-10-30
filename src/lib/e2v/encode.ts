@@ -10,7 +10,8 @@ import type { StormElement } from "@/types/storm-element";
 
 import { AliasMap } from "@/lib/e2v/alias-map";
 import { E2V_FORMAT, E2V_MAGIC, E2V_VERSION } from "@/lib/e2v/constants";
-import { cell, row } from "@/lib/e2v/text";
+import { cell, parseCell, row } from "@/lib/e2v/text";
+import { encodeE2vMultilineText } from "@/lib/description-markdown";
 
 function formatEndpoint(ep: ConnectorEndpoint, maps: {
   e: AliasMap;
@@ -194,7 +195,9 @@ function encodeViewBody(view: BoardView, out: string[]): void {
       ]),
     );
     if (el.description?.trim()) {
-      out.push(`@desc ${eMap.alias(el.id)} ${cell(el.description.trim())}`);
+      out.push(
+        `@desc ${eMap.alias(el.id)} ${cell(encodeE2vMultilineText(el.description.trim()))}`,
+      );
     }
     if (el.metadata && Object.keys(el.metadata).length > 0) {
       out.push(`@meta ${eMap.alias(el.id)} ${JSON.stringify(el.metadata)}`);
@@ -293,7 +296,7 @@ export function encodeE2vDocument(
     out.push(row(["@workshopMode", doc.workshopMode ? 1 : 0]));
     out.push(`@appearance ${JSON.stringify(normalizeAppearance(doc.appearance))}`);
     for (const g of doc.glossary) {
-      out.push(row(["g", g.term, g.definition]));
+      out.push(row(["g", g.term, encodeE2vMultilineText(g.definition)]));
     }
     for (const item of doc.actionItems ?? []) {
       out.push(
