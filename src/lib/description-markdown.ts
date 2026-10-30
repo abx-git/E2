@@ -1,7 +1,21 @@
 /** Markdown helpers for element descriptions (Bemerkung). */
 
+/** Undo LLM/E2V wire escapes: literal `\n` in text → real line breaks; `↵` markers from E2V export. */
+export function unescapeE2vMultilineText(raw: string): string {
+  return raw
+    .replace(/\s*↵\s*/g, "\n")
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\n");
+}
+
+/** Encode line breaks for a single E2V cell (avoids JSON `\n` sequences in AI copy/paste). */
+export function encodeE2vMultilineText(raw: string): string {
+  return unescapeE2vMultilineText(raw).replace(/\n/g, " ↵ ");
+}
+
 export function normalizeDescriptionMarkdown(raw: string): string {
-  return raw.replace(/\r\n/g, "\n");
+  return unescapeE2vMultilineText(raw.replace(/\r\n/g, "\n"));
 }
 
 /**

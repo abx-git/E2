@@ -19,6 +19,7 @@ import {
   type WorkshopFormat,
 } from "@/types/storm-element";
 import { generateStormId } from "@/lib/storm-id";
+import { unescapeE2vMultilineText } from "@/lib/description-markdown";
 import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
 import type { CanvasLine } from "@/types/canvas-annotation";
 import type { CustomCardType } from "@/lib/custom-card-types";
@@ -414,7 +415,10 @@ export function decodeE2vText(text: string, options?: DecodeE2vOptions): BoardIm
         parseState.viewDraft.customCardTypes = [...(parseState.viewDraft.customCardTypes ?? []), ct];
       }
       if (tag === "desc" && cols[1]) {
-        descPending.set(cols[1], parseCell(cols.slice(2).join(" ")));
+        descPending.set(
+          cols[1],
+          unescapeE2vMultilineText(parseCell(cols.slice(2).join(" "))),
+        );
       }
       if (tag === "meta" && cols[1]) {
         try {
@@ -432,7 +436,7 @@ export function decodeE2vText(text: string, options?: DecodeE2vOptions): BoardIm
     if (kind === "g") {
       glossary.push({
         term: parseCell(cols[1] ?? ""),
-        definition: parseCell(cols.slice(2).join(" ")),
+        definition: unescapeE2vMultilineText(parseCell(cols.slice(2).join(" "))),
       });
       continue;
     }

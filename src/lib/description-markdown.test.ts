@@ -7,6 +7,11 @@ describe("description-markdown", () => {
     expect(normalizeDescriptionMarkdown("a\r\nb")).toBe("a\nb");
   });
 
+  it("converts literal \\n and E2V ↵ markers to real line breaks", () => {
+    expect(normalizeDescriptionMarkdown("a\\nb")).toBe("a\nb");
+    expect(normalizeDescriptionMarkdown("a ↵ b")).toBe("a\nb");
+  });
+
   it("flattens headings, emphasis, and links for export", () => {
     expect(markdownToPlainText("# Titel\n\n**fett** und [Docs](https://example.com)")).toBe(
       "Titel\n\nfett und Docs",

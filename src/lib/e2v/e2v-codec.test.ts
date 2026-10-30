@@ -69,6 +69,33 @@ describe("e2v codec", () => {
     );
   });
 
+  it("encodes multiline descriptions with ↵ instead of JSON \\n", () => {
+    const multi = createDefaultBoardDocument({
+      views: [
+        createEmptyBoardView({
+          id: "view-a",
+          name: "V",
+          elements: [
+            {
+              id: "e1",
+              type: "note",
+              label: "N",
+              x: 0,
+              y: 0,
+              description: "Zeile eins\nZeile zwei",
+            },
+          ],
+        }),
+      ],
+    });
+    const text = encodeE2vSingleView(multi, "view-a")!;
+    expect(text).toContain("@desc");
+    expect(text).not.toMatch(/@desc[^\n]*\\n/);
+    expect(text).toContain("↵");
+    const back = decodeE2vText(text);
+    expect(back?.views[0]?.elements[0]?.description).toBe("Zeile eins\nZeile zwei");
+  });
+
   it("round-trips a single view with layout", () => {
     const text = encodeE2vSingleView(doc, "view-a");
     expect(text).toContain("# e2v/1");

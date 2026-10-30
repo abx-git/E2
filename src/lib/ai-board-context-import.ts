@@ -1,4 +1,5 @@
 import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
+import { unescapeE2vMultilineText } from "@/lib/description-markdown";
 import { isKnownElementType, styleForElementType } from "@/lib/element-styles";
 import { generateStormId } from "@/lib/storm-id";
 import {
@@ -431,7 +432,9 @@ export function layoutAiContextView(view: AiContextView): {
         width,
         height,
         zIndex: placed.length,
-        ...(source.description?.trim() ? { description: source.description.trim() } : {}),
+        ...(source.description?.trim()
+          ? { description: unescapeE2vMultilineText(source.description.trim()) }
+          : {}),
         ...(lane ? { swimlaneId: lane.id } : {}),
         ...(bc ? { boundedContextId: bc.id } : {}),
         ...(source.metadata && Object.keys(source.metadata).length > 0
@@ -618,7 +621,7 @@ function parseAiElement(raw: unknown, index: number): AiContextElement | null {
     ...readLayoutBox(raw),
   };
   const description = asTrimmed(raw.description);
-  if (description) entry.description = description;
+  if (description) entry.description = unescapeE2vMultilineText(description);
   const swimlane = asTrimmed(raw.swimlane);
   if (swimlane) entry.swimlane = swimlane;
   const boundedContext = asTrimmed(raw.boundedContext);
