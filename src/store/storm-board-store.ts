@@ -1727,7 +1727,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       type: type ?? "triggers",
       sourceId,
       targetId,
-      labelMode: label?.trim() ? "custom" : "type",
+      labelMode: "custom",
       ...(label?.trim() ? { label: label.trim() } : {}),
     };
     commit(set, get, (s) => ({

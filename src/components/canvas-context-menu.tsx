@@ -1017,7 +1017,7 @@ export function CanvasContextMenu({
               key={rel}
               label={relationTypeLabel(t, rel)}
               active={relType === rel}
-              onClick={() => run(() => patch({ relationType: rel, labelMode: "type" }))}
+              onClick={() => run(() => patch({ relationType: rel }))}
             />
           ))}
           <Item
