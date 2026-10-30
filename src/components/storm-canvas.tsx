@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CanvasBoardChrome } from "@/components/canvas-board-chrome";
 import { BoardConnectors } from "@/components/board-connectors";
+import { BoardConnectorHandles } from "@/components/board-connector-handles";
 import { BoundedContextLayer } from "@/components/bounded-context-layer";
 import { attachTargetToEndpoint } from "@/lib/board-connector-resolve";
 import {
@@ -19,6 +20,7 @@ import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint, ZOOM_STEP } fro
 import { deleteCurrentSelection } from "@/lib/board-delete-selection";
 import { isTypingTarget, shouldSuppressBoardDeleteKey } from "@/lib/keyboard-input-guard";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
+import { connectorWaypointsInMarquee } from "@/lib/connector-waypoint-selection";
 import { elementsInMarquee, swimlanesInMarquee, boundedContextsInMarquee, type WorldRect } from "@/lib/selection-geometry";
 import { lineLength } from "@/lib/canvas-annotations";
 import { sortElementsByZOrder } from "@/lib/element-z-order";
@@ -454,8 +456,14 @@ export function StormCanvas() {
     const elementIds = elementsInMarquee(store.elements, draft);
     const swimlaneIds = swimlanesInMarquee(store.swimlanes, draft);
     const boundedContextIds = boundedContextsInMarquee(store.boundedContexts, draft);
-    if (elementIds.length > 0 || swimlaneIds.length > 0 || boundedContextIds.length > 0) {
-      setCanvasSelection({ elementIds, swimlaneIds, boundedContextIds }, start.additive);
+    const connectorWaypoints = connectorWaypointsInMarquee(store.connectors, draft);
+    if (
+      elementIds.length > 0 ||
+      swimlaneIds.length > 0 ||
+      boundedContextIds.length > 0 ||
+      connectorWaypoints.length > 0
+    ) {
+      setCanvasSelection({ elementIds, swimlaneIds, boundedContextIds, connectorWaypoints }, start.additive);
       return;
     }
 
@@ -760,6 +768,7 @@ export function StormCanvas() {
             onCompleteConnect={handleCompleteConnect}
           />
         ))}
+        <BoardConnectorHandles elements={elements} />
       </div>
 
       <CanvasBoardChrome

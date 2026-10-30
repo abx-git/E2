@@ -1,15 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 
-import { ConnectorSnapTargetHighlight } from "@/components/connector-snap-highlight";
 import {
-  attachTargetToEndpoint,
   connectorEndpointCenter,
   resolveConnectorAnchors,
-  connectorEndpointTowardPoint,
-  connectorEndpointApproachFrom,
 } from "@/lib/board-connector-resolve";
 import {
   boardConnectorCaption,
@@ -19,46 +14,30 @@ import {
   boardConnectorStrokeWidth,
   connectorArrowHead,
 } from "@/lib/board-connector-style";
-import {
-  beginConnectorEndpointDrag,
-  connectorEndpointHandleRadius,
-} from "@/lib/connector-endpoint-drag";
-import {
-  connectorEndpointDragPreview,
-  type ConnectorAttachTarget,
-} from "@/lib/connector-target-pick";
 import { screenToWorld } from "@/lib/canvas-viewport";
+import {
+  connectorWaypointKey,
+} from "@/lib/connector-waypoint-selection";
 import {
   insertConnectorWaypoint,
   polylineCaptionAnchor,
   polylinePointsAttr,
   projectPointOnSegment,
-  removeConnectorWaypoint,
   resolveConnectorPolylinePoints,
-  updateConnectorWaypoint,
 } from "@/lib/connector-polyline";
 import { connectorHitStrokeWidth } from "@/lib/connector-style";
 import { connectorDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
 import { connectorDimmedByTypeVisibilityFilter } from "@/lib/canvas-type-visibility-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { ProgressMarkConnectorBadge } from "@/components/progress-mark-badge";
-import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { BoardConnector } from "@/types/board-connector";
 import type { StormElement } from "@/types/storm-element";
-
-const SNAP_ACCEPT: ConnectorAttachTarget["kind"][] = [
-  "element",
-  "boundedContext",
-  "swimlane",
-];
 
 /** Stay under cards (cssStackingZIndex base ≥ 20) so lines never paint through stickies. */
 const CONNECTOR_LAYER_Z = 10;
 /** Draft fan sits above normal cards; no hit testing. */
 const CONNECTOR_FAN_Z = 9_500;
-/** Endpoint handles above elevated stickies so they stay grabbable. */
-const CONNECTOR_HANDLE_Z = 100_010;
 
 function stopCanvasPan(e: ReactPointerEvent | ReactMouseEvent) {
   e.stopPropagation();
@@ -78,7 +57,6 @@ export interface BoardConnectorsProps {
 }
 
 export function BoardConnectors({ elements, connectorDraftSource }: BoardConnectorsProps) {
-  const t = useT();
   const connectors = useStormBoardStore((s) => s.connectors);
   const selectedConnectorId = useStormBoardStore((s) => s.selectedConnectorId);
   const selectConnector = useStormBoardStore((s) => s.selectConnector);
@@ -106,93 +84,11 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
       )
     : null;
   const hitWidth = connectorHitStrokeWidth(zoom);
-  const [endpointDrag, setEndpointDrag] = useState<{
-    connectorId: string;
-    endpoint: "source" | "target";
-    lineEnd: { x: number; y: number };
-    target: ConnectorAttachTarget | null;
-    valid: boolean;
-  } | null>(null);
-  const [waypointDrag, setWaypointDrag] = useState<{
-    connectorId: string;
-    index: number;
-    point: { x: number; y: number };
-  } | null>(null);
+  const endpointDrag = useStormBoardStore((s) => s.connectorEndpointDrag);
+  const waypointDragPreview = useStormBoardStore((s) => s.connectorWaypointDrag);
 
   const canvasContainerRect = () =>
     document.querySelector("[data-storm-canvas]")?.getBoundingClientRect() ?? null;
-
-  const startEndpointDrag = (
-    connector: BoardConnector,
-    side: "source" | "target",
-    towardCenter: { x: number; y: number },
-    approachFrom: { x: number; y: number } | undefined,
-    e: ReactPointerEvent,
-  ) => {
-    if (e.button !== 0) return;
-    e.stopPropagation();
-    e.preventDefault();
-    selectConnector(connector.id);
-    const store = useStormBoardStore.getState();
-    store.beginGesture();
-    setEndpointDrag({
-      connectorId: connector.id,
-      endpoint: side,
-      lineEnd: towardCenter,
-      target: null,
-      valid: false,
-    });
-
-    beginConnectorEndpointDrag({
-      zoom,
-      viewport,
-      getContainerRect: canvasContainerRect,
-      onMove: (world) => {
-        const live = useStormBoardStore.getState();
-        const preview = connectorEndpointDragPreview(
-          world,
-          towardCenter,
-          live.elements,
-          live.swimlanes,
-          live.boundedContexts,
-          SNAP_ACCEPT,
-          approachFrom,
-        );
-        setEndpointDrag({
-          connectorId: connector.id,
-          endpoint: side,
-          ...preview,
-        });
-      },
-      onCommit: (world) => {
-        const live = useStormBoardStore.getState();
-        const preview = connectorEndpointDragPreview(
-          world,
-          towardCenter,
-          live.elements,
-          live.swimlanes,
-          live.boundedContexts,
-          SNAP_ACCEPT,
-          approachFrom,
-        );
-        if (preview.valid && preview.target) {
-          live.reconnectConnector(connector.id, side, attachTargetToEndpoint(preview.target));
-        } else {
-          live.reconnectConnector(connector.id, side, {
-            attach: "point",
-            x: world.x,
-            y: world.y,
-          });
-        }
-        setEndpointDrag(null);
-        live.endGesture();
-      },
-      onCancel: () => {
-        setEndpointDrag(null);
-        useStormBoardStore.getState().endGesture();
-      },
-    });
-  };
 
   const addBendOnSegment = (
     conn: BoardConnector,
@@ -214,55 +110,11 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
     });
   };
 
-  const startWaypointDrag = (
-    conn: BoardConnector,
-    index: number,
-    e: ReactPointerEvent,
-  ) => {
-    if (e.button !== 0) return;
-    e.stopPropagation();
-    e.preventDefault();
-    selectConnector(conn.id);
-    const store = useStormBoardStore.getState();
-    store.beginGesture();
-    setWaypointDrag({
-      connectorId: conn.id,
-      index,
-      point: conn.waypoints?.[index] ?? { x: 0, y: 0 },
-    });
-    beginConnectorEndpointDrag({
-      zoom,
-      viewport,
-      getContainerRect: canvasContainerRect,
-      onMove: (world) => {
-        setWaypointDrag({ connectorId: conn.id, index, point: world });
-      },
-      onCommit: (world) => {
-        updateConnector(conn.id, {
-          waypoints: updateConnectorWaypoint(conn.waypoints, index, world),
-        });
-        setWaypointDrag(null);
-        store.endGesture();
-      },
-      onCancel: () => {
-        setWaypointDrag(null);
-        store.endGesture();
-      },
-    });
-  };
-
-  const removeBend = (conn: BoardConnector, index: number) => {
-    updateConnector(conn.id, { waypoints: removeConnectorWaypoint(conn.waypoints, index) });
-  };
-
   const elementInvolved = (c: BoardConnector, elId: string) =>
     (c.source.attach === "element" && c.source.id === elId) ||
     (c.target.attach === "element" && c.target.id === elId);
 
   const showFan = Boolean(relationMode && connectorDraftSource);
-  const selectedConn = selectedConnectorId
-    ? connectors.find((c) => c.id === selectedConnectorId)
-    : undefined;
 
   const fanLines =
     showFan && connectorDraftSource
@@ -285,24 +137,6 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
             return { id: el.id, start, end };
           })
       : [];
-
-  const selectedAnchors = selectedConn
-    ? resolveConnectorAnchors(selectedConn, elements, swimlanes, boundedContexts)
-    : null;
-  const draggingSelected =
-    endpointDrag && selectedConn && endpointDrag.connectorId === selectedConn.id
-      ? endpointDrag
-      : null;
-  const selectedHandleStart = selectedAnchors
-    ? draggingSelected?.endpoint === "source"
-      ? draggingSelected.lineEnd
-      : selectedAnchors.start
-    : null;
-  const selectedHandleEnd = selectedAnchors
-    ? draggingSelected?.endpoint === "target"
-      ? draggingSelected.lineEnd
-      : selectedAnchors.end
-    : null;
 
   return (
     <>
@@ -370,9 +204,16 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
               displayPoints[displayPoints.length - 1] = endpointDrag.lineEnd;
             }
           }
-          if (waypointDrag?.connectorId === conn.id && conn.waypoints?.length) {
-            const inner = [...conn.waypoints];
-            inner[waypointDrag.index] = waypointDrag.point;
+          if (waypointDragPreview && conn.waypoints?.length) {
+            const dx =
+              waypointDragPreview.point.x - waypointDragPreview.anchorStart.x;
+            const dy =
+              waypointDragPreview.point.y - waypointDragPreview.anchorStart.y;
+            const inner = conn.waypoints.map((wp, index) => {
+              const key = connectorWaypointKey({ connectorId: conn.id, index });
+              if (!waypointDragPreview.selectedKeys.includes(key)) return wp;
+              return { x: wp.x + dx, y: wp.y + dy };
+            });
             const { start, end } = resolveConnectorAnchors(
               { ...conn, waypoints: inner },
               elements,
@@ -556,103 +397,6 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
               markerEnd="url(#board-conn-arrow-draft)"
             />
           ))}
-        </svg>
-      )}
-
-      {selectedConn && selectedHandleStart && selectedHandleEnd && selectedAnchors && (
-        <svg
-          data-board-connector-handles
-          className="pointer-events-none absolute inset-0 overflow-visible"
-          style={{ zIndex: CONNECTOR_HANDLE_Z }}
-        >
-          {endpointDrag?.target && (
-            <ConnectorSnapTargetHighlight
-              target={endpointDrag.target}
-              valid={endpointDrag.valid}
-              elements={elements}
-              swimlanes={swimlanes}
-              boundedContexts={boundedContexts}
-            />
-          )}
-          <circle
-            data-board-connector="endpoint"
-            cx={selectedHandleStart.x}
-            cy={selectedHandleStart.y}
-            r={connectorEndpointHandleRadius(true)}
-            fill="#fff"
-            stroke="#2a9d8f"
-            strokeWidth={2}
-            className="pointer-events-auto cursor-grab"
-            onPointerDown={(e) =>
-              startEndpointDrag(
-                selectedConn,
-                "source",
-                connectorEndpointTowardPoint(
-                  selectedConn,
-                  "source",
-                  elements,
-                  swimlanes,
-                  boundedContexts,
-                ),
-                connectorEndpointApproachFrom(selectedConn, "source"),
-                e,
-              )
-            }
-          />
-          <circle
-            data-board-connector="endpoint"
-            cx={selectedHandleEnd.x}
-            cy={selectedHandleEnd.y}
-            r={connectorEndpointHandleRadius(true)}
-            fill="#fff"
-            stroke="#2a9d8f"
-            strokeWidth={2}
-            className="pointer-events-auto cursor-grab"
-            onPointerDown={(e) =>
-              startEndpointDrag(
-                selectedConn,
-                "target",
-                connectorEndpointTowardPoint(
-                  selectedConn,
-                  "target",
-                  elements,
-                  swimlanes,
-                  boundedContexts,
-                ),
-                connectorEndpointApproachFrom(selectedConn, "target"),
-                e,
-              )
-            }
-          />
-          {(selectedConn.waypoints ?? []).map((wp, index) => {
-            const display =
-              waypointDrag?.connectorId === selectedConn.id && waypointDrag.index === index
-                ? waypointDrag.point
-                : wp;
-            return (
-              <rect
-                key={`wp-${selectedConn.id}-${index}`}
-                data-board-connector="waypoint"
-                x={display.x - 5}
-                y={display.y - 5}
-                width={10}
-                height={10}
-                rx={2}
-                fill="#fff"
-                stroke="#2a9d8f"
-                strokeWidth={2}
-                className="pointer-events-auto cursor-grab"
-                onPointerDown={(e) => startWaypointDrag(selectedConn, index, e)}
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  removeBend(selectedConn, index);
-                }}
-              >
-                <title>{t("contextMenu.connectorRemoveBendHint")}</title>
-              </rect>
-            );
-          })}
         </svg>
       )}
     </>
