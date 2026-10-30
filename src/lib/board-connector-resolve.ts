@@ -1,4 +1,4 @@
-import { rectAnchorToward, type Point } from "@/lib/connector-geometry";
+import { rectAnchorToward, rectCenter, rectBorderHitFromRay, type Point } from "@/lib/connector-geometry";
 import {
   boundsForConnectorTarget,
   type ConnectorAttachTarget,
@@ -59,8 +59,10 @@ export function connectorEndpointCenter(
 
 /**
  * World point where a connector meets this endpoint.
- * Shape attachments always aim at `toward` (typically the opposite center) and
- * terminate on the rectangle edge — click/drag approach is intentionally ignored.
+ * Without waypoints, shape attachments aim from the shape center toward `toward`
+ * (typically the opposite element center). With `approachFrom`, the edge is where
+ * the ray from that polyline neighbor (e.g. last waypoint) meets the shape — so
+ * the dock aligns with the incoming/outgoing segment, not center→opposite-center.
  */
 export function resolveConnectorEndpointPoint(
   endpoint: ConnectorEndpoint,
@@ -68,6 +70,7 @@ export function resolveConnectorEndpointPoint(
   elements: StormElement[],
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
+  approachFrom?: Point,
 ): Point {
   if (endpoint.attach === "point") {
     return { x: endpoint.x, y: endpoint.y };
@@ -77,6 +80,9 @@ export function resolveConnectorEndpointPoint(
   const bounds = boundsForConnectorTarget(attach, elements, swimlanes, boundedContexts);
   if (!bounds) return toward;
   const rect = { x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h };
+  if (approachFrom) {
+    return rectBorderHitFromRay(rect, approachFrom, rectCenter(rect));
+  }
   return rectAnchorToward(rect, toward);
 }
 
@@ -102,24 +108,38 @@ export function resolveConnectorAnchors(
       ? { x: connector.source.x, y: connector.source.y }
       : { x: 0, y: 0 });
 
-  const towardSourceEnd = waypoints.length > 0 ? waypoints[waypoints.length - 1]! : sourceCenter;
-  const towardTargetStart = waypoints.length > 0 ? waypoints[0]! : targetCenter;
+  const lastWaypoint = waypoints.length > 0 ? waypoints[waypoints.length - 1]! : undefined;
+  const firstWaypoint = waypoints.length > 0 ? waypoints[0]! : undefined;
 
   const end = resolveConnectorEndpointPoint(
     connector.target,
-    towardSourceEnd,
+    sourceCenter,
     elements,
     swimlanes,
     boundedContexts,
+    lastWaypoint,
   );
   const start = resolveConnectorEndpointPoint(
     connector.source,
-    towardTargetStart,
+    targetCenter,
     elements,
     swimlanes,
     boundedContexts,
+    firstWaypoint,
   );
   return { start, end };
+}
+
+/** Polyline neighbor used to pick the shape edge (waypoint side of the bend). */
+export function connectorEndpointApproachFrom(
+  connector: {
+    waypoints?: readonly { x: number; y: number }[];
+  },
+  side: "source" | "target",
+): Point | undefined {
+  const waypoints = connector.waypoints ?? [];
+  if (!waypoints.length) return undefined;
+  return side === "source" ? { ...waypoints[0]! } : { ...waypoints[waypoints.length - 1]! };
 }
 
 /** Point shape attachments should “look toward” when dragging or re-anchoring endpoints. */

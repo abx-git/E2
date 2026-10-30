@@ -76,6 +76,43 @@ export function rectEdgePoint(rect: ElementRect, from: Point, toward: Point): Po
   return { x: cx + dx * t, y: cy + dy * t };
 }
 
+/** First intersection of the ray `from` → `toward` with the rectangle border (smallest t ≥ 0). */
+export function rectBorderHitFromRay(rect: ElementRect, from: Point, toward: Point): Point {
+  const dx = toward.x - from.x;
+  const dy = toward.y - from.y;
+  if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) {
+    return rectAnchorToward(rect, toward);
+  }
+
+  const left = rect.x;
+  const right = rect.x + rect.w;
+  const top = rect.y;
+  const bottom = rect.y + rect.h;
+
+  let bestT = Number.POSITIVE_INFINITY;
+  let best: Point | null = null;
+
+  const consider = (t: number, x: number, y: number) => {
+    if (t < -1e-6) return;
+    if (x < left - 1e-4 || x > right + 1e-4 || y < top - 1e-4 || y > bottom + 1e-4) return;
+    if (t < bestT) {
+      bestT = t;
+      best = { x, y };
+    }
+  };
+
+  if (Math.abs(dx) > 1e-9) {
+    consider((left - from.x) / dx, left, from.y + ((left - from.x) / dx) * dy);
+    consider((right - from.x) / dx, right, from.y + ((right - from.x) / dx) * dy);
+  }
+  if (Math.abs(dy) > 1e-9) {
+    consider((top - from.y) / dy, from.x + ((top - from.y) / dy) * dx, top);
+    consider((bottom - from.y) / dy, from.x + ((bottom - from.y) / dy) * dx, bottom);
+  }
+
+  return best ?? rectAnchorToward(rect, toward);
+}
+
 export function relationAnchors(source: StormElement, target: StormElement): { start: Point; end: Point } {
   const sc = elementCenter(source);
   const tc = elementCenter(target);

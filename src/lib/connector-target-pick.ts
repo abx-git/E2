@@ -1,4 +1,4 @@
-import { rectAnchorToward } from "@/lib/connector-geometry";
+import { rectAnchorToward, rectBorderHitFromRay } from "@/lib/connector-geometry";
 import {
   boundedContextBounds,
   elementBounds,
@@ -172,6 +172,7 @@ export function connectorEndpointDragPreview(
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
   accept: ConnectorTargetFilter,
+  approachFrom?: WorldPoint,
 ): ConnectorEndpointDragPreview {
   const target = pickConnectorTargetSnapAt(pointer, elements, swimlanes, boundedContexts);
   if (!target || !acceptsTarget(target, accept)) {
@@ -180,8 +181,14 @@ export function connectorEndpointDragPreview(
   const bounds = boundsForConnectorTarget(target, elements, swimlanes, boundedContexts);
   if (!bounds) return { lineEnd: pointer, target, valid: false };
   const rect = { x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h };
+  const lineEnd = approachFrom
+    ? rectBorderHitFromRay(rect, approachFrom, {
+        x: bounds.x + bounds.w / 2,
+        y: bounds.y + bounds.h / 2,
+      })
+    : rectAnchorToward(rect, toward);
   return {
-    lineEnd: rectAnchorToward(rect, toward),
+    lineEnd,
     target,
     valid: true,
   };

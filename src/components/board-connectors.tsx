@@ -9,6 +9,7 @@ import {
   connectorEndpointCenter,
   resolveConnectorAnchors,
   connectorEndpointTowardPoint,
+  connectorEndpointApproachFrom,
 } from "@/lib/board-connector-resolve";
 import {
   boardConnectorCaption,
@@ -125,6 +126,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
     connector: BoardConnector,
     side: "source" | "target",
     towardCenter: { x: number; y: number },
+    approachFrom: { x: number; y: number } | undefined,
     e: ReactPointerEvent,
   ) => {
     if (e.button !== 0) return;
@@ -154,6 +156,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
           live.swimlanes,
           live.boundedContexts,
           SNAP_ACCEPT,
+          approachFrom,
         );
         setEndpointDrag({
           connectorId: connector.id,
@@ -170,6 +173,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
           live.swimlanes,
           live.boundedContexts,
           SNAP_ACCEPT,
+          approachFrom,
         );
         if (preview.valid && preview.target) {
           live.reconnectConnector(connector.id, side, attachTargetToEndpoint(preview.target));
@@ -369,11 +373,13 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
           if (waypointDrag?.connectorId === conn.id && conn.waypoints?.length) {
             const inner = [...conn.waypoints];
             inner[waypointDrag.index] = waypointDrag.point;
-            displayPoints = [
-              basePoints[0]!,
-              ...inner,
-              basePoints[basePoints.length - 1]!,
-            ];
+            const { start, end } = resolveConnectorAnchors(
+              { ...conn, waypoints: inner },
+              elements,
+              swimlanes,
+              boundedContexts,
+            );
+            displayPoints = [start, ...inner, end];
           }
           const selected = conn.id === selectedConnectorId;
           const dragSnapActive = draggingThis && endpointDrag!.valid;
@@ -588,6 +594,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
                   swimlanes,
                   boundedContexts,
                 ),
+                connectorEndpointApproachFrom(selectedConn, "source"),
                 e,
               )
             }
@@ -612,6 +619,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
                   swimlanes,
                   boundedContexts,
                 ),
+                connectorEndpointApproachFrom(selectedConn, "target"),
                 e,
               )
             }
