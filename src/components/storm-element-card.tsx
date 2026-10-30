@@ -26,7 +26,10 @@ import {
   cardWebLinkLabel,
   elementWebLinks,
 } from "@/lib/card-web-links";
-import { elementDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
+import {
+  elementDimmedBySelectionFilter,
+  isSelectionFilterActive,
+} from "@/lib/canvas-selection-filter";
 import {
   elementDimmedByTypeVisibilityFilter,
   isTypeVisibilityFilterActive,
@@ -192,6 +195,10 @@ export function StormElementCard({
   const dimForSearch = searchActive && !searchHit?.match;
   const dimForSelection = elementDimmedBySelectionFilter(
     element.id,
+    selectionFilterEnabled,
+    selectedElementIds,
+  );
+  const selectionHighlightActive = isSelectionFilterActive(
     selectionFilterEnabled,
     selectedElementIds,
   );
@@ -1004,6 +1011,7 @@ export function StormElementCard({
 
       {selected &&
         !editing &&
+        !selectionHighlightActive &&
         (Object.keys(HANDLE_POSITIONS) as ResizeHandle[]).map((handle) => (
           <button
             key={handle}
