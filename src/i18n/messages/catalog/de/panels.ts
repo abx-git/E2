@@ -95,6 +95,8 @@ export const panelsDe = {
     cardTypeHiddenDimmed: "Typ ausgeblendet: {type} — Karte auf dem Board abgedunkelt",
     paletteHideType: "„{type}“ auf dem Board ausblenden",
     paletteShowType: "„{type}“ auf dem Board wieder einblenden",
+    paletteNotesCompactOn: "Notizen kompakt (nur Info-Symbol, Mouseover zeigt Karte)",
+    paletteNotesCompactOff: "Notizen immer als volle Karte anzeigen",
     paletteShowAllTypes: "Alle Typen auf dem Board einblenden",
     paletteVisibilityHint: "Auge: Typ auf dem Board ein- oder ausblenden (pro Sicht).",
     cardSetLinkTarget: "Ziel in der Detailleiste setzen",

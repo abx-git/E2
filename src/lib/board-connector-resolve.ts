@@ -46,13 +46,20 @@ export function connectorEndpointCenter(
   elements: StormElement[],
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
+  notesCompact = false,
 ): Point | null {
   if (endpoint.attach === "point") {
     return { x: endpoint.x, y: endpoint.y };
   }
   const attach = connectorEndpointToAttachTarget(endpoint);
   if (!attach) return null;
-  const bounds = boundsForConnectorTarget(attach, elements, swimlanes, boundedContexts);
+  const bounds = boundsForConnectorTarget(
+    attach,
+    elements,
+    swimlanes,
+    boundedContexts,
+    notesCompact,
+  );
   if (!bounds) return null;
   return { x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2 };
 }
@@ -71,13 +78,20 @@ export function resolveConnectorEndpointPoint(
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
   approachFrom?: Point,
+  notesCompact = false,
 ): Point {
   if (endpoint.attach === "point") {
     return { x: endpoint.x, y: endpoint.y };
   }
   const attach = connectorEndpointToAttachTarget(endpoint);
   if (!attach) return toward;
-  const bounds = boundsForConnectorTarget(attach, elements, swimlanes, boundedContexts);
+  const bounds = boundsForConnectorTarget(
+    attach,
+    elements,
+    swimlanes,
+    boundedContexts,
+    notesCompact,
+  );
   if (!bounds) return toward;
   const rect = { x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h };
   if (approachFrom) {
@@ -95,15 +109,28 @@ export function resolveConnectorAnchors(
   elements: StormElement[],
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
+  notesCompact = false,
 ): { start: Point; end: Point } {
   const waypoints = connector.waypoints ?? [];
   const targetCenter =
-    connectorEndpointCenter(connector.target, elements, swimlanes, boundedContexts) ??
+    connectorEndpointCenter(
+      connector.target,
+      elements,
+      swimlanes,
+      boundedContexts,
+      notesCompact,
+    ) ??
     (connector.target.attach === "point"
       ? { x: connector.target.x, y: connector.target.y }
       : { x: 0, y: 0 });
   const sourceCenter =
-    connectorEndpointCenter(connector.source, elements, swimlanes, boundedContexts) ??
+    connectorEndpointCenter(
+      connector.source,
+      elements,
+      swimlanes,
+      boundedContexts,
+      notesCompact,
+    ) ??
     (connector.source.attach === "point"
       ? { x: connector.source.x, y: connector.source.y }
       : { x: 0, y: 0 });
@@ -118,6 +145,7 @@ export function resolveConnectorAnchors(
     swimlanes,
     boundedContexts,
     lastWaypoint,
+    notesCompact,
   );
   const start = resolveConnectorEndpointPoint(
     connector.source,
@@ -126,6 +154,7 @@ export function resolveConnectorAnchors(
     swimlanes,
     boundedContexts,
     firstWaypoint,
+    notesCompact,
   );
   return { start, end };
 }

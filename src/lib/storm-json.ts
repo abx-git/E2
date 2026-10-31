@@ -137,6 +137,8 @@ export interface CanvasBoardView {
   hiddenElementTypes?: ElementType[];
   /** Hidden freeform stereotype ids on the canvas (per view). */
   hiddenCustomTypeIds?: string[];
+  /** Notes on canvas as compact info icon (full card on hover). */
+  notesCompact?: boolean;
 }
 
 /** Canvas tab or architecture-measures (`actions`) tab. */
@@ -186,6 +188,7 @@ export interface BoardActiveSlice {
   snapToTimeline: boolean;
   snapToGrid: boolean;
   customCardTypes: CustomCardType[];
+  notesCompact?: boolean;
 }
 
 export interface BoardSnapshotV2 {
@@ -356,6 +359,7 @@ export function normalizeBoardView(
     customCardTypes: normalizeCustomCardTypes(raw.customCardTypes),
     hiddenElementTypes: normalizeHiddenElementTypes(raw.hiddenElementTypes),
     hiddenCustomTypeIds: normalizeHiddenCustomTypeIds(raw.hiddenCustomTypeIds),
+    notesCompact: Boolean(raw.notesCompact),
   });
   const connectors = mergeLegacyIntoConnectors(
     normalizeBoardConnectors(raw.connectors),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Clock, ExternalLink, LayoutDashboard, Link2, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
+import { ArrowRight, Clock, ExternalLink, Info, LayoutDashboard, Link2, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
 
 import { ProgressMarkBadge } from "@/components/progress-mark-badge";
 import { DescriptionEditorDialog } from "@/components/description-editor-dialog";
@@ -46,6 +46,7 @@ import { hexToRgba } from "@/lib/region-style";
 import { HighlightedText } from "@/components/highlighted-text";
 import { elementCardTypeCaption, elementTypeLabel, useT } from "@/i18n";
 import { resolveNoteColor } from "@/lib/note-colors";
+import { NOTE_COMPACT_SIZE_PX, noteUsesCompactLayout } from "@/lib/note-compact";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
 import {
   findMeasureForHotspotInBoard,
@@ -158,6 +159,7 @@ export function StormElementCard({
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
+  const notesCompact = useStormBoardStore((s) => s.notesCompact);
   const editingElementId = useStormBoardStore((s) => s.editingElementId);
   const views = useStormBoardStore((s) => s.views);
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
@@ -228,6 +230,13 @@ export function StormElementCard({
   const linkedMeasureAccent = hotspotLinkedMeasure
     ? ACTION_TYPE_COLORS[hotspotLinkedMeasure.item.actionType]
     : null;
+
+  const [noteHoverExpanded, setNoteHoverExpanded] = useState(false);
+  const noteCompactLayout = noteUsesCompactLayout(element, notesCompact);
+  const noteCompactCollapsed =
+    noteCompactLayout && !selected && !editing && !noteHoverExpanded;
+  const layoutW = noteCompactCollapsed ? NOTE_COMPACT_SIZE_PX : w;
+  const layoutH = noteCompactCollapsed ? NOTE_COMPACT_SIZE_PX : h;
 
   const cardW = element.width ?? style.defaultWidth;
   const cardH = element.height ?? style.defaultHeight;
@@ -435,15 +444,20 @@ export function StormElementCard({
       style={{
         left: element.x,
         top: element.y,
-        width: w,
-        height: h,
+        width: layoutW,
+        height: layoutH,
         transform: rotation ? `rotate(${rotation}deg)` : undefined,
         transformOrigin: "center center",
         zIndex:
           cssStackingZIndex(element, {
             // Boundary containers stay behind contents — don't elevate them over members.
             elevated:
-              !isBoundary && (selected || connecting || editing || searchEmphasize),
+              !isBoundary &&
+              (selected ||
+                connecting ||
+                editing ||
+                searchEmphasize ||
+                (noteCompactLayout && noteHoverExpanded)),
             highlighted:
               (focusMode && !dimForFocus) ||
               (searchActive && Boolean(searchHit?.match)) ||
@@ -452,7 +466,15 @@ export function StormElementCard({
           }),
         opacity: dimmed ? 0.28 : undefined,
         filter: dimmed ? "saturate(0.55) brightness(0.72)" : undefined,
-        transition: "opacity 120ms ease, filter 120ms ease",
+        transition: "opacity 120ms ease, filter 120ms ease, width 120ms ease, height 120ms ease",
+      }}
+      onPointerEnter={() => {
+        if (noteCompactLayout && !selected && !editing) {
+          setNoteHoverExpanded(true);
+        }
+      }}
+      onPointerLeave={() => {
+        if (noteHoverExpanded) setNoteHoverExpanded(false);
       }}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
@@ -642,6 +664,7 @@ export function StormElementCard({
       <div
         className={[
           "relative flex h-full w-full border px-2 py-1 shadow-sm transition-shadow",
+          noteCompactCollapsed ? "items-center justify-center px-0 py-0" : "",
           isLink && !editing
             ? "flex-row items-center gap-2 overflow-hidden"
             : showDetails || noteLike || isBoundary || (isLink && editing)
@@ -703,6 +726,10 @@ export function StormElementCard({
                           : undefined
         }
       >
+        {noteCompactCollapsed ? (
+          <Info className="h-4 w-4 shrink-0 opacity-80" aria-hidden />
+        ) : null}
+        <div className={noteCompactCollapsed ? "hidden" : "contents"}>
         {hotspotLinkedMeasure && linkedMeasureAccent && !editing ? (
           <div
             className={[
@@ -1006,6 +1033,7 @@ export function StormElementCard({
             <LayoutDashboard className="h-3 w-3" aria-hidden />
           </button>
         )}
+        </div>
       </div>
 
       {selected &&

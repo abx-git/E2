@@ -24,8 +24,15 @@ export function resolveConnectorPolylinePoints(
   elements: StormElement[],
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
+  notesCompact = false,
 ): Point[] {
-  const { start, end } = resolveConnectorAnchors(connector, elements, swimlanes, boundedContexts);
+  const { start, end } = resolveConnectorAnchors(
+    connector,
+    elements,
+    swimlanes,
+    boundedContexts,
+    notesCompact,
+  );
   const inner = connector.waypoints ?? [];
   return [start, ...inner, end];
 }

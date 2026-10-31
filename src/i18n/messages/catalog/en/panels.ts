@@ -94,6 +94,8 @@ export const panelsEn = {
     cardTypeHiddenDimmed: "Hidden type: {type} — card dimmed on board",
     paletteHideType: "Hide “{type}” on the board",
     paletteShowType: "Show “{type}” on the board again",
+    paletteNotesCompactOn: "Compact notes (info icon only; hover shows full card)",
+    paletteNotesCompactOff: "Always show notes as full cards",
     paletteShowAllTypes: "Show all types on the board",
     paletteVisibilityHint: "Eye icon: hide or show this type on the board (per view).",
     cardSetLinkTarget: "Set target in the detail panel",

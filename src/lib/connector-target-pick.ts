@@ -1,4 +1,5 @@
 import { rectAnchorToward, rectBorderHitFromRay } from "@/lib/connector-geometry";
+import { elementCanvasBounds } from "@/lib/note-compact";
 import {
   boundedContextBounds,
   elementBounds,
@@ -50,16 +51,21 @@ function betterCandidate(a: Candidate, b: Candidate): Candidate {
  * Innermost object at `point`: smallest area among all containing elements,
  * bounded contexts, and swimlanes.
  */
+function elementHitBounds(el: StormElement, notesCompact: boolean): WorldRect {
+  return notesCompact ? elementCanvasBounds(el, true) : elementBounds(el);
+}
+
 export function pickInnermostConnectorTargetAt(
   point: WorldPoint,
   elements: StormElement[],
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
+  notesCompact = false,
 ): ConnectorAttachTarget | null {
   let best: Candidate | null = null;
 
   for (const el of elements) {
-    const bounds = elementBounds(el);
+    const bounds = elementHitBounds(el, notesCompact);
     if (!pointInWorldRect(point, bounds)) continue;
     const candidate: Candidate = { kind: "element", id: el.id, area: rectArea(bounds) };
     best = best ? betterCandidate(best, candidate) : candidate;
@@ -98,8 +104,15 @@ export function pickConnectorTargetSnapAt(
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
   snapMargin = 28,
+  notesCompact = false,
 ): ConnectorAttachTarget | null {
-  const direct = pickInnermostConnectorTargetAt(point, elements, swimlanes, boundedContexts);
+  const direct = pickInnermostConnectorTargetAt(
+    point,
+    elements,
+    swimlanes,
+    boundedContexts,
+    notesCompact,
+  );
   if (direct) return direct;
 
   let best: Candidate | undefined;
@@ -111,7 +124,7 @@ export function pickConnectorTargetSnapAt(
   };
 
   for (const el of elements) {
-    consider(elementBounds(el), { kind: "element", id: el.id });
+    consider(elementHitBounds(el, notesCompact), { kind: "element", id: el.id });
   }
   for (const bc of boundedContexts) {
     consider(boundedContextBounds(bc), { kind: "boundedContext", id: bc.id });
@@ -129,10 +142,11 @@ export function boundsForConnectorTarget(
   elements: StormElement[],
   swimlanes: Swimlane[],
   boundedContexts: BoundedContext[],
+  notesCompact = false,
 ): WorldRect | null {
   if (target.kind === "element") {
     const el = elements.find((e) => e.id === target.id);
-    return el ? elementBounds(el) : null;
+    return el ? elementHitBounds(el, notesCompact) : null;
   }
   if (target.kind === "boundedContext") {
     const bc = boundedContexts.find((b) => b.id === target.id);
@@ -173,12 +187,26 @@ export function connectorEndpointDragPreview(
   boundedContexts: BoundedContext[],
   accept: ConnectorTargetFilter,
   approachFrom?: WorldPoint,
+  notesCompact = false,
 ): ConnectorEndpointDragPreview {
-  const target = pickConnectorTargetSnapAt(pointer, elements, swimlanes, boundedContexts);
+  const target = pickConnectorTargetSnapAt(
+    pointer,
+    elements,
+    swimlanes,
+    boundedContexts,
+    28,
+    notesCompact,
+  );
   if (!target || !acceptsTarget(target, accept)) {
     return { lineEnd: pointer, target, valid: false };
   }
-  const bounds = boundsForConnectorTarget(target, elements, swimlanes, boundedContexts);
+  const bounds = boundsForConnectorTarget(
+    target,
+    elements,
+    swimlanes,
+    boundedContexts,
+    notesCompact,
+  );
   if (!bounds) return { lineEnd: pointer, target, valid: false };
   const rect = { x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h };
   const lineEnd = approachFrom

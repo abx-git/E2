@@ -1039,6 +1039,10 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "notesCompact": {
+          "type": "boolean",
+          "description": "Notizen auf dem Canvas nur als Info-Symbol; volle Karte bei Mouseover."
         }
       }
     },

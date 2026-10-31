@@ -33,7 +33,10 @@ import {
   type BoardExportSlice,
 } from "@/lib/board-export-connectors";
 import { elementDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
-import { elementRect as geomElementRect } from "@/lib/connector-geometry";
+import {
+  elementCanvasBounds,
+  noteUsesCompactLayout,
+} from "@/lib/note-compact";
 import {
   cardAttributeLines,
   cardMethodLines,
@@ -1021,8 +1024,53 @@ export function exportArchitectureDocumentationMarkdown(): void {
   downloadText(`${slugTitle(title)}-architecture.md`, lines.join("\n"));
 }
 
-function elementRect(el: StormElement): { x: number; y: number; w: number; h: number } {
-  return geomElementRect(el);
+function elementRect(
+  el: StormElement,
+  notesCompact: boolean,
+): { x: number; y: number; w: number; h: number } {
+  return elementCanvasBounds(el, notesCompact);
+}
+
+function drawExportCompactNoteInfo(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  stroke: string,
+  ink: string,
+): void {
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  const r = size * 0.35;
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = ink;
+  ctx.font = `600 ${Math.max(10, Math.round(size * 0.45))}px ${EXPORT_FONT_FAMILY}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("i", cx, cy);
+}
+
+function pushExportCompactNoteInfoSvg(
+  parts: string[],
+  x: number,
+  y: number,
+  size: number,
+  stroke: string,
+  ink: string,
+  rot?: string,
+): void {
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  const r = size * 0.35;
+  const rotAttr = rot ?? "";
+  parts.push(
+    `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${stroke}" stroke-width="1.5"${rotAttr}/>`,
+    `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" fill="${ink}" font-size="${Math.max(10, Math.round(size * 0.45))}" font-weight="600"${rotAttr}>i</text>`,
+  );
 }
 
 function escapeXml(s: string): string {
@@ -1075,6 +1123,7 @@ function elementDimmedForExportHighlight(elementId: string, state: BoardExportSl
 }
 
 function computeBoardBounds(state: BoardActiveSlice | BoardExportSlice): BoardBounds {
+  const notesCompact = state.notesCompact ?? false;
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -1088,7 +1137,7 @@ function computeBoardBounds(state: BoardActiveSlice | BoardExportSlice): BoardBo
   };
 
   for (const el of state.elements) {
-    const r = elementRect(el);
+    const r = elementRect(el, notesCompact);
     expand(r.x, r.y, r.w, r.h);
   }
   for (const bc of state.boundedContexts) {
@@ -1249,6 +1298,7 @@ function mxPushVertex(
  */
 export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bounds: BoardBounds): string {
   const { width, height, ox, oy } = bounds;
+  const notesCompact = state.notesCompact ?? false;
   const canvasBg = exportCanvasBackground(state.appearance);
   const pageW = Math.max(1, Math.ceil(width));
   const pageH = Math.max(1, Math.ceil(height));
@@ -1358,8 +1408,9 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
   );
 
   for (const el of sortElementsByZOrder(state.elements)) {
-    const r = elementRect(el);
+    const r = elementRect(el, notesCompact);
     const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
+    const compactNote = noteUsesCompactLayout(el, notesCompact);
     const shape = styleForElementType(el.type).shape;
     const radius = cornerRadius(el, r.w, r.h);
     const circularPill = shape === "pill" && isCircularPillShape(r.w, r.h);
@@ -1373,8 +1424,8 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
       shape: el.type === "instruction" ? "process" : undefined,
       whiteSpace: "wrap",
       html: 1,
-      align,
-      verticalAlign: vAlign,
+      align: compactNote ? "center" : align,
+      verticalAlign: compactNote ? "middle" : vAlign,
       spacingLeft: align === "left" ? CARD_PAD_X : 4,
       spacingRight: align === "left" ? CARD_PAD_X : 4,
       spacingTop: vAlign === "top" ? CARD_PAD_Y : 2,
@@ -1394,7 +1445,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
     mxPushVertex(
       cells,
       mxCellId("el", el.id),
-      mxElementHtml(el, state.customCardTypes),
+      compactNote ? mxHtmlValue("i") : mxElementHtml(el, state.customCardTypes),
       style,
       r.x + ox,
       r.y + oy,
@@ -1422,6 +1473,7 @@ export function exportBoardSvg(): void {
   const state = boardExportSliceFromStore();
   const bounds = computeBoardBounds(state);
   const { width, height, ox, oy } = bounds;
+  const notesCompact = state.notesCompact ?? false;
   const canvasBg = exportCanvasBackground(state.appearance);
   const mxfile = buildDrawioMxFile(state, bounds);
 
@@ -1486,8 +1538,9 @@ export function exportBoardSvg(): void {
     if (selectionDimmed) {
       parts.push(`<g opacity="${EXPORT_HIGHLIGHT_DIMMED_ELEMENT_OPACITY}">`);
     }
-    const r = elementRect(el);
+    const r = elementRect(el, notesCompact);
     const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
+    const compactNote = noteUsesCompactLayout(el, notesCompact);
     const x = r.x + ox;
     const y = r.y + oy;
     const rx = cornerRadius(el, r.w, r.h);
@@ -1504,6 +1557,14 @@ export function exportBoardSvg(): void {
       parts.push(
         `<rect x="${x}" y="${y}" width="4" height="${r.h}" fill="${escapeXml(stroke)}" stroke="none"${rot}/>`,
       );
+    }
+
+    if (compactNote) {
+      pushExportCompactNoteInfoSvg(parts, x, y, r.w, escapeXml(stroke), escapeXml(ink), rot);
+      if (selectionDimmed) {
+        parts.push(`</g>`);
+      }
+      continue;
     }
 
     const textW = Math.max(20, r.w - CARD_PAD_X * 2);
@@ -1599,6 +1660,7 @@ function renderActiveViewRaster(): {
 } | null {
   const state = boardExportSliceFromStore();
   const { width, height, ox, oy } = computeBoardBounds(state);
+  const notesCompact = state.notesCompact ?? false;
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
@@ -1662,10 +1724,11 @@ function renderActiveViewRaster(): {
   drawExportConnectorsOnCanvas(ctx, state, ox, oy, cssFont);
 
   for (const el of sortElementsByZOrder(state.elements)) {
-    const r = elementRect(el);
+    const r = elementRect(el, notesCompact);
     const x = r.x + ox;
     const y = r.y + oy;
     const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
+    const compactNote = noteUsesCompactLayout(el, notesCompact);
     const rx = cornerRadius(el, r.w, r.h);
 
     ctx.save();
@@ -1694,6 +1757,12 @@ function renderActiveViewRaster(): {
     if (el.type === "instruction") {
       ctx.fillStyle = stroke;
       ctx.fillRect(x, y, 4, r.h);
+    }
+
+    if (compactNote) {
+      drawExportCompactNoteInfo(ctx, x, y, r.w, stroke, ink);
+      ctx.restore();
+      continue;
     }
 
     const textW = Math.max(20, r.w - CARD_PAD_X * 2);

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { HelpCircle, Eye, EyeOff, Pencil, Plus, Trash2, X } from "lucide-react";
+import { HelpCircle, Eye, EyeOff, Info, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import type { CustomCardType } from "@/lib/custom-card-types";
 import {
@@ -248,6 +248,8 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
   const addCustomCardType = useStormBoardStore((s) => s.addCustomCardType);
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
+  const notesCompact = useStormBoardStore((s) => s.notesCompact);
+  const toggleNotesCompact = useStormBoardStore((s) => s.toggleNotesCompact);
   const toggleHiddenElementType = useStormBoardStore((s) => s.toggleHiddenElementType);
   const toggleHiddenCustomTypeId = useStormBoardStore((s) => s.toggleHiddenCustomTypeId);
   const clearHiddenElementTypes = useStormBoardStore((s) => s.clearHiddenElementTypes);
@@ -452,6 +454,30 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
     </button>
   );
 
+  const renderNotesCompactToggle = (typeLabel: string) => (
+    <button
+      type="button"
+      className={[
+        "dock-control shrink-0 rounded-md p-1.5",
+        notesCompact ? "text-[var(--accent-2)]" : "text-[var(--muted)] hover:text-[var(--text)]",
+      ].join(" ")}
+      title={
+        notesCompact ? t("panels.paletteNotesCompactOff") : t("panels.paletteNotesCompactOn")
+      }
+      aria-label={
+        notesCompact ? t("panels.paletteNotesCompactOff") : t("panels.paletteNotesCompactOn")
+      }
+      aria-pressed={notesCompact}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        toggleNotesCompact();
+      }}
+    >
+      <Info className="h-3.5 w-3.5" />
+    </button>
+  );
+
   const renderTypeRow = (type: ElementType, compact = false) => {
     const style = ELEMENT_STYLES[type];
     const typeLabel = elementTypeLabel(t, type);
@@ -480,6 +506,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
           {typeLabel}
         </button>
         {renderTypeVisibilityToggle(hidden, typeLabel, () => toggleHiddenElementType(type))}
+        {type === "note" ? renderNotesCompactToggle(typeLabel) : null}
         <button
           type="button"
           className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"

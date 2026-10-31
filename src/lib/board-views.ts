@@ -47,6 +47,8 @@ export interface ActiveViewFlatState {
   hiddenElementTypes: ElementType[];
   /** Freeform: hidden custom stereotype ids in this view. */
   hiddenCustomTypeIds: string[];
+  /** Notes render as info icon until hover (per view). */
+  notesCompact: boolean;
 }
 
 export interface ViewDocumentState extends ActiveViewFlatState {
@@ -80,6 +82,7 @@ export function flatFieldsFromView(view: CanvasBoardView): ActiveViewFlatState {
     customCardTypes: view.customCardTypes ?? [],
     hiddenElementTypes: view.hiddenElementTypes ?? [],
     hiddenCustomTypeIds: view.hiddenCustomTypeIds ?? [],
+    notesCompact: view.notesCompact ?? false,
   };
 }
 

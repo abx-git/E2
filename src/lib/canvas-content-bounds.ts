@@ -1,3 +1,4 @@
+import { elementCanvasBounds } from "@/lib/note-compact";
 import { resolveConnectorAnchors } from "@/lib/board-connector-resolve";
 import {
   boundedContextBounds,
@@ -30,11 +31,16 @@ export function computeCanvasContentBounds(input: {
   boundedContexts: BoundedContext[];
   canvasLines?: CanvasLine[];
   connectors?: BoardConnector[];
+  notesCompact?: boolean;
 }): WorldRect {
+  const notesCompact = input.notesCompact ?? false;
   let bounds: WorldRect | null = null;
 
   for (const el of input.elements) {
-    bounds = expandRect(bounds, elementBounds(el));
+    bounds = expandRect(
+      bounds,
+      notesCompact ? elementCanvasBounds(el, true) : elementBounds(el),
+    );
   }
   for (const lane of input.swimlanes) {
     bounds = expandRect(bounds, swimlaneBounds(lane));
@@ -64,6 +70,7 @@ export function computeCanvasContentBounds(input: {
       input.elements,
       input.swimlanes,
       input.boundedContexts,
+      notesCompact,
     );
     bounds = expandPoint(bounds, start.x, start.y, 2);
     bounds = expandPoint(bounds, end.x, end.y, 2);

@@ -65,8 +65,15 @@ export function connectorExportPolyline(
   boundedContexts: BoundedContext[],
   ox: number,
   oy: number,
+  notesCompact = false,
 ): { x: number; y: number }[] | null {
-  const points = resolveConnectorPolylinePoints(conn, elements, swimlanes, boundedContexts);
+  const points = resolveConnectorPolylinePoints(
+    conn,
+    elements,
+    swimlanes,
+    boundedContexts,
+    notesCompact,
+  );
   if (points.length < 2) return null;
   return points.map((p) => ({ x: p.x + ox, y: p.y + oy }));
 }
@@ -142,6 +149,7 @@ export function drawExportConnectorsOnCanvas(
   cssFont: (weight: number, sizePx: number) => string,
 ): void {
   const captionBg = state.appearance.sidebar;
+  const notesCompact = state.notesCompact ?? false;
   for (const conn of connectorsForExport(state)) {
     const points = connectorExportPolyline(
       conn,
@@ -150,6 +158,7 @@ export function drawExportConnectorsOnCanvas(
       state.boundedContexts,
       ox,
       oy,
+      notesCompact,
     );
     if (!points || points.length < 2) continue;
 
@@ -232,6 +241,7 @@ export function svgExportConnectors(
 ): string[] {
   const parts: string[] = [];
   const captionBg = escapeXml(state.appearance.sidebar);
+  const notesCompact = state.notesCompact ?? false;
   for (const conn of connectorsForExport(state)) {
     const points = connectorExportPolyline(
       conn,
@@ -240,6 +250,7 @@ export function svgExportConnectors(
       state.boundedContexts,
       ox,
       oy,
+      notesCompact,
     );
     if (!points || points.length < 2) continue;
 

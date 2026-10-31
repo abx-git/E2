@@ -451,7 +451,7 @@ export function StormCanvas() {
       return;
     }
 
-    const elementIds = elementsInMarquee(store.elements, draft);
+    const elementIds = elementsInMarquee(store.elements, draft, store.notesCompact);
     const swimlaneIds = swimlanesInMarquee(store.swimlanes, draft);
     const boundedContextIds = boundedContextsInMarquee(store.boundedContexts, draft);
     if (elementIds.length > 0 || swimlaneIds.length > 0 || boundedContextIds.length > 0) {

@@ -90,6 +90,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
+  const notesCompact = useStormBoardStore((s) => s.notesCompact);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const viewport = useStormBoardStore((s) => s.viewport);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
@@ -157,6 +158,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
           live.boundedContexts,
           SNAP_ACCEPT,
           approachFrom,
+          live.notesCompact,
         );
         setEndpointDrag({
           connectorId: connector.id,
@@ -174,6 +176,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
           live.boundedContexts,
           SNAP_ACCEPT,
           approachFrom,
+          live.notesCompact,
         );
         if (preview.valid && preview.target) {
           live.reconnectConnector(connector.id, side, attachTargetToEndpoint(preview.target));
@@ -204,7 +207,13 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
     const rect = canvasContainerRect();
     if (!rect) return;
     const world = screenToWorld(viewport, clientX, clientY, rect);
-    const points = resolveConnectorPolylinePoints(conn, elements, swimlanes, boundedContexts);
+    const points = resolveConnectorPolylinePoints(
+      conn,
+      elements,
+      swimlanes,
+      boundedContexts,
+      notesCompact,
+    );
     const a = points[segmentIndex];
     const b = points[segmentIndex + 1];
     if (!a || !b) return;
@@ -281,13 +290,14 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
               elements,
               swimlanes,
               boundedContexts,
+              notesCompact,
             );
             return { id: el.id, start, end };
           })
       : [];
 
   const selectedAnchors = selectedConn
-    ? resolveConnectorAnchors(selectedConn, elements, swimlanes, boundedContexts)
+    ? resolveConnectorAnchors(selectedConn, elements, swimlanes, boundedContexts, notesCompact)
     : null;
   const draggingSelected =
     endpointDrag && selectedConn && endpointDrag.connectorId === selectedConn.id
@@ -361,6 +371,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
             elements,
             swimlanes,
             boundedContexts,
+            notesCompact,
           );
           let displayPoints = [...basePoints];
           if (draggingThis && endpointDrag) {
@@ -378,6 +389,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
               elements,
               swimlanes,
               boundedContexts,
+              notesCompact,
             );
             displayPoints = [start, ...inner, end];
           }
@@ -572,6 +584,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
               elements={elements}
               swimlanes={swimlanes}
               boundedContexts={boundedContexts}
+              notesCompact={notesCompact}
             />
           )}
           <circle

@@ -360,6 +360,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const boundedContexts = useStormBoardStore((s) => s.boundedContexts);
   const connectors = useStormBoardStore((s) => s.connectors);
   const canvasLines = useStormBoardStore((s) => s.canvasLines);
+  const notesCompact = useStormBoardStore((s) => s.notesCompact);
   const views = useStormBoardStore((s) => s.views);
   const propertiesPanelOpen = useStormBoardStore((s) => s.propertiesPanelOpen);
 
@@ -406,6 +407,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
       boundedContexts,
       connectors,
       canvasLines,
+      notesCompact,
     });
     setViewport(viewportFitContent(bounds, rect.width, rect.height));
   };

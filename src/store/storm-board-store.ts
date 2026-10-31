@@ -213,6 +213,8 @@ export interface StormBoardState {
   hiddenElementTypes: ElementType[];
   /** Per view: freeform stereotypes faded on the canvas. */
   hiddenCustomTypeIds: string[];
+  /** Per view: notes shown as compact info icon until hover. */
+  notesCompact: boolean;
   selectedElementIds: string[];
   selectedConnectorId: string | null;
   selectedRelationId: string | null;
@@ -299,6 +301,7 @@ export interface StormBoardState {
   setSelectionFilterEnabled: (enabled: boolean) => void;
   toggleHiddenElementType: (type: ElementType) => void;
   toggleHiddenCustomTypeId: (customTypeId: string) => void;
+  toggleNotesCompact: () => void;
   clearHiddenElementTypes: () => void;
   setClipboardDropHighlight: (active: boolean) => void;
   /** Cut selection into the board clipboard (removes from canvas). */
@@ -728,6 +731,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   customCardTypes: initialViewDoc.customCardTypes ?? [],
   hiddenElementTypes: initialViewDoc.hiddenElementTypes ?? [],
   hiddenCustomTypeIds: initialViewDoc.hiddenCustomTypeIds ?? [],
+  notesCompact: initialViewDoc.notesCompact ?? false,
   selectedElementIds: [],
   selectedConnectorId: null,
   selectedRelationId: null,
@@ -1017,6 +1021,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           : [...hidden, customTypeId],
       };
     }),
+  toggleNotesCompact: () =>
+    commit(set, get, (s) => ({ notesCompact: !s.notesCompact })),
   clearHiddenElementTypes: () =>
     commit(set, get, () => ({
       hiddenElementTypes: [],
@@ -3199,6 +3205,7 @@ export function boardActiveSliceFromStore() {
     snapToTimeline: s.snapToTimeline,
     snapToGrid: s.snapToGrid,
     customCardTypes: s.customCardTypes,
+    notesCompact: s.notesCompact,
   };
 }
 

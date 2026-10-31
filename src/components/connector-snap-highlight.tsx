@@ -12,6 +12,7 @@ export interface ConnectorSnapTargetHighlightProps {
   elements: StormElement[];
   swimlanes: Swimlane[];
   boundedContexts: BoundedContext[];
+  notesCompact?: boolean;
 }
 
 export function ConnectorSnapTargetHighlight({
@@ -20,8 +21,15 @@ export function ConnectorSnapTargetHighlight({
   elements,
   swimlanes,
   boundedContexts,
+  notesCompact = false,
 }: ConnectorSnapTargetHighlightProps) {
-  const bounds = boundsForConnectorTarget(target, elements, swimlanes, boundedContexts);
+  const bounds = boundsForConnectorTarget(
+    target,
+    elements,
+    swimlanes,
+    boundedContexts,
+    notesCompact,
+  );
   if (!bounds) return null;
 
   const stroke = valid ? "#2a9d8f" : "#e76f51";

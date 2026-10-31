@@ -1,5 +1,6 @@
 import { styleForElementType } from "@/lib/element-styles";
 import { itemZIndex, sortByZOrder } from "@/lib/element-z-order";
+import { elementCanvasBounds } from "@/lib/note-compact";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 
 export interface WorldRect {
@@ -51,10 +52,19 @@ export function rectContainedIn(inner: WorldRect, outer: WorldRect): boolean {
   );
 }
 
-export function elementsInMarquee(elements: StormElement[], marquee: WorldRect): string[] {
+export function elementsInMarquee(
+  elements: StormElement[],
+  marquee: WorldRect,
+  notesCompact = false,
+): string[] {
   if (marquee.w <= 0 || marquee.h <= 0) return [];
   return elements
-    .filter((el) => rectContainedIn(elementBounds(el), marquee))
+    .filter((el) =>
+      rectContainedIn(
+        notesCompact ? elementCanvasBounds(el, true) : elementBounds(el),
+        marquee,
+      ),
+    )
     .map((el) => el.id);
 }
 
