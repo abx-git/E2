@@ -47,4 +47,8 @@ describe("element-styles lookup", () => {
     expect(elementPillCornerRadiusPx(88, 88)).toBe(44);
     expect(isCircularPillShape(88, 88)).toBe(true);
   });
+
+  it("uses chamfer shape for process gateways", () => {
+    expect(styleForElementType("processGateway").shape).toBe("chamfer");
+  });
 });

@@ -235,7 +235,9 @@ export function StormElementCard({
   const shapeStyle =
     shapePresentation.borderRadiusPx !== undefined
       ? { borderRadius: shapePresentation.borderRadiusPx }
-      : undefined;
+      : shapePresentation.clipPath
+        ? { clipPath: shapePresentation.clipPath }
+        : undefined;
   /** Leave room for the relation control at top-right (same row, no overlap). */
   const linkedViewControlClass = isCoarsePointer
     ? "right-10 top-1.5 z-30"

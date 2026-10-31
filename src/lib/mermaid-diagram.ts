@@ -22,7 +22,7 @@ function nodeShape(type: ElementType, id: string, label: string): string {
     case "processEnd":
       return `${id}([${l}])`;
     case "processGateway":
-      return `${id}{${l}}`;
+      return `${id}[${l}]`;
     case "actor":
     case "c4Person":
       return `${id}((${l}))`;
@@ -250,6 +250,7 @@ interface ParsedNode {
   label: string;
   typeHint?: ElementType;
   swimlane?: string;
+  fromDiamondShape?: boolean;
 }
 
 interface ParsedEdge {
@@ -264,17 +265,19 @@ function parseFlowchart(body: string, mode: ModelingMode): AiBoardContext {
   let currentLane: string | undefined;
   const subgraphStack: string[] = [];
 
-  const ensureNode = (id: string, label?: string) => {
+  const ensureNode = (id: string, label?: string, fromDiamondShape?: boolean) => {
     const safe = diagramSafeId(id, id);
     const existing = nodes.get(safe);
     if (existing) {
       if (label && label !== safe) existing.label = label;
+      if (fromDiamondShape) existing.fromDiamondShape = true;
       return existing;
     }
     const node: ParsedNode = {
       id: safe,
       label: label?.trim() || id,
       swimlane: currentLane,
+      ...(fromDiamondShape ? { fromDiamondShape: true } : {}),
     };
     nodes.set(safe, node);
     return node;
@@ -322,7 +325,7 @@ function parseFlowchart(body: string, mode: ModelingMode): AiBoardContext {
       const id = nodeDef[1]!;
       const label =
         nodeDef[2] || nodeDef[3] || nodeDef[4] || nodeDef[5] || nodeDef[6] || id;
-      ensureNode(id, label.replace(/^"|"$/g, ""));
+      ensureNode(id, label.replace(/^"|"$/g, ""), Boolean(nodeDef[5]));
       continue;
     }
 
@@ -356,7 +359,9 @@ function parseFlowchart(body: string, mode: ModelingMode): AiBoardContext {
   // Infer from labels instead.
   const elements: AiContextElement[] = [...nodes.values()].map((n, index) => ({
     id: n.id,
-    type: inferElementTypeFromLabel(n.label, mode),
+    type: n.fromDiamondShape
+      ? "processGateway"
+      : inferElementTypeFromLabel(n.label, mode),
     label: n.label.replace(/^"|"$/g, ""),
     order: index + 1,
     ...(n.swimlane ? { swimlane: n.swimlane } : {}),

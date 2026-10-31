@@ -5,6 +5,8 @@ import { elementCardTypeCaption } from "@/i18n/domain-labels";
 import { createTranslator } from "@/i18n/translate";
 import type { ElementType, StormElement } from "@/types/storm-element";
 
+import { chamferClipPathCss } from "@/lib/element-chamfer-shape";
+
 export interface ElementStyle {
   label: string;
   shortLabel: string;
@@ -17,7 +19,7 @@ export interface ElementStyle {
   ink: string;
   defaultWidth: number;
   defaultHeight: number;
-  shape: "rounded" | "rectangle" | "pill" | "wide";
+  shape: "rounded" | "rectangle" | "pill" | "wide" | "chamfer";
   rotation?: number;
 }
 
@@ -50,7 +52,10 @@ export function elementCardShapePresentation(
   shape: ElementStyle["shape"],
   width: number,
   height: number,
-): { className: string; borderRadiusPx?: number } {
+): { className: string; borderRadiusPx?: number; clipPath?: string } {
+  if (shape === "chamfer") {
+    return { className: "", clipPath: chamferClipPathCss(width, height) };
+  }
   if (shape === "pill") {
     if (isCircularPillShape(width, height)) {
       return { className: "rounded-full" };
@@ -464,9 +469,9 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     fill: "#fef3c7",
     stroke: "#fbbf24",
     ink: "#78350f",
-    defaultWidth: 100,
-    defaultHeight: 100,
-    shape: "rectangle",
+    defaultWidth: 170,
+    defaultHeight: 80,
+    shape: "chamfer",
   },
   dataEntity: {
     label: "Entität",

@@ -33,6 +33,10 @@ import {
   type BoardExportSlice,
 } from "@/lib/board-export-connectors";
 import { elementDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
+import {
+  chamferPolygonPointsAttr,
+  strokeChamferPolygon,
+} from "@/lib/element-chamfer-shape";
 import { elementRect as geomElementRect } from "@/lib/connector-geometry";
 import {
   cardAttributeLines,
@@ -1035,6 +1039,7 @@ function cssFont(weight: number, sizePx: number): string {
 
 function cornerRadius(el: StormElement, w: number, h: number): number {
   const shape = styleForElementType(el.type).shape;
+  if (shape === "chamfer") return 0;
   if (shape === "pill") return elementPillCornerRadiusPx(w, h);
   if (shape === "rectangle") return 2;
   if (shape === "wide") return 6;
@@ -1370,7 +1375,12 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
       absoluteArcSize: circularPill ? undefined : 1,
       arcSize: circularPill ? undefined : mxAbsoluteArcSize(radius),
       ellipse: circularPill ? 1 : undefined,
-      shape: el.type === "instruction" ? "process" : undefined,
+      shape:
+        el.type === "instruction"
+          ? "process"
+          : shape === "chamfer"
+            ? "hexagon"
+            : undefined,
       whiteSpace: "wrap",
       html: 1,
       align,
@@ -1497,9 +1507,16 @@ export function exportBoardSvg(): void {
       : "";
     const dash = elementIsDashed(el) ? ` stroke-dasharray="4 3"` : "";
     const paintFill = elementFillWithOpacity(fill, el);
-    parts.push(
-      `<rect x="${x}" y="${y}" width="${r.w}" height="${r.h}" fill="${escapeXml(paintFill)}" stroke="${escapeXml(stroke)}" stroke-width="${elementStrokeWidth(el)}" rx="${rx}"${dash}${rot}/>`,
-    );
+    const chamfer = styleForElementType(el.type).shape === "chamfer";
+    if (chamfer) {
+      parts.push(
+        `<polygon points="${chamferPolygonPointsAttr(x, y, r.w, r.h)}" fill="${escapeXml(paintFill)}" stroke="${escapeXml(stroke)}" stroke-width="${elementStrokeWidth(el)}"${dash}${rot}/>`,
+      );
+    } else {
+      parts.push(
+        `<rect x="${x}" y="${y}" width="${r.w}" height="${r.h}" fill="${escapeXml(paintFill)}" stroke="${escapeXml(stroke)}" stroke-width="${elementStrokeWidth(el)}" rx="${rx}"${dash}${rot}/>`,
+      );
+    }
     if (el.type === "instruction") {
       parts.push(
         `<rect x="${x}" y="${y}" width="4" height="${r.h}" fill="${escapeXml(stroke)}" stroke="none"${rot}/>`,
@@ -1687,7 +1704,12 @@ function renderActiveViewRaster(): {
     if (elementIsDashed(el)) {
     ctx.setLineDash([4, 3]);
   }
-    roundRect(ctx, x, y, r.w, r.h, rx);
+    const chamfer = styleForElementType(el.type).shape === "chamfer";
+    if (chamfer) {
+      strokeChamferPolygon(ctx, x, y, r.w, r.h);
+    } else {
+      roundRect(ctx, x, y, r.w, r.h, rx);
+    }
     ctx.fill();
     ctx.stroke();
     ctx.setLineDash([]);
