@@ -1351,7 +1351,7 @@ export function StormBoard() {
 
       <div className="mx-2 mb-2 mt-2 flex min-h-0 flex-1 gap-2 lg:mx-3 lg:mb-3">
         {elementsPanelOpen && !isActionsActive ? (
-          <div className="dock-surface hidden overflow-hidden rounded-dock lg:flex">
+          <div className="dock-surface hidden shrink-0 rounded-dock lg:flex">
             <ElementPalette
               onSelectType={() => {}}
               onRequestHelp={openElementHelp}

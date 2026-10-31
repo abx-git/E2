@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { HelpCircle, LayoutGrid, PanelRight, X } from "lucide-react";
+import { HelpCircle, Info, LayoutGrid, PanelRight, X } from "lucide-react";
 
 import {
   BoardSideRailContent,
@@ -191,6 +191,8 @@ function MobilePaletteSheet({
   const workshopFormat = useStormBoardStore((s) => s.workshopFormat);
   const facilitatorEnabled = useStormBoardStore((s) => s.facilitatorEnabled);
   const facilitatorPhase = useStormBoardStore((s) => s.facilitatorPhase);
+  const notesCompact = useStormBoardStore((s) => s.notesCompact);
+  const toggleNotesCompact = useStormBoardStore((s) => s.toggleNotesCompact);
 
   const isFreeform = modelingMode === "freeform";
   const allowed = getAllowedTypesForPhase(
@@ -232,6 +234,28 @@ function MobilePaletteSheet({
         >
           {elementTypeLabel(t, type)}
         </button>
+        {type === "note" ? (
+          <button
+            type="button"
+            className={[
+              "dock-control shrink-0 self-center rounded-md p-2 touch-manipulation",
+              notesCompact ? "text-[var(--accent-2)]" : "text-[var(--muted)]",
+            ].join(" ")}
+            title={
+              notesCompact ? t("panels.paletteNotesCompactOff") : t("panels.paletteNotesCompactOn")
+            }
+            aria-label={
+              notesCompact ? t("panels.paletteNotesCompactOff") : t("panels.paletteNotesCompactOn")
+            }
+            aria-pressed={notesCompact}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleNotesCompact();
+            }}
+          >
+            <Info className="size-4" />
+          </button>
+        ) : null}
         {onRequestHelp && (
           <button
             type="button"

@@ -454,11 +454,11 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
     </button>
   );
 
-  const renderNotesCompactToggle = (typeLabel: string) => (
+  const renderNotesCompactToggle = () => (
     <button
       type="button"
       className={[
-        "dock-control shrink-0 rounded-md p-1.5",
+        "dock-control relative z-10 shrink-0 rounded-md p-1.5 touch-manipulation",
         notesCompact ? "text-[var(--accent-2)]" : "text-[var(--muted)] hover:text-[var(--text)]",
       ].join(" ")}
       title={
@@ -468,13 +468,17 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
         notesCompact ? t("panels.paletteNotesCompactOff") : t("panels.paletteNotesCompactOn")
       }
       aria-pressed={notesCompact}
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      }}
       onClick={(e) => {
         e.stopPropagation();
+        e.preventDefault();
         toggleNotesCompact();
       }}
     >
-      <Info className="h-3.5 w-3.5" />
+      <Info className="h-3.5 w-3.5 pointer-events-none" />
     </button>
   );
 
@@ -484,12 +488,12 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
     const active = paletteType === type;
     const hidden = isElementTypeHidden(type, hiddenElementTypes);
     return (
-      <div key={type} className="flex items-center gap-1.5">
+      <div key={type} className="flex min-w-0 items-center gap-1">
         <button
           type="button"
           onPointerDown={(e) => beginFixedDrag(type, e)}
           className={[
-            "flex-1 cursor-grab border text-left font-medium transition active:cursor-grabbing",
+            "min-w-0 flex-1 cursor-grab truncate border text-left font-medium transition active:cursor-grabbing",
             compact ? "rounded-md px-2 py-1.5 text-[0.7rem]" : "rounded-lg px-2 py-2 text-xs",
             active
               ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
@@ -506,7 +510,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
           {typeLabel}
         </button>
         {renderTypeVisibilityToggle(hidden, typeLabel, () => toggleHiddenElementType(type))}
-        {type === "note" ? renderNotesCompactToggle(typeLabel) : null}
+        {type === "note" ? renderNotesCompactToggle() : null}
         <button
           type="button"
           className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
@@ -588,7 +592,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
         : "";
 
   return (
-    <aside className="flex w-48 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel-solid)]">
+    <aside className="flex w-56 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel-solid)]">
       <div className="border-b border-[var(--border)] px-3 py-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
@@ -613,7 +617,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
           {onHide ? <BoardDockHideButton side="left" onHide={onHide} /> : null}
         </div>
       </div>
-      <div className="flex flex-col gap-1.5 overflow-y-auto p-2">
+      <div className="flex flex-col gap-1.5 overflow-x-hidden overflow-y-auto p-2">
         {isFreeform ? (
           <>
             <p className="px-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-[var(--muted)]">

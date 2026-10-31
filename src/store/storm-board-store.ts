@@ -1022,7 +1022,11 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       };
     }),
   toggleNotesCompact: () =>
-    commit(set, get, (s) => ({ notesCompact: !s.notesCompact })),
+    commit(set, get, (s) => {
+      const notesCompact = !s.notesCompact;
+      const views = flushActiveViewIntoViews({ ...s, notesCompact });
+      return { notesCompact, views };
+    }),
   clearHiddenElementTypes: () =>
     commit(set, get, () => ({
       hiddenElementTypes: [],
