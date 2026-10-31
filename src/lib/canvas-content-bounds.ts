@@ -37,10 +37,7 @@ export function computeCanvasContentBounds(input: {
   let bounds: WorldRect | null = null;
 
   for (const el of input.elements) {
-    bounds = expandRect(
-      bounds,
-      notesCompact ? elementCanvasBounds(el, true) : elementBounds(el),
-    );
+    bounds = expandRect(bounds, elementCanvasBounds(el, notesCompact));
   }
   for (const lane of input.swimlanes) {
     bounds = expandRect(bounds, swimlaneBounds(lane));

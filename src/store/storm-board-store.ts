@@ -69,6 +69,7 @@ import {
 import { findCustomCardType } from "@/lib/custom-card-types";
 import type { ProgressMark } from "@/lib/progress-mark";
 import { normalizeProgressMark } from "@/lib/progress-mark";
+import { patchNoteCompactMetadata } from "@/lib/note-compact";
 
 const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
@@ -302,6 +303,10 @@ export interface StormBoardState {
   toggleHiddenElementType: (type: ElementType) => void;
   toggleHiddenCustomTypeId: (customTypeId: string) => void;
   toggleNotesCompact: () => void;
+  /** Per-note compact override (`undefined` = follow view default). */
+  setNoteCompactOverride: (elementId: string, noteCompact: boolean | undefined) => void;
+  setNotesCompactOverride: (elementIds: string[], noteCompact: boolean | undefined) => void;
+  setAllNotesCompactOverride: (noteCompact: boolean | undefined) => void;
   clearHiddenElementTypes: () => void;
   setClipboardDropHighlight: (active: boolean) => void;
   /** Cut selection into the board clipboard (removes from canvas). */
@@ -1027,6 +1032,33 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       const views = flushActiveViewIntoViews({ ...s, notesCompact });
       return { notesCompact, views };
     }),
+  setNoteCompactOverride: (elementId, noteCompact) =>
+    commit(set, get, (s) => ({
+      elements: s.elements.map((el) =>
+        el.id !== elementId || el.type !== "note"
+          ? el
+          : { ...el, metadata: patchNoteCompactMetadata(el.metadata, noteCompact) },
+      ),
+    })),
+  setNotesCompactOverride: (elementIds, noteCompact) =>
+    commit(set, get, (s) => {
+      const ids = new Set(elementIds);
+      return {
+        elements: s.elements.map((el) =>
+          !ids.has(el.id) || el.type !== "note"
+            ? el
+            : { ...el, metadata: patchNoteCompactMetadata(el.metadata, noteCompact) },
+        ),
+      };
+    }),
+  setAllNotesCompactOverride: (noteCompact) =>
+    commit(set, get, (s) => ({
+      elements: s.elements.map((el) =>
+        el.type !== "note"
+          ? el
+          : { ...el, metadata: patchNoteCompactMetadata(el.metadata, noteCompact) },
+      ),
+    })),
   clearHiddenElementTypes: () =>
     commit(set, get, () => ({
       hiddenElementTypes: [],

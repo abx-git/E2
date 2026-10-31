@@ -46,7 +46,7 @@ import { hexToRgba } from "@/lib/region-style";
 import { HighlightedText } from "@/components/highlighted-text";
 import { elementCardTypeCaption, elementTypeLabel, useT } from "@/i18n";
 import { resolveNoteColor } from "@/lib/note-colors";
-import { NOTE_COMPACT_SIZE_PX, noteUsesCompactLayout } from "@/lib/note-compact";
+import { NOTE_COMPACT_SIZE_PX, resolveNoteCompactLayout } from "@/lib/note-compact";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
 import {
   findMeasureForHotspotInBoard,
@@ -232,7 +232,7 @@ export function StormElementCard({
     : null;
 
   const [noteHoverExpanded, setNoteHoverExpanded] = useState(false);
-  const noteCompactLayout = noteUsesCompactLayout(element, notesCompact);
+  const noteCompactLayout = resolveNoteCompactLayout(element, notesCompact);
   const noteCompactCollapsed =
     noteCompactLayout && !selected && !editing && !noteHoverExpanded;
   const layoutW = noteCompactCollapsed ? NOTE_COMPACT_SIZE_PX : w;

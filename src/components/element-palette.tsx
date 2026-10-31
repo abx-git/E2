@@ -250,6 +250,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
   const notesCompact = useStormBoardStore((s) => s.notesCompact);
   const toggleNotesCompact = useStormBoardStore((s) => s.toggleNotesCompact);
+  const setAllNotesCompactOverride = useStormBoardStore((s) => s.setAllNotesCompactOverride);
   const toggleHiddenElementType = useStormBoardStore((s) => s.toggleHiddenElementType);
   const toggleHiddenCustomTypeId = useStormBoardStore((s) => s.toggleHiddenCustomTypeId);
   const clearHiddenElementTypes = useStormBoardStore((s) => s.clearHiddenElementTypes);
@@ -654,6 +655,36 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
             <div className="flex flex-col gap-1">
               {annotations.map((type) => renderTypeRow(type, true))}
             </div>
+            {annotations.includes("note") ? (
+              <div className="mt-2 space-y-1 border-t border-dashed border-[var(--border)] pt-2">
+                <p className="px-0.5 text-[0.58rem] leading-snug text-[var(--muted)]">
+                  {t("panels.paletteNotesPerNoteHint")}
+                </p>
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    type="button"
+                    className="rounded-md px-1.5 py-1 text-left text-[0.65rem] text-[var(--text)] hover:bg-[var(--control-hover)]"
+                    onClick={() => setAllNotesCompactOverride(true)}
+                  >
+                    {t("panels.paletteNotesCompactAll")}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md px-1.5 py-1 text-left text-[0.65rem] text-[var(--text)] hover:bg-[var(--control-hover)]"
+                    onClick={() => setAllNotesCompactOverride(false)}
+                  >
+                    {t("panels.paletteNotesExpandedAll")}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md px-1.5 py-1 text-left text-[0.65rem] text-[var(--muted)] hover:bg-[var(--control-hover)]"
+                    onClick={() => setAllNotesCompactOverride(undefined)}
+                  >
+                    {t("panels.paletteNotesUseViewDefault")}
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </div>

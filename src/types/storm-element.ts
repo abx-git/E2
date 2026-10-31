@@ -161,6 +161,8 @@ export interface ElementMetadata {
   hotspotPriority?: HotspotPriority;
   /** Background preset for `note` elements. */
   noteColor?: NoteColorId;
+  /** When set, overrides the view's notesCompact default for this note only. */
+  noteCompact?: boolean;
   /** Freeform `customCard`: id of a view-scoped CustomCardType. */
   customTypeId?: string;
   /**

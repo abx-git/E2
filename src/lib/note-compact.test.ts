@@ -4,7 +4,8 @@ import {
   NOTE_COMPACT_SIZE_PX,
   elementCanvasBounds,
   noteExportRect,
-  noteUsesCompactLayout,
+  patchNoteCompactMetadata,
+  resolveNoteCompactLayout,
 } from "@/lib/note-compact";
 import type { StormElement } from "@/types/storm-element";
 
@@ -19,13 +20,28 @@ const note: StormElement = {
 };
 
 describe("note-compact", () => {
-  it("detects compact layout only for notes when enabled", () => {
-    expect(noteUsesCompactLayout(note, false)).toBe(false);
-    expect(noteUsesCompactLayout(note, true)).toBe(true);
-    expect(noteUsesCompactLayout({ ...note, type: "event" }, true)).toBe(false);
+  it("uses view default when no per-note override", () => {
+    expect(resolveNoteCompactLayout(note, false)).toBe(false);
+    expect(resolveNoteCompactLayout(note, true)).toBe(true);
+    expect(resolveNoteCompactLayout({ ...note, type: "event" }, true)).toBe(false);
   });
 
-  it("shrinks export/canvas bounds for compact notes", () => {
+  it("honours per-note metadata override over view default", () => {
+    expect(
+      resolveNoteCompactLayout(
+        { ...note, metadata: { noteCompact: true } },
+        false,
+      ),
+    ).toBe(true);
+    expect(
+      resolveNoteCompactLayout(
+        { ...note, metadata: { noteCompact: false } },
+        true,
+      ),
+    ).toBe(false);
+  });
+
+  it("shrinks export/canvas bounds when compact", () => {
     expect(noteExportRect(note, false, 160, 100)).toEqual({
       x: 10,
       y: 20,
@@ -38,6 +54,15 @@ describe("note-compact", () => {
       w: NOTE_COMPACT_SIZE_PX,
       h: NOTE_COMPACT_SIZE_PX,
     });
-    expect(elementCanvasBounds(note, true).w).toBe(NOTE_COMPACT_SIZE_PX);
+    expect(elementCanvasBounds({ ...note, metadata: { noteCompact: true } }, false).w).toBe(
+      NOTE_COMPACT_SIZE_PX,
+    );
+  });
+
+  it("patchNoteCompactMetadata clears override", () => {
+    expect(patchNoteCompactMetadata({ noteCompact: true, noteColor: "cream" }, undefined)).toEqual({
+      noteColor: "cream",
+    });
+    expect(patchNoteCompactMetadata(undefined, true)).toEqual({ noteCompact: true });
   });
 });

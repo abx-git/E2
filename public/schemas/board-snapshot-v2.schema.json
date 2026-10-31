@@ -300,6 +300,10 @@
         "noteColor": {
           "$ref": "#/$defs/noteColor"
         },
+        "noteCompact": {
+          "type": "boolean",
+          "description": "Notiz kompakt (Info-Symbol); überschreibt den Sicht-Standard notesCompact."
+        },
         "customTypeId": {
           "type": "string",
           "description": "Freiform customCard: ID eines customCardType in der Sicht."

@@ -105,6 +105,10 @@ export const detailSidebarDe = {
     onCard: {
       sectionTitle: "Auf der Karte",
       background: "Hintergrund",
+      noteDisplay: "Darstellung",
+      noteCompact: "Kompakt",
+      noteExpanded: "Volle Karte",
+      noteCompactViewDefault: "Standard der Sicht",
       cardType: "Kartentyp",
       typeColorAll: "Typfarbe (alle {name})",
       fields: {

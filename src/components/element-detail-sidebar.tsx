@@ -18,6 +18,7 @@ import {
 import { isTypingTarget } from "@/lib/keyboard-input-guard";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
+import { resolveNoteCompactLayout } from "@/lib/note-compact";
 import { connectorToCanvasLine } from "@/lib/board-connector-migrate";
 import { resolveBoardConnectorStrokeStyle } from "@/lib/board-connector-style";
 import { defaultRelationType, validateBoard } from "@/lib/relation-validation";
@@ -228,6 +229,8 @@ export function ElementDetailSidebar({
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
   const views = useStormBoardStore((s) => s.views);
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
+  const notesCompact = useStormBoardStore((s) => s.notesCompact);
+  const setNoteCompactOverride = useStormBoardStore((s) => s.setNoteCompactOverride);
 
   const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const selectedElement = elements.find((e) => e.id === selectedElementIds[0]);
@@ -661,6 +664,56 @@ export function ElementDetailSidebar({
                   />
                 );
               })}
+            </div>
+            <div className="mt-3">
+              <p className="mb-1.5 text-[0.65rem] font-medium text-[var(--muted)]">
+                {t("detailSidebar.onCard.noteDisplay")}
+              </p>
+              <div className="flex flex-col gap-1">
+                {(
+                  [
+                    {
+                      key: "compact",
+                      label: t("detailSidebar.onCard.noteCompact"),
+                      active: resolveNoteCompactLayout(selectedElement, notesCompact) === true,
+                      value: true,
+                    },
+                    {
+                      key: "full",
+                      label: t("detailSidebar.onCard.noteExpanded"),
+                      active: resolveNoteCompactLayout(selectedElement, notesCompact) === false,
+                      value: false,
+                    },
+                    {
+                      key: "default",
+                      label: t("detailSidebar.onCard.noteCompactViewDefault"),
+                      active: selectedElement.metadata?.noteCompact === undefined,
+                      value: undefined,
+                    },
+                  ] as Array<{
+                    key: string;
+                    label: string;
+                    active: boolean;
+                    value: boolean | undefined;
+                  }>
+                ).map((opt) => (
+                  <label
+                    key={opt.key}
+                    className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-xs hover:bg-[var(--control-hover)]"
+                  >
+                    <input
+                      type="radio"
+                      name="note-display"
+                      className="accent-[var(--accent)]"
+                      checked={opt.active}
+                      onChange={() =>
+                        setNoteCompactOverride(selectedElement.id, opt.value)
+                      }
+                    />
+                    {opt.label}
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
         )}

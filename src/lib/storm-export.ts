@@ -36,6 +36,7 @@ import { elementDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
 import {
   elementCanvasBounds,
   noteUsesCompactLayout,
+  resolveNoteCompactLayout,
 } from "@/lib/note-compact";
 import {
   cardAttributeLines,
@@ -1410,7 +1411,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
   for (const el of sortElementsByZOrder(state.elements)) {
     const r = elementRect(el, notesCompact);
     const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
-    const compactNote = noteUsesCompactLayout(el, notesCompact);
+    const compactNote = resolveNoteCompactLayout(el, notesCompact);
     const shape = styleForElementType(el.type).shape;
     const radius = cornerRadius(el, r.w, r.h);
     const circularPill = shape === "pill" && isCircularPillShape(r.w, r.h);
@@ -1540,7 +1541,7 @@ export function exportBoardSvg(): void {
     }
     const r = elementRect(el, notesCompact);
     const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
-    const compactNote = noteUsesCompactLayout(el, notesCompact);
+    const compactNote = resolveNoteCompactLayout(el, notesCompact);
     const x = r.x + ox;
     const y = r.y + oy;
     const rx = cornerRadius(el, r.w, r.h);
@@ -1728,7 +1729,7 @@ function renderActiveViewRaster(): {
     const x = r.x + ox;
     const y = r.y + oy;
     const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
-    const compactNote = noteUsesCompactLayout(el, notesCompact);
+    const compactNote = resolveNoteCompactLayout(el, notesCompact);
     const rx = cornerRadius(el, r.w, r.h);
 
     ctx.save();

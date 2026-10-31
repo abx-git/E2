@@ -59,12 +59,7 @@ export function elementsInMarquee(
 ): string[] {
   if (marquee.w <= 0 || marquee.h <= 0) return [];
   return elements
-    .filter((el) =>
-      rectContainedIn(
-        notesCompact ? elementCanvasBounds(el, true) : elementBounds(el),
-        marquee,
-      ),
-    )
+    .filter((el) => rectContainedIn(elementCanvasBounds(el, notesCompact), marquee))
     .map((el) => el.id);
 }
 

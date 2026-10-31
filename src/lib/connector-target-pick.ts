@@ -51,8 +51,11 @@ function betterCandidate(a: Candidate, b: Candidate): Candidate {
  * Innermost object at `point`: smallest area among all containing elements,
  * bounded contexts, and swimlanes.
  */
-function elementHitBounds(el: StormElement, notesCompact: boolean): WorldRect {
-  return notesCompact ? elementCanvasBounds(el, true) : elementBounds(el);
+function elementHitBounds(el: StormElement, viewNotesCompactDefault: boolean): WorldRect {
+  if (el.type === "note") {
+    return elementCanvasBounds(el, viewNotesCompactDefault);
+  }
+  return elementBounds(el);
 }
 
 export function pickInnermostConnectorTargetAt(

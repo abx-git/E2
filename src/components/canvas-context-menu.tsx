@@ -61,6 +61,7 @@ import {
 } from "@/types/actions-view";
 import { isOnCardFieldEnabled, onCardDisplayFieldsForType } from "@/lib/card-preview";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
+import { resolveNoteCompactLayout } from "@/lib/note-compact";
 import {
   PROGRESS_MARKS,
   PROGRESS_MARK_SHORTCUT,
@@ -214,6 +215,9 @@ export function CanvasContextMenu({
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const selectedSwimlaneIds = useStormBoardStore((s) => s.selectedSwimlaneIds);
   const selectedBoundedContextIds = useStormBoardStore((s) => s.selectedBoundedContextIds);
+  const notesCompact = useStormBoardStore((s) => s.notesCompact);
+  const setNoteCompactOverride = useStormBoardStore((s) => s.setNoteCompactOverride);
+  const setNotesCompactOverride = useStormBoardStore((s) => s.setNotesCompactOverride);
   const isMobile = useIsMobileLayout();
 
   const canvasViewActive = Boolean(
@@ -271,6 +275,49 @@ export function CanvasContextMenu({
     const name = window.prompt(t("contextMenu.linkedViewNamePrompt"), defaultName);
     if (name === null) return;
     relocateSelectionToLinkedView(name);
+  };
+
+  const renderNoteDisplaySubmenuForIds = (noteIds: string[]) => {
+    if (noteIds.length === 0) return null;
+    const single = noteIds.length === 1 ? elements.find((e) => e.id === noteIds[0]) : undefined;
+    return (
+      <Submenu label={t("contextMenu.noteDisplay")}>
+        {single ? (
+          <>
+            <Item
+              label={t("contextMenu.noteCompact")}
+              active={resolveNoteCompactLayout(single, notesCompact) === true}
+              onClick={() => run(() => setNoteCompactOverride(single.id, true))}
+            />
+            <Item
+              label={t("contextMenu.noteExpanded")}
+              active={resolveNoteCompactLayout(single, notesCompact) === false}
+              onClick={() => run(() => setNoteCompactOverride(single.id, false))}
+            />
+            <Item
+              label={t("contextMenu.noteCompactViewDefault")}
+              active={single.metadata?.noteCompact === undefined}
+              onClick={() => run(() => setNoteCompactOverride(single.id, undefined))}
+            />
+          </>
+        ) : (
+          <>
+            <Item
+              label={t("contextMenu.noteCompactSelected")}
+              onClick={() => run(() => setNotesCompactOverride(noteIds, true))}
+            />
+            <Item
+              label={t("contextMenu.noteExpandedSelected")}
+              onClick={() => run(() => setNotesCompactOverride(noteIds, false))}
+            />
+            <Item
+              label={t("contextMenu.noteCompactResetSelected")}
+              onClick={() => run(() => setNotesCompactOverride(noteIds, undefined))}
+            />
+          </>
+        )}
+      </Submenu>
+    );
   };
 
   const renderRelocateSelectionMenu = (defaultName: string) =>
@@ -410,6 +457,7 @@ export function CanvasContextMenu({
             ))}
           </Submenu>
         )}
+        {el.type === "note" ? renderNoteDisplaySubmenuForIds([el.id]) : null}
         {el.type === "hotspot" && (
           <>
             <Submenu label={t("contextMenu.hotspot")}>
@@ -724,6 +772,9 @@ export function CanvasContextMenu({
         <Header title={t("contextMenu.multiElementsHeader", { n: selected.length })} subtitle={t("contextMenu.alignMultiSubtitle")} />
         {renderRelocateSelectionMenu(
           defaultLinkedViewNameFromSelection(selected.map((e) => e.label)),
+        )}
+        {renderNoteDisplaySubmenuForIds(
+          target.ids.filter((id) => elements.find((e) => e.id === id)?.type === "note"),
         )}
         <Section label={t("contextMenu.align")} />
         <div className="grid grid-cols-3 gap-1 px-2 pb-1">
