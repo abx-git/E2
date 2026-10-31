@@ -66,6 +66,7 @@ import {
   PROGRESS_MARK_SHORTCUT,
   PROGRESS_MARK_STYLE,
   normalizeProgressMark,
+  type ProgressMark,
 } from "@/lib/progress-mark";
 import { ProgressMarkGlyph } from "@/components/progress-mark-badge";
 import {
@@ -392,8 +393,7 @@ export function CanvasContextMenu({
           </Submenu>
         )}
         {el.type === "note" && (
-          <>
-            <Section label={t("contextMenu.noteColor")} />
+          <Submenu label={t("contextMenu.noteColor")}>
             {NOTE_COLOR_IDS.map((id) => (
               <Item
                 key={id}
@@ -408,47 +408,54 @@ export function CanvasContextMenu({
                 }
               />
             ))}
-          </>
+          </Submenu>
         )}
         {el.type === "hotspot" && (
           <>
-            <Section label={t("contextMenu.hotspot")} />
-            <Item
-              label={t("contextMenu.statusOpen")}
-              active={(el.metadata?.hotspotStatus ?? "open") === "open"}
-              onClick={() =>
-                run(() =>
-                  updateElement(el.id, {
-                    metadata: { ...el.metadata, hotspotStatus: "open" },
-                  }),
-                )
-              }
-            />
-            <Item
-              label={t("contextMenu.statusResolved")}
-              active={el.metadata?.hotspotStatus === "resolved"}
-              onClick={() =>
-                run(() =>
-                  updateElement(el.id, {
-                    metadata: { ...el.metadata, hotspotStatus: "resolved" },
-                  }),
-                )
-              }
-            />
-            {(["low", "medium", "high"] as const).map((p) => (
+            <Submenu label={t("contextMenu.hotspot")}>
               <Item
-                key={p}
-                label={t("contextMenu.priority", { level: hotspotPriorityLabel(t, p) })}
-                active={(el.metadata?.hotspotPriority ?? "medium") === p}
+                label={t("contextMenu.statusOpen")}
+                active={(el.metadata?.hotspotStatus ?? "open") === "open"}
                 onClick={() =>
                   run(() =>
                     updateElement(el.id, {
-                      metadata: { ...el.metadata, hotspotPriority: p },
+                      metadata: { ...el.metadata, hotspotStatus: "open" },
                     }),
                   )
                 }
               />
-            ))}
+              <Item
+                label={t("contextMenu.statusResolved")}
+                active={el.metadata?.hotspotStatus === "resolved"}
+                onClick={() =>
+                  run(() =>
+                    updateElement(el.id, {
+                      metadata: { ...el.metadata, hotspotStatus: "resolved" },
+                    }),
+                  )
+                }
+              />
+              {(["low", "medium", "high"] as const).map((p) => (
+                <Item
+                  key={p}
+                  label={t("contextMenu.priority", { level: hotspotPriorityLabel(t, p) })}
+                  active={(el.metadata?.hotspotPriority ?? "medium") === p}
+                  onClick={() =>
+                    run(() =>
+                      updateElement(el.id, {
+                        metadata: { ...el.metadata, hotspotPriority: p },
+                      }),
+                    )
+                  }
+                />
+              ))}
+              <Item
+                label={t("contextMenu.hotspotSlant")}
+                onClick={() =>
+                  run(() => updateElement(el.id, { rotation: HOTSPOT_DEFAULT_ROTATION_DEG }))
+                }
+              />
+            </Submenu>
             {(() => {
               const actionsViewId = resolveDefaultActionsViewId(views, activeViewId);
               if (!actionsViewId) return null;
@@ -479,73 +486,73 @@ export function CanvasContextMenu({
               );
               return (
                 <>
-                  <Separator />
-                  <Section label={t("contextMenu.measuresLink")} />
-                  {linked ? (
+                  <Submenu label={t("contextMenu.measuresLink")}>
+                    {linked ? (
+                      <Item
+                        icon={Link2}
+                        label={t("actionsView.hotspots.openMeasure")}
+                        onClick={() =>
+                          run(() => {
+                            setActiveView(actionsViewId);
+                            selectMeasure(linked.id);
+                          })
+                        }
+                      />
+                    ) : (
+                      <Item
+                        icon={Plus}
+                        label={t("actionsView.hotspots.adoptAsMeasure")}
+                        onClick={() =>
+                          run(() => addMeasureFromHotspot(actionsViewId, hotspotRef))
+                        }
+                      />
+                    )}
+                    {linkableMeasures.length > 0 && !linked ? (
+                      <Submenu label={t("contextMenu.linkExistingMeasure")}>
+                        {linkableMeasures.map((m) => (
+                          <Item
+                            key={m.id}
+                            label={m.title || t("actionsView.detail.titlePlaceholder")}
+                            onClick={() =>
+                              run(() =>
+                                linkMeasureToHotspot(
+                                  actionsViewId,
+                                  m.id,
+                                  activeViewId,
+                                  el.id,
+                                  viewName,
+                                  el.label?.trim() || el.id,
+                                ),
+                              )
+                            }
+                          />
+                        ))}
+                      </Submenu>
+                    ) : null}
                     <Item
-                      icon={Link2}
-                      label={t("actionsView.hotspots.openMeasure")}
+                      icon={hidden ? RotateCcw : EyeOff}
+                      label={
+                        hidden
+                          ? t("actionsView.hotspots.restoreToBacklog")
+                          : t("actionsView.hotspots.excludeFromBacklog")
+                      }
                       onClick={() =>
-                        run(() => {
-                          setActiveView(actionsViewId);
-                          selectMeasure(linked.id);
-                        })
+                        run(() =>
+                          setHotspotBacklogHidden(
+                            actionsViewId,
+                            activeViewId,
+                            el.id,
+                            !hidden,
+                          ),
+                        )
                       }
                     />
-                  ) : (
                     <Item
-                      icon={Plus}
-                      label={t("actionsView.hotspots.adoptAsMeasure")}
-                      onClick={() =>
-                        run(() => addMeasureFromHotspot(actionsViewId, hotspotRef))
-                      }
+                      icon={ClipboardList}
+                      label={t("actionsView.hotspots.openMeasuresView")}
+                      onClick={() => run(() => setActiveView(actionsViewId))}
                     />
-                  )}
-                  {linkableMeasures.length > 0 && !linked ? (
-                    <Submenu label={t("contextMenu.linkExistingMeasure")}>
-                      {linkableMeasures.map((m) => (
-                        <Item
-                          key={m.id}
-                          label={m.title || t("actionsView.detail.titlePlaceholder")}
-                          onClick={() =>
-                            run(() =>
-                              linkMeasureToHotspot(
-                                actionsViewId,
-                                m.id,
-                                activeViewId,
-                                el.id,
-                                viewName,
-                                el.label?.trim() || el.id,
-                              ),
-                            )
-                          }
-                        />
-                      ))}
-                    </Submenu>
-                  ) : null}
-                  <Item
-                    icon={hidden ? RotateCcw : EyeOff}
-                    label={
-                      hidden
-                        ? t("actionsView.hotspots.restoreToBacklog")
-                        : t("actionsView.hotspots.excludeFromBacklog")
-                    }
-                    onClick={() =>
-                      run(() =>
-                        setHotspotBacklogHidden(
-                          actionsViewId,
-                          activeViewId,
-                          el.id,
-                          !hidden,
-                        ),
-                      )
-                    }
-                  />
-                  <Item
-                    icon={ClipboardList}
-                    label={t("actionsView.hotspots.openMeasuresView")}
-                    onClick={() => run(() => setActiveView(actionsViewId))}
-                  />
+                  </Submenu>
                 </>
               );
             })()}
@@ -586,102 +593,73 @@ export function CanvasContextMenu({
           onClick={() => run(() => onRequestHelpElementType?.(el.type))}
         />
         <Separator />
-        <Section label={t("contextMenu.rotation")} />
-        <Item
-          icon={RotateCw}
-          label={t("contextMenu.rotate45")}
-          onClick={() =>
-            run(() => {
-              const current = effectiveElementRotation(el.rotation, style.rotation);
-              updateElement(el.id, {
-                rotation: normalizeRotationDegrees(current + 45),
-              });
-            })
-          }
-        />
-        <Item
-          icon={RotateCcw}
-          label={t("contextMenu.rotateMinus45")}
-          onClick={() =>
-            run(() => {
-              const current = effectiveElementRotation(el.rotation, style.rotation);
-              updateElement(el.id, {
-                rotation: normalizeRotationDegrees(current - 45),
-              });
-            })
-          }
-        />
-        <Item
-          label={t("contextMenu.upright0")}
-          onClick={() => run(() => updateElement(el.id, { rotation: 0 }))}
-        />
-        {el.type === "hotspot" && (
+        <Submenu label={t("contextMenu.rotation")}>
           <Item
-            label={t("contextMenu.hotspotSlant")}
-            onClick={() =>
-              run(() => updateElement(el.id, { rotation: HOTSPOT_DEFAULT_ROTATION_DEG }))
-            }
-          />
-        )}
-        <Separator />
-        <Section label={t("contextMenu.layer")} />
-        <Item
-          icon={BringToFront}
-          label={t("contextMenu.bringToFront")}
-          onClick={() => run(() => bringElementsToFront([el.id]))}
-        />
-        <Item
-          label={t("contextMenu.forwardOne")}
-          onClick={() => run(() => bringElementsForward([el.id]))}
-        />
-        <Item
-          label={t("contextMenu.backwardOne")}
-          onClick={() => run(() => sendElementsBackward([el.id]))}
-        />
-        <Item
-          icon={SendToBack}
-          label={t("contextMenu.sendToBack")}
-          onClick={() => run(() => sendElementsToBack([el.id]))}
-        />
-        <Separator />
-        <Section label={t("contextMenu.progressMark")} />
-        {PROGRESS_MARKS.map((mark) => (
-          <Item
-            key={mark}
-            label={progressMarkShortLabel(t, mark)}
-            hint={PROGRESS_MARK_SHORTCUT[mark]}
-            active={normalizeProgressMark(el.metadata?.progressMark) === mark}
-            leading={
-              <span
-                className="inline-flex h-4 w-4 items-center justify-center rounded-full"
-                style={{
-                  backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
-                  color: PROGRESS_MARK_STYLE[mark].fg,
-                }}
-                title={progressMarkLongLabel(t, mark)}
-              >
-                <ProgressMarkGlyph mark={mark} />
-              </span>
-            }
+            icon={RotateCw}
+            label={t("contextMenu.rotate45")}
             onClick={() =>
               run(() => {
-                useStormBoardStore.getState().setSelectedElementIds([el.id]);
-                applyProgressMark(mark);
+                const current = effectiveElementRotation(el.rotation, style.rotation);
+                updateElement(el.id, {
+                  rotation: normalizeRotationDegrees(current + 45),
+                });
               })
             }
           />
-        ))}
-        {normalizeProgressMark(el.metadata?.progressMark) ? (
           <Item
-            label={t("contextMenu.clearProgressMark")}
+            icon={RotateCcw}
+            label={t("contextMenu.rotateMinus45")}
             onClick={() =>
               run(() => {
-                useStormBoardStore.getState().setSelectedElementIds([el.id]);
-                applyProgressMark(normalizeProgressMark(el.metadata?.progressMark)!);
+                const current = effectiveElementRotation(el.rotation, style.rotation);
+                updateElement(el.id, {
+                  rotation: normalizeRotationDegrees(current - 45),
+                });
               })
             }
           />
-        ) : null}
+          <Item
+            label={t("contextMenu.upright0")}
+            onClick={() => run(() => updateElement(el.id, { rotation: 0 }))}
+          />
+        </Submenu>
+        <Submenu label={t("contextMenu.layer")}>
+          <Item
+            icon={BringToFront}
+            label={t("contextMenu.bringToFront")}
+            onClick={() => run(() => bringElementsToFront([el.id]))}
+          />
+          <Item
+            label={t("contextMenu.forwardOne")}
+            onClick={() => run(() => bringElementsForward([el.id]))}
+          />
+          <Item
+            label={t("contextMenu.backwardOne")}
+            onClick={() => run(() => sendElementsBackward([el.id]))}
+          />
+          <Item
+            icon={SendToBack}
+            label={t("contextMenu.sendToBack")}
+            onClick={() => run(() => sendElementsToBack([el.id]))}
+          />
+        </Submenu>
+        <ProgressMarkSubmenu
+          t={t}
+          run={run}
+          isActive={(mark) => normalizeProgressMark(el.metadata?.progressMark) === mark}
+          onSelect={(mark) => {
+            useStormBoardStore.getState().setSelectedElementIds([el.id]);
+            applyProgressMark(mark);
+          }}
+          onClear={
+            normalizeProgressMark(el.metadata?.progressMark)
+              ? () => {
+                  useStormBoardStore.getState().setSelectedElementIds([el.id]);
+                  applyProgressMark(normalizeProgressMark(el.metadata?.progressMark)!);
+                }
+              : undefined
+          }
+        />
         <Separator />
         <Item
           icon={Copy}
@@ -809,100 +787,83 @@ export function CanvasContextMenu({
           }
         />
         <Separator />
-        <Section label={t("contextMenu.rotation")} />
-        <Item
-          icon={RotateCw}
-          label={t("contextMenu.rotateAll45")}
-          onClick={() =>
-            run(() => {
-              patchElements(
-                selected.map((el) => ({
-                  id: el.id,
-                  rotation: normalizeRotationDegrees(
-                    effectiveElementRotation(el.rotation, styleForElementType(el.type).rotation) + 45,
-                  ),
-                })),
-              );
-            })
-          }
-        />
-        <Item
-          icon={RotateCcw}
-          label={t("contextMenu.rotateAllMinus45")}
-          onClick={() =>
-            run(() => {
-              patchElements(
-                selected.map((el) => ({
-                  id: el.id,
-                  rotation: normalizeRotationDegrees(
-                    effectiveElementRotation(el.rotation, styleForElementType(el.type).rotation) - 45,
-                  ),
-                })),
-              );
-            })
-          }
-        />
-        <Item
-          label={t("contextMenu.rotateAllUpright")}
-          onClick={() =>
-            run(() => {
-              patchElements(selected.map((el) => ({ id: el.id, rotation: 0 })));
-            })
-          }
-        />
-        <Separator />
-        <Section label={t("contextMenu.layer")} />
-        <Item
-          icon={BringToFront}
-          label={t("contextMenu.bringToFront")}
-          onClick={() => run(() => bringElementsToFront(target.ids))}
-        />
-        <Item
-          label={t("contextMenu.forwardOne")}
-          onClick={() => run(() => bringElementsForward(target.ids))}
-        />
-        <Item
-          label={t("contextMenu.backwardOne")}
-          onClick={() => run(() => sendElementsBackward(target.ids))}
-        />
-        <Item
-          icon={SendToBack}
-          label={t("contextMenu.sendToBack")}
-          onClick={() => run(() => sendElementsToBack(target.ids))}
-        />
-        <Separator />
-        <Section label={t("contextMenu.progressMark")} />
-        {PROGRESS_MARKS.map((mark) => (
+        <Submenu label={t("contextMenu.rotation")}>
           <Item
-            key={mark}
-            label={progressMarkShortLabel(t, mark)}
-            hint={PROGRESS_MARK_SHORTCUT[mark]}
-            active={target.ids.every(
-              (id) =>
-                normalizeProgressMark(
-                  elements.find((e) => e.id === id)?.metadata?.progressMark,
-                ) === mark,
-            )}
-            leading={
-              <span
-                className="inline-flex h-4 w-4 items-center justify-center rounded-full"
-                style={{
-                  backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
-                  color: PROGRESS_MARK_STYLE[mark].fg,
-                }}
-                title={progressMarkLongLabel(t, mark)}
-              >
-                <ProgressMarkGlyph mark={mark} />
-              </span>
-            }
+            icon={RotateCw}
+            label={t("contextMenu.rotateAll45")}
             onClick={() =>
               run(() => {
-                useStormBoardStore.getState().setSelectedElementIds(target.ids);
-                applyProgressMark(mark);
+                patchElements(
+                  selected.map((el) => ({
+                    id: el.id,
+                    rotation: normalizeRotationDegrees(
+                      effectiveElementRotation(el.rotation, styleForElementType(el.type).rotation) + 45,
+                    ),
+                  })),
+                );
               })
             }
           />
-        ))}
+          <Item
+            icon={RotateCcw}
+            label={t("contextMenu.rotateAllMinus45")}
+            onClick={() =>
+              run(() => {
+                patchElements(
+                  selected.map((el) => ({
+                    id: el.id,
+                    rotation: normalizeRotationDegrees(
+                      effectiveElementRotation(el.rotation, styleForElementType(el.type).rotation) - 45,
+                    ),
+                  })),
+                );
+              })
+            }
+          />
+          <Item
+            label={t("contextMenu.rotateAllUpright")}
+            onClick={() =>
+              run(() => {
+                patchElements(selected.map((el) => ({ id: el.id, rotation: 0 })));
+              })
+            }
+          />
+        </Submenu>
+        <Submenu label={t("contextMenu.layer")}>
+          <Item
+            icon={BringToFront}
+            label={t("contextMenu.bringToFront")}
+            onClick={() => run(() => bringElementsToFront(target.ids))}
+          />
+          <Item
+            label={t("contextMenu.forwardOne")}
+            onClick={() => run(() => bringElementsForward(target.ids))}
+          />
+          <Item
+            label={t("contextMenu.backwardOne")}
+            onClick={() => run(() => sendElementsBackward(target.ids))}
+          />
+          <Item
+            icon={SendToBack}
+            label={t("contextMenu.sendToBack")}
+            onClick={() => run(() => sendElementsToBack(target.ids))}
+          />
+        </Submenu>
+        <ProgressMarkSubmenu
+          t={t}
+          run={run}
+          isActive={(mark) =>
+            target.ids.every(
+              (id) =>
+                normalizeProgressMark(elements.find((e) => e.id === id)?.metadata?.progressMark) ===
+                mark,
+            )
+          }
+          onSelect={(mark) => {
+            useStormBoardStore.getState().setSelectedElementIds(target.ids);
+            applyProgressMark(mark);
+          }}
+        />
         <Separator />
         <Item
           icon={Copy}
@@ -988,15 +949,16 @@ export function CanvasContextMenu({
             title={t("contextMenu.contextMap")}
             subtitle={contextMapPatternLabel(t, c.contextMapPattern)}
           />
-          <Section label={t("contextMenu.pattern")} />
-          {CONTEXT_PATTERNS.map((pattern) => (
-            <Item
-              key={pattern}
-              label={contextMapPatternLabel(t, pattern)}
-              active={c.contextMapPattern === pattern}
-              onClick={() => run(() => patch({ contextMapPattern: pattern }))}
-            />
-          ))}
+          <Submenu label={t("contextMenu.pattern")}>
+            {CONTEXT_PATTERNS.map((pattern) => (
+              <Item
+                key={pattern}
+                label={contextMapPatternLabel(t, pattern)}
+                active={c.contextMapPattern === pattern}
+                onClick={() => run(() => patch({ contextMapPattern: pattern }))}
+              />
+            ))}
+          </Submenu>
           <Separator />
           <Item
             label={t("contextMenu.editConnectorLabel")}
@@ -1028,40 +990,41 @@ export function CanvasContextMenu({
       body = (
         <>
           <Header title={t("contextMenu.connector")} subtitle={relationTypeLabel(t, relType)} />
-          <Section label={t("contextMenu.type")} />
-          {RELATION_TYPES.map((rel) => (
+          <Submenu label={t("contextMenu.type")}>
+            {RELATION_TYPES.map((rel) => (
+              <Item
+                key={rel}
+                label={relationTypeLabel(t, rel)}
+                active={relType === rel}
+                onClick={() => run(() => patch({ relationType: rel }))}
+              />
+            ))}
             <Item
-              key={rel}
-              label={relationTypeLabel(t, rel)}
-              active={relType === rel}
-              onClick={() => run(() => patch({ relationType: rel }))}
+              icon={HelpCircle}
+              label={t("contextMenu.help")}
+              onClick={() => run(() => onRequestHelpRelationType?.(relType))}
             />
-          ))}
-          <Item
-            icon={HelpCircle}
-            label={t("contextMenu.help")}
-            onClick={() => run(() => onRequestHelpRelationType?.(relType))}
-          />
-          <Separator />
-          <Section label={t("contextMenu.line")} />
-          {CONNECTOR_STROKE_STYLES.map((style) => (
-            <Item
-              key={style}
-              label={connectorStrokeStyleLabel(t, style)}
-              active={resolveBoardConnectorStrokeStyle(c) === style}
-              onClick={() => run(() => patch({ strokeStyle: style }))}
-            />
-          ))}
-          <Separator />
-          <Section label={t("contextMenu.arrow")} />
-          {CONNECTOR_ARROW_HEADS.map((head) => (
-            <Item
-              key={head}
-              label={`${connectorArrowHeadGlyph(head)} ${lineArrowHeadLabel(t, head)}`}
-              active={(c.arrowHead ?? "end") === head}
-              onClick={() => run(() => patch({ arrowHead: head }))}
-            />
-          ))}
+          </Submenu>
+          <Submenu label={t("contextMenu.line")}>
+            {CONNECTOR_STROKE_STYLES.map((style) => (
+              <Item
+                key={style}
+                label={connectorStrokeStyleLabel(t, style)}
+                active={resolveBoardConnectorStrokeStyle(c) === style}
+                onClick={() => run(() => patch({ strokeStyle: style }))}
+              />
+            ))}
+          </Submenu>
+          <Submenu label={t("contextMenu.arrow")}>
+            {CONNECTOR_ARROW_HEADS.map((head) => (
+              <Item
+                key={head}
+                label={`${connectorArrowHeadGlyph(head)} ${lineArrowHeadLabel(t, head)}`}
+                active={(c.arrowHead ?? "end") === head}
+                onClick={() => run(() => patch({ arrowHead: head }))}
+              />
+            ))}
+          </Submenu>
           <Separator />
           <Item
             label={t("contextMenu.editConnectorLabel")}
@@ -1076,32 +1039,15 @@ export function CanvasContextMenu({
             }
           />
           <Separator />
-          <Section label={t("contextMenu.progressMark")} />
-          {PROGRESS_MARKS.map((mark) => (
-            <Item
-              key={mark}
-              label={progressMarkShortLabel(t, mark)}
-              hint={PROGRESS_MARK_SHORTCUT[mark]}
-              active={normalizeProgressMark(c.progressMark) === mark}
-              leading={
-                <span
-                  className="inline-flex h-4 w-4 items-center justify-center rounded-full"
-                  style={{
-                    backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
-                    color: PROGRESS_MARK_STYLE[mark].fg,
-                  }}
-                >
-                  <ProgressMarkGlyph mark={mark} />
-                </span>
-              }
-              onClick={() =>
-                run(() => {
-                  useStormBoardStore.getState().selectConnector(c.id);
-                  applyProgressMark(mark);
-                })
-              }
-            />
-          ))}
+          <ProgressMarkSubmenu
+            t={t}
+            run={run}
+            isActive={(mark) => normalizeProgressMark(c.progressMark) === mark}
+            onSelect={(mark) => {
+              useStormBoardStore.getState().selectConnector(c.id);
+              applyProgressMark(mark);
+            }}
+          />
           <Separator />
           <Item
             icon={Trash2}
@@ -1120,25 +1066,26 @@ export function CanvasContextMenu({
       body = (
         <>
           <Header title={t("contextMenu.connector")} subtitle={t("contextMenu.freeConnector")} />
-          <Section label={t("contextMenu.line")} />
-          {CONNECTOR_STROKE_STYLES.map((style) => (
-            <Item
-              key={style}
-              label={connectorStrokeStyleLabel(t, style)}
-              active={resolveBoardConnectorStrokeStyle(c) === style}
-              onClick={() => run(() => patch({ strokeStyle: style }))}
-            />
-          ))}
-          <Separator />
-          <Section label={t("contextMenu.arrow")} />
-          {CONNECTOR_ARROW_HEADS.map((head) => (
-            <Item
-              key={head}
-              label={`${connectorArrowHeadGlyph(head)} ${lineArrowHeadLabel(t, head)}`}
-              active={(c.arrowHead ?? "end") === head}
-              onClick={() => run(() => patch({ arrowHead: head }))}
-            />
-          ))}
+          <Submenu label={t("contextMenu.line")}>
+            {CONNECTOR_STROKE_STYLES.map((style) => (
+              <Item
+                key={style}
+                label={connectorStrokeStyleLabel(t, style)}
+                active={resolveBoardConnectorStrokeStyle(c) === style}
+                onClick={() => run(() => patch({ strokeStyle: style }))}
+              />
+            ))}
+          </Submenu>
+          <Submenu label={t("contextMenu.arrow")}>
+            {CONNECTOR_ARROW_HEADS.map((head) => (
+              <Item
+                key={head}
+                label={`${connectorArrowHeadGlyph(head)} ${lineArrowHeadLabel(t, head)}`}
+                active={(c.arrowHead ?? "end") === head}
+                onClick={() => run(() => patch({ arrowHead: head }))}
+              />
+            ))}
+          </Submenu>
           <Separator />
           <Item
             label={t("contextMenu.editConnectorLabel")}
@@ -1173,87 +1120,66 @@ export function CanvasContextMenu({
     body = (
       <>
         <Header title={t("contextMenu.relationHeader")} subtitle={relationTypeLabel(t, rel.type)} />
-        <Section label={t("contextMenu.type")} />
-        {RELATION_TYPES.map((rt) => (
+        <Submenu label={t("contextMenu.type")}>
+          {RELATION_TYPES.map((rt) => (
+            <Item
+              key={rt}
+              label={relationTypeLabel(t, rt)}
+              active={rel.type === rt}
+              onClick={() => run(() => updateRelation(rel.id, { type: rt }))}
+            />
+          ))}
           <Item
-            key={rt}
-            label={relationTypeLabel(t, rt)}
-            active={rel.type === rt}
-            onClick={() => run(() => updateRelation(rel.id, { type: rt }))}
+            icon={HelpCircle}
+            label={t("contextMenu.help")}
+            onClick={() => run(() => onRequestHelpRelationType?.(rel.type))}
           />
-        ))}
-        <Item
-          icon={HelpCircle}
-          label={t("contextMenu.help")}
-          onClick={() => run(() => onRequestHelpRelationType?.(rel.type))}
-        />
-        <Separator />
-        <Section label={t("contextMenu.line")} />
-        {CONNECTOR_STROKE_STYLES.map((style) => (
+        </Submenu>
+        <Submenu label={t("contextMenu.line")}>
+          {CONNECTOR_STROKE_STYLES.map((style) => (
+            <Item
+              key={style}
+              label={connectorStrokeStyleLabel(t, style)}
+              active={resolveRelationStrokeStyle(rel) === style}
+              onClick={() => run(() => updateRelation(rel.id, { strokeStyle: style }))}
+            />
+          ))}
+        </Submenu>
+        <Submenu label={t("contextMenu.caption")}>
           <Item
-            key={style}
-            label={connectorStrokeStyleLabel(t, style)}
-            active={resolveRelationStrokeStyle(rel) === style}
-            onClick={() => run(() => updateRelation(rel.id, { strokeStyle: style }))}
+            label={`${t("contextMenu.type")} (${relationTypeLabel(t, rel.type)})`}
+            active={rel.labelMode === "type"}
+            onClick={() => run(() => updateRelation(rel.id, { labelMode: "type" }))}
           />
-        ))}
-        <Separator />
-        <Section label={t("contextMenu.caption")} />
-        <Item
-          label={`${t("contextMenu.type")} (${relationTypeLabel(t, rel.type)})`}
-          active={rel.labelMode === "type"}
-          onClick={() => run(() => updateRelation(rel.id, { labelMode: "type" }))}
-        />
-        <Item
-          label={t("contextMenu.freeText")}
-          active={rel.labelMode === "custom"}
-          onClick={() =>
-            run(() => {
-              const next = window.prompt(t("contextMenu.connectorLabelPrompt"), rel.label ?? "");
-              if (next === null) return;
-              updateRelation(rel.id, { label: next, labelMode: "custom" });
-            })
+          <Item
+            label={t("contextMenu.freeText")}
+            active={rel.labelMode === "custom"}
+            onClick={() =>
+              run(() => {
+                const next = window.prompt(t("contextMenu.connectorLabelPrompt"), rel.label ?? "");
+                if (next === null) return;
+                updateRelation(rel.id, { label: next, labelMode: "custom" });
+              })
+            }
+          />
+        </Submenu>
+        <ProgressMarkSubmenu
+          t={t}
+          run={run}
+          isActive={(mark) => normalizeProgressMark(rel.progressMark) === mark}
+          onSelect={(mark) => {
+            useStormBoardStore.getState().selectRelation(rel.id);
+            applyProgressMark(mark);
+          }}
+          onClear={
+            normalizeProgressMark(rel.progressMark)
+              ? () => {
+                  useStormBoardStore.getState().selectRelation(rel.id);
+                  applyProgressMark(normalizeProgressMark(rel.progressMark)!);
+                }
+              : undefined
           }
         />
-        <Separator />
-        <Section label={t("contextMenu.progressMark")} />
-        {PROGRESS_MARKS.map((mark) => (
-          <Item
-            key={mark}
-            label={progressMarkShortLabel(t, mark)}
-            hint={PROGRESS_MARK_SHORTCUT[mark]}
-            active={normalizeProgressMark(rel.progressMark) === mark}
-            leading={
-              <span
-                className="inline-flex h-4 w-4 items-center justify-center rounded-full"
-                style={{
-                  backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
-                  color: PROGRESS_MARK_STYLE[mark].fg,
-                }}
-                title={progressMarkLongLabel(t, mark)}
-              >
-                <ProgressMarkGlyph mark={mark} />
-              </span>
-            }
-            onClick={() =>
-              run(() => {
-                useStormBoardStore.getState().selectRelation(rel.id);
-                applyProgressMark(mark);
-              })
-            }
-          />
-        ))}
-        {normalizeProgressMark(rel.progressMark) ? (
-          <Item
-            label={t("contextMenu.clearProgressMark")}
-            onClick={() =>
-              run(() => {
-                useStormBoardStore.getState().selectRelation(rel.id);
-                applyProgressMark(normalizeProgressMark(rel.progressMark)!);
-              })
-            }
-          />
-        ) : null}
         <Separator />
         <Item
           icon={Trash2}
@@ -1274,15 +1200,16 @@ export function CanvasContextMenu({
     body = (
       <>
         <Header title={t("contextMenu.contextMap")} subtitle={contextMapPatternLabel(t, rel.type)} />
-        <Section label={t("contextMenu.pattern")} />
-        {CONTEXT_PATTERNS.map((pattern) => (
-          <Item
-            key={pattern}
-            label={contextMapPatternLabel(t, pattern)}
-            active={rel.type === pattern}
-            onClick={() => run(() => updateContextRelation(rel.id, { type: pattern }))}
-          />
-        ))}
+        <Submenu label={t("contextMenu.pattern")}>
+          {CONTEXT_PATTERNS.map((pattern) => (
+            <Item
+              key={pattern}
+              label={contextMapPatternLabel(t, pattern)}
+              active={rel.type === pattern}
+              onClick={() => run(() => updateContextRelation(rel.id, { type: pattern }))}
+            />
+          ))}
+        </Submenu>
         <Item
           label={t("contextMenu.editLabel")}
           onClick={() =>
@@ -1323,25 +1250,26 @@ export function CanvasContextMenu({
           onClick={() => run(() => updateSwimlane(lane.id, { locked: !lane.locked }))}
         />
         <Separator />
-        <Section label={t("contextMenu.layer")} />
-        <Item
-          icon={BringToFront}
-          label={t("contextMenu.bringToFront")}
-          onClick={() => run(() => bringRegionsToFront([lane.id]))}
-        />
-        <Item
-          label={t("contextMenu.forwardOne")}
-          onClick={() => run(() => bringRegionsForward([lane.id]))}
-        />
-        <Item
-          label={t("contextMenu.backwardOne")}
-          onClick={() => run(() => sendRegionsBackward([lane.id]))}
-        />
-        <Item
-          icon={SendToBack}
-          label={t("contextMenu.sendToBack")}
-          onClick={() => run(() => sendRegionsToBack([lane.id]))}
-        />
+        <Submenu label={t("contextMenu.layer")}>
+          <Item
+            icon={BringToFront}
+            label={t("contextMenu.bringToFront")}
+            onClick={() => run(() => bringRegionsToFront([lane.id]))}
+          />
+          <Item
+            label={t("contextMenu.forwardOne")}
+            onClick={() => run(() => bringRegionsForward([lane.id]))}
+          />
+          <Item
+            label={t("contextMenu.backwardOne")}
+            onClick={() => run(() => sendRegionsBackward([lane.id]))}
+          />
+          <Item
+            icon={SendToBack}
+            label={t("contextMenu.sendToBack")}
+            onClick={() => run(() => sendRegionsToBack([lane.id]))}
+          />
+        </Submenu>
         <Separator />
         {renderE2vAiMenu()}
         <Item
@@ -1400,25 +1328,26 @@ export function CanvasContextMenu({
           }
         />
         <Separator />
-        <Section label={t("contextMenu.layer")} />
-        <Item
-          icon={BringToFront}
-          label={t("contextMenu.bringToFront")}
-          onClick={() => run(() => bringRegionsToFront([bc.id]))}
-        />
-        <Item
-          label={t("contextMenu.forwardOne")}
-          onClick={() => run(() => bringRegionsForward([bc.id]))}
-        />
-        <Item
-          label={t("contextMenu.backwardOne")}
-          onClick={() => run(() => sendRegionsBackward([bc.id]))}
-        />
-        <Item
-          icon={SendToBack}
-          label={t("contextMenu.sendToBack")}
-          onClick={() => run(() => sendRegionsToBack([bc.id]))}
-        />
+        <Submenu label={t("contextMenu.layer")}>
+          <Item
+            icon={BringToFront}
+            label={t("contextMenu.bringToFront")}
+            onClick={() => run(() => bringRegionsToFront([bc.id]))}
+          />
+          <Item
+            label={t("contextMenu.forwardOne")}
+            onClick={() => run(() => bringRegionsForward([bc.id]))}
+          />
+          <Item
+            label={t("contextMenu.backwardOne")}
+            onClick={() => run(() => sendRegionsBackward([bc.id]))}
+          />
+          <Item
+            icon={SendToBack}
+            label={t("contextMenu.sendToBack")}
+            onClick={() => run(() => sendRegionsToBack([bc.id]))}
+          />
+        </Submenu>
         <Separator />
         {renderE2vAiMenu()}
         <Item
@@ -1603,7 +1532,7 @@ export function CanvasContextMenu({
     );
   }
 
-  const layer = isMobile && target.kind === "boundedContext" ? (
+  const layer = isMobile ? (
     <div
       className="fixed inset-0 z-[1200] flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm"
       role="presentation"
@@ -1623,7 +1552,7 @@ export function CanvasContextMenu({
     <div
       ref={ref}
       role="menu"
-      className="dock-surface fixed z-[1200] min-w-[220px] max-w-[280px] overflow-hidden rounded-dock py-1.5 text-sm text-[var(--text)]"
+      className="dock-surface fixed z-[1200] min-w-[220px] max-w-[280px] max-h-[min(85vh,720px)] overflow-y-auto overflow-x-hidden rounded-dock py-1.5 text-sm text-[var(--text)] shadow-dock"
       style={{ left: pos.left || menu.x, top: pos.top || menu.y }}
       onContextMenu={(e) => e.preventDefault()}
     >
@@ -1774,5 +1703,58 @@ function Submenu({ label, children }: { label: string; children: ReactNode }) {
       </summary>
       <div className="bg-[rgba(0,0,0,0.15)] pb-1">{children}</div>
     </details>
+  );
+}
+
+function ProgressMarkSubmenu({
+  t,
+  run,
+  isActive,
+  onSelect,
+  onClear,
+}: {
+  t: ReturnType<typeof useT>;
+  run: (fn: () => void) => void;
+  isActive: (mark: ProgressMark) => boolean;
+  onSelect: (mark: ProgressMark) => void;
+  onClear?: () => void;
+}) {
+  return (
+    <Submenu label={t("contextMenu.progressMark")}>
+      <div className="grid grid-cols-2 gap-0.5 px-2 py-1">
+        {PROGRESS_MARKS.map((mark) => (
+          <button
+            key={mark}
+            type="button"
+            role="menuitem"
+            title={progressMarkLongLabel(t, mark)}
+            className={[
+              "flex min-w-0 items-center gap-1 rounded-md px-1.5 py-1.5 text-left text-[0.72rem] leading-tight",
+              isActive(mark)
+                ? "bg-[#1e3a36] text-[#b8f0e6]"
+                : "text-[var(--text)] hover:bg-[var(--control-hover)]",
+            ].join(" ")}
+            onClick={() => run(() => onSelect(mark))}
+          >
+            <span
+              className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full"
+              style={{
+                backgroundColor: PROGRESS_MARK_STYLE[mark].bg,
+                color: PROGRESS_MARK_STYLE[mark].fg,
+              }}
+            >
+              <ProgressMarkGlyph mark={mark} />
+            </span>
+            <span className="min-w-0 flex-1 truncate">{progressMarkShortLabel(t, mark)}</span>
+            <span className="shrink-0 text-[0.58rem] text-[var(--muted)]">
+              {PROGRESS_MARK_SHORTCUT[mark]}
+            </span>
+          </button>
+        ))}
+      </div>
+      {onClear ? (
+        <Item label={t("contextMenu.clearProgressMark")} onClick={() => run(onClear)} />
+      ) : null}
+    </Submenu>
   );
 }
