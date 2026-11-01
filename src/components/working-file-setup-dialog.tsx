@@ -34,7 +34,7 @@ export function WorkingFileSetupDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-xl"
+        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl"
       >
         <h2 id={titleId} className="text-base font-semibold text-slate-900">
           {t("dialogs.welcomeTitle")}
@@ -55,7 +55,7 @@ export function WorkingFileSetupDialog({
                 type="button"
                 disabled={busy}
                 onClick={onCreateFile}
-                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60"
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
               >
                 {t("dialogs.pickSaveLocation")}
               </button>
@@ -63,7 +63,7 @@ export function WorkingFileSetupDialog({
                 type="button"
                 disabled={busy}
                 onClick={onOpenFile}
-                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60"
+                className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
               >
                 {t("dialogs.openExisting")}
               </button>
@@ -73,7 +73,7 @@ export function WorkingFileSetupDialog({
             type="button"
             disabled={busy}
             onClick={onPickBrowserFile}
-            className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60"
+            className="rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
           >
             {t("dialogs.pickViaBrowser")}
           </button>
