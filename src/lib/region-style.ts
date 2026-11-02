@@ -1,5 +1,8 @@
 import type { BoundedContext, Swimlane } from "@/types/storm-element";
 
+/** Matches `--canvas` in globals.css — used for contrast on semi-transparent regions. */
+export const BOARD_CANVAS_BACKDROP_HEX = "#1a2330";
+
 export type RegionVisualKind = "swimlane" | "boundedContext";
 
 export type RegionStyleSource = Pick<
@@ -70,6 +73,64 @@ export function hexToRgba(hex: string, opacity: number): string {
   const b = Number.parseInt(parsed.slice(5, 7), 16);
   const a = clampOpacity(opacity, 1);
   return `rgba(${r},${g},${b},${a})`;
+}
+
+function hexRgb(hex: string): { r: number; g: number; b: number } {
+  const parsed = parseHexColor(hex) ?? "#808080";
+  return {
+    r: Number.parseInt(parsed.slice(1, 3), 16),
+    g: Number.parseInt(parsed.slice(3, 5), 16),
+    b: Number.parseInt(parsed.slice(5, 7), 16),
+  };
+}
+
+/** sRGB relative luminance (WCAG). */
+export function relativeLuminance(hex: string): number {
+  const { r, g, b } = hexRgb(hex);
+  const toLinear = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const R = toLinear(r);
+  const G = toLinear(g);
+  const B = toLinear(b);
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+}
+
+/** Opaque fill as seen over the board canvas (semi-transparent region fill). */
+export function blendFillOnCanvas(
+  fillHex: string,
+  fillOpacity: number,
+  backdropHex: string = BOARD_CANVAS_BACKDROP_HEX,
+): string {
+  const a = clampOpacity(fillOpacity, 1);
+  const fg = hexRgb(fillHex);
+  const bg = hexRgb(backdropHex);
+  const mix = (f: number, b: number) => Math.round(f * a + b * (1 - a));
+  const r = mix(fg.r, bg.r);
+  const g = mix(fg.g, bg.g);
+  const b = mix(fg.b, bg.b);
+  const toHex = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+export interface RegionLabelInk {
+  ink: string;
+  captionInk: string;
+}
+
+/** Readable label colors for region / boundary fills on the dark canvas. */
+export function regionLabelInk(
+  fillHex: string,
+  fillOpacity: number,
+  backdropHex: string = BOARD_CANVAS_BACKDROP_HEX,
+): RegionLabelInk {
+  const effective = blendFillOnCanvas(fillHex, fillOpacity, backdropHex);
+  const lum = relativeLuminance(effective);
+  if (lum > 0.42) {
+    return { ink: "#0f172a", captionInk: "#334155" };
+  }
+  return { ink: "#f1f5f9", captionInk: "#cbd5e1" };
 }
 
 export interface ResolvedRegionPaint {

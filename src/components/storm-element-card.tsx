@@ -42,7 +42,12 @@ import {
 } from "@/lib/element-rotation";
 import { cssStackingZIndex } from "@/lib/element-z-order";
 import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
-import { hexToRgba, resolveRegionPaint } from "@/lib/region-style";
+import {
+  hexToRgba,
+  parseHexColor,
+  regionLabelInk,
+  resolveRegionPaint,
+} from "@/lib/region-style";
 import {
   elementToBoundedContext,
   elementToSwimlane,
@@ -162,6 +167,16 @@ export function StormElementCard({
     border: noteColors?.stroke ?? style.stroke,
     text: noteColors?.ink ?? style.ink,
   };
+  const regionTextInk =
+    regionPaint != null
+      ? regionLabelInk(regionPaint.fillHex, regionPaint.fillOpacity)
+      : isBoundary
+        ? regionLabelInk(parseHexColor(colors.bg) ?? colors.bg, BOUNDARY_FILL_OPACITY)
+        : null;
+  const showArchDrilldown = supportsArchDrilldown(element.type) && !editing;
+  const boundaryTextInset = isBoundary && showArchDrilldown;
+  const cardInk = regionTextInk?.ink ?? colors.text;
+  const captionInk = regionTextInk?.captionInk;
   const modelingMode = useStormBoardStore((s) => s.modelingMode);
   const inActiveMode =
     isLayoutRegion ||
@@ -298,7 +313,7 @@ export function StormElementCard({
     if (!editing) return;
     const el = inputRef.current;
     if (!el) return;
-    el.focus();
+    el.focus({ preventScroll: true });
     el.select();
   }, [editing]);
 
@@ -442,7 +457,8 @@ export function StormElementCard({
   };
 
   const typeCaptionClass = [
-    "w-full shrink-0 text-[0.62rem] font-medium leading-tight tracking-wide opacity-70",
+    "w-full shrink-0 text-[0.62rem] font-medium leading-tight tracking-wide",
+    regionTextInk ? "opacity-90" : "opacity-70",
     showDetails || noteLike || isBoundary || isLink ? "text-left" : "text-center",
   ].join(" ");
 
@@ -729,7 +745,7 @@ export function StormElementCard({
               ? hexToRgba(colors.bg, BOUNDARY_FILL_OPACITY)
               : colors.bg,
           borderColor: regionPaint ? regionPaint.borderColor : colors.border,
-          color: colors.text,
+          color: cardInk,
           borderStyle:
             isNote || isWhitebox || isLayoutRegion || (isLink && !linkReady) ? "dashed" : undefined,
           borderLeftWidth: isInstruction ? 4 : undefined,
@@ -859,7 +875,13 @@ export function StormElementCard({
           </div>
         ) : (
           <>
-        <span className={typeCaptionClass}>{typeCaption}</span>
+        <div className={boundaryTextInset ? "w-full shrink-0 pl-7" : "contents"}>
+        <span
+          className={typeCaptionClass}
+          style={captionInk ? { color: captionInk } : undefined}
+        >
+          {typeCaption}
+        </span>
         {editing ? (
           noteLike ? (
             <textarea
@@ -1006,7 +1028,8 @@ export function StormElementCard({
               <li className="opacity-60">{t("panels.moreLines", { n: webLinks.length - 8 })}</li>
             )}
           </ul>
-        )}
+            )}
+        </div>
           </>
         )}
         {element.metadata?.isRecurring && !editing && (
@@ -1039,7 +1062,7 @@ export function StormElementCard({
             <LayoutDashboard className="h-3 w-3" aria-hidden />
           </button>
         ) : null}
-        {supportsArchDrilldown(element.type) && !editing && (
+        {showArchDrilldown && (
           <button
             type="button"
             title={
