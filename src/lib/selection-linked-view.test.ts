@@ -50,7 +50,7 @@ describe("selection-linked-view", () => {
     expect(detail.relations).toHaveLength(1);
 
     const bounds = boundsForSelectionSlice(slice);
-    const link = createSelectionLinkElement(bounds, "Detail", newId);
+    const link = createSelectionLinkElement(slice, bounds, "Detail", newId);
     const origin = buildOriginViewAfterSelectionExtract(view, slice, link);
 
     expect(origin.elements.map((e) => e.id)).toEqual(["e3", link.id]);
@@ -67,9 +67,27 @@ describe("selection-linked-view", () => {
 
     expect(origin.relations).toHaveLength(0);
 
-    expect(link.detailViewId).toBe(newId);
-    expect(link.type).toBe("note");
     expect(link.x).toBe(bounds.x);
+  });
+
+  it("keeps the original element type for a single-element relocation", () => {
+    const slice = sliceCanvasViewForSelection(view, {
+      selection: { elementIds: ["e1"] },
+    })!;
+    const link = createSelectionLinkElement(slice, boundsForSelectionSlice(slice), "Detail", "detail-1");
+    expect(link.type).toBe("domainEvent");
+    expect(link.detailViewId).toBe("detail-1");
+    expect(link.label).toBe("Detail");
+  });
+
+  it("uses a view link card for multi-element relocation", () => {
+    const slice = sliceCanvasViewForSelection(view, {
+      selection: { elementIds: ["e1", "e2"] },
+    })!;
+    const link = createSelectionLinkElement(slice, boundsForSelectionSlice(slice), "Detail", "detail-1");
+    expect(link.type).toBe("link");
+    expect(link.metadata?.linkKind).toBe("view");
+    expect(link.metadata?.linkViewId).toBe("detail-1");
   });
 
   it("rehomes sticky relations onto the link element", () => {
@@ -84,6 +102,7 @@ describe("selection-linked-view", () => {
       selection: { elementIds: ["e1", "e2"] },
     })!;
     const link = createSelectionLinkElement(
+      slice,
       boundsForSelectionSlice(slice),
       "Detail",
       "detail-1",

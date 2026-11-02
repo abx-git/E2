@@ -2593,7 +2593,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       });
 
       const bounds = boundsForSelectionSlice(slice);
-      const linkEl = createSelectionLinkElement(bounds, name, newViewId);
+      const linkEl = createSelectionLinkElement(slice, bounds, name, newViewId);
       const originView = buildOriginViewAfterSelectionExtract(active, slice, linkEl);
 
       const updatedViews = views.map((v) =>
