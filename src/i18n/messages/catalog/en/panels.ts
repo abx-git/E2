@@ -66,6 +66,8 @@ export const panelsEn = {
     unknownView: "Unknown view",
     bookmarkNamePlaceholder: "Name (optional)",
     paletteTitle: "Elements",
+    modelSessionExpandHint: "Modeling mode & session — click to expand",
+    modelSessionOptionsActive: "Facilitator or tab sync active",
     paletteDragHint: "{mode} · drag onto the canvas",
     clipboardTitle: "Clipboard",
     clipboardHint: "In: right-click or drag. Out: drag an entry onto the canvas.",

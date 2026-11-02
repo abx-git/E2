@@ -1,5 +1,6 @@
 const ELEMENTS_KEY = "e2.layout.elementsPanel";
 const PROPERTIES_KEY = "e2.layout.propertiesPanel";
+const PALETTE_SETUP_KEY = "e2.layout.paletteSetupExpanded";
 
 export function readElementsPanelOpen(defaultOpen = true): boolean {
   return readBool(ELEMENTS_KEY, defaultOpen);
@@ -15,6 +16,14 @@ export function writeElementsPanelOpen(open: boolean): void {
 
 export function writePropertiesPanelOpen(open: boolean): void {
   writeBool(PROPERTIES_KEY, open);
+}
+
+export function readPaletteSetupExpanded(defaultOpen = false): boolean {
+  return readBool(PALETTE_SETUP_KEY, defaultOpen);
+}
+
+export function writePaletteSetupExpanded(open: boolean): void {
+  writeBool(PALETTE_SETUP_KEY, open);
 }
 
 function readBool(key: string, defaultOpen: boolean): boolean {

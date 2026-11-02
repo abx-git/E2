@@ -1,8 +1,10 @@
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import {
   readElementsPanelOpen,
+  readPaletteSetupExpanded,
   readPropertiesPanelOpen,
   writeElementsPanelOpen,
+  writePaletteSetupExpanded,
   writePropertiesPanelOpen,
 } from "@/lib/board-layout-prefs";
 
@@ -35,5 +37,14 @@ describe("board layout prefs", () => {
     writePropertiesPanelOpen(false);
     expect(readElementsPanelOpen()).toBe(false);
     expect(readPropertiesPanelOpen()).toBe(false);
+  });
+
+  it("defaults palette setup to collapsed", () => {
+    expect(readPaletteSetupExpanded()).toBe(false);
+  });
+
+  it("persists palette setup expanded state", () => {
+    writePaletteSetupExpanded(true);
+    expect(readPaletteSetupExpanded()).toBe(true);
   });
 });
