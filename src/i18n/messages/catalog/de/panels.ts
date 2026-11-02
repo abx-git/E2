@@ -67,6 +67,8 @@ export const panelsDe = {
     unknownView: "Unbekannte Sicht",
     bookmarkNamePlaceholder: "Name (optional)",
     paletteTitle: "Elemente",
+    modelSessionExpandHint: "Modellierungsmodus & Session — zum Aufklappen tippen",
+    modelSessionOptionsActive: "Facilitator oder Tab-Sync aktiv",
     paletteDragHint: "{mode} · auf die Karte ziehen",
     clipboardTitle: "Zwischenablage",
     clipboardHint: "Rein: Rechtsklick oder Drag. Raus: Eintrag auf den Canvas ziehen.",
