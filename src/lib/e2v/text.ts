@@ -133,8 +133,10 @@ function optionalNumCell(raw: string | undefined): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-/** Fixed column index for label in a canonical 15-column `e` row. */
-const ELEMENT_LABEL_INDEX = 14;
+/** Fixed column index for label in a canonical 16-column `e` row. */
+const ELEMENT_LABEL_INDEX = 15;
+/** Legacy rows with 15 columns (no cloudBoundaryId). */
+const LEGACY_ELEMENT_LABEL_INDEX = 14;
 
 export interface ParsedElementE2vCells {
   width?: number;
@@ -145,14 +147,15 @@ export interface ParsedElementE2vCells {
   boundedContextId?: string;
   aggregateId?: string;
   subdomainId?: string;
+  cloudBoundaryId?: string;
   detailViewId?: string;
   label: string;
 }
 
 /**
  * Parse optional geometry / containment cells and label from an `e` row.
- * Canonical export always uses 15 columns (label at index 14). Shorter rows
- * treat the last column as the label so round-trip survives trimmed trailing tabs.
+ * Canonical export uses 16 columns (label at index 15). Legacy 15-column rows
+ * omit cloudBoundaryId. Shorter rows treat the last column as the label.
  */
 export function parseElementE2vCells(cols: string[]): ParsedElementE2vCells {
   if (cols.length > ELEMENT_LABEL_INDEX) {
@@ -165,8 +168,24 @@ export function parseElementE2vCells(cols: string[]): ParsedElementE2vCells {
       boundedContextId: optionalIdCell(cols[10]),
       aggregateId: optionalIdCell(cols[11]),
       subdomainId: optionalIdCell(cols[12]),
-      detailViewId: optionalIdCell(cols[13]),
+      cloudBoundaryId: optionalIdCell(cols[13]),
+      detailViewId: optionalIdCell(cols[14]),
       label: parseCell(cols[ELEMENT_LABEL_INDEX] ?? ""),
+    };
+  }
+
+  if (cols.length > LEGACY_ELEMENT_LABEL_INDEX) {
+    return {
+      width: optionalNumCell(cols[5]),
+      height: optionalNumCell(cols[6]),
+      rotation: optionalNumCell(cols[7]),
+      zIndex: optionalNumCell(cols[8]),
+      swimlaneId: optionalIdCell(cols[9]),
+      boundedContextId: optionalIdCell(cols[10]),
+      aggregateId: optionalIdCell(cols[11]),
+      subdomainId: optionalIdCell(cols[12]),
+      detailViewId: optionalIdCell(cols[13]),
+      label: parseCell(cols[LEGACY_ELEMENT_LABEL_INDEX] ?? ""),
     };
   }
 

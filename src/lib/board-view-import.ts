@@ -60,6 +60,9 @@ function remapElement(
   if (el.subdomainId) {
     next.subdomainId = idMap.get(el.subdomainId);
   }
+  if (el.cloudBoundaryId) {
+    next.cloudBoundaryId = idMap.get(el.cloudBoundaryId);
+  }
   const linkViewId = el.metadata?.linkViewId?.trim();
   if (linkViewId) {
     const mapped = viewIdMap.get(linkViewId);

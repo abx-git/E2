@@ -28,6 +28,7 @@ function el(
     zIndex: opts.zIndex,
     aggregateId: opts.aggregateId,
     subdomainId: opts.subdomainId,
+    cloudBoundaryId: opts.cloudBoundaryId,
   };
 }
 
@@ -89,6 +90,31 @@ describe("element z-order", () => {
     const aggZ = next.find((e) => e.id === "agg")!.zIndex ?? 0;
     expect(next.find((e) => e.id === "ent")!.zIndex).toBeGreaterThan(aggZ);
     expect(next.find((e) => e.id === "vo")!.zIndex).toBeGreaterThan(aggZ);
+  });
+
+  it("keeps cloud boundary members above the boundary", () => {
+    const elements = [
+      el("lz", {
+        type: "cloudBoundary",
+        zIndex: 5,
+        x: 0,
+        y: 0,
+        width: 300,
+        height: 200,
+      }),
+      el("compute", {
+        type: "cloudCompute",
+        zIndex: 2,
+        x: 20,
+        y: 20,
+        width: 80,
+        height: 40,
+        cloudBoundaryId: "lz",
+      }),
+    ];
+    const next = enforceContainerBehindContents(elements);
+    const lzZ = next.find((e) => e.id === "lz")!.zIndex ?? 0;
+    expect(next.find((e) => e.id === "compute")!.zIndex).toBeGreaterThan(lzZ);
   });
 
   it("keeps nested contents above subdomain and aggregate", () => {

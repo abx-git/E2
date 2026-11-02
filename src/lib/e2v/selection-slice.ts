@@ -114,6 +114,9 @@ export function sliceCanvasViewForSelection(
     if (!next.subdomainId || !elementIdSet.has(next.subdomainId)) {
       next.subdomainId = undefined;
     }
+    if (!next.cloudBoundaryId || !elementIdSet.has(next.cloudBoundaryId)) {
+      next.cloudBoundaryId = undefined;
+    }
     return next;
   });
 

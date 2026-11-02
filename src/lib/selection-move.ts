@@ -1,6 +1,7 @@
 import {
   elementIdsInAggregate,
   elementIdsInBoundedContext,
+  elementIdsInCloudBoundary,
   elementIdsInSubdomain,
   elementIdsInSwimlane,
 } from "@/lib/region-containment";
@@ -63,7 +64,9 @@ export function expandCanvasMoveSet(
           ? elementIdsInAggregate(elements, el)
           : el.type === "subdomain"
             ? elementIdsInSubdomain(elements, el)
-            : [];
+            : el.type === "cloudBoundary"
+              ? elementIdsInCloudBoundary(elements, el)
+              : [];
       for (const childId of members) {
         if (!elementIds.has(childId)) {
           elementIds.add(childId);
