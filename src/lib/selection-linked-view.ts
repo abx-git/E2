@@ -1,9 +1,11 @@
-import type { ClipboardSelection } from "@/lib/board-clipboard";
+import type { BoardClipboardPayload, ClipboardSelection } from "@/lib/board-clipboard";
 import {
   extractClipboardPayload,
   remapClipboardForPaste,
   selectionCentroid,
 } from "@/lib/board-clipboard";
+import { computeCanvasContentBounds } from "@/lib/canvas-content-bounds";
+import { viewportFitContent } from "@/lib/canvas-viewport";
 import { generateStormId } from "@/lib/storm-id";
 import type { CanvasBoardView } from "@/lib/storm-json";
 import { createEmptyBoardView } from "@/lib/storm-json";
@@ -24,17 +26,61 @@ function expandRect(acc: WorldRect | null, next: WorldRect): WorldRect {
   return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
 }
 import type { BoardConnector, ConnectorEndpoint } from "@/types/board-connector";
-import type { ModelingMode, StormElement, WorkshopFormat } from "@/types/storm-element";
+import type {
+  BoundedContext,
+  ModelingMode,
+  StormElement,
+  Swimlane,
+  WorkshopFormat,
+} from "@/types/storm-element";
 
 const DETAIL_VIEW_PADDING = 80;
 const MIN_LINK_WIDTH = 140;
 const MIN_LINK_HEIGHT = 72;
+/** Fallback canvas size when fitting a new detail view (no DOM yet). */
+const DETAIL_VIEW_FIT_WIDTH = 1280;
+const DETAIL_VIEW_FIT_HEIGHT = 720;
 
 function remapEndpoint(ep: ConnectorEndpoint, idMap: Map<string, string>): ConnectorEndpoint {
   if (ep.attach === "point") return { ...ep };
   const nextId = idMap.get(ep.id);
   if (!nextId) return { ...ep };
   return { attach: ep.attach, id: nextId };
+}
+
+function translateEndpoint(
+  ep: ConnectorEndpoint,
+  idMap: Map<string, string>,
+  dx: number,
+  dy: number,
+): ConnectorEndpoint {
+  if (ep.attach === "point") {
+    return { attach: "point", x: ep.x + dx, y: ep.y + dy };
+  }
+  return remapEndpoint(ep, idMap);
+}
+
+/** Centroid target so the selection bounds' top-left lands at `padding`. */
+export function detailViewPasteTarget(
+  bounds: WorldRect,
+  padding = DETAIL_VIEW_PADDING,
+): { x: number; y: number } {
+  return { x: padding + bounds.w / 2, y: padding + bounds.h / 2 };
+}
+
+export function initialViewportForDetailView(view: CanvasBoardView): {
+  x: number;
+  y: number;
+  zoom: number;
+} {
+  const bounds = computeCanvasContentBounds({
+    elements: view.elements,
+    swimlanes: view.swimlanes,
+    boundedContexts: view.boundedContexts,
+    connectors: view.connectors,
+    canvasLines: view.canvasLines,
+  });
+  return viewportFitContent(bounds, DETAIL_VIEW_FIT_WIDTH, DETAIL_VIEW_FIT_HEIGHT);
 }
 
 export interface ExtractedSelectionIds {
@@ -82,10 +128,26 @@ function rehomeConnectorEndpoints(
 
 /** Union bounds of all items in a selection slice (for link placeholder size/position). */
 export function boundsForSelectionSlice(slice: CanvasBoardView): WorldRect {
+  return boundsForClipboardLike({
+    elements: slice.elements,
+    swimlanes: slice.swimlanes,
+    boundedContexts: slice.boundedContexts,
+  });
+}
+
+export function boundsForClipboardPayload(payload: BoardClipboardPayload): WorldRect {
+  return boundsForClipboardLike(payload);
+}
+
+function boundsForClipboardLike(payload: {
+  elements: StormElement[];
+  swimlanes: Swimlane[];
+  boundedContexts: BoundedContext[];
+}): WorldRect {
   let bounds: WorldRect | null = null;
-  for (const el of slice.elements) bounds = expandRect(bounds, elementBounds(el));
-  for (const lane of slice.swimlanes) bounds = expandRect(bounds, swimlaneBounds(lane));
-  for (const bc of slice.boundedContexts) bounds = expandRect(bounds, boundedContextBounds(bc));
+  for (const el of payload.elements) bounds = expandRect(bounds, elementBounds(el));
+  for (const lane of payload.swimlanes) bounds = expandRect(bounds, swimlaneBounds(lane));
+  for (const bc of payload.boundedContexts) bounds = expandRect(bounds, boundedContextBounds(bc));
   return bounds ?? { x: 0, y: 0, w: MIN_LINK_WIDTH, h: MIN_LINK_HEIGHT };
 }
 
@@ -158,10 +220,7 @@ export function buildLinkedDetailViewFromSlice(
   },
 ): CanvasBoardView {
   const bounds = boundsForSelectionSlice(slice);
-  const targetX = DETAIL_VIEW_PADDING;
-  const targetY = DETAIL_VIEW_PADDING;
-  const originX = bounds.x + bounds.w / 2;
-  const originY = bounds.y + bounds.h / 2;
+  const pasteTarget = detailViewPasteTarget(bounds);
 
   const elementIds = slice.elements.map((e) => e.id);
   const payload = extractClipboardPayload(
@@ -181,11 +240,9 @@ export function buildLinkedDetailViewFromSlice(
     });
   }
 
-  const remapped = remapClipboardForPaste(
-    { ...payload, originX, originY },
-    targetX,
-    targetY,
-  );
+  const dx = pasteTarget.x - payload.originX;
+  const dy = pasteTarget.y - payload.originY;
+  const remapped = remapClipboardForPaste(payload, pasteTarget.x, pasteTarget.y);
 
   const idMap = new Map<string, string>();
   slice.elements.forEach((el, i) => {
@@ -204,11 +261,12 @@ export function buildLinkedDetailViewFromSlice(
   const connectors = slice.connectors.map((c) => ({
     ...structuredClone(c),
     id: generateStormId(),
-    source: remapEndpoint(c.source, idMap),
-    target: remapEndpoint(c.target, idMap),
+    source: translateEndpoint(c.source, idMap, dx, dy),
+    target: translateEndpoint(c.target, idMap, dx, dy),
+    waypoints: c.waypoints?.map((wp) => ({ x: wp.x + dx, y: wp.y + dy })),
   }));
 
-  return createEmptyBoardView({
+  const view = createEmptyBoardView({
     id: options.id,
     name: options.name,
     modelingMode: options.modelingMode,
@@ -222,6 +280,7 @@ export function buildLinkedDetailViewFromSlice(
     customCardTypes: structuredClone(slice.customCardTypes ?? []),
     viewport: { x: 0, y: 0, zoom: 1 },
   });
+  return { ...view, viewport: initialViewportForDetailView(view) };
 }
 
 function rehomeRelationEndpoints(

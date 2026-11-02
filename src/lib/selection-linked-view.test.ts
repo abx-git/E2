@@ -34,6 +34,25 @@ describe("selection-linked-view", () => {
     ],
   });
 
+  it("places relocated content inside the detail view padding with a fitted viewport", () => {
+    const slice = sliceCanvasViewForSelection(view, {
+      selection: { elementIds: ["e1", "e2"] },
+    })!;
+    const detail = buildLinkedDetailViewFromSlice(slice, {
+      id: "detail-1",
+      name: "Detail",
+      modelingMode: view.modelingMode,
+      workshopFormat: view.workshopFormat,
+    });
+    const minX = Math.min(...detail.elements.map((e) => e.x));
+    const minY = Math.min(...detail.elements.map((e) => e.y));
+    expect(minX).toBeGreaterThanOrEqual(80 - 0.5);
+    expect(minY).toBeGreaterThanOrEqual(80 - 0.5);
+    expect(detail.viewport.zoom).toBeGreaterThan(0);
+    expect(Number.isFinite(detail.viewport.x)).toBe(true);
+    expect(Number.isFinite(detail.viewport.y)).toBe(true);
+  });
+
   it("builds a detail view and strips selection from origin", () => {
     const slice = sliceCanvasViewForSelection(view, {
       selection: { elementIds: ["e1", "e2"] },

@@ -3,6 +3,11 @@ import {
   remapClipboardForPaste,
   selectionCentroid,
 } from "@/lib/board-clipboard";
+import {
+  boundsForClipboardPayload,
+  detailViewPasteTarget,
+  initialViewportForDetailView,
+} from "@/lib/selection-linked-view";
 import { createEmptyBoardView, type BoardView } from "@/lib/storm-json";
 import { elementIdsInBoundedContext } from "@/lib/region-containment";
 import type { BoundedContext, ModelingMode, StormElement, Swimlane, WorkshopFormat } from "@/types/storm-element";
@@ -155,8 +160,9 @@ export function buildBoardViewFromBoundedContextPayload(
     workshopFormat: WorkshopFormat;
   },
 ): BoardView {
-  const remapped = remapClipboardForPaste(payload, DETAIL_VIEW_PADDING, DETAIL_VIEW_PADDING);
-  return createEmptyBoardView({
+  const pasteTarget = detailViewPasteTarget(boundsForClipboardPayload(payload));
+  const remapped = remapClipboardForPaste(payload, pasteTarget.x, pasteTarget.y);
+  const view = createEmptyBoardView({
     id: options.id,
     name: options.name,
     modelingMode: options.modelingMode,
@@ -167,4 +173,5 @@ export function buildBoardViewFromBoundedContextPayload(
     contextRelations: remapped.contextRelations,
     viewport: { x: 0, y: 0, zoom: 1 },
   });
+  return { ...view, viewport: initialViewportForDetailView(view) };
 }
