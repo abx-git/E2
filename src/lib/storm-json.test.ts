@@ -310,12 +310,18 @@ describe("relation-validation", () => {
 describe("facilitator-phases", () => {
   it("restricts types in phase 1 big picture", () => {
     const allowed = getAllowedTypesForPhase("eventStorming", "bigPicture", 0, true);
-    expect(allowed).toEqual(["domainEvent", "note", "instruction"]);
+    expect(allowed).toEqual([
+      "domainEvent",
+      "note",
+      "instruction",
+      "swimlane",
+      "boundedContext",
+    ]);
   });
 
   it("allows ES catalog when facilitator off", () => {
     const allowed = getAllowedTypesForPhase("eventStorming", "bigPicture", 0, false);
-    expect(allowed.length).toBe(13);
+    expect(allowed.length).toBe(15);
   });
 
   it("uses DDD catalog in DDD free mode", () => {
@@ -327,7 +333,14 @@ describe("facilitator-phases", () => {
 
   it("restricts strategic design phase 1", () => {
     const allowed = getAllowedTypesForPhase("domainDrivenDesign", "strategicDesign", 0, true);
-    expect(allowed).toEqual(["subdomain", "note", "instruction", "hotspot"]);
+    expect(allowed).toEqual([
+      "subdomain",
+      "note",
+      "instruction",
+      "hotspot",
+      "swimlane",
+      "boundedContext",
+    ]);
   });
 
   it("uses BDD catalog", () => {
@@ -346,13 +359,21 @@ describe("facilitator-phases", () => {
       "note",
       "instruction",
       "hotspot",
+      "swimlane",
+      "boundedContext",
     ]);
   });
 
   it("keeps catalog order so new phase types append below", () => {
     const phase0 = getAllowedTypesForPhase("eventStorming", "bigPicture", 0, true);
     const phase3 = getAllowedTypesForPhase("eventStorming", "bigPicture", 3, true);
-    expect(phase0).toEqual(["domainEvent", "note", "instruction"]);
+    expect(phase0).toEqual([
+      "domainEvent",
+      "note",
+      "instruction",
+      "swimlane",
+      "boundedContext",
+    ]);
     // Commands/actors appear after events/pivotal; annotations stay at the bottom.
     expect(phase3).toEqual([
       "domainEvent",
@@ -362,6 +383,8 @@ describe("facilitator-phases", () => {
       "note",
       "instruction",
       "hotspot",
+      "swimlane",
+      "boundedContext",
     ]);
   });
 
@@ -374,6 +397,8 @@ describe("facilitator-phases", () => {
       "processEnd",
       "note",
       "instruction",
+      "swimlane",
+      "boundedContext",
     ]);
     expect(getAllowedTypesForPhase("dataModel", "free", 0, false)).toContain("dataEntity");
     expect(getAllowedTypesForPhase("dataModel", "free", 0, false)).toContain("dataAssociation");
@@ -405,6 +430,8 @@ describe("facilitator-phases", () => {
       "note",
       "instruction",
       "link",
+      "swimlane",
+      "boundedContext",
     ]);
     expect(getAllowedTypesForPhase("arc42", "arc42Workshop", 0, true)).toEqual([
       "archBlackbox",
@@ -412,6 +439,8 @@ describe("facilitator-phases", () => {
       "instruction",
       "hotspot",
       "link",
+      "swimlane",
+      "boundedContext",
     ]);
     expect(getAllowedTypesForPhase("cloud", "cloudArchitecture", 0, true)).toEqual([
       "cloudBoundary",
@@ -420,6 +449,8 @@ describe("facilitator-phases", () => {
       "instruction",
       "hotspot",
       "link",
+      "swimlane",
+      "boundedContext",
     ]);
   });
 });

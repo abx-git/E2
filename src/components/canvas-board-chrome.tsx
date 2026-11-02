@@ -6,13 +6,11 @@ import {
   Download,
   FileText,
   Image,
-  Layers,
   Link2,
   MousePointer2,
   MoreHorizontal,
   Search,
   ListFilter,
-  SquareDashed,
   X,
   ZoomIn,
   ZoomOut,
@@ -34,7 +32,7 @@ import { lineArrowHeadLabel, useT } from "@/i18n";
 import { CONNECTOR_ARROW_HEADS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
-type CanvasTool = "select" | "connect" | "bc";
+type CanvasTool = "select" | "connect";
 
 function ToolIconButton({
   active,
@@ -327,8 +325,6 @@ function ExportMenuItem({
 }
 
 export interface CanvasBoardChromeProps {
-  bcMode: boolean;
-  onToggleBcMode: () => void;
   /** Contextual status when a tool / draft is active. */
   status?: {
     message: ReactNode;
@@ -337,7 +333,7 @@ export interface CanvasBoardChromeProps {
 }
 
 /** Floating tool + zoom chrome for the canvas. */
-export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoardChromeProps) {
+export function CanvasBoardChrome({ status }: CanvasBoardChromeProps) {
   const relationMode = useStormBoardStore((s) => s.relationMode);
   const setRelationMode = useStormBoardStore((s) => s.setRelationMode);
   const setRelationDraftSource = useStormBoardStore((s) => s.setRelationDraftSource);
@@ -345,7 +341,6 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const setContextMapDraftSource = useStormBoardStore((s) => s.setContextMapDraftSource);
   const lineArrowHead = useStormBoardStore((s) => s.lineArrowHead);
   const setLineArrowHead = useStormBoardStore((s) => s.setLineArrowHead);
-  const addSwimlane = useStormBoardStore((s) => s.addSwimlane);
   const viewport = useStormBoardStore((s) => s.viewport);
   const setViewport = useStormBoardStore((s) => s.setViewport);
   const snapToGrid = useStormBoardStore((s) => s.snapToGrid);
@@ -371,7 +366,7 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const searchInputRef = useRef<HTMLInputElement>(null);
   const t = useT();
 
-  const activeTool: CanvasTool = bcMode ? "bc" : relationMode ? "connect" : "select";
+  const activeTool: CanvasTool = relationMode ? "connect" : "select";
 
   const clearConnect = () => {
     setRelationMode(false);
@@ -383,17 +378,13 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
   const setTool = (tool: CanvasTool) => {
     if (tool === activeTool && tool !== "select") {
       clearConnect();
-      if (bcMode) onToggleBcMode();
       return;
     }
 
     clearConnect();
-    if (bcMode && tool !== "bc") onToggleBcMode();
 
     if (tool === "connect") {
       setRelationMode(true);
-    } else if (tool === "bc") {
-      if (!bcMode) onToggleBcMode();
     }
   };
 
@@ -596,20 +587,6 @@ export function CanvasBoardChrome({ bcMode, onToggleBcMode, status }: CanvasBoar
               <ConnectorArrowHeadIcon head={lineArrowHead} />
             </button>
           )}
-          <ToolIconButton
-            active={activeTool === "bc"}
-            title={t("chrome.toolBoundedContext")}
-            onClick={() => setTool("bc")}
-          >
-            <SquareDashed className="h-3.5 w-3.5" />
-          </ToolIconButton>
-
-          <span className="mx-0.5 h-4 w-px bg-[var(--border)]" aria-hidden />
-
-          <ToolIconButton title={t("chrome.addSwimlane")} onClick={() => addSwimlane()}>
-            <Layers className="h-3.5 w-3.5" />
-          </ToolIconButton>
-
           <div className="relative">
             <button
               ref={viewBtnRef}

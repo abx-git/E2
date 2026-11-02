@@ -43,6 +43,7 @@ import {
   normalizeCustomCardTypes,
 } from "@/lib/custom-card-types";
 import { HOTSPOT_DEFAULT_ROTATION_DEG, isKnownElementType } from "@/lib/element-styles";
+import { migrateLegacyRegionsIntoElements } from "@/lib/region-elements";
 import boardSnapshotV2Schema from "../../public/schemas/board-snapshot-v2.schema.json";
 
 function asFiniteNumber(value: unknown): number | undefined {
@@ -368,13 +369,14 @@ export function normalizeBoardView(
     base.canvasLines,
   );
   const legacy = connectorsToLegacy(connectors);
-  return {
+  const merged = migrateLegacyRegionsIntoElements({
     ...base,
     connectors,
     relations: legacy.relations,
     contextRelations: legacy.contextRelations,
     canvasLines: legacy.canvasLines,
-  };
+  });
+  return merged;
 }
 
 export function migrateV1ToDocument(snap: BoardSnapshotV1): BoardImportPayload {

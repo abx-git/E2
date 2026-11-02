@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CanvasBoardChrome } from "@/components/canvas-board-chrome";
 import { BoardConnectors } from "@/components/board-connectors";
-import { BoundedContextLayer } from "@/components/bounded-context-layer";
 import { attachTargetToEndpoint } from "@/lib/board-connector-resolve";
 import {
   isBoardConnectorTarget,
@@ -13,18 +12,37 @@ import {
 import { connectorDraftSourceLabel } from "@/lib/connector-tool";
 import { pickConnectorTargetSnapAt } from "@/lib/connector-target-pick";
 import { StormElementCard } from "@/components/storm-element-card";
-import { SwimlaneLayer } from "@/components/swimlane-layer";
 import { TimelineGuide } from "@/components/timeline-guide";
 import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint, ZOOM_STEP } from "@/lib/canvas-viewport";
 import { deleteCurrentSelection } from "@/lib/board-delete-selection";
 import { isTypingTarget, shouldSuppressBoardDeleteKey } from "@/lib/keyboard-input-guard";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
-import { elementsInMarquee, swimlanesInMarquee, boundedContextsInMarquee, type WorldRect } from "@/lib/selection-geometry";
+import { elementsInMarquee, type WorldRect } from "@/lib/selection-geometry";
 import { lineLength } from "@/lib/canvas-annotations";
 import { sortElementsByZOrder } from "@/lib/element-z-order";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
+import type { ConnectorEndpoint } from "@/types/board-connector";
+import type { StormElement } from "@/types/storm-element";
+
+function connectorEndpointForElement(elements: StormElement[], id: string): ConnectorEndpoint {
+  const el = elements.find((e) => e.id === id);
+  if (el?.type === "boundedContext") return { attach: "boundedContext", id };
+  if (el?.type === "swimlane") return { attach: "swimlane", id };
+  return { attach: "element", id };
+}
+
+function connectorDraftMatchesElement(
+  draft: ConnectorEndpoint | null,
+  el: StormElement,
+): boolean {
+  if (!draft || draft.attach === "point") return false;
+  if (draft.id !== el.id) return false;
+  if (el.type === "boundedContext") return draft.attach === "boundedContext";
+  if (el.type === "swimlane") return draft.attach === "swimlane";
+  return draft.attach === "element";
+}
 
 const MARQUEE_THRESHOLD_PX = 4;
 const PAN_MOVE_THRESHOLD_PX = 3;
@@ -126,22 +144,13 @@ export function StormCanvas() {
   const connectEndpoints = useStormBoardStore((s) => s.connectEndpoints);
   const connectorDraftSource = useStormBoardStore((s) => s.connectorDraftSource);
   const setConnectorDraftSource = useStormBoardStore((s) => s.setConnectorDraftSource);
-  const addBoundedContext = useStormBoardStore((s) => s.addBoundedContext);
   const addCanvasLine = useStormBoardStore((s) => s.addCanvasLine);
   const selectCanvasLine = useStormBoardStore((s) => s.selectCanvasLine);
-
-  const [bcDraft, setBcDraft] = useState<WorldRect | null>(null);
-  const [bcMode, setBcMode] = useState(false);
-  const bcStart = useRef<{ x: number; y: number } | null>(null);
 
   const [lineDraft, setLineDraft] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(
     null,
   );
   const lineStart = useRef<{ x: number; y: number } | null>(null);
-
-  useEffect(() => {
-    if (relationMode) setBcMode(false);
-  }, [relationMode]);
 
   const [marqueeDraft, setMarqueeDraft] = useState<WorldRect | null>(null);
   const marqueeStart = useRef<{ x: number; y: number; additive: boolean } | null>(null);
@@ -189,7 +198,6 @@ export function StormCanvas() {
         if (contextMapDraftSourceId) setContextMapDraftSource(null);
         useStormBoardStore.getState().setConnectorDraftSource(null);
         if (relationMode) useStormBoardStore.getState().setRelationMode(false);
-        if (bcMode) setBcMode(false);
         return;
       }
 
@@ -227,7 +235,7 @@ export function StormCanvas() {
       }
 
       if (e.key === "Enter" || e.key === "a" || e.key === "A") {
-        if (bcMode || relationMode) return;
+        if (relationMode) return;
         e.preventDefault();
         addAtViewportCenter();
       }
@@ -245,7 +253,6 @@ export function StormCanvas() {
     facilitatorEnabled,
     setPaletteType,
     addAtViewportCenter,
-    bcMode,
     relationMode,
   ]);
 
@@ -353,7 +360,7 @@ export function StormCanvas() {
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (isCanvasChromeTarget(e.target)) return;
-    if (!containerRef.current || bcMode || relationMode) return;
+    if (!containerRef.current || relationMode) return;
     const rect = containerRef.current.getBoundingClientRect();
     const world = screenToWorld(viewport, e.clientX, e.clientY, rect);
     const snapped = applySnap(world.x, world.y);
@@ -363,8 +370,8 @@ export function StormCanvas() {
   const connectorTool = relationMode;
 
   const handleStartConnect = (id: string) => {
-    const source = { attach: "element" as const, id };
-    if (connectorDraftSource?.attach === "element" && connectorDraftSource.id === id) {
+    const source = connectorEndpointForElement(elements, id);
+    if (connectorDraftSource && connectorDraftMatchesElement(connectorDraftSource, elements.find((e) => e.id === id)!)) {
       setConnectorDraftSource(null);
       setRelationDraftSource(null);
       return;
@@ -377,14 +384,15 @@ export function StormCanvas() {
 
   const handleCompleteConnect = (targetId: string) => {
     setContextMapDraftSource(null);
-    const target = { attach: "element" as const, id: targetId };
+    const targetEl = elements.find((e) => e.id === targetId);
+    const target = connectorEndpointForElement(elements, targetId);
     if (!connectorDraftSource) {
       setConnectorDraftSource(target);
       setRelationDraftSource(targetId);
       selectElement(targetId);
       return;
     }
-    if (connectorDraftSource.attach === "element" && connectorDraftSource.id === targetId) {
+    if (targetEl && connectorDraftMatchesElement(connectorDraftSource, targetEl)) {
       setConnectorDraftSource(null);
       setRelationDraftSource(null);
       return;
@@ -452,10 +460,8 @@ export function StormCanvas() {
     }
 
     const elementIds = elementsInMarquee(store.elements, draft, store.notesCompact);
-    const swimlaneIds = swimlanesInMarquee(store.swimlanes, draft);
-    const boundedContextIds = boundedContextsInMarquee(store.boundedContexts, draft);
-    if (elementIds.length > 0 || swimlaneIds.length > 0 || boundedContextIds.length > 0) {
-      setCanvasSelection({ elementIds, swimlaneIds, boundedContextIds }, start.additive);
+    if (elementIds.length > 0) {
+      setCanvasSelection({ elementIds, swimlaneIds: [], boundedContextIds: [] }, start.additive);
       return;
     }
 
@@ -505,7 +511,7 @@ export function StormCanvas() {
       data-storm-canvas
       className={[
         "absolute inset-0 overflow-hidden bg-canvas outline-none touch-none",
-        bcMode || connectorTool
+        connectorTool
           ? "cursor-crosshair"
           : panning
             ? "cursor-grabbing"
@@ -559,13 +565,6 @@ export function StormCanvas() {
           return;
         }
         if (e.button !== 0) return;
-        if (bcMode) {
-          const world = worldFromClient(e.clientX, e.clientY);
-          if (!world) return;
-          bcStart.current = { x: world.x, y: world.y };
-          setBcDraft({ x: world.x, y: world.y, w: 0, h: 0 });
-          return;
-        }
         if (isBoardConnectorTarget(e.target)) {
           return;
         }
@@ -606,18 +605,6 @@ export function StormCanvas() {
             y: panStart.current.vy + dy,
           });
         }
-        if (bcMode && bcStart.current) {
-          const world = worldFromClient(e.clientX, e.clientY);
-          if (!world) return;
-          const sx = bcStart.current.x;
-          const sy = bcStart.current.y;
-          setBcDraft({
-            x: Math.min(sx, world.x),
-            y: Math.min(sy, world.y),
-            w: Math.abs(world.x - sx),
-            h: Math.abs(world.y - sy),
-          });
-        }
         if (connectorTool && lineStart.current) {
           const world = worldFromClient(e.clientX, e.clientY);
           if (!world) return;
@@ -641,9 +628,6 @@ export function StormCanvas() {
           }
         }
         if (emptyClick) clearSelection();
-        if (bcMode && bcDraft && bcDraft.w > 40 && bcDraft.h > 40) {
-          addBoundedContext(bcDraft.x, bcDraft.y, bcDraft.w, bcDraft.h);
-        }
         if (connectorTool && lineDraft && lineLength(lineDraft) >= MIN_LINE_LENGTH_WORLD) {
           const live = useStormBoardStore.getState();
           const pickAt = (x: number, y: number) => {
@@ -666,8 +650,6 @@ export function StormCanvas() {
             live.connectEndpoints(start, end);
           }
         }
-        bcStart.current = null;
-        setBcDraft(null);
         lineStart.current = null;
         setLineDraft(null);
       }}
@@ -681,8 +663,6 @@ export function StormCanvas() {
             /* ignore */
           }
         }
-        bcStart.current = null;
-        setBcDraft(null);
         lineStart.current = null;
         setLineDraft(null);
       }}
@@ -698,19 +678,6 @@ export function StormCanvas() {
           height: 3000,
         }}
       >
-        <div
-          className="absolute left-0 top-0"
-          style={{ zIndex: 1, width: 4000, height: 3000 }}
-        >
-          <SwimlaneLayer />
-          <BoundedContextLayer />
-        </div>
-        {bcDraft && (
-          <div
-            className="pointer-events-none absolute border-2 border-dashed border-blue-500 bg-blue-100/30"
-            style={{ left: bcDraft.x, top: bcDraft.y, width: bcDraft.w, height: bcDraft.h }}
-          />
-        )}
         {marqueeDraft && (
           <div
             className="pointer-events-none absolute border border-sky-500 bg-sky-400/15"
@@ -744,12 +711,9 @@ export function StormCanvas() {
             element={el}
             selected={selectedElementIds.includes(el.id)}
             selectedIds={selectedElementIds}
-            connecting={
-              connectorDraftSource?.attach === "element" && connectorDraftSource.id === el.id
-            }
+            connecting={connectorDraftMatchesElement(connectorDraftSource, el)}
             isRelationTargetHint={Boolean(
-              connectorDraftSource &&
-                !(connectorDraftSource.attach === "element" && connectorDraftSource.id === el.id),
+              connectorDraftSource && !connectorDraftMatchesElement(connectorDraftSource, el),
             )}
             relationMode={connectorTool}
             zoom={viewport.zoom}
@@ -763,8 +727,6 @@ export function StormCanvas() {
       </div>
 
       <CanvasBoardChrome
-        bcMode={bcMode}
-        onToggleBcMode={() => setBcMode((v) => !v)}
         status={
           measureHotspotLinkPick
             ? {
@@ -796,12 +758,7 @@ export function StormCanvas() {
                     setContextMapDraftSource(null);
                   },
                 }
-              : bcMode
-                ? {
-                    message: t("chrome.bcDrawHint"),
-                    onCancel: () => setBcMode(false),
-                  }
-                : null
+              : null
         }
       />
     </div>

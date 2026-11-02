@@ -42,7 +42,13 @@ import {
 } from "@/lib/element-rotation";
 import { cssStackingZIndex } from "@/lib/element-z-order";
 import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
-import { hexToRgba } from "@/lib/region-style";
+import { hexToRgba, resolveRegionPaint } from "@/lib/region-style";
+import {
+  elementToBoundedContext,
+  elementToSwimlane,
+  regionElementLocked,
+} from "@/lib/region-elements";
+import type { ConnectorEndpoint } from "@/types/board-connector";
 import { HighlightedText } from "@/components/highlighted-text";
 import { elementCardTypeCaption, elementTypeLabel, useT } from "@/i18n";
 import { resolveNoteColor } from "@/lib/note-colors";
@@ -136,7 +142,16 @@ export function StormElementCard({
   const isSubdomain = element.type === "subdomain";
   const isWhitebox = element.type === "archWhitebox";
   const isCloudBoundary = element.type === "cloudBoundary";
-  const isBoundary = isAggregate || isSubdomain || isWhitebox || isCloudBoundary;
+  const isSwimlane = element.type === "swimlane";
+  const isBoundedContextRegion = element.type === "boundedContext";
+  const isLayoutRegion = isSwimlane || isBoundedContextRegion;
+  const isBoundary =
+    isAggregate || isSubdomain || isWhitebox || isCloudBoundary || isLayoutRegion;
+  const regionPaint = isSwimlane
+    ? resolveRegionPaint("swimlane", elementToSwimlane(element)!)
+    : isBoundedContextRegion
+      ? resolveRegionPaint("boundedContext", elementToBoundedContext(element)!)
+      : null;
   const typeCaption = elementCardTypeCaption(t, element, customCardTypes);
   const noteLike = isNoteLike(element.type);
   const linkReady = isLink && linkHasTarget(element);
@@ -149,9 +164,10 @@ export function StormElementCard({
   };
   const modelingMode = useStormBoardStore((s) => s.modelingMode);
   const inActiveMode =
-    element.type === "customCard"
+    isLayoutRegion ||
+    (element.type === "customCard"
       ? modelingMode === "freeform"
-      : elementTypesForMode(modelingMode).includes(element.type);
+      : elementTypesForMode(modelingMode).includes(element.type));
   const focusMode = useStormBoardStore((s) => s.focusMode);
   const paletteType = useStormBoardStore((s) => s.paletteType);
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
@@ -309,6 +325,12 @@ export function StormElementCard({
       setDraftValue(element.label);
     }
   }, [element.label, editing]);
+
+  const connectorEndpointForSelf = (): ConnectorEndpoint => {
+    if (isBoundedContextRegion) return { attach: "boundedContext", id: element.id };
+    if (isSwimlane) return { attach: "swimlane", id: element.id };
+    return { attach: "element", id: element.id };
+  };
 
   const handleConnectAt = () => {
     if (connecting) onCompleteConnect(element.id);
@@ -485,6 +507,19 @@ export function StormElementCard({
         const live = useStormBoardStore.getState();
         if (live.relationMode && e.shiftKey) return;
         e.stopPropagation();
+        if (live.relationMode && isLayoutRegion) {
+          const target = connectorEndpointForSelf();
+          const draft = live.connectorDraftSource;
+          if (draft) {
+            live.connectEndpoints(draft, target);
+            live.setConnectorDraftSource(null);
+          } else {
+            live.setConnectorDraftSource(target);
+          }
+          onSelect(element.id, false);
+          return;
+        }
+        if (isLayoutRegion && regionElementLocked(element)) return;
         draggedRef.current = false;
         useStormBoardStore.getState().beginGesture();
 
@@ -688,12 +723,15 @@ export function StormElementCard({
         ].join(" ")}
         style={{
           ...shapeStyle,
-          backgroundColor: isBoundary
-            ? hexToRgba(colors.bg, BOUNDARY_FILL_OPACITY)
-            : colors.bg,
-          borderColor: colors.border,
+          backgroundColor: regionPaint
+            ? regionPaint.backgroundColor
+            : isBoundary
+              ? hexToRgba(colors.bg, BOUNDARY_FILL_OPACITY)
+              : colors.bg,
+          borderColor: regionPaint ? regionPaint.borderColor : colors.border,
           color: colors.text,
-          borderStyle: isNote || isWhitebox || (isLink && !linkReady) ? "dashed" : undefined,
+          borderStyle:
+            isNote || isWhitebox || isLayoutRegion || (isLink && !linkReady) ? "dashed" : undefined,
           borderLeftWidth: isInstruction ? 4 : undefined,
         }}
         title={
@@ -1053,7 +1091,7 @@ export function StormElementCard({
           />
         ))}
 
-      {selected && !editing && (
+      {selected && !editing && !isLayoutRegion && (
         <button
           type="button"
           aria-label={t("panels.rotate")}

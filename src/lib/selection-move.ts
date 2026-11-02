@@ -4,6 +4,7 @@ import {
   elementIdsInSubdomain,
   elementIdsInSwimlane,
 } from "@/lib/region-containment";
+import { elementToBoundedContext, elementToSwimlane } from "@/lib/region-elements";
 import type { BoundedContext, StormElement, Swimlane } from "@/types/storm-element";
 
 export interface CanvasSelectionIds {
@@ -63,7 +64,11 @@ export function expandCanvasMoveSet(
           ? elementIdsInAggregate(elements, el)
           : el.type === "subdomain"
             ? elementIdsInSubdomain(elements, el)
-            : [];
+            : el.type === "swimlane"
+              ? elementIdsInSwimlane(elements, elementToSwimlane(el)!)
+              : el.type === "boundedContext"
+                ? elementIdsInBoundedContext(elements, elementToBoundedContext(el)!)
+                : [];
       for (const childId of members) {
         if (!elementIds.has(childId)) {
           elementIds.add(childId);

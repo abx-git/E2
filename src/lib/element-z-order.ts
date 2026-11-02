@@ -11,7 +11,9 @@ export function isStackingContainerType(type: ElementType): boolean {
     type === "aggregate" ||
     type === "subdomain" ||
     type === "archWhitebox" ||
-    type === "cloudBoundary"
+    type === "cloudBoundary" ||
+    type === "swimlane" ||
+    type === "boundedContext"
   );
 }
 
@@ -29,6 +31,12 @@ export function stackingMembersOf(
     }
     if (container.type === "subdomain") {
       return e.subdomainId === container.id || rectFullyContains(outer, elementBounds(e));
+    }
+    if (container.type === "swimlane") {
+      return e.swimlaneId === container.id || rectFullyContains(outer, elementBounds(e));
+    }
+    if (container.type === "boundedContext") {
+      return e.boundedContextId === container.id || rectFullyContains(outer, elementBounds(e));
     }
     // Whitebox / cloud boundary: geometric containment only.
     return rectFullyContains(outer, elementBounds(e));

@@ -531,6 +531,24 @@ export const ELEMENT_HELP_DE: Record<ElementType, HelpDialogModel> = {
       "Lieber spezifischere Typen nutzen, wenn passend",
     ],
   },
+  swimlane: {
+    title: "Swimlane",
+    subtitle: "Horizontale Gruppierung auf dem Board",
+    paragraphs: [
+      "Swimlanes strukturieren das Board in Bänder — Stickies darin werden beim Verschieben mitgenommen.",
+      "Im Element-Panel unter Annotationen platzieren; Verbinder können an Swimlanes andocken.",
+    ],
+    bullets: ["Gruppierung wie früher, ohne extra Canvas-Werkzeug", "Sperren im Detail-Panel"],
+  },
+  boundedContext: {
+    title: "Bounded Context",
+    subtitle: "Strategische Grenze / Context Map",
+    paragraphs: [
+      "Bounded Contexts gruppieren Stickies und können per Context-Map-Verbinder verknüpft werden.",
+      "Detail-Sicht und Zweck wie bisher über das Detail-Panel.",
+    ],
+    bullets: ["Palette → Annotationen", "Verbinden im Connect-Werkzeug"],
+  },
   customCard: {
     title: "Freiform-Kartentyp",
     subtitle: "Eigene Typen im Freiform-Modus",

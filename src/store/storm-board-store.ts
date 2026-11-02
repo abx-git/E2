@@ -8,6 +8,13 @@ import {
   translateMatchingElements,
 } from "@/lib/region-containment";
 import {
+  deriveBoundedContextsFromElements,
+  deriveSwimlanesFromElements,
+  patchRegionElementFromBoundedContext,
+  patchRegionElementFromSwimlane,
+  regionElementLocked,
+} from "@/lib/region-elements";
+import {
   buildBoardViewFromBoundedContextPayload,
   extractBoundedContextViewPayload,
   resolveBoundedContextViewNavigation,
@@ -556,12 +563,34 @@ export interface StormBoardState {
 /** Containment assignment + keep stacking containers behind their contents. */
 function settleElements(
   elements: StormElement[],
-  swimlanes: Swimlane[],
-  boundedContexts: BoundedContext[],
+  swimlanes?: Swimlane[],
+  boundedContexts?: BoundedContext[],
 ): StormElement[] {
+  const lanes = swimlanes ?? deriveSwimlanesFromElements(elements);
+  const contexts = boundedContexts ?? deriveBoundedContextsFromElements(elements);
   return enforceContainerBehindContents(
-    applyContainmentAssignments(elements, swimlanes, boundedContexts),
+    applyContainmentAssignments(elements, lanes, contexts),
   );
+}
+
+function syncRegionArrays(elements: StormElement[]): {
+  swimlanes: Swimlane[];
+  boundedContexts: BoundedContext[];
+} {
+  const settled = settleElements(elements);
+  return {
+    swimlanes: deriveSwimlanesFromElements(settled),
+    boundedContexts: deriveBoundedContextsFromElements(settled),
+  };
+}
+
+function withSyncedRegions(
+  elements: StormElement[],
+  extra: Partial<StormBoardState> = {},
+): Partial<StormBoardState> {
+  const settled = settleElements(elements);
+  const regions = syncRegionArrays(settled);
+  return { elements: settled, ...regions, ...extra };
 }
 
 function createElement(
@@ -667,23 +696,18 @@ function applyRegionZPatches(
   commit(set, get, (s) => {
     let swimlanesChanged = false;
     let bcsChanged = false;
-    const swimlanes = s.swimlanes.map((lane) => {
-      const z = byId.get(lane.id);
-      if (z === undefined || lane.zIndex === z) return lane;
-      swimlanesChanged = true;
-      return { ...lane, zIndex: z };
+    let elementsChanged = false;
+    const elements = s.elements.map((el) => {
+      const z = byId.get(el.id);
+      if (z === undefined || el.zIndex === z) return el;
+      if (el.type === "swimlane") swimlanesChanged = true;
+      if (el.type === "boundedContext") bcsChanged = true;
+      elementsChanged = true;
+      return { ...el, zIndex: z };
     });
-    const boundedContexts = s.boundedContexts.map((bc) => {
-      const z = byId.get(bc.id);
-      if (z === undefined || bc.zIndex === z) return bc;
-      bcsChanged = true;
-      return { ...bc, zIndex: z };
-    });
-    if (!swimlanesChanged && !bcsChanged) return {};
-    return {
-      ...(swimlanesChanged ? { swimlanes } : {}),
-      ...(bcsChanged ? { boundedContexts } : {}),
-    };
+    if (!elementsChanged) return {};
+    const regions = syncRegionArrays(elements);
+    return { elements, ...regions };
   });
 }
 
@@ -1309,11 +1333,12 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
               : null,
         };
       }
+      const el = s.elements.find((e) => e.id === id);
       return {
         selectedElementIds: [id],
         ...CLEAR_CONNECTOR_FOCUS_PATCH,
-        selectedBoundedContextIds: [],
-        selectedSwimlaneIds: [],
+        selectedBoundedContextIds: el?.type === "boundedContext" ? [id] : [],
+        selectedSwimlaneIds: el?.type === "swimlane" ? [id] : [],
         editingElementId: s.editingElementId === id ? s.editingElementId : null,
       };
     }),
@@ -1380,53 +1405,13 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       selectedSwimlaneIds: [],
     }),
 
-  selectBoundedContext: (id, additive) =>
-    set((s) => {
-      if (!id) {
-        return { selectedBoundedContextIds: [] };
-      }
-      if (additive) {
-        const exists = s.selectedBoundedContextIds.includes(id);
-        return {
-          selectedBoundedContextIds: exists
-            ? s.selectedBoundedContextIds.filter((x) => x !== id)
-            : [...s.selectedBoundedContextIds, id],
-          selectedElementIds: [],
-          ...CLEAR_CONNECTOR_FOCUS_PATCH,
-          selectedSwimlaneIds: [],
-        };
-      }
-      return {
-        selectedBoundedContextIds: [id],
-        selectedElementIds: [],
-        ...CLEAR_CONNECTOR_FOCUS_PATCH,
-        selectedSwimlaneIds: [],
-      };
-    }),
+  selectBoundedContext: (id, additive) => {
+    get().selectElement(id, additive);
+  },
 
-  selectSwimlane: (id, additive) =>
-    set((s) => {
-      if (!id) {
-        return { selectedSwimlaneIds: [] };
-      }
-      if (additive) {
-        const exists = s.selectedSwimlaneIds.includes(id);
-        return {
-          selectedSwimlaneIds: exists
-            ? s.selectedSwimlaneIds.filter((x) => x !== id)
-            : [...s.selectedSwimlaneIds, id],
-          selectedElementIds: [],
-          ...CLEAR_CONNECTOR_FOCUS_PATCH,
-          selectedBoundedContextIds: [],
-        };
-      }
-      return {
-        selectedSwimlaneIds: [id],
-        selectedElementIds: [],
-        ...CLEAR_CONNECTOR_FOCUS_PATCH,
-        selectedBoundedContextIds: [],
-      };
-    }),
+  selectSwimlane: (id, additive) => {
+    get().selectElement(id, additive);
+  },
 
   clearSelection: () =>
     set({
@@ -1514,23 +1499,27 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       const customDef = customTypeId
         ? findCustomCardType(s.customCardTypes, customTypeId)
         : null;
-      const el = createElement(type, x, y, label, nextElementZIndex(s.elements), {
+      const isRegion = type === "swimlane" || type === "boundedContext";
+      const regions = syncRegionArrays(s.elements);
+      const zIndex = isRegion
+        ? nextZIndex(regionZOrderItems(regions.swimlanes, regions.boundedContexts))
+        : nextElementZIndex(s.elements);
+      const el = createElement(type, x, y, label, zIndex, {
         customTypeId: customDef?.id,
         customTypeName: customDef?.name,
       });
+      if (type === "boundedContext") {
+        el.metadata = { ...el.metadata, regionColor: "#dbeafe" };
+      }
       createdId = el.id;
-      const elements = settleElements(
-        [...s.elements, el],
-        s.swimlanes,
-        s.boundedContexts,
-      );
-      return {
-        elements,
+      return withSyncedRegions([...s.elements, el], {
         selectedElementIds: [el.id],
+        selectedSwimlaneIds: type === "swimlane" ? [el.id] : [],
+        selectedBoundedContextIds: type === "boundedContext" ? [el.id] : [],
         editingElementId: el.id,
         paletteType: type,
         paletteCustomTypeId: customDef?.id ?? s.paletteCustomTypeId,
-      };
+      });
     });
     return createdId;
   },
@@ -1598,33 +1587,49 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         patch.y !== undefined ||
         patch.width !== undefined ||
         patch.height !== undefined;
-      return {
-        elements: geometryChanged
-          ? settleElements(elements, s.swimlanes, s.boundedContexts)
-          : elements,
-      };
+      if (!geometryChanged) {
+        const el = elements.find((e) => e.id === id);
+        if (el?.type === "swimlane" || el?.type === "boundedContext") {
+          const regions = syncRegionArrays(elements);
+          return { elements, ...regions };
+        }
+        return { elements };
+      }
+      return withSyncedRegions(elements);
     }),
 
   deleteElement: (id) =>
-    commit(set, get, (s) => ({
-      elements: s.elements
+    commit(set, get, (s) => {
+      const filtered = s.elements
         .filter((e) => e.id !== id)
         .map((e) => {
           let next = e;
           if (next.aggregateId === id) next = { ...next, aggregateId: undefined };
           if (next.subdomainId === id) next = { ...next, subdomainId: undefined };
+          if (next.swimlaneId === id) next = { ...next, swimlaneId: undefined };
+          if (next.boundedContextId === id) next = { ...next, boundedContextId: undefined };
           return next;
-        }),
-      ...withConnectors(
-        s.connectors.filter((c) => {
-          const hits =
-            (c.source.attach === "element" && c.source.id === id) ||
-            (c.target.attach === "element" && c.target.id === id);
-          return !hits;
-        }),
-      ),
-      selectedElementIds: s.selectedElementIds.filter((x) => x !== id),
-    })),
+        });
+      const synced = withSyncedRegions(filtered);
+      return {
+        ...synced,
+        ...withConnectors(
+          s.connectors.filter((c) => {
+            const hits =
+              (c.source.attach === "element" && c.source.id === id) ||
+              (c.target.attach === "element" && c.target.id === id) ||
+              (c.source.attach === "swimlane" && c.source.id === id) ||
+              (c.target.attach === "swimlane" && c.target.id === id) ||
+              (c.source.attach === "boundedContext" && c.source.id === id) ||
+              (c.target.attach === "boundedContext" && c.target.id === id);
+            return !hits;
+          }),
+        ),
+        selectedElementIds: s.selectedElementIds.filter((x) => x !== id),
+        selectedSwimlaneIds: s.selectedSwimlaneIds.filter((x) => x !== id),
+        selectedBoundedContextIds: s.selectedBoundedContextIds.filter((x) => x !== id),
+      };
+    }),
 
   moveElement: (id, x, y) =>
     commit(set, get, (s) => ({
@@ -1652,56 +1657,28 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         return {};
       }
 
-      const elById = new Map(elementUpdates.map((u) => [u.id, u]));
-      const laneById = new Map(swimlaneUpdates.map((u) => [u.id, u]));
-      const bcById = new Map(bcUpdates.map((u) => [u.id, u]));
+      const posById = new Map<string, { x: number; y: number }>();
+      for (const u of elementUpdates) posById.set(u.id, { x: u.x, y: u.y });
+      for (const u of swimlaneUpdates) posById.set(u.id, { x: u.x, y: u.y });
+      for (const u of bcUpdates) posById.set(u.id, { x: u.x, y: u.y });
 
-      const elements =
-        elementUpdates.length === 0
-          ? s.elements
-          : s.elements.map((e) => {
-              const u = elById.get(e.id);
-              return u ? { ...e, x: u.x, y: u.y } : e;
-            });
+      const elements = s.elements.map((e) => {
+        const u = posById.get(e.id);
+        if (!u) return e;
+        if (e.type === "swimlane" || e.type === "boundedContext") {
+          const locked = regionElementLocked(e);
+          const safe = sanitizeRegionGeometryPatch(locked, { x: u.x, y: u.y }) as {
+            x?: number;
+            y?: number;
+          };
+          if (safe.x === undefined && safe.y === undefined) return e;
+          return { ...e, x: safe.x ?? e.x, y: safe.y ?? e.y };
+        }
+        return { ...e, x: u.x, y: u.y };
+      });
 
-      const swimlanes =
-        swimlaneUpdates.length === 0
-          ? s.swimlanes
-          : s.swimlanes.map((lane) => {
-              const u = laneById.get(lane.id);
-              if (!u) return lane;
-              const safe = sanitizeRegionGeometryPatch(Boolean(lane.locked), {
-                x: u.x,
-                y: u.y,
-              }) as { x?: number; y?: number };
-              if (safe.x === undefined && safe.y === undefined) return lane;
-              return {
-                ...lane,
-                x: safe.x ?? lane.x,
-                y: safe.y ?? lane.y,
-              };
-            });
-
-      const boundedContexts =
-        bcUpdates.length === 0
-          ? s.boundedContexts
-          : s.boundedContexts.map((bc) => {
-              const u = bcById.get(bc.id);
-              if (!u) return bc;
-              const safe = sanitizeRegionGeometryPatch(Boolean(bc.locked), {
-                x: u.x,
-                y: u.y,
-              }) as { x?: number; y?: number };
-              if (safe.x === undefined && safe.y === undefined) return bc;
-              return {
-                ...bc,
-                x: safe.x ?? bc.x,
-                y: safe.y ?? bc.y,
-              };
-            });
-
-      // Containment is re-applied in endGesture so passers-by are not picked up mid-drag.
-      return { elements, swimlanes, boundedContexts };
+      const regions = syncRegionArrays(elements);
+      return { elements, ...regions };
     }),
 
   patchElements: (updates) =>
@@ -2245,43 +2222,33 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   },
 
   addSwimlane: (label) => {
-    const id = generateStormId();
-    const y = 120 + get().swimlanes.length * 180;
-    const lane: Swimlane = {
-      id,
-      label: label ?? `Swimlane ${get().swimlanes.length + 1}`,
-      x: 40,
+    const lanes = deriveSwimlanesFromElements(get().elements);
+    const y = 120 + lanes.length * 180;
+    return get().addElement(
+      "swimlane",
+      40,
       y,
-      width: 1200,
-      height: 160,
-      zIndex: nextZIndex(regionZOrderItems(get().swimlanes, get().boundedContexts)),
-    };
-    commit(set, get, (s) => {
-      const swimlanes = [...s.swimlanes, lane];
-      return {
-        swimlanes,
-        selectedSwimlaneIds: [id],
-        elements: settleElements(s.elements, swimlanes, s.boundedContexts),
-      };
-    });
-    return id;
+      label ?? `Swimlane ${lanes.length + 1}`,
+    );
   },
 
   updateSwimlane: (id, patch, options) =>
     commit(set, get, (s) => {
-      const lane = s.swimlanes.find((l) => l.id === id);
-      if (!lane) return {};
+      const el = s.elements.find((e) => e.id === id && e.type === "swimlane");
+      if (!el) return {};
+      const lane = deriveSwimlanesFromElements([el])[0]!;
       const safePatch = sanitizeRegionGeometryPatch(
         Boolean(lane.locked),
         patch as Record<string, unknown>,
       ) as typeof patch;
       const nextLane = { ...lane, ...safePatch, id: lane.id };
-      const swimlanes = s.swimlanes.map((l) => (l.id === id ? nextLane : l));
+      let elements = s.elements.map((e) =>
+        e.id === id ? patchRegionElementFromSwimlane(e, nextLane) : e,
+      );
 
       const resizing = safePatch.width !== undefined || safePatch.height !== undefined;
       const dx = (nextLane.x ?? 0) - (lane.x ?? 0);
       const dy = nextLane.y - lane.y;
-      let elements = s.elements;
       if (!resizing && (dx !== 0 || dy !== 0)) {
         if (options?.moveElementIds) {
           const ids = new Set(options.moveElementIds);
@@ -2291,63 +2258,52 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         }
       }
 
-      // During a locked move, do not re-run containment (would "pick up" passers-by).
-      // Resize and non-gesture edits still update assignments immediately.
       const lockedMove = Boolean(options?.moveElementIds) && !resizing;
       if (!lockedMove && (safePatch.x !== undefined || safePatch.y !== undefined || resizing)) {
-        elements = settleElements(elements, swimlanes, s.boundedContexts);
+        return withSyncedRegions(elements);
       }
-
-      return { swimlanes, elements };
+      const regions = syncRegionArrays(elements);
+      return { elements, ...regions };
     }),
 
-  deleteSwimlane: (id) =>
-    commit(set, get, (s) => ({
-      swimlanes: s.swimlanes.filter((l) => l.id !== id),
-      elements: s.elements.map((e) =>
-        e.swimlaneId === id ? { ...e, swimlaneId: undefined } : e,
-      ),
-      selectedSwimlaneIds: s.selectedSwimlaneIds.filter((x) => x !== id),
-    })),
+  deleteSwimlane: (id) => get().deleteElement(id),
 
   addBoundedContext: (x, y, width, height, label) => {
-    const id = generateStormId();
-    const bc: BoundedContext = {
-      id,
-      label: label ?? "Bounded Context",
-      x,
-      y,
-      width,
-      height,
-      color: "#dbeafe",
-      zIndex: nextZIndex(regionZOrderItems(get().swimlanes, get().boundedContexts)),
-    };
+    let createdId = "";
     commit(set, get, (s) => {
-      const boundedContexts = [...s.boundedContexts, bc];
-      return {
-        boundedContexts,
-        selectedBoundedContextIds: [id],
-        elements: settleElements(s.elements, s.swimlanes, boundedContexts),
-      };
+      const regions = syncRegionArrays(s.elements);
+      const z = nextZIndex(regionZOrderItems(regions.swimlanes, regions.boundedContexts));
+      const el = createElement("boundedContext", x, y, label ?? "Bounded Context", z);
+      el.width = width;
+      el.height = height;
+      el.metadata = { ...el.metadata, regionColor: "#dbeafe" };
+      createdId = el.id;
+      return withSyncedRegions([...s.elements, el], {
+        selectedElementIds: [el.id],
+        selectedBoundedContextIds: [el.id],
+        selectedSwimlaneIds: [],
+      });
     });
-    return id;
+    return createdId;
   },
 
   updateBoundedContext: (id, patch, options) =>
     commit(set, get, (s) => {
-      const bc = s.boundedContexts.find((b) => b.id === id);
-      if (!bc) return {};
+      const el = s.elements.find((e) => e.id === id && e.type === "boundedContext");
+      if (!el) return {};
+      const bc = deriveBoundedContextsFromElements([el])[0]!;
       const safePatch = sanitizeRegionGeometryPatch(
         Boolean(bc.locked),
         patch as Record<string, unknown>,
       ) as typeof patch;
       const nextBc = { ...bc, ...safePatch, id: bc.id };
-      const boundedContexts = s.boundedContexts.map((b) => (b.id === id ? nextBc : b));
+      let elements = s.elements.map((e) =>
+        e.id === id ? patchRegionElementFromBoundedContext(e, nextBc) : e,
+      );
 
       const resizing = safePatch.width !== undefined || safePatch.height !== undefined;
       const dx = nextBc.x - bc.x;
       const dy = nextBc.y - bc.y;
-      let elements = s.elements;
       if (!resizing && (dx !== 0 || dy !== 0)) {
         if (options?.moveElementIds) {
           const ids = new Set(options.moveElementIds);
@@ -2364,31 +2320,34 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
 
       const lockedMove = Boolean(options?.moveElementIds) && !resizing;
       if (!lockedMove && (safePatch.x !== undefined || safePatch.y !== undefined || resizing)) {
-        elements = settleElements(elements, s.swimlanes, boundedContexts);
+        return withSyncedRegions(elements);
       }
-
-      return { boundedContexts, elements };
+      const regions = syncRegionArrays(elements);
+      return { elements, ...regions };
     }),
 
-  deleteBoundedContext: (id) =>
+  deleteBoundedContext: (id) => {
     commit(set, get, (s) => {
       const nextContextRelations = s.contextRelations.filter(
         (r) => r.sourceContextId !== id && r.targetContextId !== id,
       );
+      const elements = s.elements
+        .filter((e) => e.id !== id)
+        .map((e) => (e.boundedContextId === id ? { ...e, boundedContextId: undefined } : e));
+      const regions = syncRegionArrays(settleElements(elements));
       return {
-        boundedContexts: s.boundedContexts.filter((b) => b.id !== id),
+        ...regions,
         contextRelations: nextContextRelations,
-        elements: s.elements.map((e) =>
-          e.boundedContextId === id ? { ...e, boundedContextId: undefined } : e,
-        ),
         selectedBoundedContextIds: s.selectedBoundedContextIds.filter((x) => x !== id),
+        selectedElementIds: s.selectedElementIds.filter((x) => x !== id),
         selectedContextRelationId:
           s.selectedContextRelationId &&
           !nextContextRelations.some((r) => r.id === s.selectedContextRelationId)
             ? null
             : s.selectedContextRelationId,
       };
-    }),
+    });
+  },
 
   openBoundedContextView: (bcId) => {
     let resultId: string | null = null;
