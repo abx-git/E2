@@ -14,7 +14,6 @@ import type { ElementType } from "@/types/storm-element";
 import { partitionPaletteTypes } from "@/types/storm-element";
 import {
   ELEMENT_STYLES,
-  elementDimensions,
   styleForCustomCardType,
 } from "@/lib/element-styles";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
@@ -25,7 +24,8 @@ import {
 } from "@/lib/canvas-type-visibility-filter";
 import { BoardDockHideButton } from "@/components/board-dock-toggle";
 import { isPointerOverStormCanvas } from "@/lib/board-clipboard";
-import { screenToWorld, snapToGrid, snapToTimeline } from "@/lib/canvas-viewport";
+import { screenToWorld } from "@/lib/canvas-viewport";
+import { paletteDropTopLeft } from "@/lib/place-element-on-canvas";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { PaletteModelSessionControls } from "@/components/palette-model-session";
 import { elementTypeLabel, useT } from "@/i18n";
@@ -289,17 +289,11 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
 
     const store = useStormBoardStore.getState();
     const world = screenToWorld(store.viewport, clientX, clientY, rect);
-    const dims = elementDimensions(type);
-    let x = world.x - dims.width / 2;
-    let y = world.y - dims.height / 2;
-
-    if (store.snapToGrid) {
-      x = snapToGrid(x);
-      y = snapToGrid(y);
-    }
-    if (store.snapToTimeline) {
-      y = snapToTimeline(y, store.timeline.y);
-    }
+    const { x, y } = paletteDropTopLeft(type, world, {
+      snapToGrid: store.snapToGrid,
+      snapToTimeline: store.snapToTimeline,
+      timelineY: store.timeline.y,
+    });
 
     setPaletteType(type);
     onSelectType(type);
@@ -313,17 +307,11 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
 
     const store = useStormBoardStore.getState();
     const world = screenToWorld(store.viewport, clientX, clientY, rect);
-    const dims = elementDimensions("customCard");
-    let x = world.x - dims.width / 2;
-    let y = world.y - dims.height / 2;
-
-    if (store.snapToGrid) {
-      x = snapToGrid(x);
-      y = snapToGrid(y);
-    }
-    if (store.snapToTimeline) {
-      y = snapToTimeline(y, store.timeline.y);
-    }
+    const { x, y } = paletteDropTopLeft("customCard", world, {
+      snapToGrid: store.snapToGrid,
+      snapToTimeline: store.snapToTimeline,
+      timelineY: store.timeline.y,
+    });
 
     setPaletteType("customCard");
     setPaletteCustomTypeId(customType.id);

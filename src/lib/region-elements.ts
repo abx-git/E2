@@ -71,7 +71,7 @@ export function elementToSwimlane(el: StormElement): Swimlane | null {
     label: el.label,
     x: el.x,
     y: el.y,
-    width: el.width ?? 1200,
+    width: el.width ?? 4000,
     height: el.height ?? 160,
     zIndex: el.zIndex,
     color: m.regionColor,
