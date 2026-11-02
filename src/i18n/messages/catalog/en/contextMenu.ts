@@ -113,7 +113,7 @@ export const contextMenuEn = {
     quickActions: "Quick actions",
     clearSelection: "Clear selection",
     moveSelectionToLinkedView: "Move to linked view",
-    moveSelectionToLinkedViewHint: "Selection → new view",
+    moveSelectionToLinkedViewHint: "Content moves; placeholder stays on this view",
     linkedViewNamePrompt: "Name for the new view:",
     extractForAi: "Extract for AI",
     extractForAiHint: "E2V + schema",

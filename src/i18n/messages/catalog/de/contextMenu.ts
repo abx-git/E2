@@ -113,7 +113,7 @@ export const contextMenuDe = {
     quickActions: "Schnellaktionen",
     clearSelection: "Auswahl aufheben",
     moveSelectionToLinkedView: "In verknüpfte Sicht auslagern",
-    moveSelectionToLinkedViewHint: "Auswahl → neue Sicht",
+    moveSelectionToLinkedViewHint: "Inhalt in neue Sicht; Platzhalter bleibt hier",
     linkedViewNamePrompt: "Name der neuen Sicht:",
     extractForAi: "Für KI extrahieren",
     extractForAiHint: "E2V + Schema",

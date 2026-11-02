@@ -95,22 +95,56 @@ export function defaultLinkedViewName(slice: CanvasBoardView, viewCount: number)
   return `Sicht ${viewCount + 1}`;
 }
 
-/** Note sticky with `detailViewId` — uses the same linked-view UX as the inspector. */
+function singleElementStubTemplate(slice: CanvasBoardView): StormElement | null {
+  if (slice.elements.length !== 1) return null;
+  if (slice.swimlanes.length > 0 || slice.boundedContexts.length > 0) return null;
+  return slice.elements[0]!;
+}
+
+/**
+ * Placeholder left on the origin view after moving a selection into a linked detail view.
+ * Single-element moves keep the original element type; multi-selection uses a view link card.
+ */
 export function createSelectionLinkElement(
+  slice: CanvasBoardView,
   bounds: WorldRect,
   label: string,
   detailViewId: string,
 ): StormElement {
+  const viewLabel = label.trim() || "Sicht";
+  const template = singleElementStubTemplate(slice);
+  if (template) {
+    const width = Math.max(bounds.w, template.width ?? MIN_LINK_WIDTH);
+    const height = Math.max(bounds.h, template.height ?? MIN_LINK_HEIGHT);
+    return {
+      ...structuredClone(template),
+      id: generateStormId(),
+      type: template.type,
+      label: viewLabel || template.label,
+      description: undefined,
+      detailViewId,
+      x: bounds.x,
+      y: bounds.y,
+      width,
+      height,
+      swimlaneId: undefined,
+      boundedContextId: undefined,
+      aggregateId: undefined,
+      subdomainId: undefined,
+      cloudBoundaryId: undefined,
+      metadata: template.metadata ? { ...template.metadata } : undefined,
+    };
+  }
+
   return {
     id: generateStormId(),
-    type: "note",
-    label: label.trim() || "Sicht",
-    detailViewId,
+    type: "link",
+    label: viewLabel,
     x: bounds.x,
     y: bounds.y,
     width: Math.max(bounds.w, MIN_LINK_WIDTH),
     height: Math.max(bounds.h, MIN_LINK_HEIGHT),
-    metadata: { noteColor: "cream" },
+    metadata: { linkKind: "view", linkViewId: detailViewId },
   };
 }
 
