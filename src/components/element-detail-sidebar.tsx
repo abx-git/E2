@@ -481,7 +481,8 @@ export function ElementDetailSidebar({
     );
   }
 
-  if (!selectedElement) {
+  if (selectedElement?.type === "swimlane") {
+    const selectedSwimlane = swimlanes.find((lane) => lane.id === selectedElement.id);
     if (selectedSwimlane) {
       return (
         <DockPanel title={t("detailSidebar.titles.swimlane")} t={t}>
@@ -540,15 +541,20 @@ export function ElementDetailSidebar({
         </DockPanel>
       );
     }
+  }
 
-    if (selectedBoundedContext) {
+  if (selectedElement?.type === "boundedContext") {
+    const bc = boundedContexts.find((b) => b.id === selectedElement.id);
+    if (bc) {
       return (
         <DockPanel title={t("detailSidebar.titles.boundedContext")} t={t}>
-          <BoundedContextDetailPanel boundedContext={selectedBoundedContext} />
+          <BoundedContextDetailPanel boundedContext={bc} />
         </DockPanel>
       );
     }
+  }
 
+  if (!selectedElement) {
     return null;
   }
 

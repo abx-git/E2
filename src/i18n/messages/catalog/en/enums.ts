@@ -156,6 +156,8 @@ export const enumsEn = {
     cloudEdge: "Edge / Gateway",
     cloudManagedService: "Managed Service",
     customCard: "Card type",
+    swimlane: "Swimlane",
+    boundedContext: "Bounded context",
   },
   elementTypeShort: {
     domainEvent: "Event",
@@ -207,6 +209,8 @@ export const enumsEn = {
     cloudEdge: "Edge",
     cloudManagedService: "Managed",
     customCard: "Type",
+    swimlane: "Lane",
+    boundedContext: "BC",
   },
   elementCaption: {
     aggregateRoot: "Aggregate Root",

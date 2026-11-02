@@ -68,6 +68,7 @@ export function pickInnermostConnectorTargetAt(
   let best: Candidate | null = null;
 
   for (const el of elements) {
+    if (el.type === "swimlane" || el.type === "boundedContext") continue;
     const bounds = elementHitBounds(el, notesCompact);
     if (!pointInWorldRect(point, bounds)) continue;
     const candidate: Candidate = { kind: "element", id: el.id, area: rectArea(bounds) };

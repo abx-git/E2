@@ -73,7 +73,11 @@ export type ElementType =
   /** Shared: external URL or board view */
   | "link"
   /** Freeform: user-defined card type (stereotype); see metadata.customTypeId */
-  | "customCard";
+  | "customCard"
+  /** Layout region (palette): horizontal band grouping stickies. */
+  | "swimlane"
+  /** Layout region (palette): bounded context box with optional context-map links. */
+  | "boundedContext";
 
 export type HotspotStatus = "open" | "resolved";
 export type HotspotPriority = "low" | "medium" | "high";
@@ -261,6 +265,13 @@ export interface ElementMetadata {
   showMethodsOnCard?: boolean;
   /** Sticky: Web-Links auf der Karte anzeigen. */
   showWebLinksOnCard?: boolean;
+
+  /** Swimlane / bounded-context region appearance. */
+  regionColor?: string;
+  regionFillOpacity?: number;
+  regionBorderColor?: string;
+  regionBorderOpacity?: number;
+  regionLocked?: boolean;
 }
 
 export interface StormElement {
@@ -432,20 +443,28 @@ export const MODELING_MODES: ModelingMode[] = [
 /** Shared annotation types. */
 export const SHARED_ELEMENT_TYPES: ElementType[] = ["note", "instruction", "hotspot", "link"];
 
+/** Layout regions available in every diagram (palette annotations). */
+export const LAYOUT_REGION_ELEMENT_TYPES: ElementType[] = ["swimlane", "boundedContext"];
+
 /** Workshop annotations / meta tools (palette footer, not core method types). */
 export function isSharedElementType(type: ElementType): boolean {
   return (SHARED_ELEMENT_TYPES as ElementType[]).includes(type);
 }
 
-/** Split palette types into modeling types and trailing annotations (SHARED order). */
+export function isLayoutRegionElementType(type: ElementType): boolean {
+  return (LAYOUT_REGION_ELEMENT_TYPES as ElementType[]).includes(type);
+}
+
+/** Split palette types into modeling types and trailing annotations (regions, then SHARED). */
 export function partitionPaletteTypes(types: ElementType[]): {
   modeling: ElementType[];
   annotations: ElementType[];
 } {
   const allowed = new Set(types);
+  const annotationOrder = [...LAYOUT_REGION_ELEMENT_TYPES, ...SHARED_ELEMENT_TYPES];
   return {
-    modeling: types.filter((t) => !isSharedElementType(t)),
-    annotations: SHARED_ELEMENT_TYPES.filter((t) => allowed.has(t)),
+    modeling: types.filter((t) => !isSharedElementType(t) && !isLayoutRegionElementType(t)),
+    annotations: annotationOrder.filter((t) => allowed.has(t)),
   };
 }
 
@@ -734,8 +753,16 @@ const DEFAULT_PALETTE_BY_MODE: Record<ModelingMode, ElementType> = {
   freeform: "customCard",
 };
 
+export function appendLayoutRegionTypes(types: ElementType[]): ElementType[] {
+  const out = [...types];
+  for (const t of LAYOUT_REGION_ELEMENT_TYPES) {
+    if (!out.includes(t)) out.push(t);
+  }
+  return out;
+}
+
 export function elementTypesForMode(mode: ModelingMode): ElementType[] {
-  return ELEMENT_TYPES_BY_MODE[mode];
+  return appendLayoutRegionTypes(ELEMENT_TYPES_BY_MODE[mode]);
 }
 
 export function workshopFormatsForMode(mode: ModelingMode): WorkshopFormat[] {

@@ -6,6 +6,10 @@ import {
   normalizeBoardView,
 } from "@/lib/storm-json";
 import { generateStormId } from "@/lib/storm-id";
+import {
+  deriveBoundedContextsFromElements,
+  deriveSwimlanesFromElements,
+} from "@/lib/region-elements";
 import type { CustomCardType } from "@/lib/custom-card-types";
 import { defaultPaletteTypeForMode } from "@/types/storm-element";
 import type {
@@ -72,8 +76,8 @@ export function flatFieldsFromView(view: CanvasBoardView): ActiveViewFlatState {
     connectors: view.connectors,
     relations: view.relations,
     contextRelations: view.contextRelations,
-    swimlanes: view.swimlanes,
-    boundedContexts: view.boundedContexts,
+    swimlanes: deriveSwimlanesFromElements(view.elements),
+    boundedContexts: deriveBoundedContextsFromElements(view.elements),
     canvasLines: view.canvasLines,
     timeline: view.timeline,
     viewport: view.viewport,

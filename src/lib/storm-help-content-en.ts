@@ -531,6 +531,24 @@ export const ELEMENT_HELP_EN: Record<ElementType, HelpDialogModel> = {
       "Prefer more specific types when they fit",
     ],
   },
+  swimlane: {
+    title: "Swimlane",
+    subtitle: "Horizontal grouping on the board",
+    paragraphs: [
+      "Swimlanes structure the board into bands — stickies inside move with the lane.",
+      "Place from the element panel under annotations; connectors can attach to swimlanes.",
+    ],
+    bullets: ["Same grouping as before, without a dedicated canvas tool", "Lock from the detail panel"],
+  },
+  boundedContext: {
+    title: "Bounded context",
+    subtitle: "Strategic boundary / context map",
+    paragraphs: [
+      "Bounded contexts group stickies and link via context-map connectors.",
+      "Detail view and purpose remain in the detail panel.",
+    ],
+    bullets: ["Palette → annotations", "Connect with the connect tool"],
+  },
   customCard: {
     title: "Custom Card Type",
     subtitle: "Your own types in freeform mode",
