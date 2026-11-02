@@ -118,6 +118,15 @@ function resolveStableId(alias: string, idMap: Map<string, string>): string {
   return idMap.get(key) ?? key;
 }
 
+/** Resolve @desc / @meta keys (aliases) from a row id or canonical id. */
+function e2vAliasForEntityId(entityId: string, idMap: Map<string, string>): string {
+  if (idMap.has(entityId)) return entityId;
+  for (const [alias, real] of idMap) {
+    if (real === entityId) return alias;
+  }
+  return entityId;
+}
+
 export interface DecodeE2vOptions {
   /** When true, resolve aliases to stable board ids instead of generating new ones. */
   preserveStableIds?: boolean;
@@ -174,11 +183,22 @@ export function decodeE2vText(text: string, options?: DecodeE2vOptions): BoardIm
         subdomainId: raw.subdomainId ? resolve(raw.subdomainId) : undefined,
         cloudBoundaryId: raw.cloudBoundaryId ? resolve(raw.cloudBoundaryId) : undefined,
       };
-      const alias = [...viewIdMap.entries()].find(([, r]) => r === raw.id)?.[0] ?? raw.id;
+      const alias = e2vAliasForEntityId(raw.id, viewIdMap);
       const d = descPending.get(alias);
       if (d) next.description = d;
       const m = metaPending.get(alias);
-      if (m) next.metadata = m as StormElement["metadata"];
+      if (m) {
+        const meta = { ...m } as Record<string, unknown>;
+        const pin = meta.noteConnectorPin;
+        if (pin && typeof pin === "object" && pin !== null) {
+          const p = pin as Record<string, unknown>;
+          if (typeof p.connectorId === "string") {
+            const connKey = e2vAliasForEntityId(p.connectorId, viewIdMap);
+            meta.noteConnectorPin = { ...p, connectorId: resolve(connKey) };
+          }
+        }
+        next.metadata = meta as StormElement["metadata"];
+      }
       return normalizeStormElement(next);
     });
 
@@ -404,6 +424,24 @@ export function decodeE2vText(text: string, options?: DecodeE2vOptions): BoardIm
       if (tag === "snap" && parseState.viewDraft?.kind === "canvas") {
         parseState.viewDraft.snapToTimeline = cols[1] !== "0";
         parseState.viewDraft.snapToGrid = cols[2] === "1";
+      }
+      if (tag === "cnw" && parseState.viewDraft?.kind === "canvas") {
+        const connKey = cols[1] ?? "";
+        const resolved = viewIdMap.get(connKey) ?? connKey;
+        const wpIndex = num(cols[2] ?? "") ?? 0;
+        const wx = num(cols[3] ?? "") ?? 0;
+        const wy = num(cols[4] ?? "") ?? 0;
+        const list = parseState.viewDraft.connectors ?? [];
+        const connIdx = list.findIndex((c) => c.id === resolved || c.id === connKey);
+        if (connIdx >= 0) {
+          const conn = list[connIdx]!;
+          const wps = [...(conn.waypoints ?? [])];
+          while (wps.length <= wpIndex) wps.push({ x: wx, y: wy });
+          wps[wpIndex] = { x: wx, y: wy };
+          const next = [...list];
+          next[connIdx] = { ...conn, waypoints: wps };
+          parseState.viewDraft.connectors = next;
+        }
       }
       if (tag === "ct" && parseState.viewDraft?.kind === "canvas") {
         const ct: CustomCardType = {

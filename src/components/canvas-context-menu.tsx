@@ -62,6 +62,7 @@ import {
 import { isOnCardFieldEnabled, onCardDisplayFieldsForType } from "@/lib/card-preview";
 import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
 import { resolveNoteCompactLayout } from "@/lib/note-compact";
+import { readNoteConnectorPin } from "@/lib/note-connector-pin";
 import {
   PROGRESS_MARKS,
   PROGRESS_MARK_SHORTCUT,
@@ -218,6 +219,8 @@ export function CanvasContextMenu({
   const notesCompact = useStormBoardStore((s) => s.notesCompact);
   const setNoteCompactOverride = useStormBoardStore((s) => s.setNoteCompactOverride);
   const setNotesCompactOverride = useStormBoardStore((s) => s.setNotesCompactOverride);
+  const pinNotesToConnectorWaypoint = useStormBoardStore((s) => s.pinNotesToConnectorWaypoint);
+  const unpinNotesFromConnector = useStormBoardStore((s) => s.unpinNotesFromConnector);
   const isMobile = useIsMobileLayout();
 
   const canvasViewActive = Boolean(
@@ -480,6 +483,12 @@ export function CanvasContextMenu({
           </Submenu>
         )}
         {el.type === "note" ? renderNoteDisplaySubmenuForIds([el.id]) : null}
+        {el.type === "note" && readNoteConnectorPin(el.metadata) ? (
+          <Item
+            label={t("contextMenu.noteUnpinFromConnector")}
+            onClick={() => run(() => unpinNotesFromConnector([el.id]))}
+          />
+        ) : null}
         {el.type === "hotspot" && (
           <>
             <Submenu label={t("contextMenu.hotspot")}>
@@ -996,6 +1005,45 @@ export function CanvasContextMenu({
             })
           }
         />
+      </>
+    );
+  } else if (target.kind === "connectorWaypoint") {
+    const c = connectors.find((x) => x.id === target.connectorId);
+    const noteIds = selectedElementIds.filter(
+      (id) => elements.find((e) => e.id === id)?.type === "note",
+    );
+    body = (
+      <>
+        <Header
+          title={t("contextMenu.connectorWaypoint")}
+          subtitle={t("contextMenu.connectorWaypointHint")}
+        />
+        {noteIds.length > 0 ? (
+          <Item
+            label={t("contextMenu.pinNotesToWaypoint", { count: noteIds.length })}
+            onClick={() =>
+              run(() =>
+                pinNotesToConnectorWaypoint(
+                  noteIds,
+                  target.connectorId,
+                  target.waypointIndex,
+                ),
+              )
+            }
+          />
+        ) : (
+          <Item
+            label={t("contextMenu.addNoteAtWaypoint")}
+            onClick={() =>
+              run(() => {
+                const wp = c?.waypoints?.[target.waypointIndex];
+                if (!wp) return;
+                const id = addElement("note", wp.x - 60, wp.y - 40);
+                pinNotesToConnectorWaypoint([id], target.connectorId, target.waypointIndex);
+              })
+            }
+          />
+        )}
       </>
     );
   } else if (target.kind === "connector") {

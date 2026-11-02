@@ -201,7 +201,7 @@ function encodeViewBody(view: BoardView, out: string[]): void {
       );
     }
     if (el.metadata && Object.keys(el.metadata).length > 0) {
-      out.push(`@meta ${eMap.alias(el.id)} ${JSON.stringify(el.metadata)}`);
+      out.push(row(["@meta", eMap.alias(el.id), JSON.stringify(el.metadata)]));
     }
   }
 
@@ -251,6 +251,10 @@ function encodeViewBody(view: BoardView, out: string[]): void {
         c.progressMark ?? "",
       ]),
     );
+    for (let wi = 0; wi < (c.waypoints?.length ?? 0); wi++) {
+      const wp = c.waypoints![wi]!;
+      out.push(row(["@cnw", cnMap.alias(c.id), wi, wp.x, wp.y]));
+    }
   }
 
   for (const ln of view.canvasLines) {

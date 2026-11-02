@@ -299,12 +299,10 @@ export function normalizeSwimlane(lane: Swimlane): Swimlane {
   };
 }
 
-export function normalizeTimeline(timeline: Timeline, modelingMode: ModelingMode): Timeline {
-  const defaultVisible = modelingModeUsesTimelineByDefault(modelingMode);
+export function normalizeTimeline(timeline: Timeline, _modelingMode: ModelingMode): Timeline {
   return {
     ...timeline,
-    visible:
-      timeline.visible === undefined ? defaultVisible : timeline.visible !== false,
+    visible: timeline.visible === undefined ? false : timeline.visible !== false,
   };
 }
 

@@ -3,6 +3,7 @@ export type ContextMenuTarget =
   | { kind: "elements"; ids: string[] }
   | { kind: "relation"; id: string }
   | { kind: "connector"; id: string }
+  | { kind: "connectorWaypoint"; connectorId: string; waypointIndex: number }
   | { kind: "contextRelation"; id: string }
   | { kind: "swimlane"; id: string }
   | { kind: "boundedContext"; id: string }
