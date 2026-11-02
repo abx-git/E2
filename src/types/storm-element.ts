@@ -413,7 +413,7 @@ export const DEFAULT_TIMELINE: Timeline = {
   endLabel: "Ende",
 };
 export const DEFAULT_VIEWPORT: Viewport = { x: 0, y: 0, zoom: 1 };
-export const DEFAULT_MODELING_MODE: ModelingMode = "eventStorming";
+export const DEFAULT_MODELING_MODE: ModelingMode = "freeform";
 
 /** Modes where a horizontal time/process axis is part of the method (Event Storming, Event Modeling, …). */
 export const MODELING_MODES_WITH_DEFAULT_TIMELINE: ReadonlySet<ModelingMode> = new Set([
@@ -435,6 +435,7 @@ export function defaultTimelineForModelingMode(_mode: ModelingMode): Timeline {
 }
 
 export const MODELING_MODES: ModelingMode[] = [
+  "freeform",
   "eventStorming",
   "domainDrivenDesign",
   "bdd",
@@ -445,7 +446,6 @@ export const MODELING_MODES: ModelingMode[] = [
   "c4",
   "arc42",
   "cloud",
-  "freeform",
 ];
 
 /** Shared annotation types. */

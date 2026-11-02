@@ -27,7 +27,8 @@ import { BoardDockHideButton } from "@/components/board-dock-toggle";
 import { isPointerOverStormCanvas } from "@/lib/board-clipboard";
 import { screenToWorld, snapToGrid, snapToTimeline } from "@/lib/canvas-viewport";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { elementTypeLabel, modelingModeLabel, useT } from "@/i18n";
+import { PaletteModelSessionControls } from "@/components/palette-model-session";
+import { elementTypeLabel, useT } from "@/i18n";
 
 const DRAG_THRESHOLD_PX = 5;
 
@@ -277,7 +278,6 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
   );
   const { modeling, annotations } = partitionPaletteTypes(allowed);
   const fixedModeling = modeling.filter((t) => t !== "customCard");
-  const modeLabel = modelingModeLabel(t, modelingMode);
   const editingType = editingTypeId
     ? customCardTypes.find((t) => t.id === editingTypeId) ?? null
     : null;
@@ -544,9 +544,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
         <div className="flex items-start justify-between gap-1">
           <div className="min-w-0 flex-1">
             <h2 className="group-label text-[0.65rem]">{t("panels.paletteTitle")}</h2>
-            <p className="mt-0.5 text-[0.58rem] leading-snug text-[var(--muted)]">
-              {modeLabel}
-            </p>
+            <PaletteModelSessionControls />
             {typeFilterActive ? (
               <button
                 type="button"
