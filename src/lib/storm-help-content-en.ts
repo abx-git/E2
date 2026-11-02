@@ -84,6 +84,7 @@ export const ELEMENT_HELP_EN: Record<ElementType, HelpDialogModel> = {
     paragraphs: [
       "Freely placed remark that is not part of the Event Storming notation.",
       "Attach to stickies with Connect / the arrow handle (relation “annotates”).",
+      "Pin to connector bends: select connector → right-click a waypoint → pin note (moves with the bend).",
     ],
     bullets: [
       "For questions, parking-lot ideas, facilitator hints",

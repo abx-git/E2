@@ -831,7 +831,7 @@ export function aiBoardContextToImportPayload(ctx: AiBoardContext): BoardImportP
         ? { visible: ctx.view.timeline.visible }
         : {}),
     },
-    snapToTimeline: modelingModeUsesTimelineByDefault(ctx.view.modelingMode),
+    snapToTimeline: false,
     snapToGrid: false,
   });
 

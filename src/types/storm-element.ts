@@ -165,6 +165,13 @@ export interface ElementMetadata {
   hotspotPriority?: HotspotPriority;
   /** Background preset for `note` elements. */
   noteColor?: NoteColorId;
+  /** Note pinned to a connector waypoint (moves with the bend). */
+  noteConnectorPin?: {
+    connectorId: string;
+    waypointIndex: number;
+    offsetX?: number;
+    offsetY?: number;
+  };
   /** When set, overrides the view's notesCompact default for this note only. */
   noteCompact?: boolean;
   /** Freeform `customCard`: id of a view-scoped CustomCardType. */
@@ -415,14 +422,15 @@ export const MODELING_MODES_WITH_DEFAULT_TIMELINE: ReadonlySet<ModelingMode> = n
   "processFlow",
 ]);
 
-export function modelingModeUsesTimelineByDefault(mode: ModelingMode): boolean {
-  return MODELING_MODES_WITH_DEFAULT_TIMELINE.has(mode);
+/** Timeline is opt-in (View menu / canvas context menu), not tied to modeling mode. */
+export function modelingModeUsesTimelineByDefault(_mode: ModelingMode): boolean {
+  return false;
 }
 
-export function defaultTimelineForModelingMode(mode: ModelingMode): Timeline {
+export function defaultTimelineForModelingMode(_mode: ModelingMode): Timeline {
   return {
     ...DEFAULT_TIMELINE,
-    visible: modelingModeUsesTimelineByDefault(mode),
+    visible: false,
   };
 }
 

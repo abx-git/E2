@@ -77,6 +77,15 @@ import { findCustomCardType } from "@/lib/custom-card-types";
 import type { ProgressMark } from "@/lib/progress-mark";
 import { normalizeProgressMark } from "@/lib/progress-mark";
 import { patchNoteCompactMetadata } from "@/lib/note-compact";
+import {
+  adjustNotePinsAfterWaypointRemoval,
+  applyNotePinUpdatesForMovedNotes,
+  clearNotePinsForConnector,
+  detectRemovedWaypointIndex,
+  pinNoteToConnectorWaypoint,
+  syncNotePositionsFromPins,
+  withNoteConnectorPin,
+} from "@/lib/note-connector-pin";
 
 const DUPLICATE_OFFSET_PX = 28;
 import { prepareImportedViewsAsNewPages } from "@/lib/board-view-import";
@@ -408,6 +417,12 @@ export interface StormBoardState {
   connectElements: (sourceId: string, targetId: string) => string | null;
   connectEndpoints: (source: ConnectorEndpoint, target: ConnectorEndpoint) => string | null;
   updateConnector: (id: string, patch: Partial<BoardConnector>) => void;
+  pinNotesToConnectorWaypoint: (
+    noteIds: string[],
+    connectorId: string,
+    waypointIndex: number,
+  ) => void;
+  unpinNotesFromConnector: (noteIds: string[]) => void;
   deleteConnector: (id: string) => void;
   selectConnector: (id: string | null) => void;
   reconnectConnector: (
@@ -1643,12 +1658,18 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => {
       if (updates.length === 0) return {};
       const byId = new Map(updates.map((u) => [u.id, u]));
-      return {
-        elements: s.elements.map((e) => {
-          const u = byId.get(e.id);
-          return u ? { ...e, x: u.x, y: u.y } : e;
-        }),
-      };
+      const movedNoteIds = new Set(
+        updates
+          .filter((u) => s.elements.find((e) => e.id === u.id)?.type === "note")
+          .map((u) => u.id),
+      );
+      let elements = s.elements.map((e) => {
+        const u = byId.get(e.id);
+        return u ? { ...e, x: u.x, y: u.y } : e;
+      });
+      elements = applyNotePinUpdatesForMovedNotes(elements, movedNoteIds, s.connectors);
+      elements = syncNotePositionsFromPins(elements, s.connectors);
+      return { elements };
     }),
 
   moveCanvasSelection: (updates) =>
@@ -1665,7 +1686,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       for (const u of swimlaneUpdates) posById.set(u.id, { x: u.x, y: u.y });
       for (const u of bcUpdates) posById.set(u.id, { x: u.x, y: u.y });
 
-      const elements = s.elements.map((e) => {
+      const movedNoteIds = new Set<string>();
+      let elements = s.elements.map((e) => {
         const u = posById.get(e.id);
         if (!u) return e;
         if (e.type === "swimlane" || e.type === "boundedContext") {
@@ -1677,8 +1699,11 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           if (safe.x === undefined && safe.y === undefined) return e;
           return { ...e, x: safe.x ?? e.x, y: safe.y ?? e.y };
         }
+        if (e.type === "note") movedNoteIds.add(e.id);
         return { ...e, x: u.x, y: u.y };
       });
+      elements = applyNotePinUpdatesForMovedNotes(elements, movedNoteIds, s.connectors);
+      elements = syncNotePositionsFromPins(elements, s.connectors);
 
       const regions = syncRegionArrays(elements);
       return { elements, ...regions };
@@ -1960,15 +1985,46 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
 
   updateConnector: (id, patch) =>
     commit(set, get, (s) => {
+      const prev = s.connectors.find((c) => c.id === id);
       const connectors = s.connectors.map((c) =>
         c.id === id ? { ...c, ...patch, id: c.id } : c,
       );
-      return withConnectors(connectors);
+      const next = connectors.find((c) => c.id === id);
+      let elements = s.elements;
+      if (prev && next && patch.waypoints !== undefined) {
+        const removed = detectRemovedWaypointIndex(prev.waypoints, next.waypoints);
+        if (removed !== null) {
+          elements = adjustNotePinsAfterWaypointRemoval(elements, id, removed);
+        }
+      }
+      elements = syncNotePositionsFromPins(elements, connectors);
+      return { ...withConnectors(connectors), elements };
+    }),
+
+  pinNotesToConnectorWaypoint: (noteIds, connectorId, waypointIndex) =>
+    commit(set, get, (s) => {
+      const idSet = new Set(noteIds);
+      const elements = s.elements.map((e) => {
+        if (e.type !== "note" || !idSet.has(e.id)) return e;
+        return pinNoteToConnectorWaypoint(e, connectorId, waypointIndex, s.connectors);
+      });
+      return { elements };
+    }),
+
+  unpinNotesFromConnector: (noteIds) =>
+    commit(set, get, (s) => {
+      const idSet = new Set(noteIds);
+      const elements = s.elements.map((e) => {
+        if (e.type !== "note" || !idSet.has(e.id)) return e;
+        return { ...e, metadata: withNoteConnectorPin(e.metadata, null) };
+      });
+      return { elements };
     }),
 
   deleteConnector: (id) =>
     commit(set, get, (s) => ({
       ...withConnectors(s.connectors.filter((c) => c.id !== id)),
+      elements: clearNotePinsForConnector(s.elements, id),
       selectedConnectorId: s.selectedConnectorId === id ? null : s.selectedConnectorId,
       selectedRelationId: s.selectedRelationId === id ? null : s.selectedRelationId,
       selectedContextRelationId:

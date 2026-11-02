@@ -6,23 +6,13 @@ import {
   modelingModeUsesTimelineByDefault,
 } from "@/types/storm-element";
 
-describe("timeline defaults by modeling mode", () => {
-  it("enables timeline for time-oriented methods", () => {
-    for (const mode of ["eventStorming", "eventModeling", "processFlow"] as const) {
-      expect(modelingModeUsesTimelineByDefault(mode)).toBe(true);
-      expect(defaultTimelineForModelingMode(mode).visible).toBe(true);
-    }
-  });
-
-  it("hides timeline for architecture, data, and other non-timeline methods", () => {
+describe("timeline defaults (opt-in)", () => {
+  it("does not enable timeline or snap by modeling mode", () => {
     for (const mode of [
-      "dataModel",
+      "eventStorming",
+      "eventModeling",
+      "processFlow",
       "c4",
-      "arc42",
-      "cloud",
-      "domainDrivenDesign",
-      "bdd",
-      "userStoryMapping",
       "freeform",
     ] as const) {
       expect(modelingModeUsesTimelineByDefault(mode)).toBe(false);
@@ -30,31 +20,32 @@ describe("timeline defaults by modeling mode", () => {
     }
   });
 
-  it("applies defaults on new views", () => {
+  it("applies opt-out defaults on new views", () => {
     const es = createEmptyBoardView({ id: "1", name: "ES", modelingMode: "eventStorming" });
-    expect(es.timeline.visible).toBe(true);
-    expect(es.snapToTimeline).toBe(true);
-
-    const c4 = createEmptyBoardView({ id: "2", name: "C4", modelingMode: "c4" });
-    expect(c4.timeline.visible).toBe(false);
-    expect(c4.snapToTimeline).toBe(false);
+    expect(es.timeline.visible).toBe(false);
+    expect(es.snapToTimeline).toBe(false);
   });
 
-  it("infers visibility on import when timeline.visible is omitted", () => {
+  it("keeps explicit visible:true on import", () => {
     const imported = normalizeBoardView({
       id: "v",
-      name: "Cloud",
-      modelingMode: "cloud",
-      timeline: { y: 300 },
+      name: "Storm",
+      modelingMode: "eventStorming",
+      timeline: { y: 300, visible: true },
+      snapToTimeline: true,
     });
-    expect(imported.timeline.visible).toBe(false);
+    expect(imported.timeline.visible).toBe(true);
+    expect(imported.snapToTimeline).toBe(true);
+  });
 
-    const legacy = normalizeBoardView({
-      id: "v2",
+  it("hides timeline when visible is omitted on import", () => {
+    const imported = normalizeBoardView({
+      id: "v",
       name: "Storm",
       modelingMode: "eventStorming",
       timeline: { y: 300 },
     });
-    expect(legacy.timeline.visible).toBe(true);
+    expect(imported.timeline.visible).toBe(false);
+    expect(imported.snapToTimeline).toBe(false);
   });
 });

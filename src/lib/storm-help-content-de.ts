@@ -84,6 +84,7 @@ export const ELEMENT_HELP_DE: Record<ElementType, HelpDialogModel> = {
     paragraphs: [
       "Frei positionierbarer Hinweis, der nicht Teil der Event-Storming-Methode ist.",
       "Mit Verbinden / Pfeil-Handle an Stickies anknüpfen (Relation „annotiert“).",
+      "An Verbinder-Knickpunkte heften: Knoten wählen → Rechtsklick → Notiz anheften (zieht mit).",
     ],
     bullets: [
       "Für Fragen, Parkplatz-Ideen, Facilitator-Hinweise",

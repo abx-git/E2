@@ -108,6 +108,50 @@ describe("e2v codec", () => {
     expect(evt?.width).toBe(160);
   });
 
+  it("round-trips connector waypoints and note pin metadata", () => {
+    const multi = createDefaultBoardDocument({
+      views: [
+        createEmptyBoardView({
+          id: "view-a",
+          name: "V",
+          connectors: [
+            {
+              id: "cn-1",
+              source: { attach: "point", x: 0, y: 0 },
+              target: { attach: "point", x: 200, y: 0 },
+              waypoints: [{ x: 80, y: 40 }],
+            },
+          ],
+          elements: [
+            {
+              id: "n1",
+              type: "note",
+              label: "Edge",
+              x: 90,
+              y: 50,
+              metadata: {
+                noteConnectorPin: {
+                  connectorId: "cn-1",
+                  waypointIndex: 0,
+                  offsetX: 10,
+                  offsetY: 10,
+                },
+              },
+            },
+          ],
+        }),
+      ],
+    });
+    const text = encodeE2vSingleView(multi, "view-a")!;
+    expect(text).toContain("@cnw");
+    const back = decodeE2vText(text);
+    const view = back?.views[0];
+    expect(view?.connectors[0]?.waypoints?.[0]).toEqual({ x: 80, y: 40 });
+    const note = view?.elements.find((e) => e.label === "Edge");
+    expect(note?.metadata?.noteConnectorPin?.connectorId).toBe(view?.connectors[0]?.id);
+    expect(note?.metadata?.noteConnectorPin?.waypointIndex).toBe(0);
+  });
+
   it("round-trips full document scope", () => {
     const text = encodeE2vDocument(doc, { scope: "document" });
     const back = boardImportPayloadFromE2vText(text);

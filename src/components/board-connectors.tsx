@@ -656,6 +656,17 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
                 strokeWidth={2}
                 className="pointer-events-auto cursor-grab"
                 onPointerDown={(e) => startWaypointDrag(selectedConn, index, e)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const store = useStormBoardStore.getState();
+                  store.selectConnector(selectedConn.id);
+                  store.openContextMenu(e.clientX, e.clientY, {
+                    kind: "connectorWaypoint",
+                    connectorId: selectedConn.id,
+                    waypointIndex: index,
+                  });
+                }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
