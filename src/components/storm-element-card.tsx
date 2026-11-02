@@ -40,7 +40,7 @@ import {
   normalizeRotationDegrees,
   snapRotationDegrees,
 } from "@/lib/element-rotation";
-import { cssStackingZIndex } from "@/lib/element-z-order";
+import { cssStackingZIndex, isStackingContainerType } from "@/lib/element-z-order";
 import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
 import {
   hexToRgba,
@@ -488,6 +488,7 @@ export function StormElementCard({
         transformOrigin: "center center",
         zIndex:
           cssStackingZIndex(element, {
+            containerBackground: isStackingContainerType(element.type),
             // Boundary containers stay behind contents — don't elevate them over members.
             elevated:
               !isBoundary &&

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CanvasBoardChrome } from "@/components/canvas-board-chrome";
 import { BoardConnectors } from "@/components/board-connectors";
@@ -19,7 +19,7 @@ import { isTypingTarget, shouldSuppressBoardDeleteKey } from "@/lib/keyboard-inp
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { elementsInMarquee, type WorldRect } from "@/lib/selection-geometry";
 import { lineLength } from "@/lib/canvas-annotations";
-import { sortElementsByZOrder } from "@/lib/element-z-order";
+import { isStackingContainerType, sortElementsByZOrder } from "@/lib/element-z-order";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -369,6 +369,14 @@ export function StormCanvas() {
 
   const connectorTool = relationMode;
 
+  const { regionContainerElements, contentElements } = useMemo(() => {
+    const sorted = sortElementsByZOrder(elements);
+    return {
+      regionContainerElements: sorted.filter((el) => isStackingContainerType(el.type)),
+      contentElements: sorted.filter((el) => !isStackingContainerType(el.type)),
+    };
+  }, [elements]);
+
   const handleStartConnect = (id: string) => {
     const source = connectorEndpointForElement(elements, id);
     if (connectorDraftSource && connectorDraftMatchesElement(connectorDraftSource, elements.find((e) => e.id === id)!)) {
@@ -691,6 +699,25 @@ export function StormCanvas() {
           />
         )}
         <TimelineGuide />
+        {regionContainerElements.map((el) => (
+          <StormElementCard
+            key={el.id}
+            element={el}
+            selected={selectedElementIds.includes(el.id)}
+            selectedIds={selectedElementIds}
+            connecting={connectorDraftMatchesElement(connectorDraftSource, el)}
+            isRelationTargetHint={Boolean(
+              connectorDraftSource && !connectorDraftMatchesElement(connectorDraftSource, el),
+            )}
+            relationMode={connectorTool}
+            zoom={viewport.zoom}
+            onSelect={handleSelectElement}
+            onMoveMany={handleMoveCanvasSelection}
+            onResize={handleResizeElement}
+            onStartConnect={handleStartConnect}
+            onCompleteConnect={handleCompleteConnect}
+          />
+        ))}
         <BoardConnectors elements={elements} connectorDraftSource={connectorDraftSource} />
         {lineDraft && (
           <svg className="pointer-events-none absolute inset-0 overflow-visible" style={{ zIndex: 11 }}>
@@ -705,7 +732,7 @@ export function StormCanvas() {
             />
           </svg>
         )}
-        {sortElementsByZOrder(elements).map((el) => (
+        {contentElements.map((el) => (
           <StormElementCard
             key={el.id}
             element={el}

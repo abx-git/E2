@@ -4,6 +4,7 @@ import {
   bringElementsForward,
   bringElementsToFront,
   bringToFront,
+  cssStackingZIndex,
   enforceContainerBehindContents,
   regionZOrderItems,
   sendElementsBackward,
@@ -146,6 +147,17 @@ describe("element z-order", () => {
     const entZ = next.find((e) => e.id === "ent")!.zIndex ?? 0;
     expect(aggZ).toBeGreaterThan(subZ);
     expect(entZ).toBeGreaterThan(aggZ);
+  });
+});
+
+describe("cssStackingZIndex", () => {
+  it("keeps container backgrounds below connector and card layers", () => {
+    const note = el("n", { zIndex: 3 });
+    const bc = el("bc", { type: "boundedContext", zIndex: 3 });
+    expect(cssStackingZIndex(note, {})).toBe(23);
+    expect(cssStackingZIndex(bc, { containerBackground: true })).toBe(8);
+    expect(cssStackingZIndex(bc, { containerBackground: true })).toBeLessThan(10);
+    expect(cssStackingZIndex(note, {})).toBeGreaterThan(10);
   });
 });
 

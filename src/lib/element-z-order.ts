@@ -299,9 +299,9 @@ function dedupeZPatches(
 /** CSS stacking for stickies: base from persisted zIndex, boost for interaction. */
 export function cssStackingZIndex(
   el: Pick<StormElement, "zIndex">,
-  opts: { elevated?: boolean; highlighted?: boolean },
+  opts: { elevated?: boolean; highlighted?: boolean; containerBackground?: boolean },
 ): number {
-  const base = 20 + itemZIndex(el);
+  const base = opts.containerBackground ? 5 + itemZIndex(el) : 20 + itemZIndex(el);
   if (opts.elevated) return Math.max(base, 10_000);
   if (opts.highlighted) return Math.max(base, 25);
   return base;
