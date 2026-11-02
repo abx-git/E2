@@ -10,12 +10,13 @@ import {
   useSideRailActivityBadge,
 } from "@/components/board-side-rail";
 import { MobileSheetOverlay } from "@/components/mobile-sheet";
+import { PaletteModelSessionControls } from "@/components/palette-model-session";
 import { ELEMENT_STYLES } from "@/lib/element-styles";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import { placeElementAtViewportCenter } from "@/lib/place-element-on-canvas";
 import { useIsMobileLayout } from "@/lib/use-media-query";
 import { useStormBoardStore } from "@/store/storm-board-store";
-import { elementTypeLabel, modelingModeLabel, useT } from "@/i18n";
+import { elementTypeLabel, useT } from "@/i18n";
 import { partitionPaletteTypes, type ElementType } from "@/types/storm-element";
 import type { FacilitatorPhase } from "@/lib/facilitator-phases";
 import type { WorkshopFormat } from "@/types/storm-element";
@@ -203,7 +204,6 @@ function MobilePaletteSheet({
   );
   const { modeling, annotations } = partitionPaletteTypes(allowed);
   const fixedModeling = modeling.filter((t) => t !== "customCard");
-  const modeLabel = modelingModeLabel(t, modelingMode);
 
   const placeType = (type: ElementType, customTypeId?: string) => {
     setPaletteType(type);
@@ -282,9 +282,6 @@ function MobilePaletteSheet({
             {t("mobile.elements")}
           </p>
           <h2 className="text-base font-semibold text-[var(--text)]">{t("mobile.palette")}</h2>
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            {t("panels.mobileInsertHint", { mode: modeLabel })}
-          </p>
         </div>
         <button
           type="button"
@@ -294,6 +291,9 @@ function MobilePaletteSheet({
         >
           <X className="size-4" />
         </button>
+      </div>
+      <div className="mb-4">
+        <PaletteModelSessionControls />
       </div>
       {isFreeform ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
