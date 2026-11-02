@@ -716,7 +716,7 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     fill: "#94a3b8",
     stroke: "#cbd5e1",
     ink: "#0f172a",
-    defaultWidth: 1200,
+    defaultWidth: 4000,
     defaultHeight: 160,
     shape: "rectangle",
   },

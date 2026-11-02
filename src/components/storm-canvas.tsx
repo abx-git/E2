@@ -14,6 +14,7 @@ import { pickConnectorTargetSnapAt } from "@/lib/connector-target-pick";
 import { StormElementCard } from "@/components/storm-element-card";
 import { TimelineGuide } from "@/components/timeline-guide";
 import { snapToGrid, snapToTimeline, screenToWorld, zoomAtPoint, ZOOM_STEP } from "@/lib/canvas-viewport";
+import { paletteDropTopLeft } from "@/lib/place-element-on-canvas";
 import { deleteCurrentSelection } from "@/lib/board-delete-selection";
 import { isTypingTarget, shouldSuppressBoardDeleteKey } from "@/lib/keyboard-input-guard";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
@@ -363,8 +364,12 @@ export function StormCanvas() {
     if (!containerRef.current || relationMode) return;
     const rect = containerRef.current.getBoundingClientRect();
     const world = screenToWorld(viewport, e.clientX, e.clientY, rect);
-    const snapped = applySnap(world.x, world.y);
-    addElement(paletteType, snapped.x, snapped.y);
+    const { x, y } = paletteDropTopLeft(paletteType, world, {
+      snapToGrid: snapToGridEnabled,
+      snapToTimeline: snapToTimelineEnabled,
+      timelineY: timeline.y,
+    });
+    addElement(paletteType, x, y);
   };
 
   const connectorTool = relationMode;

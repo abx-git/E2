@@ -2319,7 +2319,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     const y = 120 + lanes.length * 180;
     return get().addElement(
       "swimlane",
-      40,
+      0,
       y,
       label ?? `Swimlane ${lanes.length + 1}`,
     );
