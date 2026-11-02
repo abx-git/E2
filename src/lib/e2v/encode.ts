@@ -190,6 +190,7 @@ function encodeViewBody(view: BoardView, out: string[]): void {
         el.boundedContextId ? bMap.alias(el.boundedContextId) : "",
         el.aggregateId ? eMap.alias(el.aggregateId) : "",
         el.subdomainId ? bMap.alias(el.subdomainId) : "",
+        el.cloudBoundaryId ? eMap.alias(el.cloudBoundaryId) : "",
         el.detailViewId ?? "",
         el.label,
       ]),

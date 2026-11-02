@@ -99,7 +99,7 @@ export function normalizeClipboardPayload(
 
 /**
  * Selection → clipboard payload.
- * Keeps swimlaneId / boundedContextId / aggregateId / subdomainId only when that
+ * Keeps swimlaneId / boundedContextId / aggregateId / subdomainId / cloudBoundaryId only when that
  * container is also in the payload.
  */
 export function extractClipboardPayload(
@@ -147,6 +147,9 @@ export function extractClipboardPayload(
     }
     if (!next.subdomainId || !elementIdSet.has(next.subdomainId)) {
       next.subdomainId = undefined;
+    }
+    if (!next.cloudBoundaryId || !elementIdSet.has(next.cloudBoundaryId)) {
+      next.cloudBoundaryId = undefined;
     }
     delete next.detailViewId;
     return next;
@@ -223,6 +226,7 @@ export function remapClipboardForPaste(
     next.boundedContextId = el.boundedContextId ? idMap.get(el.boundedContextId) : undefined;
     next.aggregateId = el.aggregateId ? idMap.get(el.aggregateId) : undefined;
     next.subdomainId = el.subdomainId ? idMap.get(el.subdomainId) : undefined;
+    next.cloudBoundaryId = el.cloudBoundaryId ? idMap.get(el.cloudBoundaryId) : undefined;
     delete next.detailViewId;
     return next;
   });

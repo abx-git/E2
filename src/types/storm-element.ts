@@ -299,6 +299,11 @@ export interface StormElement {
    */
   subdomainId?: string;
   /**
+   * Containing Cloud boundary (geometric containment).
+   * Cloud boundaries themselves never have a cloudBoundaryId (no nesting).
+   */
+  cloudBoundaryId?: string;
+  /**
    * Linked detail view for architecture building-block drill-down
    * (Blackbox/Whitebox → innere Komponenten).
    */

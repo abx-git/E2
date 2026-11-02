@@ -6,6 +6,7 @@ export const contextMenuEn = {
     startRelation: "Start relation",
     swimlane: "Swimlane",
     boundedContext: "Bounded context",
+    cloudBoundary: "Cloud boundary",
     alignLeft: "Left",
     alignCenterX: "Center H",
     alignRight: "Right",

@@ -32,13 +32,16 @@ export function stackingMembersOf(
     if (container.type === "subdomain") {
       return e.subdomainId === container.id || rectFullyContains(outer, elementBounds(e));
     }
+    if (container.type === "cloudBoundary") {
+      return e.cloudBoundaryId === container.id || rectFullyContains(outer, elementBounds(e));
+    }
     if (container.type === "swimlane") {
       return e.swimlaneId === container.id || rectFullyContains(outer, elementBounds(e));
     }
     if (container.type === "boundedContext") {
       return e.boundedContextId === container.id || rectFullyContains(outer, elementBounds(e));
     }
-    // Whitebox / cloud boundary: geometric containment only.
+    // Whitebox: geometric containment only.
     return rectFullyContains(outer, elementBounds(e));
   });
 }
