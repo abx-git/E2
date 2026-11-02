@@ -78,6 +78,10 @@ import type { ProgressMark } from "@/lib/progress-mark";
 import { normalizeProgressMark } from "@/lib/progress-mark";
 import { patchNoteCompactMetadata } from "@/lib/note-compact";
 import {
+  inferCanvasSelectionMoveDelta,
+  translateConnectorsForMoveSet,
+} from "@/lib/connector-selection-move";
+import {
   adjustNotePinsAfterWaypointRemoval,
   applyNotePinUpdatesForMovedNotes,
   clearNotePinsForConnector,
@@ -1658,6 +1662,19 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => {
       if (updates.length === 0) return {};
       const byId = new Map(updates.map((u) => [u.id, u]));
+      const movedIds = new Set(byId.keys());
+      const delta = inferCanvasSelectionMoveDelta(s.elements, s.swimlanes, s.boundedContexts, {
+        elements: updates,
+      });
+      let connectors = s.connectors;
+      if (delta) {
+        connectors = translateConnectorsForMoveSet(
+          s.connectors,
+          movedIds,
+          delta.dx,
+          delta.dy,
+        );
+      }
       const movedNoteIds = new Set(
         updates
           .filter((u) => s.elements.find((e) => e.id === u.id)?.type === "note")
@@ -1667,9 +1684,9 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         const u = byId.get(e.id);
         return u ? { ...e, x: u.x, y: u.y } : e;
       });
-      elements = applyNotePinUpdatesForMovedNotes(elements, movedNoteIds, s.connectors);
-      elements = syncNotePositionsFromPins(elements, s.connectors);
-      return { elements };
+      elements = applyNotePinUpdatesForMovedNotes(elements, movedNoteIds, connectors);
+      elements = syncNotePositionsFromPins(elements, connectors);
+      return { elements, ...withConnectors(connectors) };
     }),
 
   moveCanvasSelection: (updates) =>
@@ -1685,6 +1702,23 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
       for (const u of elementUpdates) posById.set(u.id, { x: u.x, y: u.y });
       for (const u of swimlaneUpdates) posById.set(u.id, { x: u.x, y: u.y });
       for (const u of bcUpdates) posById.set(u.id, { x: u.x, y: u.y });
+      const movedIds = new Set(posById.keys());
+
+      const delta = inferCanvasSelectionMoveDelta(
+        s.elements,
+        s.swimlanes,
+        s.boundedContexts,
+        { elements: elementUpdates, swimlanes: swimlaneUpdates, boundedContexts: bcUpdates },
+      );
+      let connectors = s.connectors;
+      if (delta) {
+        connectors = translateConnectorsForMoveSet(
+          s.connectors,
+          movedIds,
+          delta.dx,
+          delta.dy,
+        );
+      }
 
       const movedNoteIds = new Set<string>();
       let elements = s.elements.map((e) => {
@@ -1702,11 +1736,11 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         if (e.type === "note") movedNoteIds.add(e.id);
         return { ...e, x: u.x, y: u.y };
       });
-      elements = applyNotePinUpdatesForMovedNotes(elements, movedNoteIds, s.connectors);
-      elements = syncNotePositionsFromPins(elements, s.connectors);
+      elements = applyNotePinUpdatesForMovedNotes(elements, movedNoteIds, connectors);
+      elements = syncNotePositionsFromPins(elements, connectors);
 
       const regions = syncRegionArrays(elements);
-      return { elements, ...regions };
+      return { elements, ...regions, ...withConnectors(connectors) };
     }),
 
   patchElements: (updates) =>

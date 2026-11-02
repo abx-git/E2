@@ -40,6 +40,7 @@ import {
 import { noteConnectorPinLeaderSegment } from "@/lib/note-connector-pin";
 import { connectorHitStrokeWidth } from "@/lib/connector-style";
 import { connectorDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
+import { connectorRigidWithMoveSet } from "@/lib/connector-selection-move";
 import { connectorDimmedByTypeVisibilityFilter } from "@/lib/canvas-type-visibility-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { ProgressMarkConnectorBadge } from "@/components/progress-mark-badge";
@@ -89,6 +90,8 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
   const searchQuery = useStormBoardStore((s) => s.searchQuery);
   const selectionFilterEnabled = useStormBoardStore((s) => s.selectionFilterEnabled);
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
+  const selectedSwimlaneIds = useStormBoardStore((s) => s.selectedSwimlaneIds);
+  const selectedBoundedContextIds = useStormBoardStore((s) => s.selectedBoundedContextIds);
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
   const notesCompact = useStormBoardStore((s) => s.notesCompact);
@@ -108,6 +111,14 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
       )
     : null;
   const hitWidth = connectorHitStrokeWidth(zoom);
+  const canvasSelectionMoveIds = new Set([
+    ...selectedElementIds,
+    ...selectedSwimlaneIds,
+    ...selectedBoundedContextIds,
+  ]);
+  const connectorSelectedWithCanvas = (conn: BoardConnector) =>
+    conn.id === selectedConnectorId ||
+    connectorRigidWithMoveSet(conn, canvasSelectionMoveIds);
   const [endpointDrag, setEndpointDrag] = useState<{
     connectorId: string;
     endpoint: "source" | "target";
@@ -419,7 +430,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
             );
             displayPoints = [start, ...inner, end];
           }
-          const selected = conn.id === selectedConnectorId;
+          const selected = connectorSelectedWithCanvas(conn);
           const dragSnapActive = draggingThis && endpointDrag!.valid;
           const arrow = connectorArrowHead(conn);
           const stroke = boardConnectorStrokeColor(conn, selected && !draggingThis);
