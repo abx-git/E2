@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  blendFillOnCanvas,
   hexToRgba,
   percentToOpacity,
+  regionLabelInk,
   resolveRegionPaint,
   sanitizeRegionGeometryPatch,
 } from "@/lib/region-style";
@@ -35,6 +37,21 @@ describe("region-style", () => {
     expect(paint.backgroundColor).toBe(hexToRgba("#aabbcc", 0.25));
     expect(paint.borderColor).toBe(hexToRgba("#112233", 0.5));
     expect(paint.locked).toBe(true);
+  });
+
+  it("picks light ink on dark effective fills (typical swimlane on canvas)", () => {
+    const paint = resolveRegionPaint("swimlane", { color: "#94a3b8", fillOpacity: 0.12 });
+    const ink = regionLabelInk(paint.fillHex, paint.fillOpacity);
+    expect(ink.ink).toBe("#f1f5f9");
+  });
+
+  it("picks dark ink on bright high-opacity fills", () => {
+    const ink = regionLabelInk("#f8fafc", 0.92);
+    expect(ink.ink).toBe("#0f172a");
+  });
+
+  it("blendFillOnCanvas mixes toward canvas backdrop", () => {
+    expect(blendFillOnCanvas("#ffffff", 0)).toBe("#1a2330");
   });
 
   it("sanitizes geometry while locked", () => {
