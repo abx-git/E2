@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { HelpCircle, Eye, EyeOff, Info, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Pencil, Plus, Trash2, X } from "lucide-react";
 
 import type { CustomCardType } from "@/lib/custom-card-types";
 import {
@@ -248,8 +248,6 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
   const addCustomCardType = useStormBoardStore((s) => s.addCustomCardType);
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
-  const notesCompact = useStormBoardStore((s) => s.notesCompact);
-  const toggleNotesCompact = useStormBoardStore((s) => s.toggleNotesCompact);
   const setAllNotesCompactOverride = useStormBoardStore((s) => s.setAllNotesCompactOverride);
   const toggleHiddenElementType = useStormBoardStore((s) => s.toggleHiddenElementType);
   const toggleHiddenCustomTypeId = useStormBoardStore((s) => s.toggleHiddenCustomTypeId);
@@ -365,8 +363,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
       if (!drag || drag.kind !== "fixed") return;
 
       if (!drag.active) {
-        setPaletteType(type);
-        onSelectType(type);
+        toggleHiddenElementType(type);
         return;
       }
 
@@ -417,9 +414,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
       if (!drag || drag.kind !== "custom") return;
 
       if (!drag.active) {
-        setPaletteType("customCard");
-        setPaletteCustomTypeId(customType.id);
-        onSelectType("customCard");
+        toggleHiddenCustomTypeId(customType.id);
         return;
       }
 
@@ -431,57 +426,11 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
     window.addEventListener("pointerup", onUp);
   };
 
-  const renderTypeVisibilityToggle = (
-    hidden: boolean,
-    label: string,
-    onToggle: () => void,
-  ) => (
-    <button
-      type="button"
-      className={[
-        "dock-control shrink-0 rounded-md p-1.5",
-        hidden ? "text-[var(--accent-2)]" : "text-[var(--muted)] hover:text-[var(--text)]",
-      ].join(" ")}
-      title={hidden ? t("panels.paletteShowType", { type: label }) : t("panels.paletteHideType", { type: label })}
-      aria-label={hidden ? t("panels.paletteShowType", { type: label }) : t("panels.paletteHideType", { type: label })}
-      aria-pressed={hidden}
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={(e) => {
-        e.stopPropagation();
-        onToggle();
-      }}
-    >
-      {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-    </button>
-  );
-
-  const renderNotesCompactToggle = () => (
-    <button
-      type="button"
-      className={[
-        "dock-control relative z-10 shrink-0 rounded-md p-1.5 touch-manipulation",
-        notesCompact ? "text-[var(--accent-2)]" : "text-[var(--muted)] hover:text-[var(--text)]",
-      ].join(" ")}
-      title={
-        notesCompact ? t("panels.paletteNotesCompactOff") : t("panels.paletteNotesCompactOn")
-      }
-      aria-label={
-        notesCompact ? t("panels.paletteNotesCompactOff") : t("panels.paletteNotesCompactOn")
-      }
-      aria-pressed={notesCompact}
-      onPointerDown={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        toggleNotesCompact();
-      }}
-    >
-      <Info className="h-3.5 w-3.5 pointer-events-none" />
-    </button>
-  );
+  const openTypeHelp = (type: ElementType, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onRequestHelp?.(type);
+  };
 
   const renderTypeRow = (type: ElementType, compact = false) => {
     const style = ELEMENT_STYLES[type];
@@ -489,42 +438,34 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
     const active = paletteType === type;
     const hidden = isElementTypeHidden(type, hiddenElementTypes);
     return (
-      <div key={type} className="flex min-w-0 items-center gap-1">
-        <button
-          type="button"
-          onPointerDown={(e) => beginFixedDrag(type, e)}
-          className={[
-            "min-w-0 flex-1 cursor-grab truncate border text-left font-medium transition active:cursor-grabbing",
-            compact ? "rounded-md px-2 py-1.5 text-[0.7rem]" : "rounded-lg px-2 py-2 text-xs",
-            active
-              ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
-              : "opacity-80 hover:opacity-100",
-            hidden ? "opacity-45 saturate-50" : "",
-          ].join(" ")}
-          style={{
-            backgroundColor: style.fill,
-            borderColor: style.stroke,
-            color: style.ink,
-          }}
-          title={t("panels.paletteDragHint", { mode: typeLabel })}
-        >
-          {typeLabel}
-        </button>
-        {renderTypeVisibilityToggle(hidden, typeLabel, () => toggleHiddenElementType(type))}
-        {type === "note" ? renderNotesCompactToggle() : null}
-        <button
-          type="button"
-          className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
-          title={t("panels.helpForElement")}
-          aria-label={t("panels.helpForType", { type: typeLabel })}
-          onClick={(e) => {
-            e.stopPropagation();
-            onRequestHelp?.(type);
-          }}
-        >
-          <HelpCircle className="h-3.5 w-3.5" />
-        </button>
-      </div>
+      <button
+        key={type}
+        type="button"
+        onPointerDown={(e) => beginFixedDrag(type, e)}
+        onContextMenu={(e) => openTypeHelp(type, e)}
+        className={[
+          "min-w-0 w-full cursor-grab truncate border text-left font-medium transition active:cursor-grabbing",
+          compact ? "rounded-md px-2 py-1 text-[0.68rem]" : "rounded-md px-2 py-1.5 text-[0.72rem]",
+          active
+            ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
+            : "opacity-90 hover:opacity-100",
+          hidden ? "opacity-40 saturate-50" : "",
+        ].join(" ")}
+        style={{
+          backgroundColor: style.fill,
+          borderColor: style.stroke,
+          color: style.ink,
+        }}
+        title={
+          hidden
+            ? t("panels.paletteShowType", { type: typeLabel })
+            : t("panels.paletteHideType", { type: typeLabel })
+        }
+        aria-label={t("panels.paletteTypeRowAria", { type: typeLabel })}
+        aria-pressed={hidden}
+      >
+        {typeLabel}
+      </button>
     );
   };
 
@@ -534,40 +475,45 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
     const displayName = customType.name.trim() || t("panels.customTypeFallbackName");
     const hidden = isCustomCardTypeHidden(customType.id, hiddenCustomTypeIds);
     return (
-      <div key={customType.id} className="flex items-center gap-1">
+      <div key={customType.id} className="flex min-w-0 items-stretch gap-0.5">
         <button
           type="button"
           onPointerDown={(e) => beginCustomDrag(customType, e)}
+          onContextMenu={(e) => openTypeHelp("customCard", e)}
           className={[
             "flex min-w-0 flex-1 cursor-grab flex-col border text-left transition active:cursor-grabbing",
-            "rounded-lg px-2 py-1.5",
+            "rounded-md px-2 py-1",
             active
               ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
-              : "opacity-80 hover:opacity-100",
-            hidden ? "opacity-45 saturate-50" : "",
+              : "opacity-90 hover:opacity-100",
+            hidden ? "opacity-40 saturate-50" : "",
           ].join(" ")}
           style={{
             backgroundColor: style.fill,
             borderColor: style.stroke,
             color: style.ink,
           }}
-          title={`${stereotypeLabel(customType.name)} — auf die Karte ziehen`}
+          title={
+            hidden
+              ? t("panels.paletteShowType", { type: displayName })
+              : t("panels.paletteHideType", { type: displayName })
+          }
+          aria-label={t("panels.paletteTypeRowAria", { type: displayName })}
+          aria-pressed={hidden}
         >
-          <span className="truncate text-[0.58rem] font-bold uppercase tracking-wide opacity-80">
+          <span className="truncate text-[0.55rem] font-bold uppercase tracking-wide opacity-80">
             {stereotypeLabel(customType.name)}
           </span>
-          <span className="truncate text-xs font-medium">
+          <span className="truncate text-[0.72rem] font-medium">
             {customType.name.trim() || "Typ"}
           </span>
         </button>
-        {renderTypeVisibilityToggle(hidden, displayName, () =>
-          toggleHiddenCustomTypeId(customType.id),
-        )}
         <button
           type="button"
-          className="dock-control rounded-md p-1.5 text-[var(--muted)] hover:text-[var(--text)]"
+          className="dock-control shrink-0 rounded-md px-1.5 text-[var(--muted)] hover:text-[var(--text)]"
           title={t("panels.editType")}
           aria-label={`${customType.name} bearbeiten`}
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
             setEditingTypeId(customType.id);
@@ -593,24 +539,24 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
         : "";
 
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel-solid)]">
-      <div className="border-b border-[var(--border)] px-3 py-3">
-        <div className="flex items-start justify-between gap-2">
+    <aside className="flex w-[11.5rem] shrink-0 flex-col border-r border-[var(--border)] bg-[var(--panel-solid)]">
+      <div className="border-b border-[var(--border)] px-2 py-2">
+        <div className="flex items-start justify-between gap-1">
           <div className="min-w-0 flex-1">
-            <h2 className="group-label">{t("panels.paletteTitle")}</h2>
-            <p className="mt-1 text-[0.65rem] leading-snug text-[var(--muted)]">
-              {t("panels.paletteDragHint", { mode: modeLabel })}
+            <h2 className="group-label text-[0.65rem]">{t("panels.paletteTitle")}</h2>
+            <p className="mt-0.5 text-[0.58rem] leading-snug text-[var(--muted)]">
+              {modeLabel}
             </p>
             {typeFilterActive ? (
               <button
                 type="button"
-                className="mt-1.5 text-left text-[0.65rem] font-medium text-[var(--accent-2)] hover:underline"
+                className="mt-1 text-left text-[0.58rem] font-medium text-[var(--accent-2)] hover:underline"
                 onClick={() => clearHiddenElementTypes()}
               >
                 {t("panels.paletteShowAllTypes")}
               </button>
             ) : (
-              <p className="mt-1 text-[0.6rem] leading-snug text-[var(--muted)]">
+              <p className="mt-1 text-[0.55rem] leading-snug text-[var(--muted)]">
                 {t("panels.paletteVisibilityHint")}
               </p>
             )}
@@ -618,7 +564,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
           {onHide ? <BoardDockHideButton side="left" onHide={onHide} /> : null}
         </div>
       </div>
-      <div className="flex flex-col gap-1.5 overflow-x-hidden overflow-y-auto p-2">
+      <div className="flex flex-col gap-1 overflow-x-hidden overflow-y-auto p-1.5">
         {isFreeform ? (
           <>
             <p className="px-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
@@ -652,14 +598,11 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
             <p className="mb-1.5 px-0.5 text-[0.6rem] font-semibold uppercase tracking-wide text-[var(--muted)]">
               Annotationen
             </p>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-0.5">
               {annotations.map((type) => renderTypeRow(type, true))}
             </div>
             {annotations.includes("note") ? (
-              <div className="mt-2 space-y-1 border-t border-dashed border-[var(--border)] pt-2">
-                <p className="px-0.5 text-[0.58rem] leading-snug text-[var(--muted)]">
-                  {t("panels.paletteNotesPerNoteHint")}
-                </p>
+              <div className="mt-1.5 space-y-0.5 border-t border-dashed border-[var(--border)] pt-1.5">
                 <div className="flex flex-col gap-0.5">
                   <button
                     type="button"
