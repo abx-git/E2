@@ -1101,6 +1101,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
               e.boundedContextId && bcSet.has(e.boundedContextId) ? undefined : e.boundedContextId,
             aggregateId: e.aggregateId && elSet.has(e.aggregateId) ? undefined : e.aggregateId,
             subdomainId: e.subdomainId && elSet.has(e.subdomainId) ? undefined : e.subdomainId,
+            cloudBoundaryId:
+              e.cloudBoundaryId && elSet.has(e.cloudBoundaryId) ? undefined : e.cloudBoundaryId,
           })),
         relations: s.relations.filter(
           (r) => !elSet.has(r.sourceId) && !elSet.has(r.targetId),
@@ -1613,6 +1615,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
           let next = e;
           if (next.aggregateId === id) next = { ...next, aggregateId: undefined };
           if (next.subdomainId === id) next = { ...next, subdomainId: undefined };
+          if (next.cloudBoundaryId === id) next = { ...next, cloudBoundaryId: undefined };
           return next;
         }),
       ...withConnectors(

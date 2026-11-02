@@ -237,6 +237,9 @@ export function stripSelectionFromCanvasView(
         if (next.subdomainId && elementIds.has(next.subdomainId)) {
           next = { ...next, subdomainId: undefined };
         }
+        if (next.cloudBoundaryId && elementIds.has(next.cloudBoundaryId)) {
+          next = { ...next, cloudBoundaryId: undefined };
+        }
         if (next.swimlaneId && swimlaneIds.has(next.swimlaneId)) {
           next = { ...next, swimlaneId: undefined };
         }

@@ -73,6 +73,29 @@ describe("selection-move", () => {
     expect(result.elementIds).toEqual(expect.arrayContaining(["inside", "outside"]));
   });
 
+  it("pulls cloud boundary members into the move set", () => {
+    const elements = [
+      el({ id: "lz", type: "cloudBoundary", x: 0, y: 0, width: 300, height: 220 }),
+      el({
+        id: "compute",
+        type: "cloudCompute",
+        x: 20,
+        y: 20,
+        width: 80,
+        height: 40,
+        cloudBoundaryId: "lz",
+      }),
+      el({ id: "other", x: 600, y: 0 }),
+    ];
+    const result = expandCanvasMoveSet(elements, [], [], {
+      elementIds: ["lz", "other"],
+      swimlaneIds: [],
+      boundedContextIds: [],
+    });
+    expect(result.elementIds).toEqual(expect.arrayContaining(["lz", "compute", "other"]));
+    expect(result.elementIds).toHaveLength(3);
+  });
+
   it("pulls aggregate and subdomain members into the move set", () => {
     const elements = [
       el({ id: "agg", type: "aggregate", x: 0, y: 0, width: 200, height: 150 }),

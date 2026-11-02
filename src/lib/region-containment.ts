@@ -105,8 +105,30 @@ export function resolveSubdomainId(
 }
 
 /**
+ * Fully containing Cloud boundary, or undefined if none.
+ * Cloud boundaries never nest inside other cloud boundaries.
+ * Prefer smallest area when multiple boundaries enclose the element.
+ */
+export function resolveCloudBoundaryId(
+  el: StormElement,
+  cloudBoundaries: StormElement[],
+): string | undefined {
+  if (el.type === "cloudBoundary") return undefined;
+  const bounds = elementBounds(el);
+  let best: { id: string; area: number } | null = null;
+  for (const boundary of cloudBoundaries) {
+    if (boundary.type !== "cloudBoundary" || boundary.id === el.id) continue;
+    const outer = elementBounds(boundary);
+    if (!rectFullyContains(outer, bounds)) continue;
+    const a = area(outer);
+    if (!best || a < best.area) best = { id: boundary.id, area: a };
+  }
+  return best?.id;
+}
+
+/**
  * Returns a new elements array when any swimlaneId / boundedContextId /
- * aggregateId / subdomainId must change based on full geometric containment;
+ * aggregateId / subdomainId / cloudBoundaryId must change based on full geometric containment;
  * otherwise returns the same reference.
  */
 export function applyContainmentAssignments(
@@ -116,22 +138,25 @@ export function applyContainmentAssignments(
 ): StormElement[] {
   const aggregates = elements.filter((e) => e.type === "aggregate");
   const subdomains = elements.filter((e) => e.type === "subdomain");
+  const cloudBoundaries = elements.filter((e) => e.type === "cloudBoundary");
   let changed = false;
   const next = elements.map((el) => {
     const swimlaneId = resolveSwimlaneId(el, swimlanes);
     const boundedContextId = resolveBoundedContextId(el, boundedContexts);
     const aggregateId = resolveAggregateId(el, aggregates);
     const subdomainId = resolveSubdomainId(el, subdomains);
+    const cloudBoundaryId = resolveCloudBoundaryId(el, cloudBoundaries);
     if (
       el.swimlaneId === swimlaneId &&
       el.boundedContextId === boundedContextId &&
       el.aggregateId === aggregateId &&
-      el.subdomainId === subdomainId
+      el.subdomainId === subdomainId &&
+      el.cloudBoundaryId === cloudBoundaryId
     ) {
       return el;
     }
     changed = true;
-    return { ...el, swimlaneId, boundedContextId, aggregateId, subdomainId };
+    return { ...el, swimlaneId, boundedContextId, aggregateId, subdomainId, cloudBoundaryId };
   });
   return changed ? next : elements;
 }
@@ -186,6 +211,22 @@ export function elementIdsInSubdomain(
       (e) =>
         e.id !== subdomain.id &&
         (e.subdomainId === subdomain.id || rectFullyContains(outer, elementBounds(e))),
+    )
+    .map((e) => e.id);
+}
+
+/** Element IDs that should move with a Cloud boundary (assigned or fully contained now). */
+export function elementIdsInCloudBoundary(
+  elements: StormElement[],
+  boundary: StormElement,
+): string[] {
+  if (boundary.type !== "cloudBoundary") return [];
+  const outer = elementBounds(boundary);
+  return elements
+    .filter(
+      (e) =>
+        e.id !== boundary.id &&
+        (e.cloudBoundaryId === boundary.id || rectFullyContains(outer, elementBounds(e))),
     )
     .map((e) => e.id);
 }

@@ -30,7 +30,10 @@ export function stackingMembersOf(
     if (container.type === "subdomain") {
       return e.subdomainId === container.id || rectFullyContains(outer, elementBounds(e));
     }
-    // Whitebox / cloud boundary: geometric containment only.
+    if (container.type === "cloudBoundary") {
+      return e.cloudBoundaryId === container.id || rectFullyContains(outer, elementBounds(e));
+    }
+    // Whitebox: geometric containment only.
     return rectFullyContains(outer, elementBounds(e));
   });
 }

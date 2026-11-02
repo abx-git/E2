@@ -439,6 +439,28 @@ export function CanvasContextMenu({
             ))}
           </Submenu>
         )}
+        {(() => {
+          const cloudBoundaries = elements.filter((e) => e.type === "cloudBoundary");
+          if (cloudBoundaries.length === 0) return null;
+          return (
+            <Submenu label={t("contextMenu.cloudBoundary")}>
+              <Item
+                label={t("common.noneContext")}
+                onClick={() => run(() => updateElement(el.id, { cloudBoundaryId: undefined }))}
+              />
+              {cloudBoundaries.map((boundary) => (
+                <Item
+                  key={boundary.id}
+                  label={boundary.label || elementTypeLabel(t, "cloudBoundary")}
+                  active={el.cloudBoundaryId === boundary.id}
+                  onClick={() =>
+                    run(() => updateElement(el.id, { cloudBoundaryId: boundary.id }))
+                  }
+                />
+              ))}
+            </Submenu>
+          );
+        })()}
         {el.type === "note" && (
           <Submenu label={t("contextMenu.noteColor")}>
             {NOTE_COLOR_IDS.map((id) => (

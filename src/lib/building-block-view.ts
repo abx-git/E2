@@ -111,6 +111,7 @@ export function extractBuildingBlockViewPayload(
       const next = structuredClone(el);
       next.swimlaneId = undefined;
       next.boundedContextId = undefined;
+      next.cloudBoundaryId = undefined;
       delete next.detailViewId;
       return next;
     });

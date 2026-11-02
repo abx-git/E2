@@ -172,6 +172,7 @@ export function decodeE2vText(text: string, options?: DecodeE2vOptions): BoardIm
         boundedContextId: raw.boundedContextId ? resolve(raw.boundedContextId) : undefined,
         aggregateId: raw.aggregateId ? resolve(raw.aggregateId) : undefined,
         subdomainId: raw.subdomainId ? resolve(raw.subdomainId) : undefined,
+        cloudBoundaryId: raw.cloudBoundaryId ? resolve(raw.cloudBoundaryId) : undefined,
       };
       const alias = [...viewIdMap.entries()].find(([, r]) => r === raw.id)?.[0] ?? raw.id;
       const d = descPending.get(alias);
@@ -542,6 +543,7 @@ export function decodeE2vText(text: string, options?: DecodeE2vOptions): BoardIm
           boundedContextId: parsed.boundedContextId,
           aggregateId: parsed.aggregateId,
           subdomainId: parsed.subdomainId,
+          cloudBoundaryId: parsed.cloudBoundaryId,
           detailViewId: parsed.detailViewId,
           label: parsed.label,
         },

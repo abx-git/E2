@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   applyContainmentAssignments,
   elementIdsInAggregate,
+  elementIdsInCloudBoundary,
   elementIdsInSubdomain,
   elementIdsInSwimlane,
   rectFullyContains,
   resolveAggregateId,
   resolveBoundedContextId,
+  resolveCloudBoundaryId,
   resolveSubdomainId,
   resolveSwimlaneId,
   translateMatchingElements,
@@ -238,6 +240,64 @@ describe("region-containment", () => {
     const next = translateMatchingElements(elements, (e) => e.swimlaneId === "l1", 5, -3);
     expect(next[0]).toMatchObject({ id: "a", x: 15, y: 7 });
     expect(next[1]).toBe(elements[1]);
+  });
+
+  it("assigns cloud boundary when fully inside and does not nest boundaries", () => {
+    const boundaries = [
+      el({ id: "outer", type: "cloudBoundary", x: 0, y: 0, width: 500, height: 400 }),
+      el({ id: "inner", type: "cloudBoundary", x: 40, y: 40, width: 220, height: 180 }),
+    ];
+    expect(
+      resolveCloudBoundaryId(
+        el({ id: "e", type: "cloudCompute", x: 50, y: 50, width: 80, height: 40 }),
+        boundaries,
+      ),
+    ).toBe("inner");
+    expect(
+      resolveCloudBoundaryId(
+        el({ id: "nested", type: "cloudBoundary", x: 50, y: 50, width: 140, height: 100 }),
+        boundaries,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("updates cloudBoundaryId with containment assignments", () => {
+    const elements = [
+      el({ id: "lz", type: "cloudBoundary", x: 0, y: 0, width: 320, height: 240 }),
+      el({ id: "in", type: "cloudCompute", x: 40, y: 40, width: 140, height: 100 }),
+      el({
+        id: "out",
+        type: "cloudNetwork",
+        x: 500,
+        y: 40,
+        width: 100,
+        height: 50,
+        cloudBoundaryId: "lz",
+      }),
+    ];
+    const next = applyContainmentAssignments(elements, [], []);
+    expect(next.find((e) => e.id === "in")?.cloudBoundaryId).toBe("lz");
+    expect(next.find((e) => e.id === "out")?.cloudBoundaryId).toBeUndefined();
+    expect(next.find((e) => e.id === "lz")?.cloudBoundaryId).toBeUndefined();
+  });
+
+  it("lists cloud boundary members by id or containment", () => {
+    const boundary = el({ id: "lz", type: "cloudBoundary", x: 0, y: 0, width: 320, height: 240 });
+    const elements = [
+      boundary,
+      el({ id: "inside", type: "cloudCompute", x: 40, y: 40, width: 80, height: 40 }),
+      el({
+        id: "assigned",
+        type: "cloudEdge",
+        x: 500,
+        y: 500,
+        width: 80,
+        height: 40,
+        cloudBoundaryId: "lz",
+      }),
+      el({ id: "outside", type: "cloudNetwork", x: 400, y: 40, width: 80, height: 40 }),
+    ];
+    expect(elementIdsInCloudBoundary(elements, boundary).sort()).toEqual(["assigned", "inside"]);
   });
 
   it("snapshots swimlane members by id or containment", () => {

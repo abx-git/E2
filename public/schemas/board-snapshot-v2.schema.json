@@ -583,6 +583,10 @@
           "type": "string",
           "description": "Optionale ID eines Bounded Context."
         },
+        "cloudBoundaryId": {
+          "type": "string",
+          "description": "Optionale ID einer umschließenden Cloud-Grenze (Element)."
+        },
         "metadata": {
           "$ref": "#/$defs/elementMetadata"
         }
