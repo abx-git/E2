@@ -5,6 +5,7 @@ import type { StormElement } from "@/types/storm-element";
 import {
   adjustNotePinsAfterWaypointRemoval,
   applyNoteMovePinUpdate,
+  noteConnectorPinLeaderSegment,
   pinNoteToConnectorWaypoint,
   readNoteConnectorPin,
   syncNotePositionsFromPins,
@@ -43,6 +44,22 @@ describe("note-connector-pin", () => {
     const pinned = pinNoteToConnectorWaypoint(note({ x: 5, y: 5 }), "cn1", 0, connectors);
     const moved = applyNoteMovePinUpdate({ ...pinned, x: 200, y: 200 }, connectors);
     expect(readNoteConnectorPin(moved.metadata)).toBeNull();
+  });
+
+  it("builds a leader segment from waypoint to note edge", () => {
+    const connectors = [conn([{ x: 100, y: 100 }])];
+    const n = pinNoteToConnectorWaypoint(
+      note({ x: 120, y: 130, width: 80, height: 60 }),
+      "cn1",
+      0,
+      connectors,
+    );
+    const seg = noteConnectorPinLeaderSegment(n, connectors, false);
+    expect(seg).not.toBeNull();
+    expect(seg!.x1).toBe(100);
+    expect(seg!.y1).toBe(100);
+    expect(seg!.x2).toBeGreaterThanOrEqual(120);
+    expect(seg!.x2).toBeLessThanOrEqual(200);
   });
 
   it("reindexes pins when a waypoint is removed", () => {

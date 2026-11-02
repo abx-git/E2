@@ -1,4 +1,6 @@
+import { rectBorderHitFromRay } from "@/lib/connector-geometry";
 import type { BoardConnector, ConnectorWaypoint } from "@/types/board-connector";
+import { elementCanvasBounds } from "@/lib/note-compact";
 import { elementBounds } from "@/lib/selection-geometry";
 import type { ElementMetadata, StormElement } from "@/types/storm-element";
 
@@ -43,6 +45,43 @@ export function waypointAt(
 ): ConnectorWaypoint | null {
   const wp = connector?.waypoints?.[index];
   return wp ? { x: wp.x, y: wp.y } : null;
+}
+
+/** Live waypoint while dragging a bend handle (optional). */
+export function waypointForPin(
+  pin: NoteConnectorPin,
+  connectors: BoardConnector[],
+  liveWaypoint?: { connectorId: string; index: number; point: ConnectorWaypoint },
+): ConnectorWaypoint | null {
+  const conn = connectors.find((c) => c.id === pin.connectorId);
+  if (
+    liveWaypoint &&
+    liveWaypoint.connectorId === pin.connectorId &&
+    liveWaypoint.index === pin.waypointIndex
+  ) {
+    return { ...liveWaypoint.point };
+  }
+  return waypointAt(conn, pin.waypointIndex);
+}
+
+/** Thin leader: connector bend → nearest edge of the pinned note card. */
+export function noteConnectorPinLeaderSegment(
+  note: StormElement,
+  connectors: BoardConnector[],
+  notesCompact: boolean,
+  liveWaypoint?: { connectorId: string; index: number; point: ConnectorWaypoint },
+): { x1: number; y1: number; x2: number; y2: number } | null {
+  if (note.type !== "note") return null;
+  const pin = readNoteConnectorPin(note.metadata);
+  if (!pin) return null;
+  const wp = waypointForPin(pin, connectors, liveWaypoint);
+  if (!wp) return null;
+  const bounds = elementCanvasBounds(note, notesCompact);
+  const rect = { x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h };
+  const cx = bounds.x + bounds.w / 2;
+  const cy = bounds.y + bounds.h / 2;
+  const onNote = rectBorderHitFromRay(rect, wp, { x: cx, y: cy });
+  return { x1: wp.x, y1: wp.y, x2: onNote.x, y2: onNote.y };
 }
 
 export function notePositionFromPin(

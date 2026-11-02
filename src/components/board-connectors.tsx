@@ -37,6 +37,7 @@ import {
   resolveConnectorPolylinePoints,
   updateConnectorWaypoint,
 } from "@/lib/connector-polyline";
+import { noteConnectorPinLeaderSegment } from "@/lib/note-connector-pin";
 import { connectorHitStrokeWidth } from "@/lib/connector-style";
 import { connectorDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
 import { connectorDimmedByTypeVisibilityFilter } from "@/lib/canvas-type-visibility-filter";
@@ -364,6 +365,31 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
           </marker>
         </defs>
 
+        {elements.map((el) => {
+          const seg = noteConnectorPinLeaderSegment(
+            el,
+            connectors,
+            notesCompact,
+            waypointDrag ?? undefined,
+          );
+          if (!seg) return null;
+          return (
+            <line
+              key={`note-pin-leader-${el.id}`}
+              data-board-connector="note-pin-leader"
+              x1={seg.x1}
+              y1={seg.y1}
+              x2={seg.x2}
+              y2={seg.y2}
+              stroke="#94a3b8"
+              strokeWidth={1}
+              strokeDasharray="3 3"
+              strokeOpacity={0.85}
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+
         {connectors.map((conn) => {
           const draggingThis = endpointDrag?.connectorId === conn.id;
           const basePoints = resolveConnectorPolylinePoints(
@@ -587,55 +613,6 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
               notesCompact={notesCompact}
             />
           )}
-          {(() => {
-            const bendGuidePoints = (selectedConn.waypoints ?? []).map((wp, index) =>
-              waypointDrag?.connectorId === selectedConn.id && waypointDrag.index === index
-                ? waypointDrag.point
-                : wp,
-            );
-            if (bendGuidePoints.length === 0) return null;
-            const guideStroke = "#2a9d8f";
-            const segments: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
-            if (selectedHandleStart) {
-              segments.push({
-                x1: selectedHandleStart.x,
-                y1: selectedHandleStart.y,
-                x2: bendGuidePoints[0]!.x,
-                y2: bendGuidePoints[0]!.y,
-              });
-            }
-            for (let i = 0; i < bendGuidePoints.length - 1; i++) {
-              const a = bendGuidePoints[i]!;
-              const b = bendGuidePoints[i + 1]!;
-              segments.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y });
-            }
-            if (selectedHandleEnd) {
-              const last = bendGuidePoints[bendGuidePoints.length - 1]!;
-              segments.push({
-                x1: last.x,
-                y1: last.y,
-                x2: selectedHandleEnd.x,
-                y2: selectedHandleEnd.y,
-              });
-            }
-            return (
-              <g data-board-connector="bend-guides" className="pointer-events-none">
-                {segments.map((seg, i) => (
-                  <line
-                    key={`bend-guide-${i}`}
-                    x1={seg.x1}
-                    y1={seg.y1}
-                    x2={seg.x2}
-                    y2={seg.y2}
-                    stroke={guideStroke}
-                    strokeWidth={1}
-                    strokeOpacity={0.65}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                ))}
-              </g>
-            );
-          })()}
           <circle
             data-board-connector="endpoint"
             cx={selectedHandleStart.x}
