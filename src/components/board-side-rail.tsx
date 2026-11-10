@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   Bookmark,
   ClipboardList,
@@ -24,6 +24,12 @@ import { FacilitatorPanel } from "@/components/facilitator-panel";
 import { GlossaryPanel } from "@/components/glossary-panel";
 import { HotspotList } from "@/components/hotspot-list";
 import { clipboardItemCount } from "@/lib/board-clipboard";
+import {
+  clampSideRailWidth,
+  readSideRailWidth,
+  SIDE_RAIL_WIDTH_DEFAULT,
+  writeSideRailWidth,
+} from "@/lib/side-rail-width";
 import type { FacilitatorPhase } from "@/lib/facilitator-phases";
 import { useT } from "@/i18n";
 import {
@@ -307,16 +313,78 @@ export function BoardSideRailContent({
 
 export function BoardSideRail({ onHide, ...contentProps }: BoardSideRailProps) {
   const t = useT();
+  const [width, setWidth] = useState(() =>
+    typeof window !== "undefined" ? readSideRailWidth() : SIDE_RAIL_WIDTH_DEFAULT,
+  );
+  const dragging = useRef(false);
+
+  const onResizePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      dragging.current = true;
+      const handle = e.currentTarget;
+      const startX = e.clientX;
+      const startWidth = width;
+      handle.setPointerCapture(e.pointerId);
+
+      const onMove = (ev: PointerEvent) => {
+        if (!dragging.current) return;
+        const next = clampSideRailWidth(startWidth + (startX - ev.clientX));
+        setWidth(next);
+      };
+
+      const onUp = (ev: PointerEvent) => {
+        if (!dragging.current) return;
+        dragging.current = false;
+        const next = clampSideRailWidth(startWidth + (startX - ev.clientX));
+        setWidth(next);
+        writeSideRailWidth(next);
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        try {
+          handle.releasePointerCapture(ev.pointerId);
+        } catch {
+          /* ignore */
+        }
+      };
+
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    },
+    [width],
+  );
+
   return (
-    <div className="dock-surface hidden w-72 shrink-0 flex-col overflow-hidden rounded-dock lg:flex">
-      {onHide ? (
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-2">
-          <span className="group-label">{t("chrome.propertiesPanelTitle")}</span>
-          <BoardDockHideButton side="right" onHide={onHide} />
+    <div
+      className="relative hidden shrink-0 lg:flex"
+      style={{ width }}
+      data-testid="board-side-rail"
+    >
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={t("chrome.resizeSideRail")}
+        title={t("chrome.resizeSideRail")}
+        className="absolute inset-y-0 left-0 z-10 w-2 -translate-x-1/2 cursor-col-resize touch-none hover:bg-[var(--accent)]/25 active:bg-[var(--accent)]/40"
+        onPointerDown={onResizePointerDown}
+        onDoubleClick={() => {
+          setWidth(SIDE_RAIL_WIDTH_DEFAULT);
+          writeSideRailWidth(SIDE_RAIL_WIDTH_DEFAULT);
+        }}
+      />
+      <div className="dock-surface flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-dock">
+        {onHide ? (
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] px-3 py-2">
+            <span className="group-label">{t("chrome.propertiesPanelTitle")}</span>
+            <BoardDockHideButton side="right" onHide={onHide} />
+          </div>
+        ) : null}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <BoardSideRailContent {...contentProps} />
         </div>
-      ) : null}
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <BoardSideRailContent {...contentProps} />
       </div>
     </div>
   );

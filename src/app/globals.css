@@ -76,6 +76,20 @@ body {
   .dock-field:focus {
     border-color: var(--accent);
   }
+
+  .dock-range {
+    display: block;
+    width: 100%;
+    min-width: 4.5rem;
+    height: 1.25rem;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+
+  .dock-range:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
 }
 
 /* Corner beta ribbon — hover shows format-stability warning via title */
