@@ -72,6 +72,7 @@ export function BoundedContextDetailPanel({
 
       <RegionAppearanceControls
         kind="boundedContext"
+        elementId={boundedContext.id}
         region={boundedContext}
         onChange={(patch) => updateBoundedContext(boundedContext.id, patch)}
       />

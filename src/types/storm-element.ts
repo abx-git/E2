@@ -278,6 +278,8 @@ export interface ElementMetadata {
   regionFillOpacity?: number;
   regionBorderColor?: string;
   regionBorderOpacity?: number;
+  regionLabelColor?: string;
+  regionLabelOpacity?: number;
   regionLocked?: boolean;
 }
 
@@ -351,6 +353,10 @@ export interface Swimlane {
   borderColor?: string;
   /** Border opacity 0–1. */
   borderOpacity?: number;
+  /** Label text color (#rrggbb). When omitted, contrast is derived from the fill. */
+  labelColor?: string;
+  /** Label text opacity 0–1 (defaults to 1 when labelColor is set). */
+  labelOpacity?: number;
   /** When true, position/size cannot be changed on the canvas. */
   locked?: boolean;
   /** Stacking order among swimlanes and bounded contexts (higher = in front). */
@@ -373,6 +379,10 @@ export interface BoundedContext {
   borderColor?: string;
   /** Border opacity 0–1. */
   borderOpacity?: number;
+  /** Label text color (#rrggbb). When omitted, contrast is derived from the fill. */
+  labelColor?: string;
+  /** Label text opacity 0–1 (defaults to 1 when labelColor is set). */
+  labelOpacity?: number;
   /** When true, position/size cannot be changed on the canvas. */
   locked?: boolean;
   /** Stacking order among swimlanes and bounded contexts (higher = in front). */
