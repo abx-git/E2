@@ -454,7 +454,7 @@ Details: [`docs/VIEWER.md`](docs/VIEWER.md).
 
 ## Embed in Markdown / Node apps
 
-React component (`E2BoardEmbed`) and **markdown-it** plugin for ` ```e2 ` fences — fullscreen, glossary, hotspots, all views: [`docs/EMBED.md`](docs/EMBED.md).
+React component (`E2BoardEmbed`) and **markdown-it** plugin (` ```e2 ` and `*.e2.json` image links). Formats & static `e2-render`: [`docs/MARKDOWN-FORMATS.md`](docs/MARKDOWN-FORMATS.md), [`docs/EMBED.md`](docs/EMBED.md).
 
 ## GitHub Pages
 

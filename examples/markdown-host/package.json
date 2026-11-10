@@ -1,0 +1,11 @@
+{
+  "name": "e2-markdown-host-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.0"
+  }
+}

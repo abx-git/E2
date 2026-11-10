@@ -42,16 +42,39 @@ function buildEmbedUrl(embedOrigin, boardSrc, extraParams = {}) {
   return url.toString();
 }
 
+function isE2JsonRef(href) {
+  return /\.e2\.json(?:[?#].*)?$/i.test(href.trim());
+}
+
+function renderEmbedIframe(embedOrigin, boardSrc, opts, extraParams = {}) {
+  const height = opts.height ?? "28rem";
+  const iframeSrc = buildEmbedUrl(embedOrigin, boardSrc, extraParams);
+  return `
+<div class="e2-embed-host" data-e2-height="${escapeHtml(height)}" style="height:${escapeHtml(height)};width:100%;min-height:16rem;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
+  <iframe
+    class="e2-embed-frame"
+    src="${escapeHtml(iframeSrc)}"
+    title="E2 board"
+    style="width:100%;height:100%;border:0"
+    loading="lazy"
+    referrerpolicy="no-referrer-when-downgrade"
+    allow="clipboard-read; clipboard-write"
+  ></iframe>
+</div>`;
+}
+
 /**
  * @param {import("markdown-it")} md
- * @param {{ embedOrigin?: string; siteOrigin?: string; height?: string; loadScript?: boolean }} [opts]
+ * @param {{ embedOrigin?: string; siteOrigin?: string; height?: string; loadScript?: boolean; e2ImageLinks?: boolean }} [opts]
  */
 export default function markdownItE2Fence(md, opts = {}) {
   const embedOrigin = opts.embedOrigin ?? DEFAULT_ORIGIN;
   const height = opts.height ?? "28rem";
   const loadScript = opts.loadScript === true;
+  const e2ImageLinks = opts.e2ImageLinks !== false;
 
   const defaultFence = md.renderer.rules.fence;
+  const defaultImage = md.renderer.rules.image;
 
   md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const token = tokens[idx];
@@ -65,22 +88,9 @@ export default function markdownItE2Fence(md, opts = {}) {
       return `<p class="e2-embed-error">Empty e2 fence — add a board URL or path.</p>`;
     }
 
-  const attrs = token.info.trim().split(/\s+/).slice(1);
-    const editable = attrs.includes("editable") ? "1" : undefined;
-    const iframeSrc = buildEmbedUrl(embedOrigin, boardSrc, editable ? { editable } : {});
-
-    const html = `
-<div class="e2-embed-host" data-e2-height="${escapeHtml(height)}" style="height:${escapeHtml(height)};width:100%;min-height:16rem;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
-  <iframe
-    class="e2-embed-frame"
-    src="${escapeHtml(iframeSrc)}"
-    title="E2 board"
-    style="width:100%;height:100%;border:0"
-    loading="lazy"
-    referrerpolicy="no-referrer-when-downgrade"
-    allow="clipboard-read; clipboard-write"
-  ></iframe>
-</div>`;
+    const attrs = token.info.trim().split(/\s+/).slice(1);
+    const editable = attrs.includes("editable") ? { editable: "1" } : {};
+    let html = renderEmbedIframe(embedOrigin, boardSrc, opts, editable);
 
     if (!loadScript) return html;
 
@@ -88,4 +98,16 @@ export default function markdownItE2Fence(md, opts = {}) {
       `<script src="${escapeHtml(embedOrigin.replace(/\/$/, ""))}/embed-host.js" defer></script>`;
     return html + script;
   };
+
+  if (e2ImageLinks) {
+    md.renderer.rules.image = (tokens, idx, options, env, self) => {
+      const token = tokens[idx];
+      const src = token.attrGet("src") ?? "";
+      if (!isE2JsonRef(src)) {
+        return defaultImage(tokens, idx, options, env, self);
+      }
+      const boardSrc = resolveBoardSrc(src, opts) ?? src;
+      return renderEmbedIframe(embedOrigin, boardSrc, { ...opts, height });
+    };
+  }
 }
