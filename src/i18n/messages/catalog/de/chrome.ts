@@ -14,6 +14,7 @@ export const chromeDe = {
     showPropertiesPanel: "Eigenschaften-Panel",
     hidePropertiesPanel: "Eigenschaften-Panel ausblenden",
     propertiesPanelTitle: "Eigenschaften",
+    resizeSideRail: "Breite des Eigenschaften-Panels ändern",
     activeView: "Aktive Sicht",
     prompt: "Prompt",
     promptDetail: "Text für KI-Chat",

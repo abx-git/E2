@@ -1,11 +1,35 @@
 import { describe, expect, it } from "vitest";
 
 import { extractElementAttributeClipboard } from "@/lib/element-attribute-clipboard";
-import { planLayoutRegionAppearancePaste } from "@/lib/region-appearance-clipboard";
+import {
+  buildLayoutRegionAttributeClipboard,
+  extractLayoutRegionAppearanceMetadata,
+  planLayoutRegionAppearancePaste,
+} from "@/lib/region-appearance-clipboard";
 import { resolveRegionLabelInk } from "@/lib/region-style";
 import type { StormElement } from "@/types/storm-element";
 
 describe("region-appearance-clipboard", () => {
+  it("extracts effective paint when metadata is empty", () => {
+    const meta = extractLayoutRegionAppearanceMetadata({
+      id: "l1",
+      type: "swimlane",
+      label: "Lane",
+      x: 0,
+      y: 0,
+    });
+    expect(meta?.regionColor).toBe("#94a3b8");
+    expect(meta?.regionFillOpacity).toBeCloseTo(0.12);
+    const clip = buildLayoutRegionAttributeClipboard({
+      id: "l1",
+      type: "swimlane",
+      label: "Lane",
+      x: 0,
+      y: 0,
+    });
+    expect(clip.metadata.regionColor).toBe("#94a3b8");
+  });
+
   it("pastes only region paint between swimlane and bounded context", () => {
     const clip = extractElementAttributeClipboard({
       id: "src",

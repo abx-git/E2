@@ -49,7 +49,10 @@ import {
   type ElementAttributeClipboard,
   type ElementAttributePastePlan,
 } from "@/lib/element-attribute-clipboard";
-import { planLayoutRegionAppearancePaste } from "@/lib/region-appearance-clipboard";
+import {
+  buildLayoutRegionAttributeClipboard,
+  planLayoutRegionAppearancePaste,
+} from "@/lib/region-appearance-clipboard";
 import {
   bringElementsForward as computeBringForward,
   bringElementsToFront as computeBringToFront,
@@ -1185,8 +1188,12 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   copyElementAttributes: (elementId) => {
     const el = get().elements.find((e) => e.id === elementId);
     if (!el) return false;
+    const clip =
+      el.type === "swimlane" || el.type === "boundedContext"
+        ? buildLayoutRegionAttributeClipboard(el)
+        : extractElementAttributeClipboard(el);
     set({
-      elementAttributeClipboard: extractElementAttributeClipboard(el),
+      elementAttributeClipboard: clip,
       elementAttributeClipboardSourceId: elementId,
     });
     return true;
@@ -1215,6 +1222,10 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         if (plan.patch.metadata !== undefined) next.metadata = plan.patch.metadata;
         return next;
       });
+      const target = elements.find((e) => e.id === targetId);
+      if (target?.type === "swimlane" || target?.type === "boundedContext") {
+        return withSyncedRegions(elements);
+      }
       return { elements: settleElements(elements, s.swimlanes, s.boundedContexts) };
     });
   },

@@ -14,6 +14,7 @@ export const chromeEn = {
     showPropertiesPanel: "Properties panel",
     hidePropertiesPanel: "Hide properties panel",
     propertiesPanelTitle: "Properties",
+    resizeSideRail: "Resize properties panel",
     activeView: "Active view",
     prompt: "Prompt",
     promptDetail: "Text for AI chat",
