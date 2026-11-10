@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 /**
- * Local E2 viewer launcher: serves a `.e2.json` with CORS and starts the Next.js app.
+ * E2 viewer CLI — serves a `.e2.json` with CORS and starts the Next.js app.
+ *
+ * Install:
+ *   npm install -g github:abx-git/E2
+ *   npm install -g event-storming-tool
  *
  * Usage:
- *   node scripts/e2-viewer.mjs [path/to/board.e2.json]
- *   npm run viewer -- path/to/board.e2.json
+ *   e2-viewer [path/to/board.e2.json]
+ *   npx e2-viewer path/to/board.e2.json
  *
  * Options (env):
  *   E2_VIEWER_FILE_PORT   — board file HTTP port (default 41731)
@@ -12,7 +16,7 @@
  *   E2_VIEWER_NO_BROWSER  — set to 1 to skip opening the browser
  */
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
   createReadStream,
   existsSync,
@@ -20,11 +24,12 @@ import {
   statSync,
 } from "node:fs";
 import { createServer } from "node:http";
-import { basename, extname, resolve } from "node:path";
+import { createRequire } from "node:module";
+import { basename, dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const repoRoot = resolve(__dirname, "..");
+const packageRoot = resolve(__dirname, "..");
 
 const FILE_PORT = Number(process.env.E2_VIEWER_FILE_PORT || 41731);
 const APP_PORT = Number(process.env.E2_VIEWER_APP_PORT || 3000);
@@ -34,13 +39,20 @@ const BOARD_AUTO_LOAD_PARAM = "boardAutoLoad";
 const BOARD_URL_PARAM = "board";
 
 function usage(exitCode = 0) {
-  const msg = `E2 Viewer — start the app and open a local .e2.json file
+  const msg = `E2 Viewer — installable board viewer (full view tabs, editor)
+
+Install from GitHub:
+  npm install -g github:abx-git/E2
+  npm install github:abx-git/E2          # project-local → npx e2-viewer
+
+Install from npm (after publish):
+  npm install -g event-storming-tool
 
 Usage:
-  npm run viewer
-  npm run viewer -- path/to/board.e2.json
+  e2-viewer [path/to/board.e2.json]
+  npx e2-viewer path/to/board.e2.json
 
-Without a file path, only starts the dev server (open a board via Data → Open or ?board=).
+Without a file path, starts the app (open via Data → Open or ?board=).
 
 Environment:
   E2_VIEWER_FILE_PORT=${FILE_PORT}
@@ -86,6 +98,50 @@ if (fileArg) {
 
 /** @type {import("node:http").Server | null} */
 let fileServer = null;
+
+function resolveNextBin(root) {
+  const requireFromPkg = createRequire(resolve(root, "package.json"));
+  try {
+    const nextPkg = requireFromPkg.resolve("next/package.json");
+    return resolve(dirname(nextPkg), "dist/bin/next");
+  } catch {
+    return resolve(root, "node_modules/next/dist/bin/next");
+  }
+}
+
+function ensurePackageDependencies(root) {
+  const nextBin = resolveNextBin(root);
+  if (existsSync(nextBin)) return nextBin;
+
+  console.log("E2 dependencies missing — running npm install in package directory…");
+  console.log(`  ${root}\n`);
+
+  const npmCmd = process.platform === "win32" ? "npm.cmd" : "npm";
+  const install = spawnSync(
+    npmCmd,
+    ["install", "--omit=optional", "--no-audit", "--no-fund"],
+    {
+      cwd: root,
+      stdio: "inherit",
+      env: { ...process.env, NODE_ENV: "development" },
+    },
+  );
+
+  if (install.status !== 0) {
+    console.error(
+      "npm install failed. Clone https://github.com/abx-git/E2 or run:\n" +
+        `  cd "${root}" && npm install`,
+    );
+    process.exit(install.status ?? 1);
+  }
+
+  const after = resolveNextBin(root);
+  if (!existsSync(after)) {
+    console.error(`Next.js not found after install. Expected: ${after}`);
+    process.exit(1);
+  }
+  return after;
+}
 
 function startFileServer(absolutePath) {
   const fileName = basename(absolutePath);
@@ -170,9 +226,10 @@ async function main() {
     console.log(`  → ${boardUrl}`);
   }
 
-  const nextBin = resolve(repoRoot, "node_modules/next/dist/bin/next");
+  const nextBin = ensurePackageDependencies(packageRoot);
+
   nextProc = spawn(process.execPath, [nextBin, "dev", "-p", String(APP_PORT)], {
-    cwd: repoRoot,
+    cwd: packageRoot,
     stdio: "inherit",
     env: { ...process.env, PORT: String(APP_PORT) },
   });
@@ -200,7 +257,7 @@ async function main() {
     openBrowser(openUrl);
   } else {
     console.log(`\nE2 dev server: ${appOrigin}/`);
-    console.log("Open a .e2.json via Data → Open, or run: npm run viewer -- your-board.e2.json");
+    console.log("Open a .e2.json via Data → Open, or: e2-viewer your-board.e2.json");
     if (!NO_BROWSER) openBrowser(`${appOrigin}/`);
   }
 }

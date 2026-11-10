@@ -432,6 +432,26 @@ Details on the i18n infrastructure: [`docs/i18n.md`](docs/i18n.md).
 
 ---
 
+## Install as npm module (viewer CLI)
+
+Use E2 as an **installable package** from this repository or from npm (`event-storming-tool`). The **`e2-viewer`** command starts the full app (all view tabs, editor features).
+
+```bash
+# From GitHub (works today)
+npm install -g github:abx-git/E2
+e2-viewer path/to/board.e2.json
+
+# Project-local
+npm install github:abx-git/E2
+npx e2-viewer path/to/board.e2.json
+
+# From npm registry (after publish)
+npm install -g event-storming-tool
+e2-viewer path/to/board.e2.json
+```
+
+Details: [`docs/VIEWER.md`](docs/VIEWER.md).
+
 ## GitHub Pages
 
 See [`docs/GITHUB-PAGES.md`](docs/GITHUB-PAGES.md).
