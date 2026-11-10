@@ -116,8 +116,6 @@ export function RegionAppearanceControls({
 
   const attributeClipboard = useStormBoardStore((s) => s.elementAttributeClipboard);
   const attributeClipboardSourceId = useStormBoardStore((s) => s.elementAttributeClipboardSourceId);
-  const attributeClipboard = useStormBoardStore((s) => s.elementAttributeClipboard);
-  const attributeClipboardSourceId = useStormBoardStore((s) => s.elementAttributeClipboardSourceId);
   const canPasteAppearance = layoutRegionCanPasteAppearance(
     kind,
     elementId,
