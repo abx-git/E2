@@ -1470,17 +1470,16 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
   ].join("");
 }
 
-export function exportBoardSvg(): void {
-  const state = boardExportSliceFromStore();
+/** Headless / CLI: build draw.io-compatible SVG for a board export slice (no DOM download). */
+export function buildBoardSvgString(state: BoardExportSlice): string {
   const bounds = computeBoardBounds(state);
   const { width, height, ox, oy } = bounds;
   const notesCompact = state.notesCompact ?? false;
   const canvasBg = exportCanvasBackground(state.appearance);
   const mxfile = buildDrawioMxFile(state, bounds);
 
-  // Measure with an offscreen canvas so wrapping matches PNG / UI metrics.
-  const measureCanvas = document.createElement("canvas");
-  const measureCtx = measureCanvas.getContext("2d");
+  const measureCtx =
+    typeof document !== "undefined" ? document.createElement("canvas").getContext("2d") : null;
   const measureAt = (sizePx: number, weight: number, s: string) => {
     if (!measureCtx) return s.length * sizePx * 0.55;
     measureCtx.font = cssFont(weight, sizePx);
@@ -1641,10 +1640,15 @@ export function exportBoardSvg(): void {
   }
 
   parts.push("</svg>");
-  // `.drawio.svg` is recognized by diagrams.net / draw.io Desktop as an editable diagram.
+  return parts.join("\n");
+}
+
+export function exportBoardSvg(): void {
+  const state = boardExportSliceFromStore();
+  const svg = buildBoardSvgString(state);
   downloadText(
     `${state.title.replace(/\s+/g, "-").toLowerCase()}.drawio.svg`,
-    parts.join("\n"),
+    svg,
     "image/svg+xml",
   );
 }

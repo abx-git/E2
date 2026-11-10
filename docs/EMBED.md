@@ -1,5 +1,7 @@
 # E2 in Markdown & Node applications
 
+**Format choice (interaktiv vs. statisch):** [MARKDOWN-FORMATS.md](MARKDOWN-FORMATS.md)
+
 Embed **full E2 boards** (pan/zoom, focus highlight, search, glossary, hotspots, multi-tab views, actions views) inside apps that render Markdown — without reimplementing the canvas.
 
 ## Choose an integration
@@ -79,10 +81,17 @@ const html = md.render(`
 \`\`\`e2
 /docs/order.e2.json
 \`\`\`
+
+![Order flow](/docs/order.e2.json)
 `);
 ```
 
-Fence info `e2 editable` enables sticky editing inside the iframe.
+- Fence info `e2 editable` enables sticky editing inside the iframe.
+- Links to `*.e2.json` in `![…](…)` are rewritten to the same iframe embed (`e2ImageLinks`, default on).
+
+Example project: [`examples/markdown-host/`](../examples/markdown-host/README.md).
+
+**Static image:** [`e2-render`](../scripts/e2-render.ts) → SVG/PNG — see [MARKDOWN-FORMATS.md](MARKDOWN-FORMATS.md).
 
 The plugin emits an **iframe** to `/embed/?board=…&boardAutoLoad=1&embed=1` — same UI as the hosted app, scoped to the embed layout (view tabs + canvas + side rail).
 

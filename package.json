@@ -1,6 +1,6 @@
 {
   "name": "event-storming-tool",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "E2 collaborative domain modeling board — viewer and editor for .e2.json (Event Storming, DDD, BDD, …)",
   "private": false,
   "author": "Andreas Bergmann",
@@ -27,7 +27,8 @@
   },
   "bin": {
     "e2-viewer": "./scripts/e2-viewer.mjs",
-    "e2": "./scripts/e2-viewer.mjs"
+    "e2": "./scripts/e2-viewer.mjs",
+    "e2-render": "./scripts/e2-render.mjs"
   },
   "exports": {
     "./embed": "./src/embed/index.ts",
@@ -35,6 +36,8 @@
   },
   "files": [
     "scripts/e2-viewer.mjs",
+    "scripts/e2-render.mjs",
+    "scripts/e2-render.ts",
     "src/embed",
     "src",
     "public",
@@ -54,6 +57,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "viewer": "node scripts/e2-viewer.mjs",
+    "render": "tsx scripts/e2-render.ts",
     "prepack": "npm run test:run -- src/lib/board-remote-url.test.ts"
   },
   "dependencies": {
@@ -84,6 +88,10 @@
     "eslint": "^9.27.0",
     "eslint-config-next": "^15.3.2",
     "serwist": "^9.5.11",
+    "tsx": "^4.20.3",
     "vitest": "^3.2.4"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.55.0"
   }
 }
