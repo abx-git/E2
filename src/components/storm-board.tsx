@@ -76,6 +76,7 @@ import {
 } from "@/lib/file-library";
 import {
   fetchAndValidateRemoteBoard,
+  readBoardAutoLoadFromSearch,
   readBoardUrlFromSearch,
   stripBoardUrlParamFromLocation,
 } from "@/lib/board-remote-url";
@@ -322,7 +323,17 @@ export function StormBoard() {
     } finally {
       setRemoteBoardBusy(false);
     }
-  }, [remoteBoardUrl, remoteBoardBusy]);
+  }, [remoteBoardUrl, remoteBoardBusy, loadForeignBoardIntoEditor, t]);
+
+  const remoteBoardAutoLoadRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!remoteBoardUrl || remoteBoardBusy || remoteBoardAutoLoadRef.current) return;
+    if (!readBoardAutoLoadFromSearch(window.location.search)) return;
+    if (boardHasLocalContent()) return;
+    remoteBoardAutoLoadRef.current = true;
+    void handleRemoteBoardConfirm();
+  }, [remoteBoardUrl, remoteBoardBusy, handleRemoteBoardConfirm]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

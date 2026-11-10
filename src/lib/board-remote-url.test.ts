@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  BOARD_AUTO_LOAD_PARAM,
   BOARD_URL_PARAM,
   buildBoardShareAppUrl,
   checkBoardSourceUrl,
   fetchAndValidateRemoteBoard,
+  readBoardAutoLoadFromSearch,
   readBoardUrlFromSearch,
 } from "@/lib/board-remote-url";
 import { buildBoardSnapshot, createDefaultBoardDocument, stringifyExportedDocument } from "@/lib/storm-json";
@@ -20,6 +22,12 @@ describe("board-remote-url", () => {
     expect(checkBoardSourceUrl("http://localhost:3000/a.json").ok).toBe(true);
     expect(checkBoardSourceUrl("http://example.com/a.json").ok).toBe(false);
     expect(checkBoardSourceUrl("ftp://x").ok).toBe(false);
+  });
+
+  it("reads boardAutoLoad flag", () => {
+    expect(readBoardAutoLoadFromSearch(`?${BOARD_AUTO_LOAD_PARAM}=1`)).toBe(true);
+    expect(readBoardAutoLoadFromSearch(`?${BOARD_AUTO_LOAD_PARAM}=0`)).toBe(false);
+    expect(readBoardAutoLoadFromSearch("")).toBe(false);
   });
 
   it("reads and builds the board share param", () => {

@@ -1,10 +1,45 @@
 {
   "name": "event-storming-tool",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.2.0",
+  "description": "E2 collaborative domain modeling board — viewer and editor for .e2.json (Event Storming, DDD, BDD, …)",
+  "private": false,
   "author": "Andreas Bergmann",
   "license": "MIT",
   "homepage": "https://abx-git.github.io/E2/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abx-git/E2.git"
+  },
+  "bugs": {
+    "url": "https://github.com/abx-git/E2/issues"
+  },
+  "keywords": [
+    "e2",
+    "event-storming",
+    "ddd",
+    "domain-driven-design",
+    "viewer",
+    "board",
+    "workshop"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "e2-viewer": "./scripts/e2-viewer.mjs",
+    "e2": "./scripts/e2-viewer.mjs"
+  },
+  "files": [
+    "scripts/e2-viewer.mjs",
+    "src",
+    "public",
+    "next.config.ts",
+    "next-env.d.ts",
+    "postcss.config.mjs",
+    "tailwind.config.ts",
+    "tsconfig.json",
+    "middleware.ts"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,7 +47,9 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "viewer": "node scripts/e2-viewer.mjs",
+    "prepack": "npm run test:run -- src/lib/board-remote-url.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -24,10 +61,13 @@
     "lib0": "^0.2.117",
     "lucide-react": "^0.511.0",
     "next": "^15.3.2",
+    "postcss": "^8.5.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.8.3",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.31",
     "zustand": "^5.0.5"
@@ -38,10 +78,7 @@
     "@types/react-dom": "^19.1.5",
     "eslint": "^9.27.0",
     "eslint-config-next": "^15.3.2",
-    "postcss": "^8.5.3",
     "serwist": "^9.5.11",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   }
 }

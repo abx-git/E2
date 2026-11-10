@@ -9,6 +9,9 @@ import { normalizeExternalUrl } from "@/lib/board-link";
 
 export const BOARD_URL_PARAM = "board";
 
+/** When `1`, load `?board=` without confirmation if the editor has no local content (viewer/CI). */
+export const BOARD_AUTO_LOAD_PARAM = "boardAutoLoad";
+
 export type BoardSourceUrlCheck =
   | { ok: true; url: string }
   | { ok: false; reason: string };
@@ -49,6 +52,14 @@ export function readBoardUrlFromSearch(search: string): string | null {
   }
 }
 
+export function readBoardAutoLoadFromSearch(search: string): boolean {
+  try {
+    return new URLSearchParams(search).get(BOARD_AUTO_LOAD_PARAM)?.trim() === "1";
+  } catch {
+    return false;
+  }
+}
+
 /** Build an app URL that opens E2 and loads the given remote board JSON. */
 export function buildBoardShareAppUrl(
   boardSourceUrl: string,
@@ -65,8 +76,9 @@ export function buildBoardShareAppUrl(
 export function stripBoardUrlParamFromLocation(): void {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
-  if (!url.searchParams.has(BOARD_URL_PARAM)) return;
+  if (!url.searchParams.has(BOARD_URL_PARAM) && !url.searchParams.has(BOARD_AUTO_LOAD_PARAM)) return;
   url.searchParams.delete(BOARD_URL_PARAM);
+  url.searchParams.delete(BOARD_AUTO_LOAD_PARAM);
   window.history.replaceState({}, "", url.toString());
 }
 
