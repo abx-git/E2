@@ -495,6 +495,7 @@ export function ElementDetailSidebar({
           </Field>
           <RegionAppearanceControls
             kind="swimlane"
+            elementId={selectedSwimlane.id}
             region={selectedSwimlane}
             onChange={(patch) => updateSwimlane(selectedSwimlane.id, patch)}
           />

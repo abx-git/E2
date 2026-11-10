@@ -731,6 +731,16 @@
           "maximum": 1,
           "description": "Deckkraft des Rands (0–1)."
         },
+        "labelColor": {
+          "type": "string",
+          "description": "Textfarbe der Beschriftung (#rrggbb). Ohne Wert wird der Kontrast automatisch aus der Füllung abgeleitet."
+        },
+        "labelOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Deckkraft der Beschriftung (0–1), nur wenn labelColor gesetzt."
+        },
         "locked": {
           "type": "boolean",
           "description": "Wenn true, Position und Größe sind auf dem Canvas gesperrt."
@@ -795,6 +805,16 @@
           "minimum": 0,
           "maximum": 1,
           "description": "Deckkraft des Rands (0–1)."
+        },
+        "labelColor": {
+          "type": "string",
+          "description": "Textfarbe der Beschriftung (#rrggbb). Ohne Wert wird der Kontrast automatisch aus der Füllung abgeleitet."
+        },
+        "labelOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Deckkraft der Beschriftung (0–1), nur wenn labelColor gesetzt."
         },
         "locked": {
           "type": "boolean",

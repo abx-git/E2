@@ -7,7 +7,7 @@ export type RegionVisualKind = "swimlane" | "boundedContext";
 
 export type RegionStyleSource = Pick<
   Swimlane | BoundedContext,
-  "color" | "fillOpacity" | "borderColor" | "borderOpacity" | "locked"
+  "color" | "fillOpacity" | "borderColor" | "borderOpacity" | "labelColor" | "labelOpacity" | "locked"
 >;
 
 const DEFAULTS: Record<
@@ -131,6 +131,24 @@ export function regionLabelInk(
     return { ink: "#0f172a", captionInk: "#334155" };
   }
   return { ink: "#f1f5f9", captionInk: "#cbd5e1" };
+}
+
+/** Explicit label color or automatic contrast from region fill. */
+export function resolveRegionLabelInk(
+  kind: RegionVisualKind,
+  region: RegionStyleSource,
+  backdropHex: string = BOARD_CANVAS_BACKDROP_HEX,
+): RegionLabelInk {
+  const labelHex = parseHexColor(region.labelColor);
+  if (labelHex) {
+    const opacity = clampOpacity(region.labelOpacity, 1);
+    const ink = opacity >= 1 ? labelHex : hexToRgba(labelHex, opacity);
+    const captionOpacity = clampOpacity(opacity * 0.85, opacity);
+    const captionInk = captionOpacity >= 1 ? labelHex : hexToRgba(labelHex, captionOpacity);
+    return { ink, captionInk };
+  }
+  const paint = resolveRegionPaint(kind, region);
+  return regionLabelInk(paint.fillHex, paint.fillOpacity, backdropHex);
 }
 
 export interface ResolvedRegionPaint {

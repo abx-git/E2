@@ -20,6 +20,21 @@ export interface ElementAttributePastePlan {
   warnings: AttributePasteWarning[];
 }
 
+/** Paint fields for swimlanes and bounded contexts (also pasted across region types). */
+export const REGION_APPEARANCE_METADATA_KEYS: (keyof ElementMetadata)[] = [
+  "regionColor",
+  "regionFillOpacity",
+  "regionBorderColor",
+  "regionBorderOpacity",
+  "regionLabelColor",
+  "regionLabelOpacity",
+];
+
+export function clipHasRegionAppearance(meta: ElementMetadata | undefined): boolean {
+  if (!meta) return false;
+  return REGION_APPEARANCE_METADATA_KEYS.some((key) => metadataKeyHasValue(meta, key));
+}
+
 const UNIVERSAL_METADATA_KEYS: (keyof ElementMetadata)[] = [
   "progressMark",
   "showDescriptionOnCard",
@@ -68,6 +83,8 @@ const METADATA_KEYS_BY_TYPE: Partial<Record<ElementType, (keyof ElementMetadata)
   c4Component: ["c4Technology"],
   archComponent: ["c4Technology"],
   link: ["linkKind", "linkUrl", "linkViewId"],
+  swimlane: [...REGION_APPEARANCE_METADATA_KEYS],
+  boundedContext: [...REGION_APPEARANCE_METADATA_KEYS],
 };
 
 export function metadataKeysForElementType(type: ElementType): Set<keyof ElementMetadata> {

@@ -10,7 +10,13 @@ export function isLayoutRegionElementType(type: string): type is LayoutRegionEle
 
 type RegionMeta = Pick<
   ElementMetadata,
-  "regionColor" | "regionFillOpacity" | "regionBorderColor" | "regionBorderOpacity" | "regionLocked"
+  | "regionColor"
+  | "regionFillOpacity"
+  | "regionBorderColor"
+  | "regionBorderOpacity"
+  | "regionLabelColor"
+  | "regionLabelOpacity"
+  | "regionLocked"
 >;
 
 function regionMetaFromSource(source: {
@@ -18,6 +24,8 @@ function regionMetaFromSource(source: {
   fillOpacity?: number;
   borderColor?: string;
   borderOpacity?: number;
+  labelColor?: string;
+  labelOpacity?: number;
   locked?: boolean;
 }): RegionMeta | undefined {
   const meta: RegionMeta = {
@@ -25,6 +33,8 @@ function regionMetaFromSource(source: {
     regionFillOpacity: source.fillOpacity,
     regionBorderColor: source.borderColor,
     regionBorderOpacity: source.borderOpacity,
+    regionLabelColor: source.labelColor,
+    regionLabelOpacity: source.labelOpacity,
     regionLocked: source.locked,
   };
   const hasValue = Object.values(meta).some((v) => v !== undefined);
@@ -78,6 +88,8 @@ export function elementToSwimlane(el: StormElement): Swimlane | null {
     fillOpacity: m.regionFillOpacity,
     borderColor: m.regionBorderColor,
     borderOpacity: m.regionBorderOpacity,
+    labelColor: m.regionLabelColor,
+    labelOpacity: m.regionLabelOpacity,
     locked: m.regionLocked,
   };
 }
@@ -99,6 +111,8 @@ export function elementToBoundedContext(el: StormElement): BoundedContext | null
     fillOpacity: m.regionFillOpacity,
     borderColor: m.regionBorderColor,
     borderOpacity: m.regionBorderOpacity,
+    labelColor: m.regionLabelColor,
+    labelOpacity: m.regionLabelOpacity,
     locked: m.regionLocked,
   };
 }
@@ -153,6 +167,14 @@ export function patchRegionElementFromSwimlane(
   if ("fillOpacity" in patch) meta.regionFillOpacity = patch.fillOpacity;
   if ("borderColor" in patch) meta.regionBorderColor = patch.borderColor;
   if ("borderOpacity" in patch) meta.regionBorderOpacity = patch.borderOpacity;
+  if ("labelColor" in patch) {
+    if (patch.labelColor === undefined) delete meta.regionLabelColor;
+    else meta.regionLabelColor = patch.labelColor;
+  }
+  if ("labelOpacity" in patch) {
+    if (patch.labelOpacity === undefined) delete meta.regionLabelOpacity;
+    else meta.regionLabelOpacity = patch.labelOpacity;
+  }
   if ("locked" in patch) meta.regionLocked = patch.locked;
 
   return {
@@ -177,6 +199,14 @@ export function patchRegionElementFromBoundedContext(
   if ("fillOpacity" in patch) meta.regionFillOpacity = patch.fillOpacity;
   if ("borderColor" in patch) meta.regionBorderColor = patch.borderColor;
   if ("borderOpacity" in patch) meta.regionBorderOpacity = patch.borderOpacity;
+  if ("labelColor" in patch) {
+    if (patch.labelColor === undefined) delete meta.regionLabelColor;
+    else meta.regionLabelColor = patch.labelColor;
+  }
+  if ("labelOpacity" in patch) {
+    if (patch.labelOpacity === undefined) delete meta.regionLabelOpacity;
+    else meta.regionLabelOpacity = patch.labelOpacity;
+  }
   if ("locked" in patch) meta.regionLocked = patch.locked;
 
   return {

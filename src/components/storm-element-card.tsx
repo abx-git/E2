@@ -45,7 +45,7 @@ import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
 import {
   hexToRgba,
   parseHexColor,
-  regionLabelInk,
+  resolveRegionLabelInk,
   resolveRegionPaint,
 } from "@/lib/region-style";
 import {
@@ -167,11 +167,20 @@ export function StormElementCard({
     border: noteColors?.stroke ?? style.stroke,
     text: noteColors?.ink ?? style.ink,
   };
+  const regionSource =
+    isSwimlane
+      ? elementToSwimlane(element)!
+      : isBoundedContextRegion
+        ? elementToBoundedContext(element)!
+        : null;
   const regionTextInk =
-    regionPaint != null
-      ? regionLabelInk(regionPaint.fillHex, regionPaint.fillOpacity)
+    regionPaint != null && regionSource != null
+      ? resolveRegionLabelInk(isSwimlane ? "swimlane" : "boundedContext", regionSource)
       : isBoundary
-        ? regionLabelInk(parseHexColor(colors.bg) ?? colors.bg, BOUNDARY_FILL_OPACITY)
+        ? resolveRegionLabelInk("swimlane", {
+            color: parseHexColor(colors.bg) ?? colors.bg,
+            fillOpacity: BOUNDARY_FILL_OPACITY,
+          })
         : null;
   const showArchDrilldown = supportsArchDrilldown(element.type) && !editing;
   const boundaryTextInset = isBoundary && showArchDrilldown;

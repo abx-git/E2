@@ -5,6 +5,7 @@ import {
   hexToRgba,
   percentToOpacity,
   regionLabelInk,
+  resolveRegionLabelInk,
   resolveRegionPaint,
   sanitizeRegionGeometryPatch,
 } from "@/lib/region-style";
@@ -47,6 +48,14 @@ describe("region-style", () => {
 
   it("picks dark ink on bright high-opacity fills", () => {
     const ink = regionLabelInk("#f8fafc", 0.92);
+    expect(ink.ink).toBe("#0f172a");
+  });
+
+  it("resolveRegionLabelInk falls back to contrast without labelColor", () => {
+    const ink = resolveRegionLabelInk("boundedContext", {
+      color: "#f8fafc",
+      fillOpacity: 0.92,
+    });
     expect(ink.ink).toBe("#0f172a");
   });
 
