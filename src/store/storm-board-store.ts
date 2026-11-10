@@ -253,6 +253,8 @@ export interface StormBoardState {
   /** Ephemeral: which freeform stereotype is selected for placement. */
   paletteCustomTypeId: string | null;
   focusMode: boolean;
+  /** Embed / doc viewer: pan, zoom, select, inspect — no sticky drag or edit. */
+  interactionMode: "edit" | "view";
   /** Desktop layout: left element palette visible. */
   elementsPanelOpen: boolean;
   /** Desktop layout: right inspector + tools rail visible. */
@@ -320,6 +322,7 @@ export interface StormBoardState {
   setPaletteType: (type: ElementType) => void;
   setPaletteCustomTypeId: (id: string | null) => void;
   setFocusMode: (enabled: boolean) => void;
+  setInteractionMode: (mode: "edit" | "view") => void;
   setElementsPanelOpen: (open: boolean) => void;
   setPropertiesPanelOpen: (open: boolean) => void;
   setSearchQuery: (query: string) => void;
@@ -795,6 +798,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   paletteType: defaultPaletteTypeForMode(initialViewDoc.modelingMode),
   paletteCustomTypeId: null,
   focusMode: false,
+  interactionMode: "edit",
   elementsPanelOpen: readElementsPanelOpen(),
   propertiesPanelOpen: readPropertiesPanelOpen(),
   searchQuery: "",
@@ -1045,6 +1049,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   setPaletteType: (paletteType) => set({ paletteType }),
   setPaletteCustomTypeId: (paletteCustomTypeId) => set({ paletteCustomTypeId }),
   setFocusMode: (focusMode) => set({ focusMode }),
+  setInteractionMode: (interactionMode) => set({ interactionMode }),
   setElementsPanelOpen: (elementsPanelOpen) => {
     writeElementsPanelOpen(elementsPanelOpen);
     set({ elementsPanelOpen });

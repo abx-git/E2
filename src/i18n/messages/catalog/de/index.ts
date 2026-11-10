@@ -15,6 +15,7 @@ import { detailSidebarDe } from "@/i18n/messages/catalog/de/detailSidebar";
 import { actionsViewDe } from "@/i18n/messages/catalog/de/actionsView";
 import { exportsMdDe } from "@/i18n/messages/catalog/de/exportsMd";
 import { facilitatorPhasesDe } from "@/i18n/messages/catalog/de/facilitatorPhases";
+import { embedDe } from "@/i18n/messages/catalog/de/embed";
 
 export const catalogDe = {
   ...coreDe,
@@ -34,4 +35,5 @@ export const catalogDe = {
   ...actionsViewDe,
   ...exportsMdDe,
   ...facilitatorPhasesDe,
+  ...embedDe,
 };

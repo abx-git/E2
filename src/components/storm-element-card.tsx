@@ -546,6 +546,10 @@ export function StormElementCard({
           return;
         }
         if (isLayoutRegion && regionElementLocked(element)) return;
+        if (live.interactionMode === "view" && !live.relationMode) {
+          onSelect(element.id, e.shiftKey || e.metaKey || e.ctrlKey);
+          return;
+        }
         draggedRef.current = false;
         useStormBoardStore.getState().beginGesture();
 

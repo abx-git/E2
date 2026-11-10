@@ -21,9 +21,12 @@ import { MODELING_MODES, type ModelingMode } from "@/types/storm-element";
 
 export function BoardViewTabs({
   onPasteJsonAsNewView,
+  allowViewManagement = true,
 }: {
   /** Import from clipboard as new view(s); content is detected automatically. */
   onPasteJsonAsNewView?: () => void;
+  /** When false, hide add/rename/delete/reorder (embed / markdown viewer). */
+  allowViewManagement?: boolean;
 }) {
   const t = useT();
   const views = useStormBoardStore((s) => s.views);
@@ -49,8 +52,10 @@ export function BoardViewTabs({
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const newViewBtnRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const canManage = allowViewManagement;
 
   const beginRename = (id: string, name: string) => {
+    if (!canManage) return;
     setEditingId(id);
     setDraft(name);
     setMenu(null);
@@ -82,7 +87,6 @@ export function BoardViewTabs({
     setPendingDelete(null);
   };
 
-  const canDelete = views.length > 1;
   const returnViewId = viewReturnStack[viewReturnStack.length - 1];
   const returnView = returnViewId ? views.find((v) => v.id === returnViewId) : undefined;
 
@@ -120,6 +124,7 @@ export function BoardViewTabs({
         const active = view.id === activeViewId;
         const measures = isActionsView(view);
         const isDropTarget = dropTargetId === view.id && dragViewId !== view.id;
+        const canDelete = canManage && views.length > 1;
         return (
           <div
             key={view.id}
@@ -128,7 +133,7 @@ export function BoardViewTabs({
               isDropTarget ? "rounded-md ring-1 ring-[var(--accent)]/60" : "",
             ].join(" ")}
             onDragOver={(e) => {
-              if (!dragViewId || dragViewId === view.id) return;
+              if (!canManage || !dragViewId || dragViewId === view.id) return;
               e.preventDefault();
               setDropTargetId(view.id);
             }}
@@ -136,6 +141,7 @@ export function BoardViewTabs({
               if (dropTargetId === view.id) setDropTargetId(null);
             }}
             onDrop={(e) => {
+              if (!canManage) return;
               e.preventDefault();
               const fromId = e.dataTransfer.getData("text/view-id") || dragViewId;
               if (fromId && fromId !== view.id) reorderViews(fromId, view.id);
@@ -143,7 +149,7 @@ export function BoardViewTabs({
               setDropTargetId(null);
             }}
           >
-            {editingId === view.id ? (
+            {canManage && editingId === view.id ? (
               <input
                 ref={inputRef}
                 className="dock-control h-7 w-36 rounded-md px-2 text-xs outline-none ring-1 ring-[var(--accent)]"
@@ -169,31 +175,37 @@ export function BoardViewTabs({
                   active ? "dock-control-active" : "dock-control text-[var(--muted)]",
                 ].join(" ")}
               >
-                <span
-                  draggable
-                  onDragStart={(e) => {
-                    setDragViewId(view.id);
-                    e.dataTransfer.setData("text/view-id", view.id);
-                    e.dataTransfer.effectAllowed = "move";
-                  }}
-                  onDragEnd={() => {
-                    setDragViewId(null);
-                    setDropTargetId(null);
-                  }}
-                  className="flex shrink-0 cursor-grab touch-none pl-0.5 text-[var(--muted)] active:cursor-grabbing"
-                  title={t("dialogs.reorderViewTab")}
-                  aria-label={t("dialogs.reorderViewTab")}
-                >
-                  <GripVertical className="h-3.5 w-3.5 opacity-50 group-hover:opacity-80" aria-hidden />
-                </span>
+                {canManage ? (
+                  <span
+                    draggable
+                    onDragStart={(e) => {
+                      setDragViewId(view.id);
+                      e.dataTransfer.setData("text/view-id", view.id);
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragEnd={() => {
+                      setDragViewId(null);
+                      setDropTargetId(null);
+                    }}
+                    className="flex shrink-0 cursor-grab touch-none pl-0.5 text-[var(--muted)] active:cursor-grabbing"
+                    title={t("dialogs.reorderViewTab")}
+                    aria-label={t("dialogs.reorderViewTab")}
+                  >
+                    <GripVertical className="h-3.5 w-3.5 opacity-50 group-hover:opacity-80" aria-hidden />
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => switchView(view.id)}
-                  onDoubleClick={() => beginRename(view.id, view.name)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setMenu({ id: view.id, x: e.clientX, y: e.clientY });
-                  }}
+                  onDoubleClick={canManage ? () => beginRename(view.id, view.name) : undefined}
+                  onContextMenu={
+                    canManage
+                      ? (e) => {
+                          e.preventDefault();
+                          setMenu({ id: view.id, x: e.clientX, y: e.clientY });
+                        }
+                      : undefined
+                  }
                   className={[
                     "flex min-w-0 flex-1 items-center gap-1 truncate pl-1.5 text-left text-xs font-medium",
                     canDelete ? "pr-1" : "pr-2",
@@ -234,21 +246,23 @@ export function BoardViewTabs({
         );
       })}
 
-      <button
-        ref={newViewBtnRef}
-        type="button"
-        onClick={openNewViewMenu}
-        className="dock-control flex h-7 shrink-0 items-center gap-0.5 rounded-md px-2 text-xs text-[var(--muted)]"
-        title={t("dialogs.newViewMenuTitle")}
-        aria-haspopup="menu"
-        aria-expanded={Boolean(newViewMenu)}
-      >
-        <Plus className="h-3.5 w-3.5" />
-        <span className="hidden sm:inline">{t("dialogs.addViewTab")}</span>
-        <ChevronDown className="h-3 w-3 opacity-70" aria-hidden />
-      </button>
+      {canManage ? (
+        <button
+          ref={newViewBtnRef}
+          type="button"
+          onClick={openNewViewMenu}
+          className="dock-control flex h-7 shrink-0 items-center gap-0.5 rounded-md px-2 text-xs text-[var(--muted)]"
+          title={t("dialogs.newViewMenuTitle")}
+          aria-haspopup="menu"
+          aria-expanded={Boolean(newViewMenu)}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">{t("dialogs.addViewTab")}</span>
+          <ChevronDown className="h-3 w-3 opacity-70" aria-hidden />
+        </button>
+      ) : null}
 
-      {onPasteJsonAsNewView ? (
+      {canManage && onPasteJsonAsNewView ? (
         <button
           type="button"
           onClick={onPasteJsonAsNewView}
@@ -334,7 +348,7 @@ export function BoardViewTabs({
             </button>
             <button
               type="button"
-              disabled={!canDelete}
+              disabled={!canManage || views.length <= 1}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-red-400 hover:bg-[var(--control)] disabled:opacity-40"
               onClick={() => requestDelete(menu.id)}
             >
