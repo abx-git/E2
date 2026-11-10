@@ -447,8 +447,11 @@ npx serve out
 ```bash
 npm install
 npm run dev
+npm run viewer -- path/to/board.e2.json   # local viewer with auto-load
 npm run test:run
 ```
+
+Local viewer details: [`docs/VIEWER.md`](docs/VIEWER.md).
 
 ## Tech Stack
 
