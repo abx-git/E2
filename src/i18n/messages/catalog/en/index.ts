@@ -15,6 +15,7 @@ import { detailSidebarEn } from "@/i18n/messages/catalog/en/detailSidebar";
 import { actionsViewEn } from "@/i18n/messages/catalog/en/actionsView";
 import { exportsMdEn } from "@/i18n/messages/catalog/en/exportsMd";
 import { facilitatorPhasesEn } from "@/i18n/messages/catalog/en/facilitatorPhases";
+import { embedEn } from "@/i18n/messages/catalog/en/embed";
 
 export const catalogEn = {
   ...coreEn,
@@ -34,4 +35,5 @@ export const catalogEn = {
   ...actionsViewEn,
   ...exportsMdEn,
   ...facilitatorPhasesEn,
+  ...embedEn,
 };

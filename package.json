@@ -1,6 +1,6 @@
 {
   "name": "event-storming-tool",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "E2 collaborative domain modeling board — viewer and editor for .e2.json (Event Storming, DDD, BDD, …)",
   "private": false,
   "author": "Andreas Bergmann",
@@ -29,8 +29,13 @@
     "e2-viewer": "./scripts/e2-viewer.mjs",
     "e2": "./scripts/e2-viewer.mjs"
   },
+  "exports": {
+    "./embed": "./src/embed/index.ts",
+    "./embed/markdown-it": "./src/embed/markdown-it-e2.mjs"
+  },
   "files": [
     "scripts/e2-viewer.mjs",
+    "src/embed",
     "src",
     "public",
     "next.config.ts",
