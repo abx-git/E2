@@ -1,7 +1,8 @@
 import type { CustomCardType } from "@/lib/custom-card-types";
 import { findCustomCardType, stereotypeLabel } from "@/lib/custom-card-types";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
-import { elementCardTypeCaption } from "@/i18n/domain-labels";
+import { readStoredLocale } from "@/i18n/resolve-locale";
+import { defaultLabelForElementType, elementCardTypeCaption } from "@/i18n/domain-labels";
 import { createTranslator } from "@/i18n/translate";
 import type { ElementType, StormElement } from "@/types/storm-element";
 
@@ -169,8 +170,8 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     shape: "rounded",
   },
   note: {
-    label: "Notiz",
-    shortLabel: "Notiz",
+    label: "Note",
+    shortLabel: "Note",
     bg: "bg-stone-50",
     border: "border-stone-300",
     text: "text-stone-800",
@@ -430,8 +431,8 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     shape: "pill",
   },
   processEnd: {
-    label: "Ende",
-    shortLabel: "Ende",
+    label: "End",
+    shortLabel: "End",
     bg: "bg-slate-200",
     border: "border-slate-500",
     text: "text-slate-900",
@@ -443,8 +444,8 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     shape: "pill",
   },
   processActivity: {
-    label: "Aktivität",
-    shortLabel: "Schritt",
+    label: "Activity",
+    shortLabel: "Step",
     bg: "bg-blue-100",
     border: "border-blue-300",
     text: "text-blue-950",
@@ -469,7 +470,7 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     shape: "rectangle",
   },
   dataEntity: {
-    label: "Entität",
+    label: "Entity",
     shortLabel: "Entity",
     bg: "bg-cyan-100",
     border: "border-cyan-400",
@@ -482,8 +483,8 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     shape: "rectangle",
   },
   dataAssociation: {
-    label: "Assoziation",
-    shortLabel: "Assoz.",
+    label: "Association",
+    shortLabel: "Assoc.",
     bg: "bg-violet-100",
     border: "border-violet-300",
     text: "text-violet-950",
@@ -510,7 +511,7 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
   },
   /** C4 Software System — blue box (Level 1, black-box). */
   c4SoftwareSystem: {
-    label: "Software-System",
+    label: "Software System",
     shortLabel: "System",
     bg: "bg-blue-200",
     border: "border-blue-700",
@@ -538,8 +539,8 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
   },
   /** C4 Component — module inside a container (Level 3). */
   c4Component: {
-    label: "C4 Komponente",
-    shortLabel: "Komponente",
+    label: "C4 Component",
+    shortLabel: "Component",
     bg: "bg-sky-50",
     border: "border-sky-400",
     text: "text-sky-950",
@@ -583,8 +584,8 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
   },
   /** Building-block leaf inside a Whitebox (maps to C4 Component level). */
   archComponent: {
-    label: "Komponente",
-    shortLabel: "Komponente",
+    label: "Component",
+    shortLabel: "Component",
     bg: "bg-sky-50",
     border: "border-sky-400",
     text: "text-sky-950",
@@ -597,8 +598,8 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
   },
   /** Cloud Account / Landing Zone / Tenant boundary — drillable scope. */
   cloudBoundary: {
-    label: "Cloud-Grenze",
-    shortLabel: "Grenze",
+    label: "Cloud boundary",
+    shortLabel: "Boundary",
     bg: "bg-slate-100",
     border: "border-slate-500",
     text: "text-slate-900",
@@ -611,8 +612,8 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
   },
   /** Network / VPC / subnet conceptually. */
   cloudNetwork: {
-    label: "Netzwerk",
-    shortLabel: "Netz",
+    label: "Network",
+    shortLabel: "Net",
     bg: "bg-teal-100",
     border: "border-teal-500",
     text: "text-teal-950",
@@ -639,8 +640,8 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
   },
   /** Data store: DB, object storage, cache, warehouse. */
   cloudDataStore: {
-    label: "Datenspeicher",
-    shortLabel: "Daten",
+    label: "Data store",
+    shortLabel: "Data",
     bg: "bg-amber-100",
     border: "border-amber-500",
     text: "text-amber-950",
@@ -734,8 +735,8 @@ export const ELEMENT_STYLES: Record<ElementType, ElementStyle> = {
     shape: "rectangle",
   },
   customCard: {
-    label: "Kartentyp",
-    shortLabel: "Typ",
+    label: "Card type",
+    shortLabel: "Type",
     bg: "bg-slate-100",
     border: "border-slate-300",
     text: "text-slate-900",
@@ -764,8 +765,9 @@ export function elementDimensions(type: ElementType): { width: number; height: n
   return { width: s.defaultWidth, height: s.defaultHeight };
 }
 
-export function defaultLabelForType(type: ElementType): string {
-  return styleForElementType(type).label;
+/** @deprecated Prefer {@link defaultLabelForElementType} (locale-aware). */
+export function defaultLabelForType(type: ElementType, locale?: Locale): string {
+  return defaultLabelForElementType(type, locale);
 }
 
 /** Resolve palette/canvas colors — custom cards use their stereotype definition. */
@@ -791,7 +793,7 @@ export function resolveElementStyle(
 export function cardTypeCaption(
   element: Pick<StormElement, "type" | "metadata">,
   customCardTypes: CustomCardType[] = [],
-  locale: Locale = DEFAULT_LOCALE,
+  locale: Locale = readStoredLocale() ?? DEFAULT_LOCALE,
 ): string {
   return elementCardTypeCaption(createTranslator(locale), element, customCardTypes);
 }

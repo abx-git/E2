@@ -62,6 +62,7 @@ import { exportBoardAsPrompt } from "@/lib/prompt-export";
 import { downloadCanvasAsPdf } from "@/lib/canvas-pdf-export";
 import { resolveRegionPaint } from "@/lib/region-style";
 import { writeClipboardText, writeClipboardXml } from "@/lib/system-clipboard";
+import { localizedElementTypeLabel, localizedElementTypeShortLabel } from "@/i18n/domain-labels";
 import { slugForExportFilename } from "@/lib/view-export";
 import {
   generateActionsMarkdownReport,
@@ -301,7 +302,7 @@ export function exportContextMapMarkdown(): void {
     lines.push(`## ${bc.label}`);
     if (bc.purpose) lines.push(bc.purpose);
     lines.push("", t("exportsMd.contextMapElements"));
-    for (const el of inside) lines.push(`- ${styleForElementType(el.type).shortLabel}: ${el.label}`);
+    for (const el of inside) lines.push(`- ${localizedElementTypeShortLabel(el.type)}: ${el.label}`);
     lines.push("");
   }
 
@@ -417,7 +418,7 @@ export function exportDomainModelMarkdown(): void {
       if (inside.length) {
         lines.push("", t("exportsMd.dddBlocks"));
         for (const el of inside) {
-          lines.push(`- ${styleForElementType(el.type).label}: ${el.label}`);
+          lines.push(`- ${localizedElementTypeLabel(el.type)}: ${el.label}`);
         }
       }
       lines.push("");
@@ -664,7 +665,7 @@ export function exportEventModelMarkdown(): void {
       if (inBand.length) {
         lines.push("", t("exportsMd.blocksInSliceColumn"));
         for (const el of inBand.sort((a, b) => a.y - b.y)) {
-          lines.push(`- ${styleForElementType(el.type).label}: ${el.label}`);
+          lines.push(`- ${localizedElementTypeLabel(el.type)}: ${el.label}`);
         }
       }
       lines.push("");
@@ -697,7 +698,7 @@ export function exportEventModelMarkdown(): void {
       const inside = elements.filter((e) => e.swimlaneId === lane.id);
       lines.push(`### ${lane.label}`);
       if (inside.length === 0) lines.push(t("exportsMd.emptyLane"));
-      else for (const el of inside) lines.push(`- ${styleForElementType(el.type).shortLabel}: ${el.label}`);
+      else for (const el of inside) lines.push(`- ${localizedElementTypeShortLabel(el.type)}: ${el.label}`);
       lines.push("");
     }
   }
@@ -780,7 +781,7 @@ export function exportProcessMarkdown(): void {
       const inside = elements.filter((el) => el.swimlaneId === lane.id);
       lines.push(`### ${lane.label}`);
       if (inside.length === 0) lines.push(t("exportsMd.emptyLane"));
-      else for (const el of inside) lines.push(`- ${styleForElementType(el.type).shortLabel}: ${el.label}`);
+      else for (const el of inside) lines.push(`- ${localizedElementTypeShortLabel(el.type)}: ${el.label}`);
       lines.push("");
     }
   }
@@ -923,7 +924,7 @@ export function exportArchitectureDocumentationMarkdown(): void {
     const items = elements.filter((e) => e.type === type);
     if (items.length === 0) continue;
     hasC4 = true;
-    lines.push(`### ${styleForElementType(type).label}`, "");
+    lines.push(`### ${localizedElementTypeLabel(type)}`, "");
     for (const el of items) {
       lines.push(`- **${el.label}**`);
       if (el.metadata?.c4Technology) {
@@ -951,7 +952,7 @@ export function exportArchitectureDocumentationMarkdown(): void {
     const items = elements.filter((e) => e.type === type);
     if (items.length === 0) continue;
     hasCloud = true;
-    lines.push(`### ${styleForElementType(type).label}`, "");
+    lines.push(`### ${localizedElementTypeLabel(type)}`, "");
     for (const el of items) {
       lines.push(`- **${el.label}**${el.detailViewId ? detailSuffix : ""}`);
       if (el.metadata?.cloudProvider) {
@@ -1002,7 +1003,7 @@ export function exportArchitectureDocumentationMarkdown(): void {
       if (bc.detailViewId) lines.push(t("exportsMd.detailViewLinked"));
       if (inside.length) {
         lines.push(t("exportsMd.contentsHeading"));
-        for (const el of inside) lines.push(`  - ${styleForElementType(el.type).shortLabel}: ${el.label}`);
+        for (const el of inside) lines.push(`  - ${localizedElementTypeShortLabel(el.type)}: ${el.label}`);
       }
       lines.push("");
     }

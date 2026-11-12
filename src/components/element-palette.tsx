@@ -521,7 +521,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
         : null;
   const ghostLabel =
     ghost?.kind === "fixed"
-      ? ELEMENT_STYLES[ghost.type].label
+      ? elementTypeLabel(t, ghost.type)
       : ghost?.kind === "custom"
         ? stereotypeLabel(ghost.customType.name)
         : "";

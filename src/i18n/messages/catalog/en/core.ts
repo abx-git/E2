@@ -43,6 +43,13 @@ export const coreEn = {
     hint: "Applies to this browser profile’s UI.",
     de: "Deutsch",
     en: "English",
+    remapLabelsButton: "Align default titles with language",
+    remapLabelsHint:
+      "Only updates cards whose title still matches a factory default (e.g. “Notiz”, “Activity”), not custom text.",
+    remapLabelsConfirm:
+      "{count} default titles do not match the selected language ({locale}). Update them now?",
+    remapLabelsDone: "Updated {count} titles.",
+    remapLabelsNone: "No default titles to update.",
   },
   storage: {
     tabFile: "File",
@@ -100,6 +107,9 @@ export const coreEn = {
     sidebars: "Sidebars",
     presets: "Presets",
     reset: "Reset",
+  },
+  elementDefaults: {
+    instructionLabel: "Implementation aspect…",
   },
   backup: {
     title: "Backup",

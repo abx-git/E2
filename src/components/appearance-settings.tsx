@@ -1,7 +1,8 @@
 "use client";
 
 import { APPEARANCE_PRESETS, DEFAULT_APPEARANCE } from "@/lib/board-appearance";
-import { LanguageSwitcher, useT } from "@/i18n";
+import { LocaleLanguageControl } from "@/components/locale-language-control";
+import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 export function AppearanceSettings() {
@@ -11,7 +12,7 @@ export function AppearanceSettings() {
 
   return (
     <div className="space-y-3">
-      <LanguageSwitcher />
+      <LocaleLanguageControl />
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block text-[0.72rem] font-medium text-[var(--muted)]">

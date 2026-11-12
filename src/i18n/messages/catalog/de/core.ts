@@ -43,6 +43,13 @@ export const coreDe = {
     hint: "Gilt für diese Browser-Profil-Oberfläche.",
     de: "Deutsch",
     en: "English",
+    remapLabelsButton: "Standard-Titel an Sprache anpassen",
+    remapLabelsHint:
+      "Betrifft nur Karten, deren Titel noch dem Werk ablage-Standard entspricht (z. B. „Notiz“, „Aktivität“), nicht selbst gesetzte Texte.",
+    remapLabelsConfirm:
+      "{count} Standard-Titel passen nicht zur gewählten Sprache ({locale}). Jetzt anpassen?",
+    remapLabelsDone: "{count} Titel angepasst.",
+    remapLabelsNone: "Keine anpassbaren Standard-Titel gefunden.",
   },
   storage: {
     tabFile: "Datei",
@@ -99,6 +106,9 @@ export const coreDe = {
     sidebars: "Seitenleisten",
     presets: "Presets",
     reset: "Zurücksetzen",
+  },
+  elementDefaults: {
+    instructionLabel: "Umsetzungsaspekt…",
   },
   backup: {
     title: "Backup",

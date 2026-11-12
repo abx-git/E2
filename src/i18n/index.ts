@@ -47,5 +47,8 @@ export {
   progressMarkLongLabel,
   elementTypeLabel,
   elementTypeShortLabel,
+  defaultLabelForElementType,
+  localizedElementTypeLabel,
+  localizedElementTypeShortLabel,
   elementCardTypeCaption,
 } from "@/i18n/domain-labels";

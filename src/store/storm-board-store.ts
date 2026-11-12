@@ -1,7 +1,13 @@
 import { create } from "zustand";
 
 import { DEFAULT_LOCALE, readStoredLocale, translate } from "@/i18n";
-import { defaultLabelForType, elementDimensions } from "@/lib/element-styles";
+import type { Locale } from "@/i18n/config";
+import { defaultLabelForElementType } from "@/i18n/domain-labels";
+import {
+  countRemappablePlaceholderLabels,
+  remapPlaceholderLabelsInElements,
+} from "@/lib/element-label-locale-migrate";
+import { elementDimensions } from "@/lib/element-styles";
 import { defaultRelationType } from "@/lib/relation-validation";
 import {
   applyContainmentAssignments,
@@ -319,6 +325,8 @@ export interface StormBoardState {
   setSnapToTimeline: (v: boolean) => void;
   setSnapToGrid: (v: boolean) => void;
   setAppearance: (patch: Partial<BoardAppearance>) => void;
+  /** Re-title stickies whose label is still a factory default in another locale. */
+  remapPlaceholderLabelsToLocale: (locale: Locale) => number;
   setPaletteType: (type: ElementType) => void;
   setPaletteCustomTypeId: (id: string | null) => void;
   setFocusMode: (enabled: boolean) => void;
@@ -638,7 +646,7 @@ function createElement(
     label:
       label ??
       customLabel ??
-      (type === "instruction" ? "Umsetzungsaspekt…" : defaultLabelForType(type)),
+      defaultLabelForElementType(type),
     x,
     y,
     width: dims.width,
@@ -1046,6 +1054,26 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   setSnapToGrid: (snapToGrid) => commit(set, get, () => ({ snapToGrid })),
   setAppearance: (patch) =>
     commit(set, get, (s) => ({ appearance: { ...s.appearance, ...patch } })),
+
+  remapPlaceholderLabelsToLocale: (locale) => {
+    let updated = 0;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s).map((view) => {
+        if (!isCanvasBoardView(view)) return view;
+        const count = countRemappablePlaceholderLabels(view.elements, locale);
+        updated += count;
+        if (count === 0) return view;
+        return { ...view, elements: remapPlaceholderLabelsInElements(view.elements, locale) };
+      });
+      const active = resolveActiveView(views, s.activeViewId);
+      return {
+        views,
+        ...applyViewToFlatPatch(active),
+        ...syncRegionArrays(active.elements),
+      };
+    });
+    return updated;
+  },
   setPaletteType: (paletteType) => set({ paletteType }),
   setPaletteCustomTypeId: (paletteCustomTypeId) => set({ paletteCustomTypeId }),
   setFocusMode: (focusMode) => set({ focusMode }),
@@ -2385,7 +2413,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => {
       const regions = syncRegionArrays(s.elements);
       const z = nextZIndex(regionZOrderItems(regions.swimlanes, regions.boundedContexts));
-      const el = createElement("boundedContext", x, y, label ?? "Bounded Context", z);
+      const el = createElement("boundedContext", x, y, label ?? defaultLabelForElementType("boundedContext"), z);
       el.width = width;
       el.height = height;
       el.metadata = { ...el.metadata, regionColor: "#dbeafe" };
