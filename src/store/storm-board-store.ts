@@ -1,7 +1,12 @@
 import { create } from "zustand";
 
 import { DEFAULT_LOCALE, readStoredLocale, translate } from "@/i18n";
+import type { Locale } from "@/i18n/config";
 import { defaultLabelForElementType } from "@/i18n/domain-labels";
+import {
+  countRemappablePlaceholderLabels,
+  remapPlaceholderLabelsInElements,
+} from "@/lib/element-label-locale-migrate";
 import { elementDimensions } from "@/lib/element-styles";
 import { defaultRelationType } from "@/lib/relation-validation";
 import {
@@ -320,6 +325,8 @@ export interface StormBoardState {
   setSnapToTimeline: (v: boolean) => void;
   setSnapToGrid: (v: boolean) => void;
   setAppearance: (patch: Partial<BoardAppearance>) => void;
+  /** Re-title stickies whose label is still a factory default in another locale. */
+  remapPlaceholderLabelsToLocale: (locale: Locale) => number;
   setPaletteType: (type: ElementType) => void;
   setPaletteCustomTypeId: (id: string | null) => void;
   setFocusMode: (enabled: boolean) => void;
@@ -1047,6 +1054,26 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   setSnapToGrid: (snapToGrid) => commit(set, get, () => ({ snapToGrid })),
   setAppearance: (patch) =>
     commit(set, get, (s) => ({ appearance: { ...s.appearance, ...patch } })),
+
+  remapPlaceholderLabelsToLocale: (locale) => {
+    let updated = 0;
+    commit(set, get, (s) => {
+      const views = flushActiveViewIntoViews(s).map((view) => {
+        if (!isCanvasBoardView(view)) return view;
+        const count = countRemappablePlaceholderLabels(view.elements, locale);
+        updated += count;
+        if (count === 0) return view;
+        return { ...view, elements: remapPlaceholderLabelsInElements(view.elements, locale) };
+      });
+      const active = resolveActiveView(views, s.activeViewId);
+      return {
+        views,
+        ...applyViewToFlatPatch(active),
+        ...syncRegionArrays(active.elements),
+      };
+    });
+    return updated;
+  },
   setPaletteType: (paletteType) => set({ paletteType }),
   setPaletteCustomTypeId: (paletteCustomTypeId) => set({ paletteCustomTypeId }),
   setFocusMode: (focusMode) => set({ focusMode }),
