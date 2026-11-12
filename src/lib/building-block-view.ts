@@ -5,7 +5,8 @@ import {
 } from "@/lib/board-clipboard";
 import { createEmptyBoardView, type BoardView } from "@/lib/storm-json";
 import { generateStormId } from "@/lib/storm-id";
-import { ELEMENT_STYLES, styleForElementType } from "@/lib/element-styles";
+import { defaultLabelForElementType } from "@/i18n/domain-labels";
+import { styleForElementType } from "@/lib/element-styles";
 import {
   supportsArchDrilldown,
   type ModelingMode,
@@ -170,7 +171,7 @@ export function buildBoardViewFromBuildingBlock(
   const whitebox: StormElement = {
     id: whiteboxId,
     type: "archWhitebox",
-    label: parent.label.trim() || ELEMENT_STYLES.archWhitebox.label,
+    label: parent.label.trim() || defaultLabelForElementType("archWhitebox"),
     description: parent.description,
     x: DETAIL_VIEW_PADDING,
     y: DETAIL_VIEW_PADDING,

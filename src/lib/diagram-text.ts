@@ -3,7 +3,7 @@ import { AI_CONTEXT_FORMAT, AI_CONTEXT_VERSION } from "@/lib/view-export";
 import type { ModelingMode, ElementType } from "@/types/storm-element";
 import type { RelationType } from "@/types/storm-relation";
 import { RELATION_TYPE_LABELS, CONTEXT_MAP_PATTERN_LABELS } from "@/types/storm-relation";
-import { ELEMENT_STYLES } from "@/lib/element-styles";
+import { localizedElementTypeShortLabel } from "@/i18n/domain-labels";
 
 /** Sanitize to a Mermaid/PlantUML-safe node id. */
 export function diagramSafeId(raw: string, fallback = "n"): string {
@@ -122,7 +122,7 @@ export function inferRelationType(edgeLabel: string | undefined, mode: ModelingM
 }
 
 export function stereotypeForType(type: ElementType): string {
-  return ELEMENT_STYLES[type]?.shortLabel ?? type;
+  return localizedElementTypeShortLabel(type);
 }
 
 export function detectDiagramKind(text: string): "mermaid" | "plantuml" | null {

@@ -2386,7 +2386,7 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, (s) => {
       const regions = syncRegionArrays(s.elements);
       const z = nextZIndex(regionZOrderItems(regions.swimlanes, regions.boundedContexts));
-      const el = createElement("boundedContext", x, y, label ?? "Bounded Context", z);
+      const el = createElement("boundedContext", x, y, label ?? defaultLabelForElementType("boundedContext"), z);
       el.width = width;
       el.height = height;
       el.metadata = { ...el.metadata, regionColor: "#dbeafe" };
