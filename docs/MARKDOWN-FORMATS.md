@@ -25,6 +25,16 @@ Diese Seite fasst die **Produktentscheidung** für Markdown-/Node-Hosts zusammen
 
 Ausführliche Einbindung: [EMBED.md](EMBED.md).
 
+## Export ohne lokale Installation (URL)
+
+Fernes Board laden und Datei im Browser herunterladen (CORS auf der JSON-URL nötig):
+
+```
+https://abx-git.github.io/E2/?board=<url>&boardAutoLoad=1&export=e2v|json|svg
+```
+
+Optional `&view=<viewId>`. Details: [VIEWER.md](VIEWER.md).
+
 ## Statische Grafik-Pipeline
 
 1. Quelle: `board.e2.json`
@@ -32,8 +42,10 @@ Ausführliche Einbindung: [EMBED.md](EMBED.md).
 
 ```bash
 npm install github:abx-git/E2
-npx tsx node_modules/event-storming-tool/scripts/e2-render.ts models/flow.e2.json -o models/flow.drawio.svg
-# optional PNG (Playwright): -o models/flow.png
+e2 models/flow.e2.json --export svg -o models/flow.drawio.svg
+# oder:
+npx tsx node_modules/event-storming-tool/scripts/e2-render.ts models/flow.e2.json --format e2v -o models/flow.e2v.txt
+# optional PNG (Playwright): --format png -o models/flow.png
 ```
 
 3. Markdown:

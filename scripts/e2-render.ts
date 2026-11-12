@@ -1,15 +1,21 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { basename, dirname, extname, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 
-import { boardExportSliceFromJson } from "../src/lib/board-export-from-document";
+import {
+  buildHeadlessBoardExport,
+  defaultOutPathForFormat,
+  inferRenderFormatFromOutPath,
+  isHeadlessExportFormat,
+  type CliRenderFormat,
+} from "../src/lib/cli-board-export";
 import { boardImportPayloadFromAnyExportText } from "../src/lib/board-import-text";
-import { buildBoardSvgString } from "../src/lib/storm-export";
+import { boardImportPayloadFromExportText } from "../src/lib/storm-json";
 
 function parseArgs(argv: string[]) {
   const positional: string[] = [];
   let out: string | undefined;
   let viewId: string | undefined;
-  let format: "svg" | "png" | undefined;
+  let format: CliRenderFormat | undefined;
 
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -22,8 +28,8 @@ function parseArgs(argv: string[]) {
       continue;
     }
     if (a === "--format") {
-      const f = argv[++i];
-      if (f === "svg" || f === "png") format = f;
+      const f = argv[++i]?.toLowerCase();
+      if (f === "svg" || f === "png" || f === "e2v" || f === "json") format = f;
       continue;
     }
     if (!a.startsWith("-")) positional.push(a);
@@ -31,7 +37,7 @@ function parseArgs(argv: string[]) {
   const input = positional[0];
   if (!input) throw new Error("Missing input .e2.json");
   if (out && !format) {
-    format = extname(out).toLowerCase() === ".png" ? "png" : "svg";
+    format = inferRenderFormatFromOutPath(out) ?? "svg";
   }
   format ??= "svg";
   return { input, out, viewId, format };
@@ -70,56 +76,54 @@ async function main() {
   if (!existsSync(absIn)) throw new Error(`File not found: ${absIn}`);
 
   const json = readFileSync(absIn, "utf8");
-  if (!boardImportPayloadFromAnyExportText(json)) {
+  const doc = boardImportPayloadFromExportText(json) ?? boardImportPayloadFromAnyExportText(json);
+  if (!doc) {
     throw new Error("Invalid E2 board JSON");
   }
 
-  const defaultOut = resolve(
-    process.cwd(),
-    basename(absIn).replace(/\.e2\.json$/i, "").replace(/\.json$/i, "") + (format === "png" ? ".png" : ".drawio.svg"),
-  );
+  const inputStem = basename(absIn);
+  const defaultOut = resolve(process.cwd(), defaultOutPathForFormat(inputStem, format));
   const absOut = resolve(process.cwd(), out ?? defaultOut);
   mkdirSync(dirname(absOut), { recursive: true });
 
-  if (format === "svg") {
-    const slice = boardExportSliceFromJson(json, { viewId });
-    if (!slice) {
-      throw new Error(
-        viewId
-          ? `View ${viewId} is not a canvas view or does not exist`
-          : "No canvas view to export (actions-only document?)",
-      );
-    }
-    const svg = buildBoardSvgString(slice);
-    writeFileSync(absOut, svg, "utf8");
-    console.log(`Wrote ${absOut}`);
+  if (format === "png") {
+    const { createServer } = await import("node:http");
+    const { createReadStream } = await import("node:fs");
+    const fileName = basename(absIn);
+    const port = 41732;
+    await new Promise<void>((resolvePromise, reject) => {
+      const server = createServer((req, res) => {
+        res.writeHead(200, {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        });
+        createReadStream(absIn).pipe(res);
+      });
+      server.on("error", reject);
+      server.listen(port, "127.0.0.1", async () => {
+        try {
+          const boardUrl = `http://127.0.0.1:${port}/${encodeURIComponent(fileName)}`;
+          const embedOrigin = process.env.E2_EMBED_ORIGIN ?? "https://abx-git.github.io/E2";
+          await renderPng(absIn, absOut, boardUrl, embedOrigin);
+          console.log(`Wrote ${absOut}`);
+        } finally {
+          server.close(() => resolvePromise());
+        }
+      });
+    });
     return;
   }
 
-  const { createServer } = await import("node:http");
-  const { createReadStream } = await import("node:fs");
-  const fileName = basename(absIn);
-  const port = 41732;
-  await new Promise<void>((resolvePromise, reject) => {
-    const server = createServer((req, res) => {
-      res.writeHead(200, {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      });
-      createReadStream(absIn).pipe(res);
-    });
-    server.on("error", reject);
-    server.listen(port, "127.0.0.1", async () => {
-      try {
-        const boardUrl = `http://127.0.0.1:${port}/${encodeURIComponent(fileName)}`;
-        const embedOrigin = process.env.E2_EMBED_ORIGIN ?? "https://abx-git.github.io/E2";
-        await renderPng(absIn, absOut, boardUrl, embedOrigin);
-        console.log(`Wrote ${absOut}`);
-      } finally {
-        server.close(() => resolvePromise());
-      }
-    });
-  });
+  if (!isHeadlessExportFormat(format)) {
+    throw new Error(`Unsupported format: ${format}`);
+  }
+
+  const result = buildHeadlessBoardExport(doc, { format, viewId });
+  if (!result.ok) {
+    throw new Error(result.reason);
+  }
+  writeFileSync(absOut, result.body, "utf8");
+  console.log(`Wrote ${absOut}`);
 }
 
 main().catch((err) => {

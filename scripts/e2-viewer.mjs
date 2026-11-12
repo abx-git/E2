@@ -8,7 +8,11 @@
  *
  * Usage:
  *   e2-viewer [path/to/board.e2.json]
+ *   e2 [path/to/board.e2.json] --export e2v|json|svg [-o out] [--view id]
  *   npx e2-viewer path/to/board.e2.json
+ *
+ * Without a local install, use the hosted app:
+ *   ?board=<url>&boardAutoLoad=1&export=e2v|json|svg[&view=id]
  *
  * Options (env):
  *   E2_VIEWER_FILE_PORT   — board file HTTP port (default 41731)
@@ -51,8 +55,14 @@ Install from npm (after publish):
 Usage:
   e2-viewer [path/to/board.e2.json]
   npx e2-viewer path/to/board.e2.json
+  e2 path/to/board.e2.json --export e2v|json|svg [-o out] [--view id]
+
+Headless export (no browser): writes a file and exits. Same formats as the
+hosted URL parameter \`export=\` (browser download after load).
 
 Without a file path, starts the app (open via Data → Open or ?board=).
+
+Future agent / roundtrip flags will use this same \`e2\` entry point.
 
 Environment:
   E2_VIEWER_FILE_PORT=${FILE_PORT}
@@ -63,11 +73,73 @@ Environment:
   process.exit(exitCode);
 }
 
+function spawnE2Render(forwardArgs) {
+  const tsScript = resolve(packageRoot, "scripts/e2-render.ts");
+  const tsx = resolve(packageRoot, "node_modules/tsx/dist/cli.mjs");
+  const runner = existsSync(tsx) ? process.execPath : "npx";
+  const runnerArgs = existsSync(tsx)
+    ? [tsx, tsScript, ...forwardArgs]
+    : ["tsx", tsScript, ...forwardArgs];
+  const result = spawnSync(runner, runnerArgs, { cwd: packageRoot, stdio: "inherit" });
+  process.exit(result.status ?? 1);
+}
+
+function buildE2RenderArgsFromCli(argv) {
+  const exportIdx = argv.indexOf("--export");
+  if (exportIdx < 0) return null;
+  const format = argv[exportIdx + 1];
+  const allowed = new Set(["e2v", "json", "svg"]);
+  if (!format || !allowed.has(format)) {
+    console.error("Usage: e2 <board.e2.json> --export e2v|json|svg [-o out] [--view id]");
+    process.exit(1);
+  }
+  const valueIndexes = new Set();
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--export" || a === "-o" || a === "--out" || a === "--view" || a === "--format") {
+      if (argv[i + 1]) valueIndexes.add(i + 1);
+    }
+  }
+  const positional = argv.find((a, i) => !a.startsWith("-") && !valueIndexes.has(i));
+  if (!positional) {
+    console.error("--export requires a board .e2.json path");
+    process.exit(1);
+  }
+  const forward = [positional, "--format", format];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "-o" || a === "--out") {
+      const v = argv[++i];
+      if (v) forward.push("-o", v);
+      continue;
+    }
+    if (a === "--view") {
+      const v = argv[++i];
+      if (v) forward.push("--view", v);
+    }
+  }
+  return forward;
+}
+
 if (process.argv.includes("-h") || process.argv.includes("--help")) {
   usage(0);
 }
 
-const fileArg = process.argv.slice(2).find((a) => !a.startsWith("-"));
+const cliArgv = process.argv.slice(2);
+const renderArgs = buildE2RenderArgsFromCli(cliArgv);
+if (renderArgs) {
+  spawnE2Render(renderArgs);
+}
+
+const fileArg = cliArgv.find(
+  (a, i) =>
+    !a.startsWith("-") &&
+    cliArgv[i - 1] !== "-o" &&
+    cliArgv[i - 1] !== "--out" &&
+    cliArgv[i - 1] !== "--view" &&
+    cliArgv[i - 1] !== "--format" &&
+    cliArgv[i - 1] !== "--export",
+);
 let boardPath = null;
 
 if (fileArg) {

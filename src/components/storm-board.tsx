@@ -80,6 +80,7 @@ import {
   readBoardUrlFromSearch,
   stripBoardUrlParamFromLocation,
 } from "@/lib/board-remote-url";
+import { runUrlDrivenBoardExport } from "@/lib/url-board-export";
 import {
   copyBoardDrawioToClipboard,
   copyBoardPromptToClipboard,
@@ -317,6 +318,12 @@ export function StormBoard() {
       if (!loadForeignBoardIntoEditor(outcome.rawText, { reason: "remote_board" })) {
         setRemoteBoardError(t("alerts.boardLoadFailed"));
         return;
+      }
+      const exportSearch =
+        typeof window !== "undefined" ? window.location.search : "";
+      const urlExport = runUrlDrivenBoardExport(boardImportPayloadFromStore(), exportSearch);
+      if (urlExport.kind === "fail") {
+        window.alert(urlExport.reason);
       }
       setRemoteBoardUrl(null);
       stripBoardUrlParamFromLocation();

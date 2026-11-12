@@ -436,6 +436,15 @@ Details on the i18n infrastructure: [`docs/i18n.md`](docs/i18n.md).
 
 Use E2 as an **installable package** from this repository or from npm (`event-storming-tool`). The **`e2-viewer`** command starts the full app (all view tabs, editor features).
 
+**Without install:** open the hosted app with  
+`?board=<https-url>&boardAutoLoad=1&export=e2v|json|svg` (optional `&view=<id>`) to load a remote `.e2.json` and download the export. See [`docs/VIEWER.md`](docs/VIEWER.md).
+
+**Headless file export (optional CLI):**
+
+```bash
+e2 path/to/board.e2.json --export e2v|json|svg [-o out] [--view id]
+```
+
 ```bash
 # From GitHub (works today)
 npm install -g github:abx-git/E2
