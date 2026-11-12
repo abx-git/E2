@@ -1,7 +1,8 @@
 import { create } from "zustand";
 
 import { DEFAULT_LOCALE, readStoredLocale, translate } from "@/i18n";
-import { defaultLabelForType, elementDimensions } from "@/lib/element-styles";
+import { defaultLabelForElementType } from "@/i18n/domain-labels";
+import { elementDimensions } from "@/lib/element-styles";
 import { defaultRelationType } from "@/lib/relation-validation";
 import {
   applyContainmentAssignments,
@@ -638,7 +639,7 @@ function createElement(
     label:
       label ??
       customLabel ??
-      (type === "instruction" ? "Umsetzungsaspekt…" : defaultLabelForType(type)),
+      defaultLabelForElementType(type),
     x,
     y,
     width: dims.width,

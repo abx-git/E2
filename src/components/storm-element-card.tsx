@@ -772,7 +772,7 @@ export function StormElementCard({
             : dimForTypeVisibility
               ? t("panels.cardTypeHiddenDimmed", { type: hiddenTypeLabel })
             : dimForFocus
-              ? t("panels.cardFocusDimmed", { type: ELEMENT_STYLES[paletteType].label })
+              ? t("panels.cardFocusDimmed", { type: elementTypeLabel(t, paletteType) })
               : !inActiveMode
                 ? t("panels.cardWrongMode")
                 : isLink

@@ -1,5 +1,8 @@
 import { findCustomCardType } from "@/lib/custom-card-types";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/config";
+import { readStoredLocale } from "@/i18n/resolve-locale";
 import type { TranslateFn } from "@/i18n/translate";
+import { createTranslator } from "@/i18n/translate";
 import type { MessageKey } from "@/i18n/types";
 import type { ActionItemArea, ActionItemStatus } from "@/types/action-item";
 import type { LineArrowHead } from "@/types/canvas-annotation";
@@ -68,6 +71,27 @@ export function elementTypeLabel(t: TranslateFn, type: ElementType): string {
 
 export function elementTypeShortLabel(t: TranslateFn, type: ElementType): string {
   return t(enumKey("elementTypeShort", type));
+}
+
+export function resolveUiLocale(locale?: Locale): Locale {
+  return locale ?? readStoredLocale() ?? DEFAULT_LOCALE;
+}
+
+export function localizedElementTypeLabel(type: ElementType, locale?: Locale): string {
+  return elementTypeLabel(createTranslator(resolveUiLocale(locale)), type);
+}
+
+export function localizedElementTypeShortLabel(type: ElementType, locale?: Locale): string {
+  return elementTypeShortLabel(createTranslator(resolveUiLocale(locale)), type);
+}
+
+/** Default sticky title when the user has not entered a label yet. */
+export function defaultLabelForElementType(type: ElementType, locale?: Locale): string {
+  const t = createTranslator(resolveUiLocale(locale));
+  if (type === "instruction") {
+    return t("elementDefaults.instructionLabel");
+  }
+  return elementTypeLabel(t, type);
 }
 
 function subdomainKindLabel(t: TranslateFn, kind: SubdomainKind): string {

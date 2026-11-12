@@ -101,6 +101,9 @@ export const coreEn = {
     presets: "Presets",
     reset: "Reset",
   },
+  elementDefaults: {
+    instructionLabel: "Implementation aspect…",
+  },
   backup: {
     title: "Backup",
     hintUnsaved: "Only while unsaved. Opening a backup does not overwrite the working file.",

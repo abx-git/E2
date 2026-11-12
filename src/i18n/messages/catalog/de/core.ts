@@ -100,6 +100,9 @@ export const coreDe = {
     presets: "Presets",
     reset: "Zurücksetzen",
   },
+  elementDefaults: {
+    instructionLabel: "Umsetzungsaspekt…",
+  },
   backup: {
     title: "Backup",
     hintUnsaved: "Nur bei ungespeichertem Stand. Öffnen überschreibt die Arbeitsdatei nicht.",
