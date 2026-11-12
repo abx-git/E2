@@ -18,9 +18,9 @@ const tsScript = resolve(repoRoot, "scripts/e2-render.ts");
 
 const args = process.argv.slice(2);
 if (args.includes("-h") || args.includes("--help")) {
-  process.stderr.write(`Usage: e2-render <board.e2.json> -o <out.svg|out.png> [--view <id>]
+  process.stderr.write(`Usage: e2-render <board.e2.json> [-o <out>] [--format e2v|json|svg|png] [--view <id>]
 
-SVG: headless (no browser), active canvas view only.
+e2v/json/svg: headless (no browser).
 PNG: requires \`playwright\` and uses ${process.env.E2_EMBED_ORIGIN ?? "https://abx-git.github.io/E2"}/embed/
 
 Environment:

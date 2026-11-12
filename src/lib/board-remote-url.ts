@@ -3,6 +3,7 @@
  * Validation uses the same import path as local export (v1/v2 snapshots).
  */
 
+import { isHeadlessExportFormat } from "@/lib/cli-board-export";
 import { localeT } from "@/lib/locale-t";
 import { boardImportPayloadFromExportText, type BoardImportPayload } from "@/lib/storm-json";
 import { normalizeExternalUrl } from "@/lib/board-link";
@@ -11,6 +12,12 @@ export const BOARD_URL_PARAM = "board";
 
 /** When `1`, load `?board=` without confirmation if the editor has no local content (viewer/CI). */
 export const BOARD_AUTO_LOAD_PARAM = "boardAutoLoad";
+
+/** After remote load, trigger a headless-format download (`e2v` | `json` | `svg`). */
+export const BOARD_EXPORT_PARAM = "export";
+
+/** Optional view id for URL-driven export (same semantics as CLI `--view`). */
+export const BOARD_EXPORT_VIEW_PARAM = "view";
 
 export type BoardSourceUrlCheck =
   | { ok: true; url: string }
@@ -60,6 +67,25 @@ export function readBoardAutoLoadFromSearch(search: string): boolean {
   }
 }
 
+export function readExportFormatFromSearch(search: string) {
+  try {
+    const raw = new URLSearchParams(search).get(BOARD_EXPORT_PARAM)?.trim().toLowerCase();
+    if (!raw) return null;
+    return isHeadlessExportFormat(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+export function readExportViewIdFromSearch(search: string): string | null {
+  try {
+    const value = new URLSearchParams(search).get(BOARD_EXPORT_VIEW_PARAM)?.trim();
+    return value || null;
+  } catch {
+    return null;
+  }
+}
+
 /** Build an app URL that opens E2 and loads the given remote board JSON. */
 export function buildBoardShareAppUrl(
   boardSourceUrl: string,
@@ -76,9 +102,14 @@ export function buildBoardShareAppUrl(
 export function stripBoardUrlParamFromLocation(): void {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
-  if (!url.searchParams.has(BOARD_URL_PARAM) && !url.searchParams.has(BOARD_AUTO_LOAD_PARAM)) return;
-  url.searchParams.delete(BOARD_URL_PARAM);
-  url.searchParams.delete(BOARD_AUTO_LOAD_PARAM);
+  const keys = [
+    BOARD_URL_PARAM,
+    BOARD_AUTO_LOAD_PARAM,
+    BOARD_EXPORT_PARAM,
+    BOARD_EXPORT_VIEW_PARAM,
+  ] as const;
+  if (!keys.some((k) => url.searchParams.has(k))) return;
+  for (const k of keys) url.searchParams.delete(k);
   window.history.replaceState({}, "", url.toString());
 }
 

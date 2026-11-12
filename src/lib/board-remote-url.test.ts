@@ -2,12 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   BOARD_AUTO_LOAD_PARAM,
+  BOARD_EXPORT_PARAM,
+  BOARD_EXPORT_VIEW_PARAM,
   BOARD_URL_PARAM,
   buildBoardShareAppUrl,
   checkBoardSourceUrl,
   fetchAndValidateRemoteBoard,
   readBoardAutoLoadFromSearch,
   readBoardUrlFromSearch,
+  readExportFormatFromSearch,
+  readExportViewIdFromSearch,
 } from "@/lib/board-remote-url";
 import { buildBoardSnapshot, createDefaultBoardDocument, stringifyExportedDocument } from "@/lib/storm-json";
 
@@ -28,6 +32,13 @@ describe("board-remote-url", () => {
     expect(readBoardAutoLoadFromSearch(`?${BOARD_AUTO_LOAD_PARAM}=1`)).toBe(true);
     expect(readBoardAutoLoadFromSearch(`?${BOARD_AUTO_LOAD_PARAM}=0`)).toBe(false);
     expect(readBoardAutoLoadFromSearch("")).toBe(false);
+  });
+
+  it("reads export and view params", () => {
+    const q = `?${BOARD_EXPORT_PARAM}=e2v&${BOARD_EXPORT_VIEW_PARAM}=view-a`;
+    expect(readExportFormatFromSearch(q)).toBe("e2v");
+    expect(readExportViewIdFromSearch(q)).toBe("view-a");
+    expect(readExportFormatFromSearch("?export=pdf")).toBeNull();
   });
 
   it("reads and builds the board share param", () => {

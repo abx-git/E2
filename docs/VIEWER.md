@@ -54,6 +54,37 @@ npm install
 npm run viewer -- path/to/your-board.e2.json
 ```
 
+## Export without a local install (URL)
+
+Open the hosted app with query parameters — the board loads from a remote URL and the browser **downloads** the export file (no npm install):
+
+```
+https://abx-git.github.io/E2/?board=<https-url-to-board.e2.json>&boardAutoLoad=1&export=e2v
+https://abx-git.github.io/E2/?board=...&boardAutoLoad=1&export=json&view=<viewId>
+https://abx-git.github.io/E2/?board=...&boardAutoLoad=1&export=svg
+```
+
+| Parameter | Meaning |
+|-----------|---------|
+| `board` | HTTPS URL of `.e2.json` (or localhost HTTP in dev) |
+| `boardAutoLoad=1` | Skip the confirm dialog when the editor is empty |
+| `export` | `e2v`, `json`, or `svg` |
+| `view` | Optional view id (same as CLI `--view`) |
+
+The remote JSON must allow **CORS** from the app origin (`https://abx-git.github.io` or your local dev host).
+
+## Headless export (optional CLI)
+
+Write a file to disk without opening the browser (`e2` / `e2-viewer` binary):
+
+```bash
+e2 path/to/your-board.e2.json --export e2v [-o out.e2v.txt] [--view <id>]
+e2 path/to/your-board.e2.json --export json
+e2 path/to/your-board.e2.json --export svg -o preview.drawio.svg
+```
+
+Equivalent: `e2-render board.e2.json --format e2v|json|svg|png -o out`
+
 ## Quick start (after install)
 
 ```bash
@@ -86,6 +117,7 @@ After load, use the **view tabs** in the app bar to switch between all views in 
 |--------|------|
 | **Data → Open…** | Local file via File System Access API |
 | **`?board=<https-url>`** | Remote `.e2.json` (HTTPS or localhost HTTP); confirm in dialog unless `boardAutoLoad=1` and board is empty |
+| **`?board=…&export=e2v\|json\|svg`** | Remote load + automatic download (use with `boardAutoLoad=1`) |
 | **Paste** | JSON or E2V in the Data panel |
 | **Hosted** | [GitHub Pages build](GITHUB-PAGES.md) — `npm run build:static` then `npx serve out` |
 
