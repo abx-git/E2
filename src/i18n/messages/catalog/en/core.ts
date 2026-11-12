@@ -101,6 +101,18 @@ export const coreEn = {
     jsonAsNewViewShort: "View from clipboard",
     shareBoardLink: "Share board link…",
     createJoinRoom: "Create / join room",
+    sectionLocalInstall: "Install locally (CLI)",
+    localInstallHint:
+      "The web app cannot run npm for you. Copy a command and run it in your terminal — then use the viewer and headless export without this tab.",
+    localInstallNodeHint: "Requires Node.js 20 or newer.",
+    localInstallGlobalGithub: "Global from GitHub",
+    localInstallGlobalNpm: "Global from npm (after publish)",
+    localInstallNpxViewer: "One-shot: start viewer",
+    localInstallNpxExport: "One-shot: export (JSON)",
+    localInstallAfterGlobal: "After global install",
+    localInstallCopy: "Copy command",
+    localInstallCopied: "Copied",
+    localInstallDocs: "CLI documentation",
   },
   appearance: {
     workspace: "Workspace",
