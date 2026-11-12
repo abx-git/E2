@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AppearanceSettings } from "@/components/appearance-settings";
+import { LocalInstallPanel } from "@/components/local-install-panel";
 import {
   ArrowLeftRight,
   Clock,
@@ -834,6 +835,12 @@ export function DataStoragePanel({
                     ))}
                   </ul>
                 ) : null}
+              </PanelSection>
+
+              <PanelSection title={t("storage.sectionLocalInstall")}>
+                <LocalInstallPanel
+                  boardFileHint={workingFileLabel ?? t("common.defaultBoardFile")}
+                />
               </PanelSection>
 
               <PanelSection title={t("storage.sectionLibrary")}>

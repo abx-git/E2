@@ -100,6 +100,18 @@ export const coreDe = {
     jsonAsNewViewShort: "Sicht aus Zwischenablage",
     shareBoardLink: "Board-Link teilen…",
     createJoinRoom: "Raum erstellen / beitreten",
+    sectionLocalInstall: "Lokal installieren (CLI)",
+    localInstallHint:
+      "E2 im Browser kann kein npm ausführen. Befehle kopieren und im Terminal auf deinem Rechner ausführen — danach Viewer und Headless-Export ohne die Web-App.",
+    localInstallNodeHint: "Voraussetzung: Node.js 20 oder neuer.",
+    localInstallGlobalGithub: "Global von GitHub",
+    localInstallGlobalNpm: "Global von npm (nach Veröffentlichung)",
+    localInstallNpxViewer: "Einmalig: Viewer starten",
+    localInstallNpxExport: "Einmalig: Export (JSON)",
+    localInstallAfterGlobal: "Nach globaler Installation",
+    localInstallCopy: "Befehl kopieren",
+    localInstallCopied: "Kopiert",
+    localInstallDocs: "CLI-Dokumentation",
   },
   appearance: {
     workspace: "Arbeitsbereich",
