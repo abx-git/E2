@@ -1066,10 +1066,11 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         return { ...view, elements: remapPlaceholderLabelsInElements(view.elements, locale) };
       });
       const active = resolveActiveView(views, s.activeViewId);
+      const patch = applyViewToFlatPatch(active);
       return {
         views,
-        ...applyViewToFlatPatch(active),
-        ...syncRegionArrays(active.elements),
+        ...patch,
+        ...(patch.elements ? syncRegionArrays(patch.elements) : {}),
       };
     });
     return updated;
