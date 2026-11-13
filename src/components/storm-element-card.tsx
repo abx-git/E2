@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Clock, ExternalLink, Info, LayoutDashboard, Link2, MoreVertical, RotateCcw, RotateCw } from "lucide-react";
+import { ArrowRight, Clock, ExternalLink, Info, LayoutDashboard, Link2, RotateCcw, RotateCw } from "lucide-react";
 
 import { ProgressMarkBadge } from "@/components/progress-mark-badge";
 import { DescriptionEditorDialog } from "@/components/description-editor-dialog";
@@ -1156,27 +1156,6 @@ export function StormElementCard({
           }}
         >
           <ArrowRight className="h-3 w-3" aria-hidden />
-        </button>
-      )}
-
-      {selected && !editing && (
-        <button
-          type="button"
-          className={[
-            "absolute bottom-1.5 right-1.5 z-30 flex items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel-solid)] text-[var(--muted)] shadow-sm transition-[opacity,colors] hover:border-[var(--accent)] hover:text-[var(--accent)]",
-            isCoarsePointer ? "h-7 w-7" : "h-5 w-5",
-          ].join(" ")}
-          title={t("panels.actions")}
-          aria-label={t("panels.openContextMenu")}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            openElementContextMenu(rect.left + rect.width / 2, rect.bottom + 4);
-          }}
-        >
-          <MoreVertical className="h-3 w-3" aria-hidden />
         </button>
       )}
 
