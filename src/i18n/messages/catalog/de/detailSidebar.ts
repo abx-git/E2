@@ -102,6 +102,14 @@ export const detailSidebarDe = {
       openWysiwyg: "WYSIWYG-Editor öffnen",
     },
 
+    appearance: {
+      sectionTitle: "Darstellung",
+      elementType: "Elementtyp",
+      fill: "Farbe",
+      border: "Rahmen",
+      resetDefaults: "Typstandard wiederherstellen",
+    },
+
     onCard: {
       sectionTitle: "Auf der Karte",
       background: "Hintergrund",

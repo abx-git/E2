@@ -535,6 +535,26 @@
         "showWebLinksOnCard": {
           "type": "boolean",
           "description": "Web-Links auf dem Sticky anzeigen."
+        },
+        "cardFillColor": {
+          "type": "string",
+          "description": "Benutzerdefinierte Füllfarbe (#rrggbb)."
+        },
+        "cardFillOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fülltransparenz 0–1."
+        },
+        "cardBorderColor": {
+          "type": "string",
+          "description": "Benutzerdefinierte Rahmenfarbe (#rrggbb)."
+        },
+        "cardBorderOpacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Rahmentransparenz 0–1."
         }
       }
     },

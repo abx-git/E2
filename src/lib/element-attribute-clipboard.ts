@@ -42,6 +42,10 @@ const UNIVERSAL_METADATA_KEYS: (keyof ElementMetadata)[] = [
   "showMethodsOnCard",
   "showWebLinksOnCard",
   "webLinks",
+  "cardFillColor",
+  "cardFillOpacity",
+  "cardBorderColor",
+  "cardBorderOpacity",
 ];
 
 const METADATA_KEYS_BY_TYPE: Partial<Record<ElementType, (keyof ElementMetadata)[]>> = {
@@ -111,7 +115,7 @@ export function metadataKeyHasValue(
   return true;
 }
 
-function pickMetadataForType(
+export function pickMetadataForType(
   source: ElementMetadata | undefined,
   type: ElementType,
 ): ElementMetadata | undefined {

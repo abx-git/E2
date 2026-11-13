@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ColorOpacityRow } from "@/components/color-opacity-row";
+import { useEffect, useRef, useState } from "react";
 import { Check, ClipboardCopy, ClipboardPaste, Lock, Unlock } from "lucide-react";
 
 import {
@@ -38,63 +39,6 @@ type RegionStyleSourceLike = Pick<
   Swimlane | BoundedContext,
   "color" | "fillOpacity" | "borderColor" | "borderOpacity" | "labelColor" | "labelOpacity" | "locked"
 >;
-
-function RegionColorRow({
-  label,
-  colorHex,
-  opacityPercent,
-  onColorChange,
-  onOpacityChange,
-  opacityDisabled,
-  opacityDisabledLabel,
-  trailing,
-}: {
-  label: string;
-  colorHex: string;
-  opacityPercent: number;
-  onColorChange: (hex: string) => void;
-  onOpacityChange: (percent: number) => void;
-  opacityDisabled?: boolean;
-  opacityDisabledLabel?: string;
-  trailing?: ReactNode;
-}) {
-  return (
-    <section className="space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[0.72rem] font-medium text-[var(--muted)]">{label}</span>
-        <div className="flex items-center gap-2">
-          {trailing}
-          <input
-            type="color"
-            className="dock-field h-8 w-11 shrink-0 cursor-pointer p-0.5"
-            value={colorHex}
-            onChange={(e) => onColorChange(e.target.value)}
-            aria-label={`${label} Farbe`}
-          />
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <span
-          className="w-10 shrink-0 text-right text-[0.65rem] tabular-nums text-[var(--muted)]"
-          aria-hidden
-        >
-          {opacityDisabled && opacityDisabledLabel ? opacityDisabledLabel : `${opacityPercent}%`}
-        </span>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          step={1}
-          className="dock-range flex-1"
-          disabled={opacityDisabled}
-          value={opacityPercent}
-          onChange={(e) => onOpacityChange(Number(e.target.value))}
-          aria-label={`${label} Transparenz`}
-        />
-      </div>
-    </section>
-  );
-}
 
 export function RegionAppearanceControls({
   kind,
@@ -231,21 +175,21 @@ export function RegionAppearanceControls({
       </button>
 
       <div className="space-y-3.5">
-        <RegionColorRow
+        <ColorOpacityRow
           label="Hintergrund"
           colorHex={paint.fillHex}
           opacityPercent={opacityToPercent(paint.fillOpacity)}
           onColorChange={(hex) => onChange({ color: hex })}
           onOpacityChange={(percent) => onChange({ fillOpacity: percentToOpacity(percent) })}
         />
-        <RegionColorRow
+        <ColorOpacityRow
           label="Rand"
           colorHex={paint.borderHex}
           opacityPercent={opacityToPercent(paint.borderOpacity)}
           onColorChange={(hex) => onChange({ borderColor: hex })}
           onOpacityChange={(percent) => onChange({ borderOpacity: percentToOpacity(percent) })}
         />
-        <RegionColorRow
+        <ColorOpacityRow
           label="Text"
           colorHex={useAutoLabelColor ? (parseHexColor(labelInk.ink) ?? "#f1f5f9") : labelHex}
           opacityPercent={opacityToPercent(labelOpacity)}

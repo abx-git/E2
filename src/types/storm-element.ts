@@ -273,6 +273,15 @@ export interface ElementMetadata {
   /** Sticky: Web-Links auf der Karte anzeigen. */
   showWebLinksOnCard?: boolean;
 
+  /** Sticky: benutzerdefinierte Füllfarbe (#rrggbb). */
+  cardFillColor?: string;
+  /** Sticky: Fülltransparenz 0–1. */
+  cardFillOpacity?: number;
+  /** Sticky: Rahmenfarbe (#rrggbb). */
+  cardBorderColor?: string;
+  /** Sticky: Rahmentransparenz 0–1. */
+  cardBorderOpacity?: number;
+
   /** Swimlane / bounded-context region appearance. */
   regionColor?: string;
   regionFillOpacity?: number;
