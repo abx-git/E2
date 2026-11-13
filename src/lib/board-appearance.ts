@@ -1,21 +1,49 @@
+import { normalizeDiagramStyle, type DiagramStyle } from "@/lib/diagram-style";
+
+export type { DiagramStyle };
+
 /** Configurable workspace chrome colors (persisted with the board). */
 export interface BoardAppearance {
   /** Canvas / Arbeitsbereich background. */
   canvas: string;
   /** Sidebars, docks, panels (solid). */
   sidebar: string;
+  /** Hand-drawn look for canvas elements (stickies, lines). */
+  diagramStyle: DiagramStyle;
 }
 
 export const DEFAULT_APPEARANCE: BoardAppearance = {
   canvas: "#1a2330",
   sidebar: "#161e28",
+  diagramStyle: "clean",
 };
 
 export const APPEARANCE_PRESETS: { id: string; label: string; appearance: BoardAppearance }[] = [
-  { id: "waypoints", label: "Waypoints", appearance: { canvas: "#1a2330", sidebar: "#161e28" } },
-  { id: "midnight", label: "Mitternacht", appearance: { canvas: "#0b1020", sidebar: "#121826" } },
-  { id: "workshop", label: "Workshop hell", appearance: { canvas: "#e8ecf1", sidebar: "#f4f6f8" } },
-  { id: "paper", label: "Papier", appearance: { canvas: "#f3efe6", sidebar: "#ebe4d6" } },
+  {
+    id: "waypoints",
+    label: "Waypoints",
+    appearance: { canvas: "#1a2330", sidebar: "#161e28", diagramStyle: "clean" },
+  },
+  {
+    id: "midnight",
+    label: "Mitternacht",
+    appearance: { canvas: "#0b1020", sidebar: "#121826", diagramStyle: "clean" },
+  },
+  {
+    id: "workshop",
+    label: "Workshop hell",
+    appearance: { canvas: "#e8ecf1", sidebar: "#f4f6f8", diagramStyle: "clean" },
+  },
+  {
+    id: "paper",
+    label: "Papier",
+    appearance: { canvas: "#f3efe6", sidebar: "#ebe4d6", diagramStyle: "clean" },
+  },
+  {
+    id: "sketch",
+    label: "Skizze",
+    appearance: { canvas: "#f3efe6", sidebar: "#ebe4d6", diagramStyle: "scribble" },
+  },
 ];
 
 export function normalizeAppearance(raw: unknown): BoardAppearance {
@@ -24,6 +52,7 @@ export function normalizeAppearance(raw: unknown): BoardAppearance {
   return {
     canvas: isHexColor(a.canvas) ? a.canvas : DEFAULT_APPEARANCE.canvas,
     sidebar: isHexColor(a.sidebar) ? a.sidebar : DEFAULT_APPEARANCE.sidebar,
+    diagramStyle: normalizeDiagramStyle(a.diagramStyle),
   };
 }
 
@@ -91,4 +120,6 @@ export function applyAppearanceToElement(
   for (const [key, value] of Object.entries(vars)) {
     el.style.setProperty(key, value);
   }
+  const style = normalizeDiagramStyle(appearance.diagramStyle);
+  el.dataset.diagramStyle = style;
 }

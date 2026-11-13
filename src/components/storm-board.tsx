@@ -43,6 +43,7 @@ import {
 } from "@/components/new-working-file-dialog";
 import { WorkingFileSync } from "@/components/working-file-sync";
 import { applyAppearanceToElement } from "@/lib/board-appearance";
+import { ScribbleSketchDefs } from "@/components/scribble-sketch-defs";
 import {
   backupBeforeSuspiciousSwitch,
   buildBackupFilename,
@@ -1334,6 +1335,7 @@ export function StormBoard() {
       ref={boardRootRef}
       className="relative flex h-screen min-h-0 flex-col overflow-hidden bg-[var(--bg)] text-[var(--text)]"
     >
+      <ScribbleSketchDefs />
       <BetaRibbon />
       <WorkingFileSync
         onWorkingFileNameChange={setWorkingFileName}

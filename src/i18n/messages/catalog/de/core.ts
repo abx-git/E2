@@ -116,6 +116,11 @@ export const coreDe = {
   appearance: {
     workspace: "Arbeitsbereich",
     sidebars: "Seitenleisten",
+    diagramStyle: {
+      label: "Diagramm-Stil",
+      clean: "Scharf",
+      scribble: "Scribble",
+    },
     presets: "Presets",
     reset: "Zurücksetzen",
   },

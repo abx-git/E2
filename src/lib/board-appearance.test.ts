@@ -12,6 +12,12 @@ describe("board-appearance", () => {
     expect(normalizeAppearance({ canvas: "red", sidebar: "#ffffff" }).canvas).toBe(
       DEFAULT_APPEARANCE.canvas,
     );
+    expect(normalizeAppearance({ canvas: "#112233", sidebar: "#445566", diagramStyle: "nope" }).diagramStyle).toBe(
+      "clean",
+    );
+    expect(normalizeAppearance({ canvas: "#112233", sidebar: "#445566", diagramStyle: "scribble" }).diagramStyle).toBe(
+      "scribble",
+    );
   });
 
   it("derives CSS vars for dark and light sidebars", () => {

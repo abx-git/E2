@@ -1,6 +1,7 @@
 "use client";
 
 import { APPEARANCE_PRESETS, DEFAULT_APPEARANCE } from "@/lib/board-appearance";
+import { DIAGRAM_STYLES } from "@/lib/diagram-style";
 import { LocaleLanguageControl } from "@/components/locale-language-control";
 import { useT } from "@/i18n";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -36,12 +37,35 @@ export function AppearanceSettings() {
       </div>
 
       <div>
+        <p className="group-label mb-2">{t("appearance.diagramStyle.label")}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {DIAGRAM_STYLES.map((style) => {
+            const active = appearance.diagramStyle === style;
+            return (
+              <button
+                key={style}
+                type="button"
+                onClick={() => setAppearance({ diagramStyle: style })}
+                className={[
+                  "rounded-lg px-2.5 py-1.5 text-xs",
+                  active ? "dock-control-active" : "dock-control",
+                ].join(" ")}
+              >
+                {t(`appearance.diagramStyle.${style}` as const)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
         <p className="group-label mb-2">{t("appearance.presets")}</p>
         <div className="flex flex-wrap gap-1.5">
           {APPEARANCE_PRESETS.map((preset) => {
             const active =
               appearance.canvas === preset.appearance.canvas &&
-              appearance.sidebar === preset.appearance.sidebar;
+              appearance.sidebar === preset.appearance.sidebar &&
+              appearance.diagramStyle === preset.appearance.diagramStyle;
             return (
               <button
                 key={preset.id}

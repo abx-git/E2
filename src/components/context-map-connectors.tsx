@@ -17,6 +17,7 @@ import {
 import { connectorHitStrokeWidth } from "@/lib/connector-style";
 import { CONTEXT_MAP_PATTERN_LABELS, type ContextMapPattern, type ContextRelation } from "@/types/storm-relation";
 import type { BoundedContext } from "@/types/storm-element";
+import { scribbleStrokeFilter } from "@/lib/diagram-style";
 import { useStormBoardStore } from "@/store/storm-board-store";
 
 export interface ContextMapConnectorsProps {
@@ -50,6 +51,8 @@ export function ContextMapConnectors({
 }: ContextMapConnectorsProps) {
   const byId = new Map(boundedContexts.map((b) => [b.id, b]));
   const draftSource = contextMapDraftSourceId ? byId.get(contextMapDraftSourceId) : undefined;
+  const appearance = useStormBoardStore((s) => s.appearance);
+  const sketchFilter = scribbleStrokeFilter(appearance);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const viewport = useStormBoardStore((s) => s.viewport);
   const hitWidth = connectorHitStrokeWidth(zoom);
@@ -200,6 +203,7 @@ export function ContextMapConnectors({
                 strokeWidth={style.width + 4}
                 strokeOpacity={0.25}
                 className="pointer-events-none"
+                filter={sketchFilter}
               />
             )}
             <line
@@ -210,6 +214,7 @@ export function ContextMapConnectors({
               stroke={draggingThis && !dragSnapActive ? "#e9c46a" : stroke}
               strokeWidth={selected || draggingThis ? style.width + 1 : style.width}
               strokeDasharray={draggingThis && !dragSnapActive ? "6 4" : style.dash}
+              filter={sketchFilter}
               markerEnd={selected ? "url(#ctx-arrow-selected)" : "url(#ctx-arrow)"}
               className="pointer-events-none"
             />
@@ -270,6 +275,7 @@ export function ContextMapConnectors({
             stroke="#e9c46a"
             strokeWidth={2}
             strokeDasharray="4 3"
+            filter={sketchFilter}
             markerEnd="url(#ctx-arrow-draft)"
           />
         );
