@@ -42,12 +42,7 @@ import {
 } from "@/lib/element-rotation";
 import { cssStackingZIndex, isStackingContainerType } from "@/lib/element-z-order";
 import { expandCanvasMoveSet, selectionItemCount } from "@/lib/selection-move";
-import {
-  hexToRgba,
-  parseHexColor,
-  resolveRegionLabelInk,
-  resolveRegionPaint,
-} from "@/lib/region-style";
+import { resolveRegionLabelInk, resolveRegionPaint } from "@/lib/region-style";
 import {
   elementToBoundedContext,
   elementToSwimlane,
@@ -56,6 +51,7 @@ import {
 import type { ConnectorEndpoint } from "@/types/board-connector";
 import { HighlightedText } from "@/components/highlighted-text";
 import { elementCardTypeCaption, elementTypeLabel, useT } from "@/i18n";
+import { resolveCardPaint } from "@/lib/card-appearance";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { NOTE_COMPACT_SIZE_PX, resolveNoteCompactLayout } from "@/lib/note-compact";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
@@ -77,9 +73,6 @@ const MIN_SIZE = 40;
 const ROTATION_SNAP_STEP = 15;
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_CANCEL_PX = 10;
-/** Semi-transparent boundary so nested stickies stay readable. */
-const BOUNDARY_FILL_OPACITY = 0.38;
-
 type ResizeHandle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
 const HANDLE_POSITIONS: Record<ResizeHandle, string> = {
@@ -162,10 +155,12 @@ export function StormElementCard({
   const linkReady = isLink && linkHasTarget(element);
   const linkKind = element.metadata?.linkKind ?? "external";
   const noteColors = isNote ? resolveNoteColor(element.metadata?.noteColor) : null;
+  const cardPaint = resolveCardPaint(element, style, noteColors);
   const colors = {
-    bg: noteColors?.fill ?? style.fill,
-    border: noteColors?.stroke ?? style.stroke,
-    text: noteColors?.ink ?? style.ink,
+    bg: cardPaint.backgroundColor,
+    border: cardPaint.borderColor,
+    text: cardPaint.ink,
+    fillHex: cardPaint.fillHex,
   };
   const regionSource =
     isSwimlane
@@ -178,8 +173,8 @@ export function StormElementCard({
       ? resolveRegionLabelInk(isSwimlane ? "swimlane" : "boundedContext", regionSource)
       : isBoundary
         ? resolveRegionLabelInk("swimlane", {
-            color: parseHexColor(colors.bg) ?? colors.bg,
-            fillOpacity: BOUNDARY_FILL_OPACITY,
+            color: colors.fillHex,
+            fillOpacity: cardPaint.fillOpacity,
           })
         : null;
   const showArchDrilldown = supportsArchDrilldown(element.type) && !editing;
@@ -753,11 +748,7 @@ export function StormElementCard({
         ].join(" ")}
         style={{
           ...shapeStyle,
-          backgroundColor: regionPaint
-            ? regionPaint.backgroundColor
-            : isBoundary
-              ? hexToRgba(colors.bg, BOUNDARY_FILL_OPACITY)
-              : colors.bg,
+          backgroundColor: regionPaint ? regionPaint.backgroundColor : colors.bg,
           borderColor: regionPaint ? regionPaint.borderColor : colors.border,
           color: cardInk,
           borderStyle:

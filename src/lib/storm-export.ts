@@ -17,8 +17,6 @@ import {
   cssExportFont,
   EXPORT_HIGHLIGHT_DIMMED_ELEMENT_FILTER,
   EXPORT_HIGHLIGHT_DIMMED_ELEMENT_OPACITY,
-  elementFillWithOpacity,
-  isBoundaryElement,
   elementIsDashed,
   elementLabelAlign,
   elementLabelIsCentered,
@@ -57,6 +55,7 @@ import {
   resolveElementStyle,
   styleForElementType,
 } from "@/lib/element-styles";
+import { resolveCardPaint } from "@/lib/card-appearance";
 import { resolveNoteColor } from "@/lib/note-colors";
 import { exportBoardAsPrompt } from "@/lib/prompt-export";
 import { downloadCanvasAsPdf } from "@/lib/canvas-pdf-export";
@@ -1094,13 +1093,27 @@ function cornerRadius(el: StormElement, w: number, h: number): number {
 function elementFillStrokeInk(
   el: StormElement,
   customCardTypes: CustomCardType[] = [],
-): { fill: string; stroke: string; ink: string } {
-  if (el.type === "note") {
-    const c = resolveNoteColor(el.metadata?.noteColor);
-    return { fill: c.fill, stroke: c.stroke, ink: c.ink };
-  }
+): {
+  fill: string;
+  stroke: string;
+  ink: string;
+  fillHex: string;
+  fillOpacityPercent: number;
+  strokeHex: string;
+  strokeOpacityPercent: number;
+} {
+  const noteColors = el.type === "note" ? resolveNoteColor(el.metadata?.noteColor) : null;
   const s = resolveElementStyle(el, customCardTypes);
-  return { fill: s.fill, stroke: s.stroke, ink: s.ink };
+  const paint = resolveCardPaint(el, s, noteColors);
+  return {
+    fill: paint.backgroundColor,
+    stroke: paint.borderColor,
+    ink: paint.ink,
+    fillHex: paint.fillHex,
+    fillOpacityPercent: Math.round(paint.fillOpacity * 100),
+    strokeHex: paint.borderHex,
+    strokeOpacityPercent: Math.round(paint.borderOpacity * 100),
+  };
 }
 
 interface BoardBounds {
@@ -1411,7 +1424,8 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
 
   for (const el of sortElementsByZOrder(state.elements)) {
     const r = elementRect(el, notesCompact);
-    const { fill, stroke, ink } = elementFillStrokeInk(el, state.customCardTypes);
+    const { fillHex, strokeHex, ink, fillOpacityPercent, strokeOpacityPercent } =
+      elementFillStrokeInk(el, state.customCardTypes);
     const compactNote = resolveNoteCompactLayout(el, notesCompact);
     const shape = styleForElementType(el.type).shape;
     const radius = cornerRadius(el, r.w, r.h);
@@ -1432,9 +1446,10 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
       spacingRight: align === "left" ? CARD_PAD_X : 4,
       spacingTop: vAlign === "top" ? CARD_PAD_Y : 2,
       spacingBottom: 2,
-      fillColor: fill,
-      fillOpacity: isBoundaryElement(el) ? 38 : undefined,
-      strokeColor: stroke,
+      fillColor: fillHex,
+      fillOpacity: fillOpacityPercent < 100 ? fillOpacityPercent : undefined,
+      strokeColor: strokeHex,
+      strokeOpacity: strokeOpacityPercent < 100 ? strokeOpacityPercent : undefined,
       strokeWidth: elementStrokeWidth(el),
       fontColor: ink,
       fontSize: LABEL_FONT_PX,
@@ -1550,9 +1565,8 @@ export function buildBoardSvgString(state: BoardExportSlice): string {
       ? ` transform="rotate(${rotDeg} ${x + r.w / 2} ${y + r.h / 2})"`
       : "";
     const dash = elementIsDashed(el) ? ` stroke-dasharray="4 3"` : "";
-    const paintFill = elementFillWithOpacity(fill, el);
     parts.push(
-      `<rect x="${x}" y="${y}" width="${r.w}" height="${r.h}" fill="${escapeXml(paintFill)}" stroke="${escapeXml(stroke)}" stroke-width="${elementStrokeWidth(el)}" rx="${rx}"${dash}${rot}/>`,
+      `<rect x="${x}" y="${y}" width="${r.w}" height="${r.h}" fill="${escapeXml(fill)}" stroke="${escapeXml(stroke)}" stroke-width="${elementStrokeWidth(el)}" rx="${rx}"${dash}${rot}/>`,
     );
     if (el.type === "instruction") {
       parts.push(
@@ -1750,7 +1764,7 @@ function renderActiveViewRaster(): {
       ctx.translate(-(x + r.w / 2), -(y + r.h / 2));
     }
 
-    ctx.fillStyle = elementFillWithOpacity(fill, el);
+    ctx.fillStyle = fill;
     ctx.strokeStyle = stroke;
     ctx.lineWidth = elementStrokeWidth(el);
     if (elementIsDashed(el)) {

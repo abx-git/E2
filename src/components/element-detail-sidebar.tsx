@@ -6,7 +6,10 @@ import { AlertCircle, ChevronDown, ExternalLink, HelpCircle, Pencil, Trash2 } fr
 import { activateBoardLink } from "@/lib/board-link";
 import { normalizeCardWebLinks } from "@/lib/card-web-links";
 import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-panel";
+import { CardAppearanceControls } from "@/components/card-appearance-controls";
 import { RegionAppearanceControls } from "@/components/region-appearance-controls";
+import { pickCardAppearanceMetadata } from "@/lib/card-appearance";
+import { pickMetadataForType } from "@/lib/element-attribute-clipboard";
 import { connectorArrowHeadGlyph } from "@/lib/connector-arrow-head";
 import { resolveElementStyle } from "@/lib/element-styles";
 import {
@@ -17,7 +20,7 @@ import {
 } from "@/lib/card-preview";
 import { isTypingTarget } from "@/lib/keyboard-input-guard";
 import { normalizeRotationDegrees } from "@/lib/element-rotation";
-import { NOTE_COLOR_IDS, NOTE_COLORS } from "@/lib/note-colors";
+import { NOTE_COLOR_IDS, NOTE_COLORS, resolveNoteColor } from "@/lib/note-colors";
 import { resolveNoteCompactLayout } from "@/lib/note-compact";
 import { connectorToCanvasLine } from "@/lib/board-connector-migrate";
 import { resolveBoardConnectorStrokeStyle } from "@/lib/board-connector-style";
@@ -44,7 +47,11 @@ import type {
   StoryPriority,
   SubdomainKind,
 } from "@/types/storm-element";
-import { isCloudElementType, supportsArchDrilldown } from "@/types/storm-element";
+import {
+  elementTypesForMode,
+  isCloudElementType,
+  supportsArchDrilldown,
+} from "@/types/storm-element";
 import { CONNECTOR_ARROW_HEADS } from "@/types/canvas-annotation";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import {
@@ -231,6 +238,14 @@ export function ElementDetailSidebar({
   const activeViewId = useStormBoardStore((s) => s.activeViewId);
   const notesCompact = useStormBoardStore((s) => s.notesCompact);
   const setNoteCompactOverride = useStormBoardStore((s) => s.setNoteCompactOverride);
+  const modelingMode = useStormBoardStore((s) => s.modelingMode);
+  const paletteTypes = useMemo(
+    () =>
+      elementTypesForMode(modelingMode).filter(
+        (type) => type !== "swimlane" && type !== "boundedContext",
+      ),
+    [modelingMode],
+  );
 
   const contextRelations = useStormBoardStore((s) => s.contextRelations);
   const selectedElement = elements.find((e) => e.id === selectedElementIds[0]);
@@ -563,10 +578,15 @@ export function ElementDetailSidebar({
   const width = selectedElement.width ?? style.defaultWidth;
   const height = selectedElement.height ?? style.defaultHeight;
   const cardFlagsActive = cardShowsDetails(selectedElement);
+  const noteColors =
+    selectedElement.type === "note" ? resolveNoteColor(selectedElement.metadata?.noteColor) : null;
   const panelTitle =
     selectedElement.type === "customCard"
       ? style.label
       : elementTypeLabel(t, selectedElement.type);
+  const typeOptions = paletteTypes.includes(selectedElement.type)
+    ? paletteTypes
+    : [selectedElement.type, ...paletteTypes];
 
   return (
     <DockPanel
@@ -581,6 +601,40 @@ export function ElementDetailSidebar({
           onChange={(e) => updateElement(selectedElement.id, { label: e.target.value })}
         />
       </Field>
+
+      <CollapsibleSection title={t("detailSidebar.appearance.sectionTitle")} defaultOpen>
+        <Field label={t("detailSidebar.appearance.elementType")}>
+          <select
+            className="dock-field"
+            value={selectedElement.type}
+            onChange={(e) => {
+              const newType = e.target.value as ElementType;
+              if (newType === selectedElement.type) return;
+              const typedMeta = pickMetadataForType(selectedElement.metadata, newType) ?? {};
+              const appearance = pickCardAppearanceMetadata(selectedElement.metadata) ?? {};
+              updateElement(selectedElement.id, {
+                type: newType,
+                metadata: { ...typedMeta, ...appearance },
+              });
+            }}
+          >
+            {typeOptions.map((type) => (
+              <option key={type} value={type}>
+                {elementTypeLabel(t, type)}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <CardAppearanceControls
+          element={selectedElement}
+          style={style}
+          noteColors={noteColors}
+          onMetadataChange={(metadata) =>
+            updateElement(selectedElement.id, { metadata })
+          }
+        />
+      </CollapsibleSection>
+
       <div className="space-y-1">
         <p className="text-[0.72rem] font-medium text-[var(--muted)]">
           {t("detailSidebar.fields.description")}
