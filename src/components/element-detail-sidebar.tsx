@@ -584,8 +584,10 @@ export function ElementDetailSidebar({
     selectedElement.type === "customCard"
       ? style.label
       : elementTypeLabel(t, selectedElement.type);
-  const typeOptions = paletteTypes.includes(selectedElement.type)
-    ? paletteTypes
+  const typeOptions: ElementType[] = (paletteTypes as ElementType[]).includes(
+    selectedElement.type,
+  )
+    ? [...paletteTypes]
     : [selectedElement.type, ...paletteTypes];
 
   return (
