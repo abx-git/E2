@@ -1510,6 +1510,10 @@ export async function createAndAttachWorkingFile(
   endWorkingFileSwitch();
   markWorkingFileSessionHydrated();
   syncHandleIntoFileLibrary(handle, initialJson);
+  if (result.lastModified) {
+    const fileName = handle.name?.trim() || suggestedWorkingFileName(suggestedName);
+    await rememberMobileCopy(initialJson, fileName, result.lastModified);
+  }
   // After write: sync state is clean — refresh listeners (dirty/label).
   notifyWorkingFileAttached();
   return handle;

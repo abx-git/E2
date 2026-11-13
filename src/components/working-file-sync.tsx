@@ -47,6 +47,11 @@ import {
   isCollabGuestLocalPersistEnabled,
   pauseWorkingFilePersistForCollab,
 } from "@/lib/working-file";
+import {
+  clearBoardSessionDraft,
+  readBoardSessionDraft,
+  saveBoardSessionDraft,
+} from "@/lib/board-session-draft";
 import { mayAutoRestoreWorkingFileFromStorage } from "@/lib/working-file-safety";
 import {
   bindTabWorkingFile,
@@ -151,7 +156,8 @@ export function WorkingFileSync({
   const lastPersistKeyRef = useRef<string | null>(null);
   const persistDebounceTimerRef = useRef<number | null>(null);
 
-  const AUTOSAVE_DEBOUNCE_MS = 250;
+  /** Immediate autosave — debounce only coalesces bursts within one turn. */
+  const AUTOSAVE_DEBOUNCE_MS = 0;
 
   const syncFileLabel = () => {
     callbacksRef.current.onWorkingFileNameChange(getWorkingFileLabel());
@@ -251,6 +257,7 @@ export function WorkingFileSync({
         if (!mountedRef.current) return false;
         if (result.ok) {
           lastPersistKeyRef.current = boardPersistKeyFromStoreState();
+          clearBoardSessionDraft();
           syncDirty();
           wroteOk = true;
           return true;
@@ -389,6 +396,9 @@ export function WorkingFileSync({
       }
       const key = boardPersistKeyFromStoreState();
       if (key === lastPersistKeyRef.current) return;
+      if (!isWorkingFileAttached()) {
+        saveBoardSessionDraft(boardJsonFromStoreState());
+      }
       // Do not mark the key as handled until a successful write — otherwise a
       // skipped/failed flush leaves the board permanently "ungespeichert".
       syncDirty();
@@ -519,6 +529,18 @@ export function WorkingFileSync({
         return;
       }
 
+      const draft = readBoardSessionDraft();
+      if (draft?.trim()) {
+        markWorkingFileSessionHydrated();
+        suspendAutoPersistRef.current = true;
+        try {
+          applyBoardJsonToStore(draft);
+        } finally {
+          suspendAutoPersistRef.current = false;
+        }
+        return;
+      }
+
       callbacksRef.current.onNeedsFileSetup?.();
     };
 
@@ -592,8 +614,12 @@ export function WorkingFileSync({
         syncFileLabel();
         syncDirty();
         syncPaused();
+        clearBoardSessionDraft();
         if (isCollabGuestLocalPersistEnabled()) {
           schedulePersistOnChange();
+        } else if (!blocksWorkingFileAutosave() && !isWorkingFileAutosavePaused()) {
+          flushPersistNow();
+          void applyExternalFileIfNeeded();
         } else {
           void applyExternalFileIfNeeded();
         }
