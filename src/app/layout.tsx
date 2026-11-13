@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import { Caveat, IBM_Plex_Sans } from "next/font/google";
 
 import { AppProviders } from "@/components/app-providers";
 
@@ -9,6 +9,13 @@ const plex = IBM_Plex_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-plex",
+  display: "swap",
+});
+
+const scribble = Caveat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-scribble",
   display: "swap",
 });
 
@@ -41,7 +48,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={plex.variable} suppressHydrationWarning>
+    <html lang="de" className={`${plex.variable} ${scribble.variable}`} suppressHydrationWarning>
       <body className={`${plex.className} min-h-screen antialiased`}>
         <AppProviders>{children}</AppProviders>
       </body>

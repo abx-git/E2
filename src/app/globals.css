@@ -235,3 +235,17 @@ body {
   border-radius: 0.25rem;
   padding: 0.1rem 0.3rem;
 }
+
+/* Hand-drawn diagram mode (Darstellung → Scribble). */
+[data-diagram-style="scribble"] [data-storm-element-card] {
+  font-family: var(--font-scribble), var(--font-plex), cursive;
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  box-shadow:
+    2px 3px 0 rgba(0, 0, 0, 0.1),
+    -1px 1px 0 rgba(0, 0, 0, 0.06);
+  border-width: 2px;
+}
+
+[data-diagram-style="scribble"] [data-storm-element-card] .text-xs {
+  letter-spacing: 0.02em;
+}

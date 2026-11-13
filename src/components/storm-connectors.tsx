@@ -24,6 +24,7 @@ import { relationEndpointsDimmedBySelectionFilter } from "@/lib/canvas-selection
 import { relationEndpointsDimmedByTypeVisibilityFilter } from "@/lib/canvas-type-visibility-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { ProgressMarkConnectorBadge } from "@/components/progress-mark-badge";
+import { scribbleStrokeFilter } from "@/lib/diagram-style";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { StormElement } from "@/types/storm-element";
 import type { StormRelation } from "@/types/storm-relation";
@@ -56,6 +57,8 @@ export function StormConnectors({
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
+  const appearance = useStormBoardStore((s) => s.appearance);
+  const sketchFilter = scribbleStrokeFilter(appearance);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const views = useStormBoardStore((s) => s.views);
   const viewNameById = Object.fromEntries(views.map((v) => [v.id, v.name]));
@@ -242,6 +245,7 @@ export function StormConnectors({
                 draggingThis && !dragSnapActive ? "6 4" : connectorStrokeDasharray(strokeStyle)
               }
               strokeLinecap={strokeStyle === "dotted" ? "round" : undefined}
+              filter={sketchFilter}
               markerEnd={selected ? "url(#storm-arrowhead-selected)" : "url(#storm-arrowhead)"}
               className="pointer-events-none"
             />
@@ -317,6 +321,7 @@ export function StormConnectors({
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
                 opacity={0.35}
+                filter={sketchFilter}
               />
             );
           })}

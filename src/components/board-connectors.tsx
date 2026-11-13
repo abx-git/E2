@@ -39,6 +39,7 @@ import {
 } from "@/lib/connector-polyline";
 import { noteConnectorPinLeaderSegment } from "@/lib/note-connector-pin";
 import { connectorHitStrokeWidth } from "@/lib/connector-style";
+import { scribbleStrokeFilter } from "@/lib/diagram-style";
 import { connectorDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
 import { connectorRigidWithMoveSet } from "@/lib/connector-selection-move";
 import { connectorDimmedByTypeVisibilityFilter } from "@/lib/canvas-type-visibility-filter";
@@ -95,6 +96,8 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
   const notesCompact = useStormBoardStore((s) => s.notesCompact);
+  const appearance = useStormBoardStore((s) => s.appearance);
+  const sketchFilter = scribbleStrokeFilter(appearance);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const viewport = useStormBoardStore((s) => s.viewport);
   const swimlanes = useStormBoardStore((s) => s.swimlanes);
@@ -397,6 +400,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
               strokeDasharray="3 3"
               strokeOpacity={0.85}
               vectorEffect="non-scaling-stroke"
+              filter={sketchFilter}
             />
           );
         })}
@@ -522,6 +526,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
                   strokeWidth={strokeW + 4}
                   strokeOpacity={0.25}
                   className="pointer-events-none"
+                  filter={sketchFilter}
                 />
               )}
               <polyline
@@ -530,6 +535,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
                 stroke={strokeColor}
                 strokeWidth={strokeW}
                 strokeDasharray={dash}
+                filter={sketchFilter}
                 markerEnd={
                   arrow === "end" || arrow === "both"
                     ? `url(#${markerEndId(selected)})`
@@ -602,6 +608,7 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
               strokeWidth={1.5}
               strokeDasharray="4 4"
               opacity={0.45}
+              filter={sketchFilter}
               markerEnd="url(#board-conn-arrow-draft)"
             />
           ))}

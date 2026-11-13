@@ -987,6 +987,11 @@
           "type": "string",
           "pattern": "^#[0-9A-Fa-f]{6}$",
           "description": "Hintergrundfarbe der Seitenleisten und Docks."
+        },
+        "diagramStyle": {
+          "type": "string",
+          "enum": ["clean", "scribble"],
+          "description": "Darstellungsstil der Diagrammelemente (scharf oder Scribble)."
         }
       }
     },

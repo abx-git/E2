@@ -8,6 +8,7 @@ import {
   connectorEndpointDragPreview,
   type ConnectorAttachTarget,
 } from "@/lib/connector-target-pick";
+import { scribbleStrokeFilter } from "@/lib/diagram-style";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import { LINE_ARROW_HEAD_LABELS } from "@/types/canvas-annotation";
 import {
@@ -40,6 +41,8 @@ const CANVAS_LINE_SNAP_TARGETS = ["element", "boundedContext", "swimlane"] as co
 
 export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasLinesProps) {
   const canvasLines = useStormBoardStore((s) => s.canvasLines);
+  const appearance = useStormBoardStore((s) => s.appearance);
+  const sketchFilter = scribbleStrokeFilter(appearance);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
   const updateCanvasLine = useStormBoardStore((s) => s.updateCanvasLine);
   const lineDrawMode = useStormBoardStore((s) => s.lineDrawMode);
@@ -256,6 +259,7 @@ export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasL
                   ? `url(#${markerStartId(selected)})`
                   : undefined
               }
+              filter={sketchFilter}
               className="pointer-events-none"
             />
             {line.label && (
@@ -305,6 +309,7 @@ export function CanvasLines({ selectedLineId, onSelectLine, draftLine }: CanvasL
           stroke="#e9c46a"
           strokeWidth={2}
           strokeDasharray="6 4"
+          filter={sketchFilter}
         />
       )}
     </svg>

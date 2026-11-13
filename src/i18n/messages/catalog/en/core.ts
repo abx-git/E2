@@ -117,6 +117,11 @@ export const coreEn = {
   appearance: {
     workspace: "Workspace",
     sidebars: "Sidebars",
+    diagramStyle: {
+      label: "Diagram style",
+      clean: "Clean",
+      scribble: "Scribble",
+    },
     presets: "Presets",
     reset: "Reset",
   },

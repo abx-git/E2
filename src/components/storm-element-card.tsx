@@ -722,6 +722,7 @@ export function StormElementCard({
       }}
     >
       <div
+        data-storm-element-card
         className={[
           "relative flex h-full w-full border px-2 py-1 shadow-sm transition-shadow",
           noteCompactCollapsed ? "items-center justify-center px-0 py-0" : "",

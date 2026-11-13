@@ -23,6 +23,7 @@ import { lineLength } from "@/lib/canvas-annotations";
 import { isStackingContainerType, sortElementsByZOrder } from "@/lib/element-z-order";
 import { useIsCoarsePointer } from "@/lib/use-media-query";
 import { useT } from "@/i18n";
+import { scribbleStrokeFilter } from "@/lib/diagram-style";
 import { useStormBoardStore } from "@/store/storm-board-store";
 import type { ConnectorEndpoint } from "@/types/board-connector";
 import type { StormElement } from "@/types/storm-element";
@@ -95,6 +96,8 @@ export function StormCanvas() {
   } | null>(null);
   const isCoarsePointer = useIsCoarsePointer();
 
+  const appearance = useStormBoardStore((s) => s.appearance);
+  const sketchFilter = scribbleStrokeFilter(appearance);
   const viewport = useStormBoardStore((s) => s.viewport);
   const setViewport = useStormBoardStore((s) => s.setViewport);
   const elements = useStormBoardStore((s) => s.elements);
@@ -734,6 +737,7 @@ export function StormCanvas() {
               stroke="#e9c46a"
               strokeWidth={2}
               strokeDasharray="6 4"
+              filter={sketchFilter}
             />
           </svg>
         )}
