@@ -42,7 +42,10 @@ import { connectorHitStrokeWidth } from "@/lib/connector-style";
 import { scribbleStrokeFilter } from "@/lib/diagram-style";
 import { connectorDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
 import { connectorRigidWithMoveSet } from "@/lib/connector-selection-move";
-import { connectorDimmedByTypeVisibilityFilter } from "@/lib/canvas-type-visibility-filter";
+import {
+  connectorDimmedByTypeVisibilityFilter,
+  connectorHiddenByTypeVisibilityFilter,
+} from "@/lib/canvas-type-visibility-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { ProgressMarkConnectorBadge } from "@/components/progress-mark-badge";
 import { useT } from "@/i18n";
@@ -95,6 +98,8 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
   const selectedBoundedContextIds = useStormBoardStore((s) => s.selectedBoundedContextIds);
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
+  const invisibleElementTypes = useStormBoardStore((s) => s.invisibleElementTypes);
+  const invisibleCustomTypeIds = useStormBoardStore((s) => s.invisibleCustomTypeIds);
   const notesCompact = useStormBoardStore((s) => s.notesCompact);
   const appearance = useStormBoardStore((s) => s.appearance);
   const sketchFilter = scribbleStrokeFilter(appearance);
@@ -460,11 +465,20 @@ export function BoardConnectors({ elements, connectorDraftSource }: BoardConnect
             selectionFilterEnabled,
             selectedElementIds,
           );
+          const hiddenForTypeVisibility = connectorHiddenByTypeVisibilityFilter(
+            elements,
+            (elementId) => elementInvolved(conn, elementId),
+            invisibleElementTypes,
+            invisibleCustomTypeIds,
+          );
+          if (hiddenForTypeVisibility) return null;
           const dimForTypeVisibility = connectorDimmedByTypeVisibilityFilter(
             elements,
             (elementId) => elementInvolved(conn, elementId),
             hiddenElementTypes,
             hiddenCustomTypeIds,
+            invisibleElementTypes,
+            invisibleCustomTypeIds,
           );
           const dimmed = dimForFocus || dimForSearch || dimForSelection || dimForTypeVisibility;
           const mark = conn.progressMark;

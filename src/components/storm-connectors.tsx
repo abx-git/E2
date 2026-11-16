@@ -21,7 +21,10 @@ import {
   resolveRelationStrokeStyle,
 } from "@/lib/connector-style";
 import { relationEndpointsDimmedBySelectionFilter } from "@/lib/canvas-selection-filter";
-import { relationEndpointsDimmedByTypeVisibilityFilter } from "@/lib/canvas-type-visibility-filter";
+import {
+  relationEndpointsDimmedByTypeVisibilityFilter,
+  relationHiddenByTypeVisibilityFilter,
+} from "@/lib/canvas-type-visibility-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
 import { ProgressMarkConnectorBadge } from "@/components/progress-mark-badge";
 import { scribbleStrokeFilter } from "@/lib/diagram-style";
@@ -57,6 +60,8 @@ export function StormConnectors({
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
+  const invisibleElementTypes = useStormBoardStore((s) => s.invisibleElementTypes);
+  const invisibleCustomTypeIds = useStormBoardStore((s) => s.invisibleCustomTypeIds);
   const appearance = useStormBoardStore((s) => s.appearance);
   const sketchFilter = scribbleStrokeFilter(appearance);
   const zoom = useStormBoardStore((s) => s.viewport.zoom);
@@ -186,11 +191,23 @@ export function StormConnectors({
           selectionFilterEnabled,
           selectedElementIds,
         );
+        if (
+          relationHiddenByTypeVisibilityFilter(
+            src,
+            tgt,
+            invisibleElementTypes,
+            invisibleCustomTypeIds,
+          )
+        ) {
+          return null;
+        }
         const dimForTypeVisibility = relationEndpointsDimmedByTypeVisibilityFilter(
           src,
           tgt,
           hiddenElementTypes,
           hiddenCustomTypeIds,
+          invisibleElementTypes,
+          invisibleCustomTypeIds,
         );
         const dimmed = dimForFocus || dimForSearch || dimForSelection || dimForTypeVisibility;
         const mark = rel.progressMark;

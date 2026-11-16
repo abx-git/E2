@@ -240,10 +240,14 @@ export interface StormBoardState {
   snapToGrid: boolean;
   /** Freeform: stereotype definitions for the active view. */
   customCardTypes: CustomCardType[];
-  /** Per view: built-in types faded on the canvas. */
+  /** Per view: built-in types dimmed on the canvas. */
   hiddenElementTypes: ElementType[];
-  /** Per view: freeform stereotypes faded on the canvas. */
+  /** Per view: freeform stereotypes dimmed on the canvas. */
   hiddenCustomTypeIds: string[];
+  /** Per view: built-in types hidden on the canvas. */
+  invisibleElementTypes: ElementType[];
+  /** Per view: freeform stereotypes hidden on the canvas. */
+  invisibleCustomTypeIds: string[];
   /** Per view: notes shown as compact info icon until hover. */
   notesCompact: boolean;
   selectedElementIds: string[];
@@ -335,8 +339,8 @@ export interface StormBoardState {
   setPropertiesPanelOpen: (open: boolean) => void;
   setSearchQuery: (query: string) => void;
   setSelectionFilterEnabled: (enabled: boolean) => void;
-  toggleHiddenElementType: (type: ElementType) => void;
-  toggleHiddenCustomTypeId: (customTypeId: string) => void;
+  cycleElementTypeVisibility: (type: ElementType) => void;
+  cycleCustomTypeVisibility: (customTypeId: string) => void;
   toggleNotesCompact: () => void;
   /** Per-note compact override (`undefined` = follow view default). */
   setNoteCompactOverride: (elementId: string, noteCompact: boolean | undefined) => void;
@@ -794,6 +798,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   customCardTypes: initialViewDoc.customCardTypes ?? [],
   hiddenElementTypes: initialViewDoc.hiddenElementTypes ?? [],
   hiddenCustomTypeIds: initialViewDoc.hiddenCustomTypeIds ?? [],
+  invisibleElementTypes: initialViewDoc.invisibleElementTypes ?? [],
+  invisibleCustomTypeIds: initialViewDoc.invisibleCustomTypeIds ?? [],
   notesCompact: initialViewDoc.notesCompact ?? false,
   selectedElementIds: [],
   selectedConnectorId: null,
@@ -1089,22 +1095,42 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   },
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSelectionFilterEnabled: (selectionFilterEnabled) => set({ selectionFilterEnabled }),
-  toggleHiddenElementType: (type) =>
+  cycleElementTypeVisibility: (type) =>
     commit(set, get, (s) => {
-      const hidden = s.hiddenElementTypes;
+      const dimmed = s.hiddenElementTypes;
+      const invisible = s.invisibleElementTypes;
+      if (invisible.includes(type)) {
+        return {
+          invisibleElementTypes: invisible.filter((t) => t !== type),
+        };
+      }
+      if (dimmed.includes(type)) {
+        return {
+          hiddenElementTypes: dimmed.filter((t) => t !== type),
+          invisibleElementTypes: [...invisible, type],
+        };
+      }
       return {
-        hiddenElementTypes: hidden.includes(type)
-          ? hidden.filter((t) => t !== type)
-          : [...hidden, type],
+        hiddenElementTypes: [...dimmed, type],
       };
     }),
-  toggleHiddenCustomTypeId: (customTypeId) =>
+  cycleCustomTypeVisibility: (customTypeId) =>
     commit(set, get, (s) => {
-      const hidden = s.hiddenCustomTypeIds;
+      const dimmed = s.hiddenCustomTypeIds;
+      const invisible = s.invisibleCustomTypeIds;
+      if (invisible.includes(customTypeId)) {
+        return {
+          invisibleCustomTypeIds: invisible.filter((id) => id !== customTypeId),
+        };
+      }
+      if (dimmed.includes(customTypeId)) {
+        return {
+          hiddenCustomTypeIds: dimmed.filter((id) => id !== customTypeId),
+          invisibleCustomTypeIds: [...invisible, customTypeId],
+        };
+      }
       return {
-        hiddenCustomTypeIds: hidden.includes(customTypeId)
-          ? hidden.filter((id) => id !== customTypeId)
-          : [...hidden, customTypeId],
+        hiddenCustomTypeIds: [...dimmed, customTypeId],
       };
     }),
   toggleNotesCompact: () =>
@@ -1144,6 +1170,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
     commit(set, get, () => ({
       hiddenElementTypes: [],
       hiddenCustomTypeIds: [],
+      invisibleElementTypes: [],
+      invisibleCustomTypeIds: [],
     })),
   setClipboardDropHighlight: (clipboardDropHighlight) => set({ clipboardDropHighlight }),
 

@@ -134,10 +134,14 @@ export interface CanvasBoardView {
   snapToGrid: boolean;
   /** Freeform mode: user-defined card types (stereotypes) for this view. */
   customCardTypes: CustomCardType[];
-  /** Hidden built-in element types on the canvas (per view). */
+  /** Dimmed built-in element types on the canvas (per view). */
   hiddenElementTypes?: ElementType[];
-  /** Hidden freeform stereotype ids on the canvas (per view). */
+  /** Dimmed freeform stereotype ids on the canvas (per view). */
   hiddenCustomTypeIds?: string[];
+  /** Fully hidden built-in element types on the canvas (per view). */
+  invisibleElementTypes?: ElementType[];
+  /** Fully hidden freeform stereotype ids on the canvas (per view). */
+  invisibleCustomTypeIds?: string[];
   /** Notes on canvas as compact info icon (full card on hover). */
   notesCompact?: boolean;
 }
@@ -358,6 +362,8 @@ export function normalizeBoardView(
     customCardTypes: normalizeCustomCardTypes(raw.customCardTypes),
     hiddenElementTypes: normalizeHiddenElementTypes(raw.hiddenElementTypes),
     hiddenCustomTypeIds: normalizeHiddenCustomTypeIds(raw.hiddenCustomTypeIds),
+    invisibleElementTypes: normalizeHiddenElementTypes(raw.invisibleElementTypes),
+    invisibleCustomTypeIds: normalizeHiddenCustomTypeIds(raw.invisibleCustomTypeIds),
     notesCompact: Boolean(raw.notesCompact),
   });
   const connectors = mergeLegacyIntoConnectors(

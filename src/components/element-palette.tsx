@@ -18,9 +18,10 @@ import {
 } from "@/lib/element-styles";
 import { getAllowedTypesForPhase } from "@/lib/facilitator-phases";
 import {
-  isCustomCardTypeHidden,
-  isElementTypeHidden,
   isTypeVisibilityFilterActive,
+  paletteBuiltInTypeVisibilityMode,
+  paletteCustomTypeVisibilityMode,
+  type PaletteTypeVisibilityMode,
 } from "@/lib/canvas-type-visibility-filter";
 import { BoardDockHideButton } from "@/components/board-dock-toggle";
 import { isPointerOverStormCanvas } from "@/lib/board-clipboard";
@@ -249,14 +250,18 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
   const addCustomCardType = useStormBoardStore((s) => s.addCustomCardType);
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
+  const invisibleElementTypes = useStormBoardStore((s) => s.invisibleElementTypes);
+  const invisibleCustomTypeIds = useStormBoardStore((s) => s.invisibleCustomTypeIds);
   const setAllNotesCompactOverride = useStormBoardStore((s) => s.setAllNotesCompactOverride);
-  const toggleHiddenElementType = useStormBoardStore((s) => s.toggleHiddenElementType);
-  const toggleHiddenCustomTypeId = useStormBoardStore((s) => s.toggleHiddenCustomTypeId);
+  const cycleElementTypeVisibility = useStormBoardStore((s) => s.cycleElementTypeVisibility);
+  const cycleCustomTypeVisibility = useStormBoardStore((s) => s.cycleCustomTypeVisibility);
   const clearHiddenElementTypes = useStormBoardStore((s) => s.clearHiddenElementTypes);
 
   const typeFilterActive = isTypeVisibilityFilterActive(
     hiddenElementTypes,
     hiddenCustomTypeIds,
+    invisibleElementTypes,
+    invisibleCustomTypeIds,
   );
   const [ghost, setGhost] = useState<GhostState | null>(null);
   const [editingTypeId, setEditingTypeId] = useState<string | null>(null);
@@ -351,7 +356,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
       if (!drag || drag.kind !== "fixed") return;
 
       if (!drag.active) {
-        toggleHiddenElementType(type);
+        cycleElementTypeVisibility(type);
         return;
       }
 
@@ -402,7 +407,7 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
       if (!drag || drag.kind !== "custom") return;
 
       if (!drag.active) {
-        toggleHiddenCustomTypeId(customType.id);
+        cycleCustomTypeVisibility(customType.id);
         return;
       }
 
@@ -420,11 +425,29 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
     onRequestHelp?.(type);
   };
 
+  const visibilityRowClass = (mode: PaletteTypeVisibilityMode) => {
+    if (mode === "dimmed") return "opacity-40 saturate-50";
+    if (mode === "invisible") {
+      return "opacity-35 saturate-0 outline outline-1 outline-dashed outline-[var(--muted)]";
+    }
+    return "";
+  };
+
+  const visibilityTitle = (typeName: string, mode: PaletteTypeVisibilityMode) => {
+    if (mode === "visible") return t("panels.paletteDimType", { type: typeName });
+    if (mode === "dimmed") return t("panels.paletteHideType", { type: typeName });
+    return t("panels.paletteShowType", { type: typeName });
+  };
+
   const renderTypeRow = (type: ElementType, compact = false) => {
     const style = ELEMENT_STYLES[type];
     const typeLabel = elementTypeLabel(t, type);
     const active = paletteType === type;
-    const hidden = isElementTypeHidden(type, hiddenElementTypes);
+    const visibility = paletteBuiltInTypeVisibilityMode(
+      type,
+      hiddenElementTypes,
+      invisibleElementTypes,
+    );
     return (
       <button
         key={type}
@@ -437,20 +460,16 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
           active
             ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
             : "opacity-90 hover:opacity-100",
-          hidden ? "opacity-40 saturate-50" : "",
+          visibilityRowClass(visibility),
         ].join(" ")}
         style={{
           backgroundColor: style.fill,
           borderColor: style.stroke,
           color: style.ink,
         }}
-        title={
-          hidden
-            ? t("panels.paletteShowType", { type: typeLabel })
-            : t("panels.paletteHideType", { type: typeLabel })
-        }
+        title={visibilityTitle(typeLabel, visibility)}
         aria-label={t("panels.paletteTypeRowAria", { type: typeLabel })}
-        aria-pressed={hidden}
+        aria-pressed={visibility !== "visible"}
       >
         {typeLabel}
       </button>
@@ -461,7 +480,13 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
     const style = styleForCustomCardType(customType);
     const active = paletteType === "customCard" && paletteCustomTypeId === customType.id;
     const displayName = customType.name.trim() || t("panels.customTypeFallbackName");
-    const hidden = isCustomCardTypeHidden(customType.id, hiddenCustomTypeIds);
+    const visibility = paletteCustomTypeVisibilityMode(
+      customType.id,
+      hiddenElementTypes,
+      hiddenCustomTypeIds,
+      invisibleElementTypes,
+      invisibleCustomTypeIds,
+    );
     return (
       <div key={customType.id} className="flex min-w-0 items-stretch gap-0.5">
         <button
@@ -474,20 +499,16 @@ export function ElementPalette({ onSelectType, onRequestHelp, onHide }: ElementP
             active
               ? "ring-2 ring-[var(--accent)] ring-offset-1 ring-offset-[var(--panel-solid)]"
               : "opacity-90 hover:opacity-100",
-            hidden ? "opacity-40 saturate-50" : "",
+            visibilityRowClass(visibility),
           ].join(" ")}
           style={{
             backgroundColor: style.fill,
             borderColor: style.stroke,
             color: style.ink,
           }}
-          title={
-            hidden
-              ? t("panels.paletteShowType", { type: displayName })
-              : t("panels.paletteHideType", { type: displayName })
-          }
+          title={visibilityTitle(displayName, visibility)}
           aria-label={t("panels.paletteTypeRowAria", { type: displayName })}
-          aria-pressed={hidden}
+          aria-pressed={visibility !== "visible"}
         >
           <span className="truncate text-[0.55rem] font-bold uppercase tracking-wide opacity-80">
             {stereotypeLabel(customType.name)}

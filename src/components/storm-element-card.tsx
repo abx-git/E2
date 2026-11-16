@@ -32,6 +32,7 @@ import {
 } from "@/lib/canvas-selection-filter";
 import {
   elementDimmedByTypeVisibilityFilter,
+  elementInvisibleByTypeVisibilityFilter,
   isTypeVisibilityFilterActive,
 } from "@/lib/canvas-type-visibility-filter";
 import { matchElementSearch, normalizeSearchQuery } from "@/lib/element-search";
@@ -194,6 +195,8 @@ export function StormElementCard({
   const selectedElementIds = useStormBoardStore((s) => s.selectedElementIds);
   const hiddenElementTypes = useStormBoardStore((s) => s.hiddenElementTypes);
   const hiddenCustomTypeIds = useStormBoardStore((s) => s.hiddenCustomTypeIds);
+  const invisibleElementTypes = useStormBoardStore((s) => s.invisibleElementTypes);
+  const invisibleCustomTypeIds = useStormBoardStore((s) => s.invisibleCustomTypeIds);
   const notesCompact = useStormBoardStore((s) => s.notesCompact);
   const editingElementId = useStormBoardStore((s) => s.editingElementId);
   const views = useStormBoardStore((s) => s.views);
@@ -242,11 +245,20 @@ export function StormElementCard({
     element,
     hiddenElementTypes,
     hiddenCustomTypeIds,
+    invisibleElementTypes,
+    invisibleCustomTypeIds,
+  );
+  const invisibleForTypeVisibility = elementInvisibleByTypeVisibilityFilter(
+    element,
+    invisibleElementTypes,
+    invisibleCustomTypeIds,
   );
   const dimmed = dimForFocus || dimForSearch || dimForSelection || dimForTypeVisibility;
   const typeVisibilityFilterActive = isTypeVisibilityFilterActive(
     hiddenElementTypes,
     hiddenCustomTypeIds,
+    invisibleElementTypes,
+    invisibleCustomTypeIds,
   );
   const hiddenTypeLabel =
     element.type === "customCard"
@@ -479,6 +491,8 @@ export function StormElementCard({
     "w-full resize-none bg-transparent text-xs font-semibold leading-tight outline-none ring-0",
     noteLike ? "h-full whitespace-pre-wrap text-left" : showDetails || isBoundary ? "text-left" : "text-center",
   ].join(" ");
+
+  if (invisibleForTypeVisibility) return null;
 
   return (
     <div

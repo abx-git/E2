@@ -47,10 +47,14 @@ export interface ActiveViewFlatState {
   snapToTimeline: boolean;
   snapToGrid: boolean;
   customCardTypes: CustomCardType[];
-  /** Canvas filter: built-in palette types hidden in this view. */
+  /** Canvas filter: built-in palette types dimmed in this view. */
   hiddenElementTypes: ElementType[];
-  /** Freeform: hidden custom stereotype ids in this view. */
+  /** Freeform: dimmed custom stereotype ids in this view. */
   hiddenCustomTypeIds: string[];
+  /** Canvas filter: built-in palette types not rendered in this view. */
+  invisibleElementTypes: ElementType[];
+  /** Freeform: invisible custom stereotype ids in this view. */
+  invisibleCustomTypeIds: string[];
   /** Notes render as info icon until hover (per view). */
   notesCompact: boolean;
 }
@@ -86,6 +90,8 @@ export function flatFieldsFromView(view: CanvasBoardView): ActiveViewFlatState {
     customCardTypes: view.customCardTypes ?? [],
     hiddenElementTypes: view.hiddenElementTypes ?? [],
     hiddenCustomTypeIds: view.hiddenCustomTypeIds ?? [],
+    invisibleElementTypes: view.invisibleElementTypes ?? [],
+    invisibleCustomTypeIds: view.invisibleCustomTypeIds ?? [],
     notesCompact: view.notesCompact ?? false,
   };
 }

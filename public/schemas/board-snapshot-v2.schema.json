@@ -1092,14 +1092,29 @@
         },
         "hiddenElementTypes": {
           "type": "array",
-          "description": "Ausgeblendete Elementtypen auf dem Canvas (pro Sicht).",
+          "description": "Abgedunkelte Elementtypen auf dem Canvas (pro Sicht).",
           "items": {
             "$ref": "#/$defs/elementType"
           }
         },
         "hiddenCustomTypeIds": {
           "type": "array",
-          "description": "Ausgeblendete Freiform-Stereotyp-IDs auf dem Canvas (pro Sicht).",
+          "description": "Abgedunkelte Freiform-Stereotyp-IDs auf dem Canvas (pro Sicht).",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "invisibleElementTypes": {
+          "type": "array",
+          "description": "Unsichtbare Elementtypen auf dem Canvas (pro Sicht).",
+          "items": {
+            "$ref": "#/$defs/elementType"
+          }
+        },
+        "invisibleCustomTypeIds": {
+          "type": "array",
+          "description": "Unsichtbare Freiform-Stereotyp-IDs auf dem Canvas (pro Sicht).",
           "items": {
             "type": "string",
             "minLength": 1
