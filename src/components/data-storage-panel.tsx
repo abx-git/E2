@@ -72,6 +72,7 @@ export interface DataStoragePanelProps {
   /** Speichern unter… — pick a new path; becomes the Arbeitsdatei. */
   onSaveWorkingFileAs: () => void;
   onCloseWorkingFile?: () => void;
+  onResetStoredWorkingFile?: () => void;
   onRenameWorkingFile?: () => void;
   onOpenRecentWorkingFile: (handle: FileSystemFileHandle) => void;
   onPickFileLibrary?: () => void;
@@ -381,6 +382,7 @@ export function DataStoragePanel({
   onOpenWorkingFile,
   onSaveWorkingFileAs,
   onCloseWorkingFile,
+  onResetStoredWorkingFile,
   onRenameWorkingFile,
   onOpenRecentWorkingFile,
   onPickFileLibrary,
@@ -796,6 +798,11 @@ export function DataStoragePanel({
                   {workingFileAttached && onCloseWorkingFile ? (
                     <ActionButton onClick={onCloseWorkingFile} disabled={busy}>
                       <X className="h-4 w-4" /> {t("common.close")}
+                    </ActionButton>
+                  ) : null}
+                  {onResetStoredWorkingFile ? (
+                    <ActionButton onClick={onResetStoredWorkingFile} disabled={busy}>
+                      <X className="h-4 w-4" /> Browser-Verknüpfung zurücksetzen
                     </ActionButton>
                   ) : null}
                   {workingFileAttached && onRenameWorkingFile ? (

@@ -23,6 +23,9 @@ import { useStormBoardStore } from "@/store/storm-board-store";
 import {
   bindTabWorkingFile,
   createWorkingFileId,
+  disableAutoRestoreWorkingFile,
+  enableAutoRestoreWorkingFile,
+  isAutoRestoreWorkingFileDisabled,
   normalizeWorkingFilename,
   resolvePreferredWorkingFileId,
   resolvePreferredWorkingFileName,
@@ -802,6 +805,44 @@ export async function clearRecentWorkingFiles(): Promise<void> {
   }
 }
 
+async function idbDeleteAllWorkingFileBindings(): Promise<void> {
+  try {
+    const db = await openIdb();
+    const keys = await new Promise<string[]>((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      tx.onerror = () => reject(tx.error ?? new Error("tx"));
+      const req = tx.objectStore(IDB_STORE).getAllKeys();
+      req.onsuccess = () => {
+        resolve((req.result ?? []).map((k) => String(k)));
+      };
+      req.onerror = () => reject(req.error ?? new Error("keys"));
+    });
+    db.close();
+    const wipePrefixes = ["handle:", "mobile:", "name-index:"];
+    for (const key of keys) {
+      if (
+        wipePrefixes.some((p) => key.startsWith(p)) ||
+        key === LEGACY_IDB_HANDLE_KEY ||
+        key === LEGACY_IDB_MOBILE_KEY ||
+        key === IDB_RECENT_KEY
+      ) {
+        await idbDelete(key);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Drop IndexedDB handles/mirrors — same clean state as a new browser profile tab. */
+export async function wipePersistedWorkingFileBindings(): Promise<void> {
+  disableAutoRestoreWorkingFile();
+  await detachWorkingFile();
+  await idbDeleteAllWorkingFileBindings();
+  await clearRecentWorkingFiles();
+  bindTabWorkingFile(null, null);
+}
+
 /**
  * Re-open a recent file (must be called from a user gesture for permission).
  * Promotes it to the current Arbeitsdatei and hydrates the editor.
@@ -1129,6 +1170,7 @@ async function rememberHandle(handle: FileSystemFileHandle): Promise<void> {
     /* ignore */
   }
   syncHandleIntoFileLibrary(handle);
+  enableAutoRestoreWorkingFile();
 }
 
 export async function attachWorkingFileOpen(): Promise<FileSystemFileHandle | null> {
@@ -1623,8 +1665,7 @@ export async function restoreWorkingFileFromDisk(
     (await resolveWfForHandle(handle));
 
   try {
-    let granted = (await handle.queryPermission({ mode: "readwrite" })) === "granted";
-    if (!granted) granted = (await handle.requestPermission({ mode: "readwrite" })) === "granted";
+    const granted = (await handle.queryPermission({ mode: "readwrite" })) === "granted";
     if (granted) {
       memoryHandle = handle;
       activeWorkingFileId = wf;
@@ -1641,12 +1682,6 @@ export async function restoreWorkingFileFromDisk(
     /* ignore */
   }
 
-  if (handleName) {
-    mobileWorkingFileName = handleName;
-    activeWorkingFileId = wf;
-    rememberLastFileNameInStorage(handleName);
-    syncTabContextAndWriter(handleName, wf);
-  }
   memoryHandle = null;
   return null;
 }

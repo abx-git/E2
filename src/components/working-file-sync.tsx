@@ -56,6 +56,7 @@ import { mayAutoRestoreWorkingFileFromStorage } from "@/lib/working-file-safety"
 import {
   bindTabWorkingFile,
   getOrCreateTabSessionId,
+  isAutoRestoreWorkingFileDisabled,
   resolvePreferredWorkingFileId,
   resolvePreferredWorkingFileName,
 } from "@/lib/working-file-tab-context";
@@ -554,7 +555,10 @@ export function WorkingFileSync({
       callbacksRef.current.onMultiTabUnsafeChange?.(isWorkingFileMultiTabUnsafe());
       const preferred = resolvePreferredWorkingFileName();
       const preferredWf = resolvePreferredWorkingFileId();
-      if (mayAutoRestoreWorkingFileFromStorage() || preferred || preferredWf) {
+      if (
+        !isAutoRestoreWorkingFileDisabled() &&
+        (mayAutoRestoreWorkingFileFromStorage() || preferred || preferredWf)
+      ) {
         await restoreWorkingFileFromDisk(preferred, preferredWf);
       }
       if (!mountedRef.current) return;

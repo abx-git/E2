@@ -144,6 +144,7 @@ import {
   attachWorkingFileOpen,
   createAndAttachWorkingFile,
   detachWorkingFile,
+  wipePersistedWorkingFileBindings,
   getActiveWorkingFileId,
   getWorkingFileLabel,
   hydrateStoreFromWorkingFile,
@@ -159,6 +160,7 @@ import {
   requestWorkingFilePermission,
   resolveWorkingFileImportConflict,
   saveWorkingFileAs,
+  setWorkingFilePersistPaused,
   STANDARD_WORKING_FILENAME,
   suggestedWorkingFileName,
   renameWorkingFile,
@@ -768,6 +770,12 @@ export function StormBoard() {
     }
     if (choice === "discard") {
       setUnsavedPrompt(null);
+      setPersistPaused(false);
+      setWorkingFilePersistPaused(false);
+      setWorkingFileDirty(false);
+      setWorkingFileSaving(false);
+      await wipePersistedWorkingFileBindings();
+      setWorkingFileName(null);
       await proceed();
       return;
     }
@@ -900,9 +908,8 @@ export function StormBoard() {
       setBusy(true);
       try {
         backupBeforeSuspiciousSwitch("file");
-        await detachWorkingFile();
+        await wipePersistedWorkingFileBindings();
         useStormBoardStore.getState().replaceBoardFromImport(createDefaultBoardDocument({ title: "" }));
-        bindTabWorkingFile(null);
         setWorkingFileName(null);
         setWorkingFileDirty(false);
         setPersistPaused(false);
@@ -912,6 +919,25 @@ export function StormBoard() {
         setBusy(false);
       }
     });
+  };
+
+  const handleResetStoredWorkingFile = () => {
+    const ok = window.confirm(
+      "Gespeicherte Datei-Verknüpfungen in diesem Browser löschen?\n\nWie ein frisches Fenster (Inkognito): kein Auto-Wiederherstellen, Sie wählen die Datei erneut über „Öffnen“.\n\nDer aktuelle Board-Inhalt im Tab bleibt erhalten.",
+    );
+    if (!ok) return;
+    void (async () => {
+      setBusy(true);
+      try {
+        await wipePersistedWorkingFileBindings();
+        setWorkingFileName(null);
+        setWorkingFileDirty(false);
+        setWorkingFileSaving(false);
+        setPersistPaused(false);
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   const handleRenameWorkingFile = async () => {
@@ -1544,6 +1570,7 @@ export function StormBoard() {
         onOpenWorkingFile={() => void handleOpenWorkingFile()}
         onSaveWorkingFileAs={() => void handleSaveWorkingFileAs()}
         onCloseWorkingFile={() => void handleCloseWorkingFile()}
+        onResetStoredWorkingFile={() => handleResetStoredWorkingFile()}
         onRenameWorkingFile={() => void handleRenameWorkingFile()}
         onOpenRecentWorkingFile={(handle) => void handleOpenRecentWorkingFile(handle)}
         onPickFileLibrary={() => void handlePickFileLibrary()}

@@ -15,6 +15,7 @@ export const WORKING_FILE_URL_PARAM = "filename";
 
 const SS_TAB_SESSION_ID = "e2.working-file.tab-session-id";
 const SS_ACTIVE_CONTEXT = "e2.working-file.tab-context";
+const SS_DISABLE_AUTO_RESTORE = "e2.working-file.disable-auto-restore";
 const APP_DOCUMENT_TITLE = "E2";
 
 export interface TabWorkingFileContext {
@@ -201,6 +202,34 @@ export function resolvePreferredWorkingFileName(): string | null {
   }
   if (session.label) return session.label;
   return readFilenameFromUrl();
+}
+
+/** After unlink/discard: skip silent IndexedDB re-attach until the user picks a file again. */
+export function disableAutoRestoreWorkingFile(): void {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.setItem(SS_DISABLE_AUTO_RESTORE, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function enableAutoRestoreWorkingFile(): void {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.removeItem(SS_DISABLE_AUTO_RESTORE);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isAutoRestoreWorkingFileDisabled(): boolean {
+  if (typeof sessionStorage === "undefined") return false;
+  try {
+    return sessionStorage.getItem(SS_DISABLE_AUTO_RESTORE) === "1";
+  } catch {
+    return false;
+  }
 }
 
 /**
