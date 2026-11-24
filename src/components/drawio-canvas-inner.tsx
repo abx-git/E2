@@ -17,6 +17,7 @@ import {
   selectionFromMxCells,
   type MxCellLike,
 } from "@/lib/drawio/mx-to-board";
+import { drawioModelSyncKey } from "@/lib/drawio/board-sync-key";
 import { createDrawioStoreSyncCoalescer } from "@/lib/drawio/sync-coalesce";
 import { exportCanvasBackground } from "@/lib/board-export-visual";
 
@@ -113,20 +114,31 @@ export default function DrawioCanvasInner() {
     }),
   );
 
-  const modelingDeps = useStormBoardStore((s) => ({
-    activeViewId: s.activeViewId,
-    elements: s.elements,
-    connectors: s.connectors,
-    relations: s.relations,
-    swimlanes: s.swimlanes,
-    boundedContexts: s.boundedContexts,
-    canvasLines: s.canvasLines,
-    timeline: s.timeline,
-    appearance: s.appearance,
-    customCardTypes: s.customCardTypes,
-    notesCompact: s.notesCompact,
-    title: s.title,
-  }));
+  const modelSyncKey = useStormBoardStore((s) =>
+    drawioModelSyncKey({
+      title: s.title,
+      glossary: s.glossary,
+      actionItems: s.actionItems,
+      appearance: s.appearance,
+      modelingMode: s.modelingMode,
+      workshopFormat: s.workshopFormat,
+      facilitatorEnabled: s.facilitatorEnabled,
+      facilitatorPhase: s.facilitatorPhase,
+      elements: s.elements,
+      connectors: s.connectors,
+      relations: s.relations,
+      contextRelations: s.contextRelations,
+      swimlanes: s.swimlanes,
+      boundedContexts: s.boundedContexts,
+      canvasLines: s.canvasLines,
+      timeline: s.timeline,
+      viewport: s.viewport,
+      snapToTimeline: s.snapToTimeline,
+      snapToGrid: s.snapToGrid,
+      customCardTypes: s.customCardTypes,
+      notesCompact: s.notesCompact,
+    }),
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -147,6 +159,7 @@ export default function DrawioCanvasInner() {
 
     const selectionModel = graph.getSelectionModel();
     const onSelectionChange = () => {
+      if (loadingFromStoreRef.current) return;
       const selected = graph.getSelectionCells().map((c) => ({
         id: c.getId() ?? "",
         style: cellStyleString(c),
@@ -196,11 +209,13 @@ export default function DrawioCanvasInner() {
       serializer.import(modelXml);
       graph.refresh();
     } finally {
-      window.setTimeout(() => {
-        loadingFromStoreRef.current = false;
-      }, 0);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          loadingFromStoreRef.current = false;
+        });
+      });
     }
-  }, [modelingDeps]);
+  }, [modelSyncKey]);
 
   return (
     <div

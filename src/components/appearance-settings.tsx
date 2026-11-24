@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 
 import { APPEARANCE_PRESETS, DEFAULT_APPEARANCE } from "@/lib/board-appearance";
 import {
@@ -18,7 +18,11 @@ export function AppearanceSettings() {
   const appearance = useStormBoardStore((s) => s.appearance);
   const setAppearance = useStormBoardStore((s) => s.setAppearance);
   const t = useT();
-  const canvasEngine = useSyncExternalStore(subscribeCanvasEngine, readCanvasEngine, () => "legacy" as CanvasEngine);
+  const [canvasEngine, setCanvasEngine] = useState<CanvasEngine>("legacy");
+  useEffect(() => {
+    setCanvasEngine(readCanvasEngine());
+    return subscribeCanvasEngine(() => setCanvasEngine(readCanvasEngine()));
+  }, []);
 
   return (
     <div className="space-y-3">
