@@ -117,6 +117,12 @@ export const coreEn = {
   appearance: {
     workspace: "Workspace",
     sidebars: "Sidebars",
+    canvasEngine: {
+      label: "Canvas engine",
+      legacy: "E2 (default)",
+      drawio: "Draw.io (beta)",
+      hint: "Hybrid: .e2.json stays canonical; Draw.io handles layout. Context map remains an overlay.",
+    },
     diagramStyle: {
       label: "Diagram style",
       clean: "Clean",

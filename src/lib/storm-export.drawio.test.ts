@@ -131,6 +131,9 @@ describe("buildDrawioMxFile", () => {
     expect(mx).toContain('<mxCell id="0"/>');
     expect(mx).toContain('<mxCell id="1" parent="0"/>');
     expect(mx).toContain('id="el_evt-1"');
+    expect(mx).toContain("e2Kind=element");
+    expect(mx).toContain("e2Id=evt-1");
+    expect(mx).toContain("e2Kind=connector");
     expect(mx).toContain('id="el_cmd-1"');
     expect(mx).toContain('source="el_cmd-1"');
     expect(mx).toContain('target="el_evt-1"');

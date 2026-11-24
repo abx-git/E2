@@ -330,6 +330,8 @@ export function drawioExportConnectorCells(
     const arrow = connectorArrowHead(conn);
     const caption = boardConnectorCaption(conn);
     const style = mxStyle({
+      e2Kind: "connector",
+      e2Id: conn.id,
       startArrow: arrow === "start" || arrow === "both" ? "block" : "none",
       endArrow: arrow === "end" || arrow === "both" ? "block" : "none",
       startFill: 1,

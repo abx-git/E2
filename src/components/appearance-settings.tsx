@@ -1,6 +1,14 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
+
 import { APPEARANCE_PRESETS, DEFAULT_APPEARANCE } from "@/lib/board-appearance";
+import {
+  readCanvasEngine,
+  subscribeCanvasEngine,
+  writeCanvasEngine,
+  type CanvasEngine,
+} from "@/lib/canvas-engine-prefs";
 import { DIAGRAM_STYLES } from "@/lib/diagram-style";
 import { LocaleLanguageControl } from "@/components/locale-language-control";
 import { useT } from "@/i18n";
@@ -10,10 +18,36 @@ export function AppearanceSettings() {
   const appearance = useStormBoardStore((s) => s.appearance);
   const setAppearance = useStormBoardStore((s) => s.setAppearance);
   const t = useT();
+  const canvasEngine = useSyncExternalStore(subscribeCanvasEngine, readCanvasEngine, () => "legacy" as CanvasEngine);
 
   return (
     <div className="space-y-3">
       <LocaleLanguageControl />
+
+      <div>
+        <p className="group-label mb-2">{t("appearance.canvasEngine.label")}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {(["legacy", "drawio"] as const).map((engine) => {
+            const active = canvasEngine === engine;
+            return (
+              <button
+                key={engine}
+                type="button"
+                onClick={() => writeCanvasEngine(engine)}
+                className={[
+                  "rounded-lg px-2.5 py-1.5 text-xs",
+                  active ? "dock-control-active" : "dock-control",
+                ].join(" ")}
+              >
+                {t(`appearance.canvasEngine.${engine}` as const)}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-[0.65rem] leading-snug text-[var(--muted)]">
+          {t("appearance.canvasEngine.hint")}
+        </p>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <label className="block text-[0.72rem] font-medium text-[var(--muted)]">

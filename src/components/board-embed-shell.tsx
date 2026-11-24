@@ -8,7 +8,7 @@ import { BoardEmbedAppBar } from "@/components/board-embed-app-bar";
 import { BoardSideRail } from "@/components/board-side-rail";
 import { BoundedContextMobileActions } from "@/components/bounded-context-mobile-sheet";
 import { MobileBoardBar } from "@/components/mobile-board-bar";
-import { StormCanvas } from "@/components/storm-canvas";
+import { BoardCanvas } from "@/components/board-canvas";
 import {
   loadEmbedBoardFromPayload,
   loadEmbedBoardFromText,
@@ -160,7 +160,7 @@ export function BoardEmbedShell({
             <ActionsBoardView viewId={activeViewId} />
           ) : (
             <>
-              <StormCanvas />
+              <BoardCanvas />
               <BoundedContextMobileActions onOpenDetails={() => setPropertiesPanelOpen(true)} />
               <MobileBoardBar />
             </>

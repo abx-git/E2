@@ -116,6 +116,12 @@ export const coreDe = {
   appearance: {
     workspace: "Arbeitsbereich",
     sidebars: "Seitenleisten",
+    canvasEngine: {
+      label: "Canvas-Engine",
+      legacy: "E2 (Standard)",
+      drawio: "Draw.io (Beta)",
+      hint: "Hybrid: .e2.json bleibt Master; Draw.io steuert Layout. Kontextkarte weiter als Overlay.",
+    },
     diagramStyle: {
       label: "Diagramm-Stil",
       clean: "Scharf",

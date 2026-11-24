@@ -24,7 +24,7 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@mdxeditor/editor"],
+  transpilePackages: ["@mdxeditor/editor", "@maxgraph/core"],
   ...(basePath ? { basePath, assetPrefix: basePath } : {}),
   ...(isStaticExport
     ? {

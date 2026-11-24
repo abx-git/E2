@@ -34,7 +34,7 @@ import {
   type FileConflictChoice,
 } from "@/components/file-conflict-dialog";
 import { ActionsBoardView } from "@/components/actions/ActionsBoardView";
-import { StormCanvas } from "@/components/storm-canvas";
+import { BoardCanvas } from "@/components/board-canvas";
 import { isActionsView } from "@/lib/storm-json";
 import { WorkingFileSetupDialog } from "@/components/working-file-setup-dialog";
 import {
@@ -1455,7 +1455,7 @@ export function StormBoard() {
             <ActionsBoardView viewId={activeViewId} />
           ) : (
             <>
-              <StormCanvas />
+              <BoardCanvas />
               <BoundedContextMobileActions onOpenDetails={() => setBcMobileSheetOpen(true)} />
               <MobileBoardBar
                 onRequestHelpElementType={openElementHelp}
