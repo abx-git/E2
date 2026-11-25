@@ -18,6 +18,7 @@ import {
   elementStrokeWidth,
   elementTypeBadgeLabel,
   elementVerticalAlign,
+  exportStickyElements,
 } from "@/lib/board-export-visual";
 import { drawioExportConnectorCells } from "@/lib/board-export-connectors";
 import {
@@ -375,7 +376,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
     ...drawioExportConnectorCells(state, bounds, mxCellId, mxStyle, mxHtmlValue, mxHtmlText, MX_FONT),
   );
 
-  for (const el of sortElementsByZOrder(state.elements)) {
+  for (const el of sortElementsByZOrder(exportStickyElements(state.elements))) {
     const r = elementCanvasBounds(el, notesCompact);
     const { fillHex, strokeHex, ink, fillOpacityPercent, strokeOpacityPercent } =
       elementFillStrokeInk(el, state.customCardTypes);

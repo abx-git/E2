@@ -6,6 +6,7 @@ import { hexToRgba } from "@/lib/region-style";
 import type { CustomCardType } from "@/lib/custom-card-types";
 import { CONTEXT_MAP_CONNECTOR_STYLE } from "@/lib/board-connector-style";
 import { normalizeAppearance, type BoardAppearance } from "@/lib/board-appearance";
+import { isLayoutRegionElementType } from "@/lib/region-elements";
 import {
   isArchBuildingBlockType,
   isC4ElementType,
@@ -88,6 +89,14 @@ export function cssExportFont(weight: number, sizePx: number): string {
 
 export function isBoundaryElement(el: Pick<StormElement, "type">): boolean {
   return isStackingContainerType(el.type);
+}
+
+/**
+ * Swimlanes / bounded contexts are painted from `swimlanes` + `boundedContexts`
+ * (derived from the same ids as layout region elements). Skip them in sticky export.
+ */
+export function exportStickyElements(elements: StormElement[]): StormElement[] {
+  return elements.filter((el) => !isLayoutRegionElementType(el.type));
 }
 
 export function elementFillWithOpacity(

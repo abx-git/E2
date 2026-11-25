@@ -23,6 +23,7 @@ import {
   elementStrokeWidth,
   elementTypeBadgeLabel,
   elementVerticalAlign,
+  exportStickyElements,
 } from "@/lib/board-export-visual";
 import {
   drawExportConnectorsOnCanvas,
@@ -1236,7 +1237,7 @@ export function buildBoardSvgString(state: BoardExportSlice): string {
 
   parts.push(...svgExportConnectors(state, ox, oy, escapeXml));
 
-  for (const el of sortElementsByZOrder(state.elements)) {
+  for (const el of sortElementsByZOrder(exportStickyElements(state.elements))) {
     const selectionDimmed = elementDimmedForExportHighlight(el.id, state);
     if (selectionDimmed) {
       parts.push(`<g opacity="${EXPORT_HIGHLIGHT_DIMMED_ELEMENT_OPACITY}">`);
@@ -1430,7 +1431,7 @@ function renderActiveViewRaster(): {
 
   drawExportConnectorsOnCanvas(ctx, state, ox, oy, cssFont);
 
-  for (const el of sortElementsByZOrder(state.elements)) {
+  for (const el of sortElementsByZOrder(exportStickyElements(state.elements))) {
     const r = elementRect(el, notesCompact);
     const x = r.x + ox;
     const y = r.y + oy;

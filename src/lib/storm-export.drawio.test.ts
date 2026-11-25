@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildDrawioMxFile } from "@/lib/storm-export";
+import { boundedContextToElement, swimlaneToElement } from "@/lib/region-elements";
+import { buildBoardSvgString, buildDrawioMxFile } from "@/lib/storm-export";
 import type { BoardActiveSlice } from "@/lib/storm-json";
 import { DEFAULT_APPEARANCE } from "@/lib/board-appearance";
 import { DEFAULT_TIMELINE, DEFAULT_VIEWPORT } from "@/types/storm-element";
@@ -182,5 +183,38 @@ describe("buildDrawioMxFile", () => {
     expect(aggAt).toBeLessThan(evtAt);
     expect(cmdAt).toBeGreaterThan(evtAt);
     expect(mx).toContain("dashed=1");
+  });
+
+  it("does not emit duplicate mx cells when layout regions also exist as elements", () => {
+    const lane = sample.swimlanes[0]!;
+    const bc = sample.boundedContexts[0]!;
+    const duplicated: BoardActiveSlice = {
+      ...sample,
+      elements: [
+        ...sample.elements,
+        swimlaneToElement(lane),
+        boundedContextToElement(bc),
+      ],
+    };
+  const bounds = {
+      minX: 0,
+      minY: 0,
+      maxX: 800,
+      maxY: 400,
+      width: 960,
+      height: 560,
+      ox: 80,
+      oy: 80,
+    };
+    const mx = buildDrawioMxFile(duplicated, bounds);
+    const svg = buildBoardSvgString({ ...duplicated, selectionHighlight: null });
+
+    expect(mx).toContain('id="lane_lane-1"');
+    expect(mx).toContain('id="bc_bc-1"');
+    expect(mx).not.toContain('id="el_lane-1"');
+    expect(mx).not.toContain('id="el_bc-1"');
+    expect((svg.match(/<text class="region"[^>]*>Ordering<\/text>/g) ?? []).length).toBe(
+      1,
+    );
   });
 });
