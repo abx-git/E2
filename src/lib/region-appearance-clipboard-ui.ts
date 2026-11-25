@@ -1,7 +1,7 @@
 import { layoutRegionCanPasteAppearance } from "@/lib/region-appearance-clipboard";
 import { runElementAttributePaste } from "@/lib/element-attribute-clipboard-ui";
 import type { TranslateFn } from "@/i18n/translate";
-import { useStormBoardStore } from "@/store/storm-board-store";
+import { getStormBoardState, getUseStormBoardStore } from "@/lib/storm-board-store-runtime";
 
 export type RegionAppearanceCopyOutcome = { status: "copied" } | { status: "error" };
 
@@ -11,12 +11,12 @@ export type RegionAppearancePasteOutcome =
   | { status: "error"; reason: "no_clipboard" | "no_target" | "same_element" | "incompatible" };
 
 export function runRegionAppearanceCopy(elementId: string): RegionAppearanceCopyOutcome {
-  const ok = useStormBoardStore.getState().copyElementAttributes(elementId);
+  const ok = getUseStormBoardStore().getState().copyElementAttributes(elementId);
   return ok ? { status: "copied" } : { status: "error" };
 }
 
 export function regionAppearancePasteEnabled(elementId: string, elementType: string): boolean {
-  const s = useStormBoardStore.getState();
+  const s = getStormBoardState();
   return layoutRegionCanPasteAppearance(
     elementType,
     elementId,
@@ -29,7 +29,7 @@ export function runRegionAppearancePaste(
   t: TranslateFn,
   targetId: string,
 ): RegionAppearancePasteOutcome {
-  const store = useStormBoardStore.getState();
+  const store = getStormBoardState();
   const target = store.elements.find((e) => e.id === targetId);
   if (!target) return { status: "error", reason: "no_target" };
   if (!store.elementAttributeClipboard) {

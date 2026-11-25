@@ -1,25 +1,17 @@
 import { elementStyleCanPaste } from "@/lib/element-style-clipboard";
-import type { useStormBoardStore } from "@/store/storm-board-store";
 import type { TranslateFn } from "@/i18n/translate";
-
-type StormStore = ReturnType<typeof useStormBoardStore.getState>;
-
-function getStormBoardStore() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const mod = require("@/store/storm-board-store") as typeof import("@/store/storm-board-store");
-  return mod.useStormBoardStore;
-}
+import { getStormBoardState, getUseStormBoardStore } from "@/lib/storm-board-store-runtime";
 
 export type ElementStylePasteOutcome =
   | { status: "applied" }
   | { status: "error"; reason: "no_clipboard" | "no_target" | "same_element" | "incompatible" };
 
 export function runElementStyleCopy(elementId: string): boolean {
-  return getStormBoardStore().getState().copyElementStyle(elementId);
+  return getUseStormBoardStore().getState().copyElementStyle(elementId);
 }
 
 export function elementStylePasteEnabled(elementId: string): boolean {
-  const s = getStormBoardStore().getState() as StormStore;
+  const s = getStormBoardState();
   const target = s.elements.find((e) => e.id === elementId);
   if (!target) return false;
   return elementStyleCanPaste(
@@ -34,7 +26,7 @@ export function runElementStylePaste(
   _t: TranslateFn,
   targetId: string,
 ): ElementStylePasteOutcome {
-  const store = getStormBoardStore().getState() as StormStore;
+  const store = getStormBoardState();
   if (!store.elementStyleClipboard) {
     return { status: "error", reason: "no_clipboard" };
   }

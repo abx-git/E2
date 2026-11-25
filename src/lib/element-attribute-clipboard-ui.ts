@@ -4,7 +4,7 @@ import {
 } from "@/lib/element-attribute-clipboard";
 import { elementTypeLabel } from "@/i18n";
 import type { TranslateFn } from "@/i18n/translate";
-import { useStormBoardStore } from "@/store/storm-board-store";
+import { getStormBoardState, getUseStormBoardStore } from "@/lib/storm-board-store-runtime";
 
 export type ElementAttributePasteOutcome =
   | { status: "applied" }
@@ -15,7 +15,7 @@ export function runElementAttributePaste(
   t: TranslateFn,
   targetId: string,
 ): ElementAttributePasteOutcome {
-  const store = useStormBoardStore.getState();
+  const store = getStormBoardState();
   if (!store.elementAttributeClipboard) {
     return { status: "error", reason: "no_clipboard" };
   }
@@ -35,7 +35,7 @@ export function runElementAttributePaste(
 }
 
 export function runElementAttributeCopy(elementId: string): boolean {
-  return useStormBoardStore.getState().copyElementAttributes(elementId);
+  return getUseStormBoardStore().getState().copyElementAttributes(elementId);
 }
 
 export function attributePasteConfirmMessage(
