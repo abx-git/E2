@@ -1,6 +1,6 @@
 {
   "name": "event-storming-tool",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "E2 collaborative domain modeling board — viewer and editor for .e2.json (Event Storming, DDD, BDD, …)",
   "private": false,
   "author": "Andreas Bergmann",

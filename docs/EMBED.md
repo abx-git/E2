@@ -4,6 +4,8 @@
 
 Embed **full E2 boards** (pan/zoom, focus highlight, search, glossary, hotspots, multi-tab views, actions views) inside apps that render Markdown — without reimplementing the canvas.
 
+**Parent app owns `.e2.json` on disk** (load/save via postMessage): [EMBED-HOST.md](EMBED-HOST.md).
+
 ## Choose an integration
 
 | Host | Approach |

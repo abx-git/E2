@@ -1,18 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { BoardEmbedShell } from "@/components/board-embed-shell";
 import {
   readBoardAutoLoadFromSearch,
   readBoardUrlFromSearch,
 } from "@/lib/board-remote-url";
-import { EMBED_LOAD_MESSAGE, EMBED_READY_MESSAGE } from "@/lib/embed-messages";
+import { createEmbedHostBridge } from "@/lib/embed-host-bridge";
+import {
+  EMBED_LOAD_MESSAGE,
+  EMBED_READY_MESSAGE,
+} from "@/lib/embed-messages";
+import {
+  isAllowedEmbedHostOrigin,
+  isEmbedHostedInParentWindow,
+  readParentOriginsFromSearch,
+} from "@/lib/embed-host-origin";
 
 export default function EmbedPage() {
   const [documentText, setDocumentText] = useState<string | undefined>();
   const [src, setSrc] = useState<string | undefined>();
   const [editable, setEditable] = useState(false);
+  const [hostManaged, setHostManaged] = useState(false);
+
+  const allowedParentOrigins = useMemo(() => {
+    if (typeof window === "undefined") return [];
+    return readParentOriginsFromSearch(window.location.search);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -27,6 +42,23 @@ export default function EmbedPage() {
       return;
     }
 
+    const hosted = isEmbedHostedInParentWindow();
+    setHostManaged(hosted);
+
+    if (hosted) {
+      const bridge = createEmbedHostBridge({ allowedParentOrigins });
+      const onMessage = (event: MessageEvent) => {
+        if (!isAllowedEmbedHostOrigin(event.origin, allowedParentOrigins)) return;
+        bridge.handleMessage(event);
+      };
+      window.addEventListener("message", onMessage);
+      bridge.postReady();
+      return () => {
+        window.removeEventListener("message", onMessage);
+        bridge.dispose();
+      };
+    }
+
     const onMessage = (event: MessageEvent) => {
       if (event.data?.type !== EMBED_LOAD_MESSAGE || typeof event.data.json !== "string") return;
       if (event.data.editable === true) setEditable(true);
@@ -34,17 +66,20 @@ export default function EmbedPage() {
     };
 
     window.addEventListener("message", onMessage);
-    window.parent.postMessage({ type: EMBED_READY_MESSAGE }, "*");
+    window.parent.postMessage({ type: EMBED_READY_MESSAGE, hostProtocol: 1 }, "*");
 
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [allowedParentOrigins]);
+
+  const allowViewManagement = editable && (hostManaged || editable);
 
   return (
     <div className="h-dvh w-full">
       <BoardEmbedShell
-        document={documentText}
+        document={hostManaged ? undefined : documentText}
         src={src}
         editable={editable}
+        allowViewManagement={allowViewManagement}
         allowFullscreen
         fullscreenOnClick
         style={{ minHeight: "100%" }}
