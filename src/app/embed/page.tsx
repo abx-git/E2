@@ -62,7 +62,10 @@ export default function EmbedPage() {
       window.addEventListener("message", onMessage);
       void import("@/lib/embed-host-bridge").then(({ createEmbedHostBridge }) => {
         if (disposed) return;
-        bridge = createEmbedHostBridge({ allowedParentOrigins });
+        bridge = createEmbedHostBridge({
+          allowedParentOrigins,
+          onHostLoad: ({ editable: nextEditable }) => setEditable(nextEditable),
+        });
         bridge.postReady();
       });
       return () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Maximize2, Minimize2 } from "lucide-react";
+import { LayoutGrid, Maximize2, Minimize2 } from "lucide-react";
 
 import { BoardViewTabs } from "@/components/board-view-tabs";
 import { useStormBoardStore } from "@/store/storm-board-store";
@@ -10,12 +10,18 @@ export interface BoardEmbedAppBarProps {
   fullscreen?: boolean;
   onToggleFullscreen?: () => void;
   allowViewManagement?: boolean;
+  showElementsToggle?: boolean;
+  elementsPanelOpen?: boolean;
+  onToggleElementsPanel?: () => void;
 }
 
 export function BoardEmbedAppBar({
   fullscreen,
   onToggleFullscreen,
   allowViewManagement = false,
+  showElementsToggle = false,
+  elementsPanelOpen = false,
+  onToggleElementsPanel,
 }: BoardEmbedAppBarProps) {
   const t = useT();
   const title = useStormBoardStore((s) => s.title);
@@ -29,6 +35,23 @@ export function BoardEmbedAppBar({
         >
           {title || t("common.unnamedBoard")}
         </h1>
+        {showElementsToggle && onToggleElementsPanel ? (
+          <button
+            type="button"
+            onClick={onToggleElementsPanel}
+            className={[
+              "dock-control rounded-lg p-2",
+              elementsPanelOpen
+                ? "bg-[var(--control)] text-[var(--text)]"
+                : "text-[var(--muted)] hover:bg-[var(--control)] hover:text-[var(--text)]",
+            ].join(" ")}
+            title={elementsPanelOpen ? t("chrome.hideElementsPanel") : t("chrome.showElementsPanel")}
+            aria-label={elementsPanelOpen ? t("chrome.hideElementsPanel") : t("chrome.showElementsPanel")}
+            aria-pressed={elementsPanelOpen}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+        ) : null}
         {onToggleFullscreen ? (
           <button
             type="button"

@@ -20,6 +20,8 @@ const AUTOSAVE_DEBOUNCE_MS = 1500;
 export type EmbedHostBridgeOptions = {
   allowedParentOrigins: string[];
   onHostFileLoaded?: (hostFileId: string) => void;
+  /** Fired after each host `embed-load` (incl. editable flag for shell UI). */
+  onHostLoad?: (info: { hostFileId: string; editable: boolean }) => void;
 };
 
 export type EmbedHostBridge = {
@@ -111,6 +113,7 @@ export function createEmbedHostBridge(opts: EmbedHostBridgeOptions): EmbedHostBr
     lastSyncedPersistKey = boardPersistKeyFromStoreState();
     startStoreWatch();
     opts.onHostFileLoaded?.(nextHostFileId);
+    opts.onHostLoad?.({ hostFileId: nextHostFileId, editable: nextEditable });
     postDirty(false);
   };
 

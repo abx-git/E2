@@ -64,6 +64,8 @@ export function BoardEmbedShell({
   const setPropertiesPanelOpen = useStormBoardStore((s) => s.setPropertiesPanelOpen);
   const elementsPanelOpen = useStormBoardStore((s) => s.elementsPanelOpen);
   const setElementsPanelOpen = useStormBoardStore((s) => s.setElementsPanelOpen);
+  const interactionMode = useStormBoardStore((s) => s.interactionMode);
+  const canPlaceElements = interactionMode === "edit" || editable;
   const [fullscreen, setFullscreen] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(Boolean(src));
@@ -108,6 +110,10 @@ export function BoardEmbedShell({
   }, [documentText, loadFromProps, payload, src]);
 
   useEffect(() => {
+    if (canPlaceElements) setElementsPanelOpen(true);
+  }, [canPlaceElements, setElementsPanelOpen]);
+
+  useEffect(() => {
     if (!fullscreen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -145,7 +151,10 @@ export function BoardEmbedShell({
       <BoardEmbedAppBar
         fullscreen={fullscreen}
         onToggleFullscreen={allowFullscreen ? toggleFullscreen : undefined}
-        allowViewManagement={allowViewManagement && editable}
+        allowViewManagement={allowViewManagement && canPlaceElements}
+        showElementsToggle={canPlaceElements}
+        elementsPanelOpen={elementsPanelOpen}
+        onToggleElementsPanel={() => setElementsPanelOpen(!elementsPanelOpen)}
       />
       {loadError ? (
         <p className="mx-3 my-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -155,8 +164,8 @@ export function BoardEmbedShell({
         <p className="mx-3 my-2 text-sm text-[var(--muted)]">Loading board…</p>
       ) : null}
       <div className="flex min-h-0 flex-1 gap-2 p-2 lg:p-3">
-        {elementsPanelOpen && !isActionsActive && editable ? (
-          <div className="dock-surface flex min-h-0 w-[min(14rem,32vw)] shrink-0 overflow-hidden rounded-dock">
+        {elementsPanelOpen && !isActionsActive && canPlaceElements ? (
+          <div className="dock-surface flex min-h-0 max-h-full w-48 shrink-0 overflow-hidden rounded-dock sm:w-[11.5rem]">
             <ElementPalette
               onSelectType={() => {}}
               onHide={() => setElementsPanelOpen(false)}
@@ -164,7 +173,7 @@ export function BoardEmbedShell({
           </div>
         ) : null}
         <div className="dock-surface relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-dock">
-          {!elementsPanelOpen && !isActionsActive && editable ? (
+          {!elementsPanelOpen && !isActionsActive && canPlaceElements ? (
             <BoardDockReopenButton side="left" onOpen={() => setElementsPanelOpen(true)} />
           ) : null}
           {!propertiesPanelOpen ? (
