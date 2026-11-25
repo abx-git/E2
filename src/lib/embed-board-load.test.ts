@@ -26,6 +26,8 @@ describe("embed-board-load", () => {
   it("respects editable flag", () => {
     const doc = createDefaultBoardDocument({ title: "Editable embed" });
     loadEmbedBoardFromPayload(buildBoardSnapshot(doc), { editable: true });
-    expect(useStormBoardStore.getState().interactionMode).toBe("edit");
+    const state = useStormBoardStore.getState();
+    expect(state.interactionMode).toBe("edit");
+    expect(state.elementsPanelOpen).toBe(true);
   });
 });

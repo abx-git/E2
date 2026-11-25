@@ -9,6 +9,7 @@ import { BoardSideRail } from "@/components/board-side-rail";
 import { BoundedContextMobileActions } from "@/components/bounded-context-mobile-sheet";
 import { MobileBoardBar } from "@/components/mobile-board-bar";
 import { BoardCanvas } from "@/components/board-canvas";
+import { ElementPalette } from "@/components/element-palette";
 import {
   loadEmbedBoardFromPayload,
   loadEmbedBoardFromText,
@@ -61,6 +62,8 @@ export function BoardEmbedShell({
   const isActionsActive = activeView ? isActionsView(activeView) : false;
   const propertiesPanelOpen = useStormBoardStore((s) => s.propertiesPanelOpen);
   const setPropertiesPanelOpen = useStormBoardStore((s) => s.setPropertiesPanelOpen);
+  const elementsPanelOpen = useStormBoardStore((s) => s.elementsPanelOpen);
+  const setElementsPanelOpen = useStormBoardStore((s) => s.setElementsPanelOpen);
   const [fullscreen, setFullscreen] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(Boolean(src));
@@ -152,7 +155,18 @@ export function BoardEmbedShell({
         <p className="mx-3 my-2 text-sm text-[var(--muted)]">Loading board…</p>
       ) : null}
       <div className="flex min-h-0 flex-1 gap-2 p-2 lg:p-3">
+        {elementsPanelOpen && !isActionsActive && editable ? (
+          <div className="dock-surface flex min-h-0 w-[min(14rem,32vw)] shrink-0 overflow-hidden rounded-dock">
+            <ElementPalette
+              onSelectType={() => {}}
+              onHide={() => setElementsPanelOpen(false)}
+            />
+          </div>
+        ) : null}
         <div className="dock-surface relative min-h-0 min-w-0 flex-1 overflow-hidden rounded-dock">
+          {!elementsPanelOpen && !isActionsActive && editable ? (
+            <BoardDockReopenButton side="left" onOpen={() => setElementsPanelOpen(true)} />
+          ) : null}
           {!propertiesPanelOpen ? (
             <BoardDockReopenButton side="right" onOpen={() => setPropertiesPanelOpen(true)} />
           ) : null}

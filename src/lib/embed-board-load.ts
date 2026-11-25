@@ -14,7 +14,7 @@ export function applyEmbedBoardLoadOptions(opts?: EmbedBoardLoadOptions): void {
   const interactionMode = opts?.editable ? "edit" : (opts?.interactionMode ?? "view");
   const store = useStormBoardStore.getState();
   store.setInteractionMode(interactionMode);
-  store.setElementsPanelOpen(false);
+  store.setElementsPanelOpen(opts?.editable === true);
   store.setPropertiesPanelOpen(true);
   setWorkingFilePersistPaused(true);
 }
