@@ -9,6 +9,7 @@ import { BoardSideRail } from "@/components/board-side-rail";
 import { BoundedContextMobileActions } from "@/components/bounded-context-mobile-sheet";
 import { MobileBoardBar } from "@/components/mobile-board-bar";
 import { BoardCanvas } from "@/components/board-canvas";
+import { CanvasContextMenu } from "@/components/canvas-context-menu";
 import { ElementPalette } from "@/components/element-palette";
 import {
   loadEmbedBoardFromPayload,
@@ -193,6 +194,7 @@ export function BoardEmbedShell({
           <BoardSideRail onHide={() => setPropertiesPanelOpen(false)} />
         ) : null}
       </div>
+      <CanvasContextMenu />
       {children}
     </div>
   );
