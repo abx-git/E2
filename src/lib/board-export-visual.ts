@@ -1,3 +1,4 @@
+import { imageHasSource } from "@/lib/board-image";
 import { cardShowsDetails } from "@/lib/card-preview";
 import { cardTypeCaption } from "@/lib/element-styles";
 import { isStackingContainerType } from "@/lib/element-z-order";
@@ -104,6 +105,7 @@ export function elementStrokeWidth(el: Pick<StormElement, "type">): number {
 export function elementIsDashed(el: StormElement): boolean {
   if (el.type === "note" || el.type === "archWhitebox") return true;
   if (el.type === "link" && !el.metadata?.linkUrl && !el.metadata?.linkViewId) return true;
+  if (el.type === "image" && !imageHasSource(el)) return true;
   return false;
 }
 
@@ -128,7 +130,8 @@ export function elementTypeBadgeLabel(
 
 /** Left/top like E2 cards with notes, details, badges, or boundary chrome. */
 export function elementLabelIsCentered(el: StormElement): boolean {
-  if (isNoteLike(el.type) || isBoundaryElement(el) || el.type === "link") return false;
+  if (isNoteLike(el.type) || isBoundaryElement(el) || el.type === "link" || el.type === "image")
+    return false;
   if (elementHasTypeBadge(el) || cardShowsDetails(el)) return false;
   return true;
 }
@@ -138,7 +141,13 @@ export function elementLabelAlign(el: StormElement): "center" | "left" {
 }
 
 export function elementVerticalAlign(el: StormElement): "middle" | "top" {
-  if (isNoteLike(el.type) || isBoundaryElement(el) || cardShowsDetails(el) || elementHasTypeBadge(el)) {
+  if (
+    isNoteLike(el.type) ||
+    isBoundaryElement(el) ||
+    el.type === "image" ||
+    cardShowsDetails(el) ||
+    elementHasTypeBadge(el)
+  ) {
     return "top";
   }
   return "middle";

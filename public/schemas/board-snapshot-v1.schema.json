@@ -197,7 +197,8 @@
         "archBlackbox",
         "archWhitebox",
         "archComponent",
-        "link"
+        "link",
+        "image"
       ]
     },
     "linkKind": {

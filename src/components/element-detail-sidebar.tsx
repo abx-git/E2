@@ -4,6 +4,13 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AlertCircle, ChevronDown, ExternalLink, HelpCircle, Pencil, Trash2 } from "lucide-react";
 
 import { activateBoardLink } from "@/lib/board-link";
+import {
+  clearImageSourcesMetadata,
+  imageHasSource,
+  pickBoardImageFromDisk,
+} from "@/lib/board-image";
+import { useBoardImageSrc } from "@/lib/use-board-image-src";
+import { ImagePreviewDialog } from "@/components/image-preview-dialog";
 import { normalizeCardWebLinks } from "@/lib/card-web-links";
 import { BoundedContextDetailPanel } from "@/components/bounded-context-detail-panel";
 import { CardAppearanceControls } from "@/components/card-appearance-controls";
@@ -256,10 +263,17 @@ export function ElementDetailSidebar({
   const selectedSwimlane = swimlanes.find((lane) => lane.id === selectedSwimlaneId);
   const multiCount = selectedElementIds.length;
   const [descriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const selectedElementId = selectedElement?.id ?? null;
+  const imageHookEl =
+    selectedElement?.type === "image"
+      ? selectedElement
+      : { id: "__image-none__", type: "image" as const, label: "", x: 0, y: 0 };
+  const { src: sidebarImageSrc } = useBoardImageSrc(imageHookEl);
 
   useEffect(() => {
     setDescriptionEditorOpen(false);
+    setImagePreviewOpen(false);
   }, [selectedElementId]);
 
   const issues = useMemo(
@@ -1878,6 +1892,122 @@ export function ElementDetailSidebar({
         </>
       )}
 
+      {selectedElement.type === "image" && (
+        <>
+          <Field label={t("detailSidebar.fields.imagePath")}>
+            <input
+              className="dock-field"
+              placeholder={t("detailSidebar.image.pathPlaceholder")}
+              value={selectedElement.metadata?.imagePath ?? ""}
+              onChange={(e) => {
+                const imagePath = e.target.value;
+                const base = { ...(selectedElement.metadata ?? {}) };
+                delete base.imageUrl;
+                delete base.imageDataBase64;
+                delete base.imageMimeType;
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...base,
+                    imagePath,
+                    imageFit: base.imageFit ?? "cover",
+                  },
+                });
+              }}
+            />
+          </Field>
+          <Field label={t("detailSidebar.fields.imageUrl")}>
+            <input
+              className="dock-field"
+              type="url"
+              placeholder={t("detailSidebar.webLinks.urlPlaceholder")}
+              value={selectedElement.metadata?.imageUrl ?? ""}
+              onChange={(e) => {
+                const imageUrl = e.target.value;
+                const base = { ...(selectedElement.metadata ?? {}) };
+                delete base.imagePath;
+                delete base.imageDataBase64;
+                delete base.imageMimeType;
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...base,
+                    imageUrl,
+                    imageFit: base.imageFit ?? "cover",
+                  },
+                });
+              }}
+            />
+          </Field>
+          <p className="text-[0.68rem] text-[var(--muted)]">{t("detailSidebar.image.embedHint")}</p>
+          {selectedElement.metadata?.imageDataBase64 ? (
+            <p className="text-[0.68rem] text-[var(--muted)]">
+              {t("detailSidebar.fields.imageEmbed")} ({selectedElement.metadata.imageMimeType ?? "image/png"})
+            </p>
+          ) : null}
+          <Field label={t("detailSidebar.fields.imageFit")}>
+            <select
+              className="dock-field"
+              value={selectedElement.metadata?.imageFit ?? "cover"}
+              onChange={(e) =>
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...selectedElement.metadata,
+                    imageFit: e.target.value as "cover" | "contain",
+                  },
+                })
+              }
+            >
+              <option value="cover">Cover</option>
+              <option value="contain">Contain</option>
+            </select>
+          </Field>
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--control)] px-2 py-1.5 text-xs font-medium text-[var(--text)] hover:border-[var(--accent)]"
+              onClick={async () => {
+                const picked = await pickBoardImageFromDisk();
+                if (!picked) return;
+                updateElement(selectedElement.id, {
+                  metadata: {
+                    ...clearImageSourcesMetadata(selectedElement.metadata),
+                    ...picked,
+                    imageFit: selectedElement.metadata?.imageFit ?? "cover",
+                  },
+                });
+              }}
+            >
+              {t("detailSidebar.image.pickFile")}
+            </button>
+            {imageHasSource(selectedElement) ? (
+              <button
+                type="button"
+                className="flex w-full items-center justify-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--control)] px-2 py-1.5 text-xs font-medium text-[var(--text)] hover:border-[var(--accent)]"
+                disabled={!sidebarImageSrc}
+                onClick={() => sidebarImageSrc && setImagePreviewOpen(true)}
+              >
+                {t("detailSidebar.image.openPreview")}
+              </button>
+            ) : null}
+            {imageHasSource(selectedElement) ? (
+              <button
+                type="button"
+                className="text-[0.68rem] text-[var(--muted)] underline hover:text-[var(--text)]"
+                onClick={() =>
+                  updateElement(selectedElement.id, {
+                    metadata: {
+                      ...selectedElement.metadata,
+                      ...clearImageSourcesMetadata(selectedElement.metadata),
+                    },
+                  })
+                }
+              >
+                {t("detailSidebar.image.clearSource")}
+              </button>
+            ) : null}
+          </div>
+        </>
+      )}
+
       {issues.map((issue) => (
         <div
           key={issue.id}
@@ -1889,6 +2019,14 @@ export function ElementDetailSidebar({
       ))}
 
       <p className="text-[0.7rem] text-[var(--muted)]">{t("detailSidebar.moreViaContextMenu")}</p>
+      {selectedElement?.type === "image" ? (
+        <ImagePreviewDialog
+          open={imagePreviewOpen}
+          title={selectedElement.label}
+          src={sidebarImageSrc}
+          onClose={() => setImagePreviewOpen(false)}
+        />
+      ) : null}
     </DockPanel>
   );
 }

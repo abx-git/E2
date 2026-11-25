@@ -1043,6 +1043,7 @@ export function getAllowedTypesForPhase(
   // Notes / instructions stay available for facilitation commentary.
   allowed.add("note");
   allowed.add("instruction");
+  allowed.add("image");
   allowed.add("swimlane");
   allowed.add("boundedContext");
   // Keep catalog order so newly unlocked types appear below existing ones.

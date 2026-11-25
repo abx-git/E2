@@ -674,7 +674,9 @@ function createElement(
                       : type === "dataAssociation"
                         ? { dataCardinality: "1:n" }
                         : type === "link"
-                            ? { linkKind: "external" }
+                          ? { linkKind: "external" }
+                          : type === "image"
+                            ? { imageFit: "cover" }
                             : undefined,
   };
 }

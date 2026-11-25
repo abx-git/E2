@@ -72,6 +72,8 @@ export type ElementType =
   | "cloudManagedService"
   /** Shared: external URL or board view */
   | "link"
+  /** Shared: screenshot or graphic (relative file, URL, or embedded base64). */
+  | "image"
   /** Freeform: user-defined card type (stereotype); see metadata.customTypeId */
   | "customCard"
   /** Layout region (palette): horizontal band grouping stickies. */
@@ -254,6 +256,17 @@ export interface ElementMetadata {
   linkUrl?: string;
   /** Link (view): ID einer Board-Sicht. */
   linkViewId?: string;
+
+  /** Image: path relative to the board `.e2.json` file (sibling folder on disk). */
+  imagePath?: string;
+  /** Image: absolute http(s) URL (when not using a local relative file). */
+  imageUrl?: string;
+  /** Image: raw base64 payload (no `data:` prefix) for portable snapshots / collab. */
+  imageDataBase64?: string;
+  /** MIME type for `imageDataBase64` (default `image/png`). */
+  imageMimeType?: string;
+  /** How the thumbnail fills the element box. */
+  imageFit?: "cover" | "contain";
   /** Optional web links on any sticky (docs, tickets, specs). */
   webLinks?: CardWebLink[];
 
@@ -468,7 +481,13 @@ export const MODELING_MODES: ModelingMode[] = [
 ];
 
 /** Shared annotation types. */
-export const SHARED_ELEMENT_TYPES: ElementType[] = ["note", "instruction", "hotspot", "link"];
+export const SHARED_ELEMENT_TYPES: ElementType[] = [
+  "note",
+  "instruction",
+  "hotspot",
+  "link",
+  "image",
+];
 
 /** Layout regions available in every diagram (palette annotations). */
 export const LAYOUT_REGION_ELEMENT_TYPES: ElementType[] = ["swimlane", "boundedContext"];

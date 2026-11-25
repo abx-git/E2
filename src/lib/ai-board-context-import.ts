@@ -202,6 +202,7 @@ export function layoutYOffsetForType(type: ElementType): number {
     case "question":
     case "example":
     case "link":
+    case "image":
     case "subdomain":
     case "dataAssociation":
     case "userStory":

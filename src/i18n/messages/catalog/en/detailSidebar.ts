@@ -75,6 +75,20 @@ export const detailSidebarEn = {
       url: "URL",
       view: "View",
       linkedView: "Linked view",
+      imagePath: "Relative file (beside board JSON)",
+      imageUrl: "Image URL",
+      imageFit: "Fit in frame",
+      imageEmbed: "Embedded image (Base64)",
+    },
+
+    image: {
+      pickFile: "Choose image file…",
+      embedHint: "Stores data inside JSON — good for collab and git.",
+      clearSource: "Clear image source",
+      openPreview: "Open full image",
+      loading: "Loading…",
+      noSource: "No image configured",
+      pathPlaceholder: "e.g. assets/screen.png",
     },
 
     linkedView: {

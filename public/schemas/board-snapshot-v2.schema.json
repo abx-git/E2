@@ -167,6 +167,7 @@
         "cloudEdge",
         "cloudManagedService",
         "link",
+        "image",
         "customCard"
       ]
     },
@@ -491,6 +492,27 @@
         "linkViewId": {
           "type": "string",
           "description": "Link (view): ID einer Board-Sicht."
+        },
+        "imagePath": {
+          "type": "string",
+          "description": "Image: relativer Pfad neben der Board-JSON-Datei."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Image: absolute http(s)-URL."
+        },
+        "imageDataBase64": {
+          "type": "string",
+          "description": "Image: eingebettete Base64-Daten (ohne data:-Präfix)."
+        },
+        "imageMimeType": {
+          "type": "string",
+          "description": "MIME-Typ für imageDataBase64."
+        },
+        "imageFit": {
+          "type": "string",
+          "enum": ["cover", "contain"],
+          "description": "Darstellung im Elementrahmen."
         },
         "c4Technology": {
           "type": "string",

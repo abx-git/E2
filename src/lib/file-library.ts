@@ -371,6 +371,12 @@ async function readLibraryDocumentFromFile(): Promise<FileLibraryDocument | null
   }
 }
 
+export async function relativeLibraryPathForHandle(
+  handle: FileSystemFileHandle,
+): Promise<string> {
+  return relativePathForHandle(handle);
+}
+
 async function relativePathForHandle(handle: FileSystemFileHandle): Promise<string> {
   if (cachedRelativePath && (await handlesAreSame(cachedRelativePath.handle, handle))) {
     return cachedRelativePath.path;

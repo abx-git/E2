@@ -87,6 +87,7 @@ const METADATA_KEYS_BY_TYPE: Partial<Record<ElementType, (keyof ElementMetadata)
   c4Component: ["c4Technology"],
   archComponent: ["c4Technology"],
   link: ["linkKind", "linkUrl", "linkViewId"],
+  image: ["imagePath", "imageUrl", "imageDataBase64", "imageMimeType", "imageFit"],
   swimlane: [...REGION_APPEARANCE_METADATA_KEYS],
   boundedContext: [...REGION_APPEARANCE_METADATA_KEYS],
 };

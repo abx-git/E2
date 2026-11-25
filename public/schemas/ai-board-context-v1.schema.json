@@ -158,7 +158,8 @@
         "cloudIdentity",
         "cloudManagedService",
         "customCard",
-        "link"
+        "link",
+        "image"
       ]
     },
     "relationType": {

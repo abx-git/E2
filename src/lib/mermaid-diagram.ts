@@ -140,7 +140,14 @@ function exportClassDiagram(ctx: AiBoardContext): string {
   const idMap = new Map<string, string>();
 
   for (const el of view.elements) {
-    if (el.type === "note" || el.type === "instruction" || el.type === "hotspot" || el.type === "link") continue;
+    if (
+      el.type === "note" ||
+      el.type === "instruction" ||
+      el.type === "hotspot" ||
+      el.type === "link" ||
+      el.type === "image"
+    )
+      continue;
     const id = diagramSafeId(el.id, "C");
     idMap.set(el.id, id);
     lines.push(`  class ${id}["${escapeDiagramLabel(el.label)}"]`);

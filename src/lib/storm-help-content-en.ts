@@ -130,6 +130,21 @@ export const ELEMENT_HELP_EN: Record<ElementType, HelpDialogModel> = {
       "Relation “annotates” to other stickies is supported",
     ],
   },
+  image: {
+    title: "Image",
+    subtitle: "Screenshot or graphic — thumbnail on the board, full size on click",
+    paragraphs: [
+      "Shows a raster graphic inside the element frame. Click the preview to open the full image.",
+      "Sources: file path next to the board JSON, https URL, or embedded Base64 for portable snapshots.",
+    ],
+    bullets: [
+      "Relative path: e.g. `assets/screen.png` beside `board.e2.json` on disk",
+      "URL: works for remote boards loaded via `?board=` without a local folder",
+      "Embedded: paste or pick a file — stored in JSON for collab / git",
+      "Resize the frame; fit Cover or Contain in the detail panel",
+      "Relation “annotates” supported",
+    ],
+  },
   pivotalEvent: {
     title: "Pivotal Event",
     subtitle: "Yellow long block — “Phase change”",

@@ -130,6 +130,21 @@ export const ELEMENT_HELP_DE: Record<ElementType, HelpDialogModel> = {
       "Relation „annotiert“ zu anderen Stickies möglich",
     ],
   },
+  image: {
+    title: "Bild",
+    subtitle: "Screenshot oder Grafik — Vorschau in Elementgröße, Vollbild per Klick",
+    paragraphs: [
+      "Zeigt eine Rastergrafik im Elementrahmen. Klick auf die Vorschau öffnet das volle Bild.",
+      "Quellen: relativer Pfad neben der Board-JSON, https-URL oder eingebettetes Base64 für portable Snapshots.",
+    ],
+    bullets: [
+      "Relativer Pfad: z. B. `assets/screen.png` neben `board.e2.json` auf der Platte",
+      "URL: für Remote-Boards über `?board=` ohne lokalen Ordner",
+      "Eingebettet: Datei wählen oder einfügen — landet in der JSON (Kollab / Git)",
+      "Rahmen skalieren; Fit „Cover“ oder „Contain“ in der Detailleiste",
+      "Relation „annotiert“ möglich",
+    ],
+  },
   pivotalEvent: {
     title: "Pivotal Event",
     subtitle: "Gelber Langblock — „Phasenwechsel“",

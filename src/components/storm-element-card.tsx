@@ -1,13 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Clock, ExternalLink, Info, LayoutDashboard, Link2, RotateCcw, RotateCw } from "lucide-react";
+import {
+  ArrowRight,
+  Clock,
+  ExternalLink,
+  ImageIcon,
+  Info,
+  LayoutDashboard,
+  Link2,
+  RotateCcw,
+  RotateCw,
+} from "lucide-react";
 
 import { ProgressMarkBadge } from "@/components/progress-mark-badge";
 import { DescriptionEditorDialog } from "@/components/description-editor-dialog";
 import { DescriptionMarkdownContent } from "@/components/description-markdown-content";
 import { isPointerOverClipboardDrop } from "@/lib/board-clipboard";
 import { activateBoardLink, linkDestinationPreview, linkHasTarget } from "@/lib/board-link";
+import { imageFitStyle, imageHasSource } from "@/lib/board-image";
+import { useBoardImageSrc } from "@/lib/use-board-image-src";
+import { ImagePreviewDialog } from "@/components/image-preview-dialog";
 import { resolveBuildingBlockViewNavigation } from "@/lib/building-block-view";
 import { resolveElementLinkedView } from "@/lib/view-navigation";
 import {
@@ -136,6 +149,7 @@ export function StormElementCard({
   const isNote = element.type === "note";
   const isInstruction = element.type === "instruction";
   const isLink = element.type === "link";
+  const isImage = element.type === "image";
   const isAggregate = element.type === "aggregate";
   const isSubdomain = element.type === "subdomain";
   const isWhitebox = element.type === "archWhitebox";
@@ -153,6 +167,9 @@ export function StormElementCard({
   const typeCaption = elementCardTypeCaption(t, element, customCardTypes);
   const noteLike = isNoteLike(element.type);
   const linkReady = isLink && linkHasTarget(element);
+  const imageReady = isImage && imageHasSource(element);
+  const { src: imageSrc, loading: imageLoading } = useBoardImageSrc(element);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const linkKind = element.metadata?.linkKind ?? "external";
   const noteColors = isNote ? resolveNoteColor(element.metadata?.noteColor) : null;
   const cardPaint = resolveCardPaint(element, style, noteColors);
@@ -713,6 +730,10 @@ export function StormElementCard({
           if (!result.ok) window.alert(result.reason);
           return;
         }
+        if (isImage && imageSrc) {
+          setImagePreviewOpen(true);
+          return;
+        }
         beginEdit();
       }}
       onContextMenu={(e) => {
@@ -728,6 +749,8 @@ export function StormElementCard({
           noteCompactCollapsed ? "items-center justify-center px-0 py-0" : "",
           isLink && !editing
             ? "flex-row items-center gap-2 overflow-hidden"
+            : isImage && !editing
+              ? "flex-col items-stretch justify-start gap-1 overflow-hidden p-1"
             : showDetails || noteLike || isBoundary || (isLink && editing)
               ? "flex-col items-stretch justify-start gap-0.5 overflow-x-hidden overflow-y-auto"
               : "flex-col items-center justify-center",
@@ -753,7 +776,13 @@ export function StormElementCard({
           borderColor: regionPaint ? regionPaint.borderColor : colors.border,
           color: cardInk,
           borderStyle:
-            isNote || isWhitebox || isLayoutRegion || (isLink && !linkReady) ? "dashed" : undefined,
+            isNote ||
+            isWhitebox ||
+            isLayoutRegion ||
+            (isLink && !linkReady) ||
+            (isImage && !imageReady)
+              ? "dashed"
+              : undefined,
           borderLeftWidth: isInstruction ? 4 : undefined,
         }}
         title={
@@ -773,6 +802,12 @@ export function StormElementCard({
                       ? t("panels.openViewDblClick", { suffix: linkPreview ? `: ${linkPreview}` : "" })
                       : t("panels.openLinkDblClick", { suffix: linkPreview ? `: ${linkPreview}` : "" })
                     : t("panels.cardSetLinkTarget")
+                  : isImage
+                    ? imageSrc
+                      ? t("detailSidebar.image.openPreview")
+                      : imageReady
+                        ? t("detailSidebar.image.loading")
+                        : t("detailSidebar.image.noSource")
                   : isAggregate
                   ? t("panels.cardAggregateHint")
                   : isSubdomain
@@ -826,7 +861,45 @@ export function StormElementCard({
         {element.metadata?.progressMark ? (
           <ProgressMarkBadge mark={element.metadata.progressMark} />
         ) : null}
-        {isLink && !editing ? (
+        {isImage && !editing ? (
+          <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+            <span className={[typeCaptionClass, "px-0.5"].join(" ")}>{typeCaption}</span>
+            <button
+              type="button"
+              className={[
+                "relative mt-0.5 min-h-[3rem] w-full flex-1 overflow-hidden rounded-md border border-black/10 bg-black/5",
+                imageSrc ? "cursor-zoom-in hover:ring-2 hover:ring-[var(--accent)]/40" : "cursor-default",
+              ].join(" ")}
+              disabled={!imageSrc}
+              title={imageSrc ? t("detailSidebar.image.openPreview") : undefined}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                if (imageSrc) setImagePreviewOpen(true);
+              }}
+            >
+              {imageSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={imageSrc}
+                  alt={element.label}
+                  className="h-full w-full"
+                  style={{ objectFit: imageFitStyle(element.metadata?.imageFit) }}
+                  draggable={false}
+                />
+              ) : (
+                <div className="flex h-full w-full flex-col items-center justify-center gap-1 px-2 text-[0.62rem] opacity-60">
+                  <ImageIcon className="h-5 w-5" aria-hidden />
+                  <span>{imageLoading ? t("detailSidebar.image.loading") : t("detailSidebar.image.noSource")}</span>
+                </div>
+              )}
+            </button>
+            <span className="truncate px-0.5 text-left text-[0.62rem] font-semibold leading-tight">
+              {element.label}
+            </span>
+          </div>
+        ) : isLink && !editing ? (
           <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
             <span className={typeCaptionClass}>{typeCaption}</span>
             <div className="mt-0.5 flex min-h-0 flex-1 flex-row items-center gap-2 overflow-hidden">
@@ -1166,6 +1239,12 @@ export function StormElementCard({
         markdown={element.description ?? ""}
         onClose={() => setDescriptionEditorOpen(false)}
         onSave={(md) => updateElement(element.id, { description: md })}
+      />
+      <ImagePreviewDialog
+        open={imagePreviewOpen}
+        title={element.label}
+        src={imageSrc}
+        onClose={() => setImagePreviewOpen(false)}
       />
     </div>
   );
