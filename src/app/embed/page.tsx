@@ -1,13 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 
-import { BoardEmbedShell } from "@/components/board-embed-shell";
 import {
   readBoardAutoLoadFromSearch,
   readBoardUrlFromSearch,
 } from "@/lib/board-remote-url";
-import { createEmbedHostBridge } from "@/lib/embed-host-bridge";
 import {
   EMBED_LOAD_MESSAGE,
   EMBED_READY_MESSAGE,
@@ -17,6 +16,14 @@ import {
   isEmbedHostedInParentWindow,
   readParentOriginsFromSearch,
 } from "@/lib/embed-host-origin";
+
+const BoardEmbedShell = dynamic(
+  () => import("@/components/board-embed-shell").then((m) => m.BoardEmbedShell),
+  {
+    ssr: false,
+    loading: () => <div className="h-dvh w-full bg-background" aria-busy="true" />,
+  },
+);
 
 export default function EmbedPage() {
   const [documentText, setDocumentText] = useState<string | undefined>();
@@ -46,16 +53,22 @@ export default function EmbedPage() {
     setHostManaged(hosted);
 
     if (hosted) {
-      const bridge = createEmbedHostBridge({ allowedParentOrigins });
+      let disposed = false;
+      let bridge: import("@/lib/embed-host-bridge").EmbedHostBridge | null = null;
       const onMessage = (event: MessageEvent) => {
         if (!isAllowedEmbedHostOrigin(event.origin, allowedParentOrigins)) return;
-        bridge.handleMessage(event);
+        bridge?.handleMessage(event);
       };
       window.addEventListener("message", onMessage);
-      bridge.postReady();
+      void import("@/lib/embed-host-bridge").then(({ createEmbedHostBridge }) => {
+        if (disposed) return;
+        bridge = createEmbedHostBridge({ allowedParentOrigins });
+        bridge.postReady();
+      });
       return () => {
+        disposed = true;
         window.removeEventListener("message", onMessage);
-        bridge.dispose();
+        bridge?.dispose();
       };
     }
 
