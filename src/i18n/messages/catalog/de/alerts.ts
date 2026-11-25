@@ -13,6 +13,11 @@ export const alertsDe = {
     elementAttributesPasteNoClipboard: "Keine kopierten Kartenattribute.",
     elementAttributesPasteNoTarget: "Zielkarte wählen (genau ein Element).",
     elementAttributesPasteSameElement: "Attribute können nicht auf dieselbe Karte eingefügt werden.",
+    elementStyleCopyEmpty:
+      "Nichts zu kopieren — zuerst Füllung, Rahmen oder Notizfarbe setzen.",
+    elementStylePasteNoClipboard: "Kein kopierter Stil — zuerst „Stil kopieren“.",
+    elementStylePasteSameElement: "Stil kann nicht auf dasselbe Element eingefügt werden.",
+    elementStylePasteIncompatible: "Dieser Stil passt nicht zum gewählten Element.",
     aiContextExportFailed: "KI-Paket konnte nicht exportiert werden.",
     aiContextClipboardFailed:
       "KI-Paket konnte nicht in die Zwischenablage kopiert werden. Bitte Browser-Berechtigung prüfen.",

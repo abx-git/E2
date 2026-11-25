@@ -23,6 +23,7 @@ import {
   RotateCcw,
   LayoutDashboard,
   Lock,
+  Paintbrush,
   RotateCw,
   SendToBack,
   StretchHorizontal,
@@ -43,6 +44,11 @@ import {
   runElementAttributeCopy,
   runElementAttributePaste,
 } from "@/lib/element-attribute-clipboard-ui";
+import {
+  elementStylePasteEnabled,
+  runElementStyleCopy,
+  runElementStylePaste,
+} from "@/lib/element-style-clipboard-ui";
 import { useIsMobileLayout } from "@/lib/use-media-query";
 import {
   effectiveElementRotation,
@@ -193,6 +199,8 @@ export function CanvasContextMenu({
   const elementAttributeClipboardSourceId = useStormBoardStore(
     (s) => s.elementAttributeClipboardSourceId,
   );
+  const elementStyleClipboard = useStormBoardStore((s) => s.elementStyleClipboard);
+  const elementStyleClipboardSourceId = useStormBoardStore((s) => s.elementStyleClipboardSourceId);
   const addMeasureFromHotspot = useStormBoardStore((s) => s.addMeasureFromHotspot);
   const setHotspotBacklogHidden = useStormBoardStore((s) => s.setHotspotMeasuresBacklogHidden);
   const linkMeasureToHotspot = useStormBoardStore((s) => s.linkMeasureToCanvasHotspot);
@@ -772,6 +780,40 @@ export function CanvasContextMenu({
             }
           />
         ) : null}
+        <Item
+          icon={Paintbrush}
+          label={t("contextMenu.copyElementStyle")}
+          onClick={() =>
+            run(() => {
+              if (!runElementStyleCopy(el.id)) {
+                window.alert(t("alerts.elementStyleCopyEmpty"));
+              }
+            })
+          }
+        />
+        {elementStyleClipboard ? (
+          <Item
+            icon={Paintbrush}
+            label={t("contextMenu.pasteElementStyle")}
+            disabled={
+              elementStyleClipboardSourceId === el.id || !elementStylePasteEnabled(el.id)
+            }
+            onClick={() =>
+              run(() => {
+                const outcome = runElementStylePaste(t, el.id);
+                if (outcome.status === "error") {
+                  if (outcome.reason === "no_clipboard") {
+                    window.alert(t("alerts.elementStylePasteNoClipboard"));
+                  } else if (outcome.reason === "same_element") {
+                    window.alert(t("alerts.elementStylePasteSameElement"));
+                  } else if (outcome.reason === "incompatible") {
+                    window.alert(t("alerts.elementStylePasteIncompatible"));
+                  }
+                }
+              })
+            }
+          />
+        ) : null}
         {renderE2vAiMenu()}
         <Item
           icon={ClipboardCopy}
@@ -975,6 +1017,42 @@ export function CanvasContextMenu({
                         window.alert(t("alerts.elementAttributesPasteNoClipboard"));
                       } else if (outcome.reason === "same_element") {
                         window.alert(t("alerts.elementAttributesPasteSameElement"));
+                      }
+                    }
+                  })
+                }
+              />
+            ) : null}
+            <Item
+              icon={Paintbrush}
+              label={t("contextMenu.copyElementStyle")}
+              onClick={() =>
+                run(() => {
+                  const id = target.ids[0]!;
+                  if (!runElementStyleCopy(id)) {
+                    window.alert(t("alerts.elementStyleCopyEmpty"));
+                  }
+                })
+              }
+            />
+            {elementStyleClipboard ? (
+              <Item
+                icon={Paintbrush}
+                label={t("contextMenu.pasteElementStyle")}
+                disabled={
+                  elementStyleClipboardSourceId === target.ids[0] ||
+                  !elementStylePasteEnabled(target.ids[0]!)
+                }
+                onClick={() =>
+                  run(() => {
+                    const outcome = runElementStylePaste(t, target.ids[0]!);
+                    if (outcome.status === "error") {
+                      if (outcome.reason === "no_clipboard") {
+                        window.alert(t("alerts.elementStylePasteNoClipboard"));
+                      } else if (outcome.reason === "same_element") {
+                        window.alert(t("alerts.elementStylePasteSameElement"));
+                      } else if (outcome.reason === "incompatible") {
+                        window.alert(t("alerts.elementStylePasteIncompatible"));
                       }
                     }
                   })

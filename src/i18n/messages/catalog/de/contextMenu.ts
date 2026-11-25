@@ -88,6 +88,8 @@ export const contextMenuDe = {
     pasteElementAttributes: "Attribute einfügen",
     copyElementAttributesHint: "⌘⇧C / Strg+⇧C",
     pasteElementAttributesHint: "⌘⇧V / Strg+⇧V",
+    copyElementStyle: "Stil kopieren",
+    pasteElementStyle: "Stil einfügen",
     align: "Ausrichten",
     alignMultiSubtitle: "Ausrichten & bearbeiten",
     multiElementsHeader: "{n} Elemente",

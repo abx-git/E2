@@ -60,6 +60,11 @@ import {
   planLayoutRegionAppearancePaste,
 } from "@/lib/region-appearance-clipboard";
 import {
+  buildElementStyleClipboard,
+  planElementStylePaste,
+  type ElementStyleClipboard,
+} from "@/lib/element-style-clipboard";
+import {
   bringElementsForward as computeBringForward,
   bringElementsToFront as computeBringToFront,
   bringForward as computeBringRegionsForward,
@@ -283,6 +288,9 @@ export interface StormBoardState {
   /** Copied label, description, metadata, and source type for attribute paste (not persisted). */
   elementAttributeClipboard: ElementAttributeClipboard | null;
   elementAttributeClipboardSourceId: string | null;
+  /** Copied fill/border/note/region paint (not persisted). */
+  elementStyleClipboard: ElementStyleClipboard | null;
+  elementStyleClipboardSourceId: string | null;
   /** Pick a canvas hotspot to link the open measure (ephemeral). */
   measureHotspotLinkPick: { actionsViewId: string; measureId: string } | null;
   /** Brief highlight after linking a hotspot to a measure (ephemeral). */
@@ -357,6 +365,9 @@ export interface StormBoardState {
   copyElementAttributes: (elementId: string) => boolean;
   getElementAttributePastePlan: (targetId: string) => ElementAttributePastePlan | null;
   applyElementAttributePaste: (targetId: string, plan: ElementAttributePastePlan) => void;
+  copyElementStyle: (elementId: string) => boolean;
+  getElementStylePastePlan: (targetId: string) => ElementAttributePastePlan | null;
+  applyElementStylePaste: (targetId: string, plan: ElementAttributePastePlan) => void;
   selectElement: (id: string | null, additive?: boolean) => void;
   setSelectedElementIds: (ids: string[], additive?: boolean) => void;
   /** Marquee / multi-select including regions. */
@@ -825,6 +836,8 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
   clipboardDropHighlight: false,
   elementAttributeClipboard: null,
   elementAttributeClipboardSourceId: null,
+  elementStyleClipboard: null,
+  elementStyleClipboardSourceId: null,
   measureHotspotLinkPick: null,
   measureHotspotLinkHighlight: null,
   e2vAiExtractScope: null,
@@ -1257,6 +1270,40 @@ export const useStormBoardStore = create<StormBoardState>((set, get) => ({
         if ("description" in plan.patch) next.description = plan.patch.description;
         if (plan.patch.metadata !== undefined) next.metadata = plan.patch.metadata;
         return next;
+      });
+      const target = elements.find((e) => e.id === targetId);
+      if (target?.type === "swimlane" || target?.type === "boundedContext") {
+        return withSyncedRegions(elements);
+      }
+      return { elements: settleElements(elements, s.swimlanes, s.boundedContexts) };
+    });
+  },
+
+  copyElementStyle: (elementId) => {
+    const el = get().elements.find((e) => e.id === elementId);
+    if (!el) return false;
+    const clip = buildElementStyleClipboard(el);
+    if (!clip) return false;
+    set({
+      elementStyleClipboard: clip,
+      elementStyleClipboardSourceId: elementId,
+    });
+    return true;
+  },
+
+  getElementStylePastePlan: (targetId) => {
+    const clip = get().elementStyleClipboard;
+    if (!clip) return null;
+    const target = get().elements.find((e) => e.id === targetId);
+    if (!target) return null;
+    return planElementStylePaste(target, clip);
+  },
+
+  applyElementStylePaste: (targetId, plan) => {
+    commit(set, get, (s) => {
+      const elements = s.elements.map((e) => {
+        if (e.id !== targetId) return e;
+        return { ...e, metadata: plan.patch.metadata };
       });
       const target = elements.find((e) => e.id === targetId);
       if (target?.type === "swimlane" || target?.type === "boundedContext") {

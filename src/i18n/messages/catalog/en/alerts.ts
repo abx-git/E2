@@ -13,6 +13,10 @@ export const alertsEn = {
     elementAttributesPasteNoClipboard: "No copied card attributes.",
     elementAttributesPasteNoTarget: "Select a target card (exactly one element).",
     elementAttributesPasteSameElement: "Cannot paste attributes onto the same card.",
+    elementStyleCopyEmpty: "Nothing to copy — set fill, border, or note color first.",
+    elementStylePasteNoClipboard: "No copied style — use “Copy style” first.",
+    elementStylePasteSameElement: "Cannot paste style onto the same element.",
+    elementStylePasteIncompatible: "This style cannot be applied to the selected element.",
     aiContextExportFailed: "Could not export AI package.",
     aiContextClipboardFailed:
       "Could not copy the AI package to the clipboard. Check browser permissions.",

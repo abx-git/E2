@@ -88,6 +88,8 @@ export const contextMenuEn = {
     pasteElementAttributes: "Paste attributes",
     copyElementAttributesHint: "⌘⇧C / Ctrl+⇧C",
     pasteElementAttributesHint: "⌘⇧V / Ctrl+⇧V",
+    copyElementStyle: "Copy style",
+    pasteElementStyle: "Paste style",
     align: "Align",
     alignMultiSubtitle: "Align & edit",
     multiElementsHeader: "{n} elements",
