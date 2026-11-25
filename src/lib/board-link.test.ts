@@ -8,7 +8,7 @@ import {
 } from "@/lib/board-link";
 import type { StormElement } from "@/types/storm-element";
 
-vi.mock("@/store/storm-board-store", () => {
+vi.mock("@/lib/storm-board-store-runtime", () => {
   const state = {
     views: [
       { id: "v1", name: "Board" },
@@ -19,10 +19,12 @@ vi.mock("@/store/storm-board-store", () => {
       state.activeViewId = id;
     }),
   };
+  const useStormBoardStore = Object.assign(() => state, {
+    getState: () => state,
+  });
   return {
-    useStormBoardStore: Object.assign(() => state, {
-      getState: () => state,
-    }),
+    getUseStormBoardStore: () => useStormBoardStore,
+    getStormBoardState: () => state,
   };
 });
 
@@ -83,7 +85,7 @@ describe("board-link", () => {
   });
 
   it("switches board views", async () => {
-    const { useStormBoardStore } = await import("@/store/storm-board-store");
+    const { getUseStormBoardStore } = await import("@/lib/storm-board-store-runtime");
     const result = activateBoardLink(linkEl({ linkKind: "view", linkViewId: "v2" }));
     expect(result).toEqual({
       ok: true,
@@ -91,7 +93,7 @@ describe("board-link", () => {
       viewId: "v2",
       viewName: "Prozess",
     });
-    expect(useStormBoardStore.getState().setActiveView).toHaveBeenCalledWith("v2", {
+    expect(getUseStormBoardStore().getState().setActiveView).toHaveBeenCalledWith("v2", {
       viaNavigationLink: true,
     });
   });

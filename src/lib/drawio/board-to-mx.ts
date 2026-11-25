@@ -213,9 +213,10 @@ function mxHtmlValue(html: string): string {
   return escapeXml(html);
 }
 
-const MX_FONT = {
-  fontFamily: EXPORT_FONT_FAMILY,
-};
+/** Deferred — `EXPORT_FONT_FAMILY` must not be read at module init (export ↔ draw.io cycle). */
+function mxFontStyle(): { fontFamily: string } {
+  return { fontFamily: EXPORT_FONT_FAMILY };
+}
 
 /** draw.io `absoluteArcSize`: arcSize is divided by 2, so store diameter in px. */
 function mxAbsoluteArcSize(radiusPx: number): number {
@@ -303,7 +304,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
         fontColor: SWIMLANE_LABEL_FILL,
         fontSize: REGION_LABEL_FONT_PX,
         fontStyle: 1,
-        ...MX_FONT,
+        ...mxFontStyle(),
       });
       mxPushVertex(cells, mxCellId("lane", lane.id), mxHtmlText(lane.label), style, x, y, w, h);
     } else {
@@ -327,7 +328,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
         fontColor: BC_LABEL_FILL,
         fontSize: REGION_LABEL_FONT_PX,
         fontStyle: 1,
-        ...MX_FONT,
+        ...mxFontStyle(),
       });
       mxPushVertex(
         cells,
@@ -357,7 +358,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
       fontColor: TIMELINE_STROKE,
       fontSize: 10,
       fontStyle: 0,
-      ...MX_FONT,
+      ...mxFontStyle(),
     });
     const timelineLabel = state.timeline.startLabel
       ? `Timeline · ${state.timeline.startLabel} → ${state.timeline.endLabel ?? "Ende"}`
@@ -373,7 +374,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
   }
 
   cells.push(
-    ...drawioExportConnectorCells(state, bounds, mxCellId, mxStyle, mxHtmlValue, mxHtmlText, MX_FONT),
+    ...drawioExportConnectorCells(state, bounds, mxCellId, mxStyle, mxHtmlValue, mxHtmlText, mxFontStyle()),
   );
 
   for (const el of sortElementsByZOrder(exportStickyElements(state.elements))) {
@@ -411,7 +412,7 @@ export function buildDrawioMxFile(state: BoardActiveSlice | BoardExportSlice, bo
       dashed: elementIsDashed(el) ? 1 : undefined,
       dashPattern: elementIsDashed(el) ? "4 3" : undefined,
       rotation: elementExportRotation(el) || undefined,
-      ...MX_FONT,
+      ...mxFontStyle(),
     });
     mxPushVertex(
       cells,

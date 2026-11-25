@@ -1,6 +1,6 @@
 import { localeT } from "@/lib/locale-t";
 import type { StormElement } from "@/types/storm-element";
-import { useStormBoardStore } from "@/store/storm-board-store";
+import { getStormBoardState } from "@/lib/storm-board-store-runtime";
 
 /** Normalize user input into an absolute http(s) URL, or null if empty/invalid. */
 export function normalizeExternalUrl(raw: string | undefined): string | null {
@@ -68,7 +68,7 @@ export function activateBoardLink(el: StormElement): ActivateLinkResult {
   if (kind === "view") {
     const viewId = el.metadata?.linkViewId?.trim();
     if (!viewId) return { ok: false, reason: localeT("alerts.linkNoViewSelected") };
-    const store = useStormBoardStore.getState();
+    const store = getStormBoardState();
     const view = store.views.find((v) => v.id === viewId);
     if (!view) return { ok: false, reason: localeT("alerts.linkViewNotFound") };
     if (store.activeViewId !== viewId) {
