@@ -47,6 +47,7 @@ export const panelsDe = {
     resizeHandle: "Größe ändern ({handle})",
     pickTarget: "Als Ziel wählen (Abbrechen: erneut klicken)",
     pickTargetShort: "Als Ziel wählen",
+    linkHere: "Hier verknüpfen",
     openContextMenu: "Kontextmenü öffnen",
     actionItemsTitle: "To-dos & Problemfelder",
     actionItemsOpenCount: "{n} offen",

@@ -1222,18 +1222,38 @@ export function StormElementCard({
             connecting
               ? "border-[var(--accent-2)] bg-[#1e3a36] text-[var(--accent-2)] hover:bg-[#244840]"
               : isRelationTargetHint
-                ? "border-[var(--accent-2)]/60 bg-[var(--control)] text-[var(--accent-2)]"
+                ? "cursor-pointer border-[var(--accent)] bg-[var(--accent)] text-white hover:bg-[#23867a]"
                 : "border-[var(--border)] bg-[var(--panel-solid)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]",
           ].join(" ")}
-          title={connecting ? t("panels.pickTarget") : t("panels.relationStart")}
-          aria-label={connecting ? t("panels.pickTargetShort") : t("panels.relationStart")}
+          title={
+            isRelationTargetHint
+              ? t("panels.linkHere")
+              : connecting
+                ? t("panels.pickTarget")
+                : t("panels.relationStart")
+          }
+          aria-label={
+            isRelationTargetHint
+              ? t("panels.linkHere")
+              : connecting
+                ? t("panels.pickTargetShort")
+                : t("panels.relationStart")
+          }
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
+            if (isRelationTargetHint) {
+              onCompleteConnect(element.id);
+              return;
+            }
             handleConnectAt();
           }}
         >
-          <ArrowRight className="h-3 w-3" aria-hidden />
+          {isRelationTargetHint ? (
+            <Link2 className="h-3 w-3" aria-hidden />
+          ) : (
+            <ArrowRight className="h-3 w-3" aria-hidden />
+          )}
         </button>
       )}
 
