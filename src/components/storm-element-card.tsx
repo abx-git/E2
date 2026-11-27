@@ -279,6 +279,11 @@ export function StormElementCard({
   const webLinks = element.metadata?.showWebLinksOnCard ? elementWebLinks(element) : [];
   const showDescription = cardShowsDescription(element);
   const isCoarsePointer = useIsCoarsePointer();
+  // Fine pointers: the relation handle shows on hover, and on keyboard focus
+  // (`:focus-visible` only — a mouse click must not pin it open). Touch has no
+  // hover, so keep it while the card is selected or a connect gesture is in progress.
+  const relationHandlePinned =
+    isCoarsePointer && (selected || connecting || relationMode || isRelationTargetHint);
   const linkedMeasureAccent = hotspotLinkedMeasure
     ? ACTION_TYPE_COLORS[hotspotLinkedMeasure.item.actionType]
     : null;
@@ -1211,24 +1216,44 @@ export function StormElementCard({
           className={[
             "absolute right-1.5 top-1.5 z-30 flex items-center justify-center rounded-full border shadow-sm transition-[opacity,colors]",
             isCoarsePointer ? "h-7 w-7" : "h-5 w-5",
-            selected || connecting || relationMode || isRelationTargetHint
+            relationHandlePinned
               ? "opacity-100"
-              : "opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
+              : "pointer-events-none opacity-0 outline-none group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-[var(--accent)]",
             connecting
               ? "border-[var(--accent-2)] bg-[#1e3a36] text-[var(--accent-2)] hover:bg-[#244840]"
               : isRelationTargetHint
-                ? "border-[var(--accent-2)]/60 bg-[var(--control)] text-[var(--accent-2)]"
+                ? "cursor-pointer border-[var(--accent)] bg-[var(--accent)] text-white hover:bg-[#23867a]"
                 : "border-[var(--border)] bg-[var(--panel-solid)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--accent)]",
           ].join(" ")}
-          title={connecting ? t("panels.pickTarget") : t("panels.relationStart")}
-          aria-label={connecting ? t("panels.pickTargetShort") : t("panels.relationStart")}
+          title={
+            isRelationTargetHint
+              ? t("panels.linkHere")
+              : connecting
+                ? t("panels.pickTarget")
+                : t("panels.relationStart")
+          }
+          aria-label={
+            isRelationTargetHint
+              ? t("panels.linkHere")
+              : connecting
+                ? t("panels.pickTargetShort")
+                : t("panels.relationStart")
+          }
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
+            if (isRelationTargetHint) {
+              onCompleteConnect(element.id);
+              return;
+            }
             handleConnectAt();
           }}
         >
-          <ArrowRight className="h-3 w-3" aria-hidden />
+          {isRelationTargetHint ? (
+            <Link2 className="h-3 w-3" aria-hidden />
+          ) : (
+            <ArrowRight className="h-3 w-3" aria-hidden />
+          )}
         </button>
       )}
 

@@ -47,6 +47,7 @@ export const panelsEn = {
     resizeHandle: "Resize ({handle})",
     pickTarget: "Pick as target (cancel: click again)",
     pickTargetShort: "Pick as target",
+    linkHere: "Link here",
     openContextMenu: "Open context menu",
     actionItemsTitle: "To-dos & problem areas",
     actionItemsOpenCount: "{n} open",
